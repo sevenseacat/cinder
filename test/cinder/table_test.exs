@@ -595,6 +595,136 @@ defmodule Cinder.TableTest do
     end
   end
 
+  describe "filtering infrastructure" do
+    test "parses filterable column definitions correctly" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :text,
+            filter_options: [placeholder: "Search titles..."],
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "status",
+            label: "Status",
+            filterable: true,
+            filter_type: :select,
+            filter_options: [options: [{"Active", "active"}, {"Inactive", "inactive"}]],
+            inner_block: fn _item -> "active" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render filter container since we have filterable columns
+      assert html =~ "cinder-filter-container"
+      assert html =~ "🔍 Filters"
+    end
+
+    test "does not render filter container when no filterable columns" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: false,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should not render filter container
+      refute html =~ "cinder-filter-container"
+      refute html =~ "🔍 Filters"
+    end
+
+    test "shows filter count when filters are active" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        filters: %{
+          "title" => %{type: :text, value: "test", operator: :contains}
+        },
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should show active filter count
+      assert html =~ "(1 active)"
+      assert html =~ "Clear All"
+    end
+
+    test "handles columns without filter configuration" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render with default filter configuration
+      assert html =~ "cinder-filter-container"
+      assert html =~ "[Filter for title]"
+    end
+
+    test "supports custom filter functions" do
+      custom_filter_fn = fn query, _filter_config ->
+        query
+      end
+
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "complex_field",
+            label: "Complex Field",
+            filterable: true,
+            filter_fn: custom_filter_fn,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render filterable column with custom filter function
+      assert html =~ "cinder-filter-container"
+      assert html =~ "[Filter for complex_field]"
+    end
+  end
+
   describe "ash integration" do
     test "handles query options" do
       assigns = %{

@@ -33,9 +33,14 @@ defmodule Cinder.Table.LiveComponent do
   def render(assigns) do
     ~H"""
     <div class={[@theme.container_class, "relative"]}>
-      <!-- Filters and Search will go here in later phases -->
+      <!-- Filter Controls -->
       <div class={@theme.controls_class}>
-        <!-- Placeholder for filters and search -->
+        <.filter_controls
+          columns={@columns}
+          filters={@filters}
+          theme={@theme}
+          myself={@myself}
+        />
       </div>
 
       <!-- Main table -->
@@ -125,6 +130,43 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("clear_all_filters", _params, socket) do
+    socket =
+      socket
+      |> assign(:filters, %{})
+      # Reset to first page when filters change
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("update_filter", %{"key" => key, "value" => value, "type" => type}, socket) do
+    current_filters = socket.assigns.filters
+    
+    new_filters = 
+      if value == "" or is_nil(value) do
+        Map.delete(current_filters, key)
+      else
+        Map.put(current_filters, key, %{
+          type: String.to_atom(type),
+          value: value,
+          operator: :contains  # default operator for now
+        })
+      end
+
+    socket =
+      socket
+      |> assign(:filters, new_filters)
+      # Reset to first page when filters change
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    {:noreply, socket}
+  end
+
   # Pagination controls component
   defp pagination_controls(assigns) do
     ~H"""
@@ -187,6 +229,46 @@ defmodule Cinder.Table.LiveComponent do
     """
   end
 
+  # Filter controls component
+  defp filter_controls(assigns) do
+    filterable_columns = Enum.filter(assigns.columns, & &1.filterable)
+    active_filters = Enum.count(assigns.filters)
+    
+    assigns = assign(assigns, :filterable_columns, filterable_columns)
+    assigns = assign(assigns, :active_filters, active_filters)
+    
+    ~H"""
+    <div :if={@filterable_columns != []} class={@theme.filter_container_class}>
+      <div class={@theme.filter_header_class}>
+        <span class={@theme.filter_title_class}>
+          🔍 Filters
+          <span :if={@active_filters > 0} class={@theme.filter_count_class}>
+            ({@active_filters} active)
+          </span>
+        </span>
+        <button
+          :if={@active_filters > 0}
+          phx-click="clear_all_filters"
+          phx-target={@myself}
+          class={@theme.filter_clear_all_class}
+        >
+          Clear All
+        </button>
+      </div>
+      
+      <div class={@theme.filter_inputs_class}>
+        <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class}>
+          <label class={@theme.filter_label_class}>{column.label}:</label>
+          <!-- Specific filter inputs will be implemented in Phase 4.2 -->
+          <div class={@theme.filter_placeholder_class}>
+            [Filter for {column.key}]
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   # Simple heroicon component
   defp icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
@@ -205,7 +287,7 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:loading, false)
     |> assign(:data, [])
     |> assign(:sort_by, [])
-    |> assign(:filters, %{})
+    |> assign(:filters, assigns[:filters] || %{})
     |> assign(:search_term, "")
     |> assign(:theme, merge_theme(assigns[:theme] || %{}))
     |> assign(:query_opts, assigns[:query_opts] || [])
@@ -233,6 +315,7 @@ defmodule Cinder.Table.LiveComponent do
       page_size: page_size,
       current_page: current_page,
       sort_by: sort_by,
+      filters: filters,
       columns: columns
     } = socket.assigns
 
@@ -243,16 +326,18 @@ defmodule Cinder.Table.LiveComponent do
     page_size_var = page_size
     current_page_var = current_page
     sort_by_var = sort_by
+    filters_var = filters
     columns_var = columns
 
     socket
     |> assign(:loading, true)
     |> start_async(:load_data, fn ->
-      # Build the query with pagination and sorting
+      # Build the query with pagination, sorting, and filtering
       query =
         resource_var
         |> Ash.Query.for_read(:read, %{}, actor: current_user_var)
         |> apply_query_opts(query_opts_var)
+        |> apply_filters(filters_var, columns_var)
         |> apply_sorting(sort_by_var, columns_var)
         |> Ash.Query.limit(page_size_var)
         |> Ash.Query.offset((current_page_var - 1) * page_size_var)
@@ -312,12 +397,37 @@ defmodule Cinder.Table.LiveComponent do
         Ash.Query.select(query, select_opts)
 
       {:filter, _filter_opts}, query ->
-        # TODO: Implement filter support in Phase 4
+        # Filters now handled in apply_filters/3 function
         query
 
       _other, query ->
         query
     end)
+  end
+
+  defp apply_filters(query, filters, _columns) when filters == %{}, do: query
+
+  defp apply_filters(query, filters, columns) do
+    Enum.reduce(filters, query, fn {key, filter_config}, query ->
+      column = Enum.find(columns, &(&1.key == key))
+
+      cond do
+        column && column.filter_fn ->
+          # Use custom filter function
+          column.filter_fn.(query, filter_config)
+
+        true ->
+          # Apply standard filter based on type
+          apply_standard_filter(query, key, filter_config, column)
+      end
+    end)
+  end
+
+  defp apply_standard_filter(query, key, filter_config, column) do
+    # For Phase 4.1, just return query unchanged
+    # Specific filter implementations will be added in Phase 4.2
+    _ = {key, filter_config, column}
+    query
   end
 
   defp apply_sorting(query, [], _columns), do: query
@@ -437,6 +547,9 @@ defmodule Cinder.Table.LiveComponent do
       sortable: Map.get(slot, :sortable, false),
       searchable: Map.get(slot, :searchable, false),
       filterable: Map.get(slot, :filterable, false),
+      filter_type: Map.get(slot, :filter_type, :text),
+      filter_options: Map.get(slot, :filter_options, []),
+      filter_fn: Map.get(slot, :filter_fn),
       options: Map.get(slot, :options, []),
       display_field: Map.get(slot, :display_field),
       sort_fn: Map.get(slot, :sort_fn),
@@ -479,7 +592,17 @@ defmodule Cinder.Table.LiveComponent do
       sort_desc_icon_name: "hero-chevron-down",
       sort_desc_icon_class: "w-3 h-3 inline-block",
       sort_none_icon_name: "hero-chevron-up-down",
-      sort_none_icon_class: "w-3 h-3 inline-block opacity-30"
+      sort_none_icon_class: "w-3 h-3 inline-block opacity-30",
+      # Filter customization
+      filter_container_class: "cinder-filter-container border rounded-lg p-4 mb-4 bg-gray-50",
+      filter_header_class: "cinder-filter-header flex items-center justify-between mb-3",
+      filter_title_class: "cinder-filter-title text-sm font-medium text-gray-700",
+      filter_count_class: "cinder-filter-count text-xs text-gray-500",
+      filter_clear_all_class: "cinder-filter-clear-all text-xs text-blue-600 hover:text-blue-800 underline",
+      filter_inputs_class: "cinder-filter-inputs grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
+      filter_input_wrapper_class: "cinder-filter-input-wrapper",
+      filter_label_class: "cinder-filter-label block text-sm font-medium text-gray-700 mb-1",
+      filter_placeholder_class: "cinder-filter-placeholder text-xs text-gray-400 italic p-2 border rounded"
     }
   end
 end
