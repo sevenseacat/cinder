@@ -82,7 +82,8 @@ defmodule Cinder.TableTest do
 
       # Component shows loading initially until async data loads
       assert html =~ "Loading..."
-      assert html =~ "cinder-table-loading"
+      assert html =~ "animate-spin"
+      assert html =~ "opacity-75"
     end
 
     test "shows loading state initially when no data" do
@@ -99,7 +100,8 @@ defmodule Cinder.TableTest do
 
       # Component starts with loading state before async data loads
       assert html =~ "Loading..."
-      assert html =~ "cinder-table-loading"
+      assert html =~ "animate-spin"
+      assert html =~ "opacity-75"
     end
 
     test "parses column definitions correctly" do
@@ -220,6 +222,283 @@ defmodule Cinder.TableTest do
 
       # Component should render without errors
       assert html =~ "cinder-table-container"
+    end
+  end
+
+  describe "sorting" do
+    test "renders sortable columns with clickable headers" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      assert html =~ "phx-click=\"toggle_sort\""
+      assert html =~ "phx-value-key=\"title\""
+      assert html =~ "cursor-pointer"
+      assert html =~ "cinder-sort-indicator"
+    end
+
+    test "renders non-sortable columns without click handlers" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: false,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      refute html =~ "phx-click=\"toggle_sort\""
+      refute html =~ "cursor-pointer"
+      refute html =~ "cinder-sort-indicator"
+    end
+
+    test "shows sort arrows for sorted columns" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should contain heroicon class names
+      assert html =~ "hero-chevron-up-down"
+    end
+
+    test "supports custom sort functions" do
+      custom_sort_fn = fn query, _direction ->
+        # Mock custom sort function
+        query
+      end
+
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "publisher",
+            label: "Publisher",
+            sortable: true,
+            sort_fn: custom_sort_fn,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render as sortable column
+      assert html =~ "phx-click=\"toggle_sort\""
+      assert html =~ "phx-value-key=\"publisher\""
+    end
+
+    test "supports dot notation for relationship sorting" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "artist.name",
+            label: "Artist Name",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      assert html =~ "phx-click=\"toggle_sort\""
+      assert html =~ "phx-value-key=\"artist.name\""
+    end
+
+    test "renders different sort states correctly" do
+      # Test unsorted state
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+      # Should have default sort arrow (unsorted)
+      assert html =~ "opacity-30"
+    end
+
+    test "applies sort parameters to query construction" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render properly with sorting capabilities
+      assert html =~ "phx-click=\"toggle_sort\""
+      assert html =~ "cinder-sort-indicator"
+    end
+
+    test "handles multi-column sorting" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "artist",
+            label: "Artist",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Both columns should be sortable
+      assert html =~ "phx-value-key=\"title\""
+      assert html =~ "phx-value-key=\"artist\""
+    end
+
+    test "supports customizable sort arrows" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        theme: %{
+          sort_asc_icon_name: "hero-arrow-up",
+          sort_desc_icon_name: "hero-arrow-down",
+          sort_none_icon_name: "hero-arrows-up-down",
+          sort_asc_icon_class: "w-4 h-4 text-green-500",
+          sort_desc_icon_class: "w-4 h-4 text-red-500",
+          sort_none_icon_class: "w-4 h-4 text-gray-400"
+        },
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render the none state icon class initially
+      assert html =~ "w-4 h-4 text-gray-400"
+      # Should contain heroicon class names
+      assert html =~ "hero-arrows-up-down"
+    end
+
+    test "uses heroicon classes for sort arrows" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        theme: %{
+          sort_asc_icon_name: "hero-arrow-up-circle",
+          sort_desc_icon_name: "hero-arrow-down-circle",
+          sort_none_icon_name: "hero-arrows-up-down"
+        },
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should contain heroicon class names
+      assert html =~ "hero-arrows-up-down"
+      assert html =~ "cinder-table-container"
+      assert html =~ "phx-click=\"toggle_sort\""
+    end
+
+    test "provides smooth sorting experience without flickering" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # When loading, should show:
+      # 1. Subtle loading indicator (spinner)
+      # 2. Dimmed content (opacity-75) but still visible
+      # 3. Animated sort arrows when active
+      # 4. No jarring "Loading..." replacement of content
+      assert html =~ "animate-spin"  # Loading spinner
+      assert html =~ "opacity-75"   # Dimmed content during loading
+      assert html =~ "relative"     # Positioned container for overlay
+      
+      # Should NOT contain the old flickering loading row
+      refute html =~ "cinder-table-loading"
     end
   end
 

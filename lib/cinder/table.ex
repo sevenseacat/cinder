@@ -51,6 +51,32 @@ defmodule Cinder.Table do
           {album.artist.name}
         </:col>
       </.table>
+
+  ## Sort Arrow Customization
+
+  You can customize sort arrows via the theme attribute:
+
+      <.table
+        id="my-table"
+        query={MyApp.Album}
+        current_user={@current_user}
+        theme={%{
+          # Use custom heroicons
+          sort_asc_icon_name: "hero-arrow-up",
+          sort_desc_icon_name: "hero-arrow-down", 
+          sort_none_icon_name: "hero-arrows-up-down",
+          
+          # Customize icon classes
+          sort_asc_icon_class: "w-4 h-4 text-green-500",
+          sort_desc_icon_class: "w-4 h-4 text-red-500",
+          sort_none_icon_class: "w-4 h-4 text-gray-400"
+        }}
+      >
+        <!-- columns -->
+      </.table>
+
+  The icons are rendered as `<span class={[icon_name, icon_class]} />` which works
+  with Phoenix heroicons when you have heroicons CSS loaded.
   """
   def table(assigns) do
     ~H"""

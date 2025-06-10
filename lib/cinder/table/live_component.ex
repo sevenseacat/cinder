@@ -13,6 +13,11 @@ defmodule Cinder.Table.LiveComponent do
   end
 
   @impl true
+  def update(%{loading: true} = assigns, socket) do
+    # Keep existing data visible while loading
+    {:ok, assign(socket, Map.take(assigns, [:loading]))}
+  end
+
   def update(assigns, socket) do
     socket =
       socket
@@ -27,32 +32,36 @@ defmodule Cinder.Table.LiveComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class={@theme.container_class}>
+    <div class={[@theme.container_class, "relative"]}>
       <!-- Filters and Search will go here in later phases -->
       <div class={@theme.controls_class}>
         <!-- Placeholder for filters and search -->
       </div>
-      
+
       <!-- Main table -->
       <div class={@theme.table_wrapper_class}>
         <table class={@theme.table_class}>
           <thead class={@theme.thead_class}>
             <tr class={@theme.header_row_class}>
               <th :for={column <- @columns} class={@theme.th_class}>
-                {column.label}
-                <span :if={column.sortable} class={@theme.sort_indicator_class}>
-                  <!-- Sort arrows will be added in Phase 3 -->
-                </span>
+                <div :if={column.sortable}
+                     class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
+                     phx-click="toggle_sort"
+                     phx-value-key={column.key}
+                     phx-target={@myself}>
+                  {column.label}
+                  <span class={@theme.sort_indicator_class}>
+                    <.sort_arrow sort_direction={get_sort_direction(@sort_by, column.key)} theme={@theme} loading={@loading} />
+                  </span>
+                </div>
+                <div :if={not column.sortable}>
+                  {column.label}
+                </div>
               </th>
             </tr>
           </thead>
-          <tbody class={@theme.tbody_class}>
-            <tr :if={@loading}>
-              <td colspan={length(@columns)} class={@theme.loading_class}>
-                Loading...
-              </td>
-            </tr>
-            <tr :for={item <- @data} :if={not @loading} class={@theme.row_class}>
+          <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]}>
+            <tr :for={item <- @data} class={@theme.row_class}>
               <td :for={column <- @columns} class={@theme.td_class}>
                 {render_slot(column.slot, item)}
               </td>
@@ -65,10 +74,21 @@ defmodule Cinder.Table.LiveComponent do
           </tbody>
         </table>
       </div>
-      
+
+      <!-- Loading indicator -->
+      <div :if={@loading} class="absolute top-0 right-0 mt-2 mr-2">
+        <div class="flex items-center text-sm text-gray-500">
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading...
+        </div>
+      </div>
+
       <!-- Pagination -->
       <div class={@theme.pagination_wrapper_class}>
-        <.pagination_controls 
+        <.pagination_controls
           page_info={@page_info}
           theme={@theme}
           myself={@myself}
@@ -90,21 +110,36 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("toggle_sort", %{"key" => key}, socket) do
+    current_sort = socket.assigns.sort_by
+    new_sort = toggle_sort_direction(current_sort, key)
+
+    socket =
+      socket
+      |> assign(:sort_by, new_sort)
+      # Reset to first page when sorting changes
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    {:noreply, socket}
+  end
+
   # Pagination controls component
   defp pagination_controls(assigns) do
     ~H"""
     <div :if={@page_info.total_pages > 1} class={@theme.pagination_container_class}>
       <!-- Previous button -->
-      <button 
+      <button
         :if={@page_info.has_previous_page}
-        phx-click="goto_page" 
+        phx-click="goto_page"
         phx-value-page={@page_info.current_page - 1}
         phx-target={@myself}
         class={@theme.pagination_button_class}
       >
         Previous
       </button>
-      
+
       <!-- Page info -->
       <span class={@theme.pagination_info_class}>
         Page {@page_info.current_page} of {@page_info.total_pages}
@@ -112,11 +147,11 @@ defmodule Cinder.Table.LiveComponent do
           (showing {@page_info.start_index}-{@page_info.end_index} of {@page_info.total_count})
         </span>
       </span>
-      
+
       <!-- Next button -->
-      <button 
+      <button
         :if={@page_info.has_next_page}
-        phx-click="goto_page" 
+        phx-click="goto_page"
         phx-value-page={@page_info.current_page + 1}
         phx-target={@myself}
         class={@theme.pagination_button_class}
@@ -124,6 +159,38 @@ defmodule Cinder.Table.LiveComponent do
         Next
       </button>
     </div>
+    """
+  end
+
+  # Sort arrow component - customizable via theme
+  defp sort_arrow(assigns) do
+    ~H"""
+    <span class={Map.get(@theme, :sort_arrow_wrapper_class, "inline-block ml-1")}>
+      <%= case @sort_direction do %>
+        <% :asc -> %>
+          <.icon
+            name={Map.get(@theme, :sort_asc_icon_name, "hero-chevron-up")}
+            class={[Map.get(@theme, :sort_asc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
+          />
+        <% :desc -> %>
+          <.icon
+            name={Map.get(@theme, :sort_desc_icon_name, "hero-chevron-down")}
+            class={[Map.get(@theme, :sort_desc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
+          />
+        <% _ -> %>
+          <.icon
+            name={Map.get(@theme, :sort_none_icon_name, "hero-chevron-up-down")}
+            class={Map.get(@theme, :sort_none_icon_class, "w-3 h-3 inline opacity-30")}
+          />
+      <% end %>
+    </span>
+    """
+  end
+
+  # Simple heroicon component
+  defp icon(%{name: "hero-" <> _} = assigns) do
+    ~H"""
+    <span class={[@name, @class]} />
     """
   end
 
@@ -164,24 +231,36 @@ defmodule Cinder.Table.LiveComponent do
       query_opts: query_opts,
       current_user: current_user,
       page_size: page_size,
-      current_page: current_page
+      current_page: current_page,
+      sort_by: sort_by,
+      columns: columns
     } = socket.assigns
+
+    # Extract variables to avoid socket copying in async function
+    resource_var = resource
+    query_opts_var = query_opts
+    current_user_var = current_user
+    page_size_var = page_size
+    current_page_var = current_page
+    sort_by_var = sort_by
+    columns_var = columns
 
     socket
     |> assign(:loading, true)
     |> start_async(:load_data, fn ->
-      # Build the query with pagination
+      # Build the query with pagination and sorting
       query =
-        resource
-        |> Ash.Query.for_read(:read, %{}, actor: current_user)
-        |> apply_query_opts(query_opts)
-        |> Ash.Query.limit(page_size)
-        |> Ash.Query.offset((current_page - 1) * page_size)
+        resource_var
+        |> Ash.Query.for_read(:read, %{}, actor: current_user_var)
+        |> apply_query_opts(query_opts_var)
+        |> apply_sorting(sort_by_var, columns_var)
+        |> Ash.Query.limit(page_size_var)
+        |> Ash.Query.offset((current_page_var - 1) * page_size_var)
 
       # Execute the query
-      case Ash.read(query, actor: current_user) do
+      case Ash.read(query, actor: current_user_var) do
         {:ok, results} when is_list(results) ->
-          {results, current_page, page_size}
+          {results, current_page_var, page_size_var}
 
         {:error, error} ->
           {:error, error}
@@ -241,13 +320,76 @@ defmodule Cinder.Table.LiveComponent do
     end)
   end
 
+  defp apply_sorting(query, [], _columns), do: query
+
+  defp apply_sorting(query, sort_by, columns) do
+    Enum.reduce(sort_by, query, fn {key, direction}, query ->
+      column = Enum.find(columns, &(&1.key == key))
+
+      cond do
+        column && column.sort_fn ->
+          # Use custom sort function
+          column.sort_fn.(query, direction)
+
+        String.contains?(key, ".") ->
+          # Handle dot notation for relationship sorting
+          sort_expr = build_expression_sort(key)
+          Ash.Query.sort(query, [{sort_expr, direction}])
+
+        true ->
+          # Standard attribute sorting
+          Ash.Query.sort(query, [{String.to_atom(key), direction}])
+      end
+    end)
+  end
+
+  defp build_expression_sort(key) do
+    # Convert "author.name" to expression sort
+    parts = String.split(key, ".")
+
+    case parts do
+      [rel, field] ->
+        # For now, create a simple expression - this may need adjustment based on Ash version
+        {String.to_atom(rel), String.to_atom(field)}
+
+      _ ->
+        String.to_atom(key)
+    end
+  end
+
+  defp toggle_sort_direction(current_sort, key) do
+    case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
+      {^key, :asc} ->
+        # Currently ascending, change to descending
+        Enum.map(current_sort, fn
+          {^key, :asc} -> {key, :desc}
+          other -> other
+        end)
+
+      {^key, :desc} ->
+        # Currently descending, remove sort
+        Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
+
+      nil ->
+        # Not currently sorted, add ascending sort
+        [{key, :asc} | current_sort]
+    end
+  end
+
+  defp get_sort_direction(sort_by, key) do
+    case Enum.find(sort_by, fn {sort_key, _direction} -> sort_key == key end) do
+      {^key, direction} -> direction
+      nil -> nil
+    end
+  end
+
   # This will be used when we implement actual Ash pagination
   # defp build_page_info_from_ash_page(page, current_page, page_size) do
   #   total_count = page.count || length(page.results)
   #   total_pages = max(1, ceil(total_count / page_size))
   #   start_index = (current_page - 1) * page_size + 1
   #   end_index = min(current_page * page_size, total_count)
-  #   
+  #
   #   %{
   #     current_page: current_page,
   #     total_pages: total_pages,
@@ -328,7 +470,15 @@ defmodule Cinder.Table.LiveComponent do
       pagination_button_class:
         "cinder-pagination-button px-3 py-1 border rounded hover:bg-gray-100",
       pagination_info_class: "cinder-pagination-info text-sm text-gray-600",
-      pagination_count_class: "cinder-pagination-count text-xs text-gray-500"
+      pagination_count_class: "cinder-pagination-count text-xs text-gray-500",
+      # Sort icon customization
+      sort_arrow_wrapper_class: "inline-block ml-1",
+      sort_asc_icon_name: "hero-chevron-up",
+      sort_asc_icon_class: "w-3 h-3 inline-block",
+      sort_desc_icon_name: "hero-chevron-down",
+      sort_desc_icon_class: "w-3 h-3 inline-block",
+      sort_none_icon_name: "hero-chevron-up-down",
+      sort_none_icon_class: "w-3 h-3 inline-block opacity-30"
     }
   end
 end
