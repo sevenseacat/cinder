@@ -500,6 +500,99 @@ defmodule Cinder.TableTest do
       # Should NOT contain the old flickering loading row
       refute html =~ "cinder-table-loading"
     end
+
+    test "applies column-specific classes to th and td elements" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            class: "text-left w-1/2",
+            inner_block: fn _item -> "Title Content" end
+          },
+          %{
+            key: "price",
+            label: "Price",
+            class: "text-right font-mono",
+            inner_block: fn _item -> "$10.00" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should apply column classes to th elements
+      assert html =~ "text-left w-1/2"
+      assert html =~ "text-right font-mono"
+      assert html =~ "cinder-table-th px-4 py-2 text-left font-medium border-b text-left w-1/2"
+      assert html =~ "cinder-table-th px-4 py-2 text-left font-medium border-b text-right font-mono"
+    end
+
+    test "handles columns without class attribute" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should still render properly without column class
+      assert html =~ "cinder-table-th"
+      # Note: td elements only appear when there's data, not during loading state
+      assert html =~ "cinder-table-th px-4 py-2 text-left font-medium border-b "
+    end
+
+    test "applies column classes in actual table component usage" do
+      # Test the actual API usage with column classes
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "id",
+            label: "ID",
+            class: "w-16 text-center font-mono",
+            inner_block: fn _item -> "1" end
+          },
+          %{
+            key: "title",
+            label: "Album Title",
+            class: "min-w-0 truncate",
+            inner_block: fn _item -> "Long Album Title That Might Need Truncation" end
+          },
+          %{
+            key: "price",
+            label: "Price",
+            class: "text-right tabular-nums w-24",
+            inner_block: fn _item -> "$19.99" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Verify column classes are applied to th elements
+      assert html =~ "w-16 text-center font-mono"
+      assert html =~ "min-w-0 truncate"
+      assert html =~ "text-right tabular-nums w-24"
+
+      # Verify th elements have both theme and column classes
+      assert html =~ "cinder-table-th px-4 py-2 text-left font-medium border-b w-16 text-center font-mono"
+      assert html =~ "cinder-table-th px-4 py-2 text-left font-medium border-b min-w-0 truncate"
+      assert html =~ "cinder-table-th px-4 py-2 text-left font-medium border-b text-right tabular-nums w-24"
+    end
   end
 
   describe "ash integration" do

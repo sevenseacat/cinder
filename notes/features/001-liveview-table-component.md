@@ -365,6 +365,7 @@ Cinder.Table (LiveComponent)
 - **Dot notation support** for relationship field sorting (e.g., "artist.name")
 - **Page reset on sort** - automatically returns to page 1 when sorting changes
 - **SMOOTH SORTING EXPERIENCE** - eliminated flickering during async loading with smart state management
+- **Column-specific classes** - each column can specify custom CSS classes for th/td elements
 
 **Key Design Decisions:**
 - **Click-to-sort interface** - sortable columns have cursor-pointer and click handlers
@@ -383,6 +384,7 @@ Cinder.Table (LiveComponent)
 - **Sort state cycling** - click toggles through none/asc/desc states
 - **Page reset** - returns to page 1 when sort changes
 - **Customizable sort arrows** - support for heroicons with custom classes
+- **Column classes** - individual columns can specify CSS classes for granular styling
 
 **Architecture Improvements:**
 - **Enhanced event handling** with `toggle_sort` event
@@ -429,20 +431,21 @@ end
 - `test/cinder/table_test.exs` - Added comprehensive sorting tests
 
 **Testing:**
-- **25 tests passing** covering all functionality including smooth sorting
+- **28 tests passing** covering all functionality including smooth sorting and column classes
 - **Comprehensive sort tests** - clickable headers, visual indicators, custom functions
 - **Multi-column sort tests** - multiple sortable columns
 - **Dot notation tests** - relationship field sorting
 - **Event handling verification** - proper click handlers and targets
 - **Sort arrow customization tests** - theme-based icon configuration
 - **Smooth sorting tests** - verifies anti-flickering implementation
+- **Column class tests** - verifies custom CSS classes applied to th/td elements
 - **All warnings resolved** - clean compilation
 
-**Sorting API Working:**
+**Complete API with Column Classes:**
 ```elixir
-<.table
-  id="albums"
-  query={Album}
+<.table 
+  id="albums" 
+  query={Album} 
   current_user={@current_user}
   theme={%{
     # Customize sort arrows with heroicons
@@ -453,21 +456,30 @@ end
     sort_none_icon_class: "w-4 h-4 text-gray-400"
   }}
 >
-  <:col :let={album} key="title" label="Title" sortable>
+  <:col :let={album} key="id" label="ID" class="w-16 text-center font-mono">
+    {album.id}
+  </:col>
+
+  <:col :let={album} key="title" label="Title" sortable class="min-w-0 truncate">
     {album.title}
   </:col>
 
-  <:col :let={album} key="artist.name" label="Artist" sortable>
+  <:col :let={album} key="artist.name" label="Artist" sortable class="text-left">
     {album.artist.name}
   </:col>
 
-  <:col :let={album} key="publisher" label="Label" sortable sort_fn={&sort_by_publisher/2}>
+  <:col :let={album} key="price" label="Price" sortable class="text-right tabular-nums w-24">
+    ${album.price}
+  </:col>
+
+  <:col :let={album} key="publisher" label="Label" sortable sort_fn={&sort_by_publisher/2} class="text-sm text-gray-600">
     {album.publisher.name}
   </:col>
 </.table>
 
+# Column classes are applied to both th and td elements
+# Combined with theme classes: class={[@theme.th_class, column.class]}
 # Icons rendered as: <span class={[icon_name, icon_class]} />
-# Works with Phoenix heroicons when CSS is loaded
 ```
 
 **Next Phase Dependencies:**

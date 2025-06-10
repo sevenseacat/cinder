@@ -43,7 +43,7 @@ defmodule Cinder.Table.LiveComponent do
         <table class={@theme.table_class}>
           <thead class={@theme.thead_class}>
             <tr class={@theme.header_row_class}>
-              <th :for={column <- @columns} class={@theme.th_class}>
+              <th :for={column <- @columns} class={[@theme.th_class, column.class]}>
                 <div :if={column.sortable}
                      class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
                      phx-click="toggle_sort"
@@ -62,7 +62,7 @@ defmodule Cinder.Table.LiveComponent do
           </thead>
           <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]}>
             <tr :for={item <- @data} class={@theme.row_class}>
-              <td :for={column <- @columns} class={@theme.td_class}>
+              <td :for={column <- @columns} class={[@theme.td_class, column.class]}>
                 {render_slot(column.slot, item)}
               </td>
             </tr>
@@ -441,6 +441,7 @@ defmodule Cinder.Table.LiveComponent do
       display_field: Map.get(slot, :display_field),
       sort_fn: Map.get(slot, :sort_fn),
       search_fn: Map.get(slot, :search_fn),
+      class: Map.get(slot, :class, ""),
       slot: slot
     }
   end
