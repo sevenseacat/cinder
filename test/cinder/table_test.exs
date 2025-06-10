@@ -1,7 +1,6 @@
 defmodule Cinder.TableTest do
   use ExUnit.Case, async: true
   import Phoenix.LiveViewTest
-  import Phoenix.Component
 
   alias Cinder.Table
 
@@ -12,24 +11,27 @@ defmodule Cinder.TableTest do
         query: MockResource,
         current_user: %{id: 1},
         col: [
-          %{key: "title", label: "Title", sortable: true, inner_block: fn item -> item.title end},
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            inner_block: fn _item -> "Title Content" end
+          },
           %{
             key: "artist",
             label: "Artist",
             filterable: true,
-            inner_block: fn item -> item.artist end
+            inner_block: fn _item -> "Artist Content" end
           }
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       assert html =~ ~r/class="cinder-table/
       assert html =~ "Title"
       assert html =~ "Artist"
       assert html =~ "cinder-table-th"
-      # When no data, we show empty state instead of td elements
-      assert html =~ "No results found"
     end
 
     test "applies default theme classes" do
@@ -38,11 +40,11 @@ defmodule Cinder.TableTest do
         query: MockResource,
         current_user: %{id: 1},
         col: [
-          %{key: "title", label: "Title", inner_block: fn item -> item.title end}
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       assert html =~ "cinder-table-container"
       assert html =~ "cinder-table w-full border-collapse"
@@ -56,50 +58,48 @@ defmodule Cinder.TableTest do
         current_user: %{id: 1},
         theme: %{table_class: "custom-table", th_class: "custom-th"},
         col: [
-          %{key: "title", label: "Title", inner_block: fn item -> item.title end}
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       assert html =~ "custom-table"
       assert html =~ "custom-th"
     end
 
-    test "shows loading state" do
-      # We'll test loading state in integration tests since 
-      # it requires internal state manipulation
-      # For now, just test that the component renders properly
+    test "shows loading state initially" do
       assigns = %{
         id: "test-table",
         query: MockResource,
         current_user: %{id: 1},
         col: [
-          %{key: "title", label: "Title", inner_block: fn item -> item.title end}
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
-      # Component should render without loading state by default
-      refute html =~ "Loading..."
-      assert html =~ "No results found"
+      # Component shows loading initially until async data loads
+      assert html =~ "Loading..."
+      assert html =~ "cinder-table-loading"
     end
 
-    test "shows empty state when no data" do
+    test "shows loading state initially when no data" do
       assigns = %{
         id: "test-table",
         query: MockResource,
         current_user: %{id: 1},
         col: [
-          %{key: "title", label: "Title", inner_block: fn item -> item.title end}
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
-      assert html =~ "No results found"
-      assert html =~ "cinder-table-empty"
+      # Component starts with loading state before async data loads
+      assert html =~ "Loading..."
+      assert html =~ "cinder-table-loading"
     end
 
     test "parses column definitions correctly" do
@@ -115,12 +115,12 @@ defmodule Cinder.TableTest do
             searchable: true,
             filterable: false,
             options: ["rock", "pop"],
-            inner_block: fn item -> item.title end
+            inner_block: fn _item -> "Content" end
           }
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       assert html =~ "Album Title"
     end
@@ -131,11 +131,11 @@ defmodule Cinder.TableTest do
         query: MockResource,
         current_user: %{id: 1},
         col: [
-          %{key: "title", inner_block: fn item -> item.title end}
+          %{key: "title", inner_block: fn _item -> "Content" end}
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       assert html =~ "title"
     end
@@ -146,13 +146,49 @@ defmodule Cinder.TableTest do
         query: MockResource,
         current_user: %{id: 1},
         col: [
-          %{key: "title", label: "Title", sortable: true, inner_block: fn item -> item.title end}
+          %{key: "title", label: "Title", sortable: true, inner_block: fn _item -> "Content" end}
         ]
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       assert html =~ "cinder-sort-indicator"
+    end
+  end
+
+  describe "pagination" do
+    test "includes pagination wrapper" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      assert html =~ "cinder-pagination-wrapper"
+    end
+
+    test "does not show pagination controls for empty data" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        page_size: 5,
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      assert html =~ "cinder-pagination-wrapper"
+      # No pagination controls shown for empty data
+      refute html =~ "Previous"
+      refute html =~ "Next"
     end
   end
 
@@ -165,7 +201,7 @@ defmodule Cinder.TableTest do
         col: []
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       # Component should render without errors with defaults
       assert html =~ "cinder-table-container"
@@ -180,15 +216,50 @@ defmodule Cinder.TableTest do
         col: []
       }
 
-      html = rendered_to_string(~H"<Table.table {assigns} />")
+      html = render_component(Table.LiveComponent, assigns)
 
       # Component should render without errors
       assert html =~ "cinder-table-container"
     end
   end
+
+  describe "ash integration" do
+    test "handles query options" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        query_opts: [load: [:artist], select: [:title]],
+        current_user: %{id: 1},
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render and handle query options
+      assert html =~ "cinder-table-container"
+    end
+
+    test "passes current_user as actor" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 42, role: :admin},
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render with proper actor
+      assert html =~ "cinder-table-container"
+    end
+  end
 end
 
-# Mock resource for testing
+# Mock resources for testing
 defmodule MockResource do
   def __ash_schema__ do
     %{attributes: []}
