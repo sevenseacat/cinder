@@ -6,6 +6,7 @@ defmodule Cinder.Table.LiveComponent do
   """
 
   use Phoenix.LiveComponent
+  require Ash.Query
 
   @impl true
   def mount(socket) do
@@ -150,12 +151,33 @@ defmodule Cinder.Table.LiveComponent do
       if value == "" or is_nil(value) do
         Map.delete(current_filters, key)
       else
+        operator = case type do
+          "text" -> :contains
+          "select" -> :equals
+          _ -> :equals
+        end
+        
         Map.put(current_filters, key, %{
           type: String.to_atom(type),
           value: value,
-          operator: :contains  # default operator for now
+          operator: operator
         })
       end
+
+    socket =
+      socket
+      |> assign(:filters, new_filters)
+      # Reset to first page when filters change
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("clear_filter", %{"key" => key}, socket) do
+    current_filters = socket.assigns.filters
+    new_filters = Map.delete(current_filters, key)
 
     socket =
       socket
@@ -259,13 +281,110 @@ defmodule Cinder.Table.LiveComponent do
       <div class={@theme.filter_inputs_class}>
         <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class}>
           <label class={@theme.filter_label_class}>{column.label}:</label>
-          <!-- Specific filter inputs will be implemented in Phase 4.2 -->
-          <div class={@theme.filter_placeholder_class}>
-            [Filter for {column.key}]
-          </div>
+          <.filter_input 
+            column={column}
+            filter_value={Map.get(@filters, column.key)}
+            theme={@theme}
+            myself={@myself}
+          />
         </div>
       </div>
     </div>
+    """
+  end
+
+  # Filter input component
+  defp filter_input(assigns) do
+    filter_value = assigns.filter_value
+    has_value = filter_value && filter_value.value != ""
+    
+    assigns = assign(assigns, :has_value, has_value)
+    assigns = assign(assigns, :current_value, if(has_value, do: filter_value.value, else: ""))
+    
+    ~H"""
+    <div class="flex items-center space-x-2">
+      <div class="flex-1">
+        <%= case @column.filter_type do %>
+          <% :text -> %>
+            <.text_filter_input 
+              column={@column}
+              current_value={@current_value}
+              theme={@theme}
+              myself={@myself}
+            />
+          <% :select -> %>
+            <.select_filter_input
+              column={@column}
+              current_value={@current_value}
+              theme={@theme}
+              myself={@myself}
+            />
+          <% _ -> %>
+            <div class={@theme.filter_placeholder_class}>
+              [Filter type {@column.filter_type} not yet implemented]
+            </div>
+        <% end %>
+      </div>
+      
+      <!-- Clear individual filter button -->
+      <button
+        :if={@has_value}
+        phx-click="clear_filter"
+        phx-value-key={@column.key}
+        phx-target={@myself}
+        class={@theme.filter_clear_button_class}
+        title="Clear filter"
+      >
+        ✕
+      </button>
+    </div>
+    """
+  end
+
+  # Text filter input component
+  defp text_filter_input(assigns) do
+    placeholder = get_in(assigns.column.filter_options, [:placeholder]) || "Filter #{assigns.column.label}..."
+    assigns = assign(assigns, :placeholder, placeholder)
+    
+    ~H"""
+    <input
+      type="text"
+      value={@current_value}
+      placeholder={@placeholder}
+      phx-blur="update_filter"
+      phx-value-key={@column.key}
+      phx-value-type="text"
+      phx-target={@myself}
+      class={@theme.filter_text_input_class}
+    />
+    """
+  end
+
+  # Select filter input component  
+  defp select_filter_input(assigns) do
+    options = get_in(assigns.column.filter_options, [:options]) || []
+    prompt = get_in(assigns.column.filter_options, [:prompt]) || "All #{assigns.column.label}"
+    
+    assigns = assign(assigns, :options, options)
+    assigns = assign(assigns, :prompt, prompt)
+    
+    ~H"""
+    <select
+      phx-change="update_filter"
+      phx-value-key={@column.key}
+      phx-value-type="select"
+      phx-target={@myself}
+      class={@theme.filter_select_input_class}
+    >
+      <option value="">{@prompt}</option>
+      <option 
+        :for={{label, value} <- @options}
+        value={value}
+        selected={@current_value == value}
+      >
+        {label}
+      </option>
+    </select>
     """
   end
 
@@ -423,12 +542,54 @@ defmodule Cinder.Table.LiveComponent do
     end)
   end
 
-  defp apply_standard_filter(query, key, filter_config, column) do
-    # For Phase 4.1, just return query unchanged
-    # Specific filter implementations will be added in Phase 4.2
-    _ = {key, filter_config, column}
-    query
+  defp apply_standard_filter(query, key, filter_config, _column) do
+    %{type: type, value: value, operator: operator} = filter_config
+    
+    case {type, operator} do
+      {:text, :contains} ->
+        # Use Ash's ilike filter for case insensitive text search
+        if String.contains?(key, ".") do
+          # Handle relationship fields (e.g., "artist.name") - simplified for now
+          query
+        else
+          field_ref = Ash.Expr.ref(String.to_atom(key))
+          search_value = "%#{value}%"
+          Ash.Query.filter(query, ilike(^field_ref, ^search_value))
+        end
+        
+      {:text, :starts_with} ->
+        if String.contains?(key, ".") do
+          query
+        else
+          # Use ilike filter that matches from the beginning
+          field_ref = Ash.Expr.ref(String.to_atom(key))
+          search_value = "#{value}%"
+          Ash.Query.filter(query, ilike(^field_ref, ^search_value))
+        end
+        
+      {:text, :equals} ->
+        if String.contains?(key, ".") do
+          query
+        else
+          field_ref = Ash.Expr.ref(String.to_atom(key))
+          Ash.Query.filter(query, ^field_ref == ^value)
+        end
+        
+      {:select, :equals} ->
+        if String.contains?(key, ".") do
+          query
+        else
+          field_ref = Ash.Expr.ref(String.to_atom(key))
+          Ash.Query.filter(query, ^field_ref == ^value)
+        end
+        
+      _ ->
+        # Fallback for unsupported filter types
+        query
+    end
   end
+
+
 
   defp apply_sorting(query, [], _columns), do: query
 
@@ -602,7 +763,10 @@ defmodule Cinder.Table.LiveComponent do
       filter_inputs_class: "cinder-filter-inputs grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
       filter_input_wrapper_class: "cinder-filter-input-wrapper",
       filter_label_class: "cinder-filter-label block text-sm font-medium text-gray-700 mb-1",
-      filter_placeholder_class: "cinder-filter-placeholder text-xs text-gray-400 italic p-2 border rounded"
+      filter_placeholder_class: "cinder-filter-placeholder text-xs text-gray-400 italic p-2 border rounded",
+      filter_text_input_class: "cinder-filter-text-input w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+      filter_select_input_class: "cinder-filter-select-input w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+      filter_clear_button_class: "cinder-filter-clear-button text-gray-400 hover:text-gray-600 text-sm font-medium px-2 py-1 rounded hover:bg-gray-100"
     }
   end
 end

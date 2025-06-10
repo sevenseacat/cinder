@@ -694,7 +694,7 @@ defmodule Cinder.TableTest do
 
       # Should render with default filter configuration
       assert html =~ "cinder-filter-container"
-      assert html =~ "[Filter for title]"
+      assert html =~ "Filter Title..."
     end
 
     test "supports custom filter functions" do
@@ -721,7 +721,159 @@ defmodule Cinder.TableTest do
 
       # Should render filterable column with custom filter function
       assert html =~ "cinder-filter-container"
-      assert html =~ "[Filter for complex_field]"
+      assert html =~ "Filter Complex Field..."
+    end
+
+    test "renders text filter input correctly" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :text,
+            filter_options: [placeholder: "Search titles..."],
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render text input with correct attributes
+      assert html =~ ~r/type="text"/
+      assert html =~ ~r/placeholder="Search titles\.\.\."/
+      assert html =~ ~r/phx-blur="update_filter"/
+      assert html =~ ~r/phx-value-key="title"/
+      assert html =~ ~r/phx-value-type="text"/
+    end
+
+    test "renders select filter input correctly" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "status",
+            label: "Status",
+            filterable: true,
+            filter_type: :select,
+            filter_options: [
+              options: [{"Active", "active"}, {"Inactive", "inactive"}],
+              prompt: "All Statuses"
+            ],
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render select dropdown with options
+      assert html =~ ~r/<select.*phx-change="update_filter"/
+      assert html =~ ~r/phx-value-key="status"/
+      assert html =~ ~r/phx-value-type="select"/
+      assert html =~ "All Statuses"
+      assert html =~ "Active"
+      assert html =~ "Inactive"
+    end
+
+    test "shows clear button for active filters" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        filters: %{
+          "title" => %{type: :text, value: "test", operator: :contains}
+        },
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :text,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should show clear button for active filter
+      assert html =~ ~r/phx-click="clear_filter"/
+      assert html =~ ~r/phx-value-key="title"/
+      assert html =~ "✕"
+    end
+
+    test "handles filter types not yet implemented" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "date",
+            label: "Date",
+            filterable: true,
+            filter_type: :date_range,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should show placeholder for unimplemented filter types
+      assert html =~ "Filter type date_range not yet implemented"
+    end
+
+    test "applies default placeholder for text filters" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :text,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should use default placeholder when none specified
+      assert html =~ "Filter Title..."
+    end
+
+    test "applies default prompt for select filters" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "status",
+            label: "Status",
+            filterable: true,
+            filter_type: :select,
+            filter_options: [options: [{"Active", "active"}]],
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should use default prompt when none specified
+      assert html =~ "All Status"
     end
   end
 

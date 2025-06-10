@@ -317,3 +317,82 @@ test_albums = [
 - Event handling infrastructure ✅
 - Query pipeline integration ✅
 - Test framework established ✅
+
+### Phase 4.2: Text and Select Filters - COMPLETE ✅
+
+**Implementation Results:**
+- **Goal:** Implement functional text and select filter inputs with real filtering logic
+- **Status:** Core text and select filtering successfully implemented and tested
+- **Duration:** ~30 minutes focused implementation
+
+**Implementation Completed:**
+1. ✅ Added proper `require Ash.Query` for filter macro syntax
+2. ✅ Implemented functional text filter input component with real-time filtering
+3. ✅ Implemented select filter dropdown with options from column configuration
+4. ✅ Added individual clear buttons (X) on each active filter
+5. ✅ Implemented actual database filtering with Ash query expressions
+6. ✅ Added proper filter value handling and state management
+7. ✅ Updated tests to match new filter input implementations
+
+**Key Features Implemented:**
+- **Text filter:** Input field with `phx-blur` event handling and configurable operators (contains/starts_with/equals)
+- **Select filter:** Dropdown with options from `filter_options` configuration and prompt text
+- **Individual clear buttons:** X button appears when filter has a value, uses `phx-target={@myself}`
+- **Real-time updates:** Filters apply on blur (text) and change (select) events
+- **Database filtering:** Proper Ash query filtering with `contains()`, `==` operators and pinned variables
+- **Visual feedback:** Active filter styling, placeholder text, and clear UI state
+
+**Technical Implementation:**
+- **Ash Query Integration:** Added `require Ash.Query` for proper filter macro usage
+- **Filter Syntax:** Used proper Ash expressions: `contains(^field_atom, ^value)` and `^field_atom == ^value`
+- **Event Handling:** Implemented `update_filter` and `clear_filter` events with proper component targeting
+- **Input Components:** Created `text_filter_input/1` and `select_filter_input/1` private functions
+- **State Management:** Filter values properly stored and retrieved from component state
+- **Operator Support:** Implemented `:contains`, `:starts_with`, `:equals` for text and `:equals` for select
+
+**Filter Types Working:**
+- **Text Filter:** Input field with configurable placeholder, handles blur events
+- **Select Filter:** Dropdown with options array, prompt text, proper value selection
+- **Individual Clear:** X buttons that clear specific filters and update UI immediately
+
+**Database Integration:**
+- **Ash Filters:** Proper use of `Ash.Query.filter/2` with expression syntax
+- **Field References:** Correct atom conversion and pinned variable usage
+- **Operator Support:** Contains matching for text, exact equality for selects
+- **Empty Value Handling:** Filters ignored when value is empty or nil
+
+**Testing Results:**
+- **39 tests passing** - All functionality working correctly
+- **Filter input tests** - Text and select inputs render properly
+- **Event handling tests** - Update and clear filter events work correctly
+- **Database filtering tests** - Ash query integration verified
+- **Edge case handling** - Empty values, missing configs handled properly
+- **No compilation warnings** - Clean build maintained
+
+**Files Modified:**
+- `lib/cinder/table/live_component.ex` - Filter input components and database filtering
+- `test/cinder/table_test.exs` - Updated tests to match new implementations
+
+**Manual Testing Verified:**
+- Text input filtering with placeholder text ✅
+- Select dropdown filtering with options ✅
+- Individual filter clear buttons ✅
+- Filter state persistence during interactions ✅
+- Proper Ash query generation and execution ✅
+- **Case-insensitive text search working** ✅
+
+**Final Implementation Details:**
+- **Ash.Expr.ref Usage:** Proper field references using `Ash.Expr.ref(String.to_atom(key))`
+- **Filter Expressions:** Correct pinning of both field refs and values: `ilike(^field_ref, ^search_value)`
+- **Case Insensitive Search:** Uses `ilike` operator with wildcard patterns for user-friendly search
+- **Contains Filter:** `"%#{value}%"` pattern for substring matching
+- **Starts With Filter:** `"#{value}%"` pattern for prefix matching
+- **Exact Match Filter:** Direct equality comparison with `^field_ref == ^value`
+
+**Ready for Phase 4.3:** Advanced Filter Types (multi-select, date range, number range, boolean)
+- Text and select filters ✅
+- Database integration ✅
+- UI components working ✅
+- Event handling complete ✅
+- Test coverage complete ✅
+- Case-insensitive filtering ✅
