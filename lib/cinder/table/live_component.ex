@@ -26,6 +26,7 @@ defmodule Cinder.Table.LiveComponent do
       |> assign_defaults()
       |> assign_column_definitions()
       |> decode_url_filters(assigns)
+      |> decode_url_pagination(assigns)
       |> load_data_if_needed()
 
     {:ok, socket}
@@ -112,6 +113,7 @@ defmodule Cinder.Table.LiveComponent do
     socket =
       socket
       |> assign(:current_page, page)
+      |> notify_state_change()
       |> load_data()
 
     {:noreply, socket}
@@ -127,8 +129,8 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:current_page, 1)
       |> load_data()
 
-    # Notify parent about filter changes
-    socket = notify_filter_change(socket, new_filters)
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
 
     {:noreply, socket}
   end
@@ -143,6 +145,7 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:sort_by, new_sort)
       # Reset to first page when sorting changes
       |> assign(:current_page, 1)
+      |> notify_state_change()
       |> load_data()
 
     {:noreply, socket}
@@ -156,8 +159,8 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:current_page, 1)
       |> load_data()
 
-    # Notify parent about filter clear
-    socket = notify_filter_change(socket, %{})
+    # Notify parent about state changes
+    socket = notify_state_change(socket, %{})
 
     {:noreply, socket}
   end
@@ -242,27 +245,31 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:current_page, 1)
       |> load_data()
 
-    # Notify parent about filter changes
-    socket = notify_filter_change(socket, new_filters)
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
 
     {:noreply, socket}
   end
 
   # Notify parent LiveView about filter changes
-  defp notify_filter_change(socket, filters) do
-    if socket.assigns[:on_filter_change] do
-      encoded_filters = encode_filters_for_url(filters)
+  defp notify_state_change(socket, filters \\ nil) do
+    if socket.assigns[:on_state_change] do
+      filters = filters || socket.assigns.filters
+      current_page = socket.assigns.current_page
+
+      encoded_state = encode_state_for_url(filters, current_page)
       # Use send/2 with self() to send to the current LiveView process
       # This works because LiveComponents run in the same process as their parent LiveView
-      send(self(), {socket.assigns.on_filter_change, socket.assigns.id, encoded_filters})
+      send(self(), {socket.assigns.on_state_change, socket.assigns.id, encoded_state})
     end
+
     socket
   end
 
   # Decode filter state from URL parameters
   defp decode_url_filters(socket, assigns) do
     url_filters = Map.get(assigns, :url_filters, %{})
-    
+
     # Only decode URL filters if they are provided, otherwise keep existing filters
     if Enum.empty?(url_filters) do
       socket
@@ -272,23 +279,57 @@ defmodule Cinder.Table.LiveComponent do
     end
   end
 
+  defp decode_url_pagination(socket, assigns) do
+    url_page = Map.get(assigns, :url_page)
+
+    if url_page && is_binary(url_page) do
+      case Integer.parse(url_page) do
+        {page, ""} when page > 0 ->
+          assign(socket, :current_page, page)
+
+        _ ->
+          socket
+      end
+    else
+      socket
+    end
+  end
+
   # Encode filters for URL parameters
   defp encode_filters_for_url(filters) do
     filters
     |> Enum.map(fn {key, filter} ->
-      encoded_value = case filter.type do
-        :multi_select when is_list(filter.value) ->
-          Enum.join(filter.value, ",")
-        :date_range ->
-          "#{filter.value.from},#{filter.value.to}"
-        :number_range ->
-          "#{filter.value.min},#{filter.value.max}"
-        _ ->
-          to_string(filter.value)
-      end
+      encoded_value =
+        case filter.type do
+          :multi_select when is_list(filter.value) ->
+            Enum.join(filter.value, ",")
+
+          :date_range ->
+            "#{filter.value.from},#{filter.value.to}"
+
+          :number_range ->
+            "#{filter.value.min},#{filter.value.max}"
+
+          _ ->
+            to_string(filter.value)
+        end
+
       {key, encoded_value}
     end)
     |> Enum.into(%{})
+  end
+
+  defp encode_state_for_url(filters, current_page) do
+    encoded_filters = encode_filters_for_url(filters)
+
+    state =
+      if current_page > 1 do
+        Map.put(encoded_filters, :page, to_string(current_page))
+      else
+        encoded_filters
+      end
+
+    state
   end
 
   # Decode filters from URL parameters
@@ -296,40 +337,46 @@ defmodule Cinder.Table.LiveComponent do
     url_filters
     |> Enum.reduce(%{}, fn {key, value}, acc ->
       column = Enum.find(columns, &(&1.key == key))
-      
+
       if column && column.filterable && value != "" do
         filter_type = column.filter_type
-        
-        decoded_value = case filter_type do
-          :multi_select ->
-            String.split(value, ",")
-          :date_range ->
-            case String.split(value, ",") do
-              [from, to] -> %{from: from, to: to}
-              [from] -> %{from: from, to: ""}
-              _ -> %{from: "", to: ""}
-            end
-          :number_range ->
-            case String.split(value, ",") do
-              [min, max] -> %{min: min, max: max}
-              [min] -> %{min: min, max: ""}
-              _ -> %{min: "", max: ""}
-            end
-          :boolean ->
-            value
-          _ ->
-            value
-        end
 
-        operator = case filter_type do
-          :text -> :contains
-          :select -> :equals
-          :multi_select -> :in
-          :boolean -> :equals
-          :date_range -> :between
-          :number_range -> :between
-          _ -> :equals
-        end
+        decoded_value =
+          case filter_type do
+            :multi_select ->
+              String.split(value, ",")
+
+            :date_range ->
+              case String.split(value, ",") do
+                [from, to] -> %{from: from, to: to}
+                [from] -> %{from: from, to: ""}
+                _ -> %{from: "", to: ""}
+              end
+
+            :number_range ->
+              case String.split(value, ",") do
+                [min, max] -> %{min: min, max: max}
+                [min] -> %{min: min, max: ""}
+                _ -> %{min: "", max: ""}
+              end
+
+            :boolean ->
+              value
+
+            _ ->
+              value
+          end
+
+        operator =
+          case filter_type do
+            :text -> :contains
+            :select -> :equals
+            :multi_select -> :in
+            :boolean -> :equals
+            :date_range -> :between
+            :number_range -> :between
+            _ -> :equals
+          end
 
         Map.put(acc, key, %{
           type: filter_type,
@@ -856,7 +903,6 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:data, [])
     |> assign(:sort_by, [])
     |> assign(:filters, assigns[:filters] || %{})
-
     |> assign(:search_term, "")
     |> assign(:theme, merge_theme(assigns[:theme] || %{}))
     |> assign(:query_opts, assigns[:query_opts] || [])
@@ -913,10 +959,24 @@ defmodule Cinder.Table.LiveComponent do
         |> Ash.Query.limit(page_size_var)
         |> Ash.Query.offset((current_page_var - 1) * page_size_var)
 
-      # Execute the query
+      # Execute the query to get paginated results
       case Ash.read(query, actor: current_user_var) do
         {:ok, results} when is_list(results) ->
-          {results, current_page_var, page_size_var}
+          # Get total count for pagination info
+          count_query =
+            resource_var
+            |> Ash.Query.for_read(:read, %{}, actor: current_user_var)
+            |> apply_query_opts(query_opts_var)
+            |> apply_filters(filters_var, columns_var)
+
+          case Ash.count(count_query, actor: current_user_var) do
+            {:ok, total_count} ->
+              {results, current_page_var, page_size_var, total_count}
+
+            {:error, _count_error} ->
+              # Fall back to length-based calculation if count fails
+              {results, current_page_var, page_size_var}
+          end
 
         {:error, error} ->
           {:error, error}
@@ -931,6 +991,19 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:loading, false)
       |> assign(:data, results)
       |> assign(:page_info, build_page_info_from_list(results, current_page, page_size))
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:load_data, {:ok, {results, current_page, page_size, total_count}}, socket) do
+    socket =
+      socket
+      |> assign(:loading, false)
+      |> assign(:data, results)
+      |> assign(
+        :page_info,
+        build_page_info_with_total_count(results, current_page, page_size, total_count)
+      )
 
     {:noreply, socket}
   end
@@ -1222,6 +1295,22 @@ defmodule Cinder.Table.LiveComponent do
       has_previous_page: current_page > 1,
       start_index: if(total_count > 0, do: start_index, else: 0),
       end_index: if(total_count > 0, do: end_index, else: 0)
+    }
+  end
+
+  defp build_page_info_with_total_count(results, current_page, page_size, total_count) do
+    total_pages = max(1, ceil(total_count / page_size))
+    start_index = (current_page - 1) * page_size + 1
+    actual_end_index = start_index + length(results) - 1
+
+    %{
+      current_page: current_page,
+      total_pages: total_pages,
+      total_count: total_count,
+      has_next_page: current_page < total_pages,
+      has_previous_page: current_page > 1,
+      start_index: if(total_count > 0, do: start_index, else: 0),
+      end_index: if(total_count > 0, do: max(actual_end_index, 0), else: 0)
     }
   end
 

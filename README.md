@@ -294,7 +294,8 @@ Enable URL synchronization to persist filter state across page reloads and allow
   query={MyApp.Music.Album}
   current_user={@current_user}
   url_filters={@url_filters}
-  on_filter_change={:filter_changed}
+  url_page={@url_page}
+  on_state_change={:state_changed}
 >
   <!-- columns -->
 </Cinder.Table.table>

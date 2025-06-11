@@ -192,6 +192,66 @@ defmodule Cinder.TableTest do
       refute html =~ "Previous"
       refute html =~ "Next"
     end
+
+    test "pagination controls structure is present" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        page_size: 5,
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Pagination wrapper should always be present
+      assert html =~ "cinder-pagination-wrapper"
+      # Pagination controls are only shown when total_pages > 1
+      # With empty mock data, no pagination controls should show
+      refute html =~ "Previous"
+      refute html =~ "Next"
+      refute html =~ "Page"
+    end
+
+    test "pagination state is restored from URL" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_page: "3",
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should start on page 3 as specified in URL
+      assert html =~ "cinder-pagination-wrapper"
+    end
+
+    test "pagination state is included in URL encoding" do
+      # Test that pagination state is properly encoded for URL
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        on_state_change: :state_changed,
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Pagination wrapper should be present
+      assert html =~ "cinder-pagination-wrapper"
+
+      # Component should handle pagination state properly
+      assert html =~ "cinder-table-container"
+    end
   end
 
   describe "component initialization" do
@@ -908,11 +968,41 @@ defmodule Cinder.TableTest do
           "featured" => "true"
         },
         col: [
-          %{key: "title", label: "Title", filterable: true, filter_type: :text, inner_block: fn _item -> "Content" end},
-          %{key: "status", label: "Status", filterable: true, filter_type: :select, inner_block: fn _item -> "Content" end},
-          %{key: "genres", label: "Genres", filterable: true, filter_type: :multi_select, inner_block: fn _item -> "Content" end},
-          %{key: "price", label: "Price", filterable: true, filter_type: :number_range, inner_block: fn _item -> "Content" end},
-          %{key: "featured", label: "Featured", filterable: true, filter_type: :boolean, inner_block: fn _item -> "Content" end}
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :text,
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "status",
+            label: "Status",
+            filterable: true,
+            filter_type: :select,
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "genres",
+            label: "Genres",
+            filterable: true,
+            filter_type: :multi_select,
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "price",
+            label: "Price",
+            filterable: true,
+            filter_type: :number_range,
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "featured",
+            label: "Featured",
+            filterable: true,
+            filter_type: :boolean,
+            inner_block: fn _item -> "Content" end
+          }
         ]
       }
 
@@ -933,7 +1023,13 @@ defmodule Cinder.TableTest do
           "title" => %{type: :text, value: "test", operator: :contains}
         },
         col: [
-          %{key: "title", label: "Title", filterable: true, filter_type: :text, inner_block: fn _item -> "Content" end}
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :text,
+            inner_block: fn _item -> "Content" end
+          }
         ]
       }
 

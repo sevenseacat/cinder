@@ -19,7 +19,12 @@ defmodule Cinder.Table do
   attr(:id, :string, required: true, doc: "Required unique identifier for the component")
   attr(:theme, :map, default: %{}, doc: "Custom theme classes")
   attr(:url_filters, :map, default: %{}, doc: "Filter parameters from URL for state restoration")
-  attr(:on_filter_change, :atom, doc: "Callback atom for filter change notifications (e.g., :filter_changed)")
+  attr(:url_page, :string, doc: "Page number from URL for state restoration")
+
+  attr(:on_state_change, :atom,
+    doc:
+      "Callback atom for state change notifications including filters and pagination (e.g., :state_changed)"
+  )
 
   slot :col, required: true, doc: "Column definition" do
     attr(:key, :string, required: true, doc: "Column identifier (attribute name or dot notation)")
@@ -27,7 +32,11 @@ defmodule Cinder.Table do
     attr(:sortable, :boolean, doc: "Enable sorting for this column")
     attr(:searchable, :boolean, doc: "Include this column in text search")
     attr(:filterable, :boolean, doc: "Enable filtering for this column")
-    attr(:filter_type, :atom, doc: "Filter type (:text, :select, :multi_select, :boolean, :date_range, :number_range)")
+
+    attr(:filter_type, :atom,
+      doc: "Filter type (:text, :select, :multi_select, :boolean, :date_range, :number_range)"
+    )
+
     attr(:filter_options, :list, doc: "Filter configuration options")
     attr(:filter_fn, :any, doc: "Custom filter function")
     attr(:options, :list, doc: "Custom filter options (list of values)")
@@ -58,6 +67,49 @@ defmodule Cinder.Table do
         </:col>
       </.table>
 
+  ## URL State Management
+
+  The table component supports URL synchronization for both filters and pagination state.
+  This enables shareable URLs, browser back/forward navigation, and state persistence on page refresh.
+
+  Example usage:
+
+      # In your LiveView, handle state change notifications
+      def handle_info({:state_changed, table_id, state}, socket) do
+        url_filters = Map.drop(state, [:page])
+        url_page = Map.get(state, :page)
+
+        params = if url_page do
+          Map.put(url_filters, "page", url_page)
+        else
+          url_filters
+        end
+
+        {:noreply, push_patch(socket, to: ~p"/albums?\#{params}")}
+      end
+
+      # Pass URL parameters back to table component
+      def mount(params, _session, socket) do
+        url_filters = Map.drop(params, ["page"])
+        url_page = Map.get(params, "page")
+
+        socket = assign(socket, url_filters: url_filters, url_page: url_page)
+        {:ok, socket}
+      end
+
+  In your template:
+
+      <.table
+        id="albums-table"
+        query={MyApp.Album}
+        current_user={@current_user}
+        url_filters={@url_filters}
+        url_page={@url_page}
+        on_state_change={:state_changed}
+      >
+        <!-- columns -->
+      </.table>
+
   ## Sort Arrow Customization
 
   You can customize sort arrows via the theme attribute:
@@ -69,9 +121,9 @@ defmodule Cinder.Table do
         theme={%{
           # Use custom heroicons
           sort_asc_icon_name: "hero-arrow-up",
-          sort_desc_icon_name: "hero-arrow-down", 
+          sort_desc_icon_name: "hero-arrow-down",
           sort_none_icon_name: "hero-arrows-up-down",
-          
+
           # Customize icon classes
           sort_asc_icon_class: "w-4 h-4 text-green-500",
           sort_desc_icon_class: "w-4 h-4 text-red-500",
