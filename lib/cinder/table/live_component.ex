@@ -158,14 +158,18 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_event("filter_change", %{"filters" => filter_params}, socket) do
+    # Ensure multi-select fields are included even when no checkboxes are selected
+    complete_filter_params = ensure_multiselect_fields(filter_params, socket.assigns.columns)
+
     # Handle special cases for range inputs
-    processed_params = process_filter_params(filter_params, socket.assigns.columns)
+    processed_params = process_filter_params(complete_filter_params, socket.assigns.columns)
 
     # Start with existing filters and only update/remove changed ones
     new_filters =
       processed_params
       |> Enum.reduce(socket.assigns.filters, fn {string_key, value}, acc ->
-        if value == "" or is_nil(value) or value == "all" do
+        if value == "" or is_nil(value) or value == "all" or
+             (is_list(value) and Enum.empty?(value)) do
           # Remove filter if value is empty
           Map.delete(acc, string_key)
         else
@@ -177,6 +181,7 @@ defmodule Cinder.Table.LiveComponent do
             case filter_type do
               :text -> :contains
               :select -> :equals
+              :multi_select -> :in
               :boolean -> :equals
               :date_range -> :between
               :number_range -> :between
@@ -208,6 +213,11 @@ defmodule Cinder.Table.LiveComponent do
 
                 result
 
+              :multi_select ->
+                # For multi-select, value is already processed as comma-separated string
+                # Split it back into list for the filter
+                String.split(value, ",")
+
               _ ->
                 value
             end
@@ -227,6 +237,20 @@ defmodule Cinder.Table.LiveComponent do
       |> load_data()
 
     {:noreply, socket}
+  end
+
+  # Ensure multi-select fields are included even when no checkboxes are selected
+  defp ensure_multiselect_fields(filter_params, columns) do
+    columns
+    |> Enum.filter(&(&1.filterable and &1.filter_type == :multi_select))
+    |> Enum.reduce(filter_params, fn column, acc ->
+      # If multi-select field is missing (all checkboxes unchecked), add it as empty array
+      if not Map.has_key?(acc, column.key) do
+        Map.put(acc, column.key, [])
+      else
+        acc
+      end
+    end)
   end
 
   # Process filter params to handle special cases like ranges
@@ -263,7 +287,7 @@ defmodule Cinder.Table.LiveComponent do
 
         # Handle multi-select arrays
         is_list(value) ->
-          combined_value = Enum.join(value, ",")
+          combined_value = if Enum.empty?(value), do: "", else: Enum.join(value, ",")
           Map.put(acc, key, combined_value)
 
         # Regular fields
@@ -583,7 +607,7 @@ defmodule Cinder.Table.LiveComponent do
           type="checkbox"
           name={"filters[#{@column.key}][]"}
           value={value}
-          checked={value in @selected_values}
+          checked={to_string(value) in Enum.map(@selected_values, &to_string/1)}
           class="mr-2"
         />
         <label class="text-sm">
@@ -1159,36 +1183,48 @@ defmodule Cinder.Table.LiveComponent do
                 ]
               }
 
-            # Handle Ash.Type.Enum and custom enum types
-            is_atom(type) and function_exported?(type, :values, 0) ->
-              values = apply(type, :values, [])
+            # Handle Ash.Type.Enum and custom enum types - try to call values/0
+            is_atom(type) ->
+              case (try do
+                      apply(type, :values, [])
+                    rescue
+                      _ -> nil
+                    end) do
+                values when is_list(values) ->
+                  %{
+                    filter_type: :select,
+                    filter_options: [
+                      options: enum_to_options(values, type),
+                      prompt: "All #{humanize_key(key)}"
+                    ]
+                  }
 
-              %{
-                filter_type: :select,
-                filter_options: [
-                  options: enum_to_options(values, type),
-                  prompt: "All #{humanize_key(key)}"
-                ]
-              }
+                _ ->
+                  # Not an enum type, check other conditions
+                  cond do
+                    type == Ash.Type.Boolean ->
+                      %{filter_type: :boolean, filter_options: []}
 
-            type == Ash.Type.Boolean ->
-              %{filter_type: :boolean, filter_options: []}
+                    type == Ash.Type.Date ->
+                      %{filter_type: :date_range, filter_options: []}
 
-            type == Ash.Type.Date ->
-              %{filter_type: :date_range, filter_options: []}
+                    type in [Ash.Type.Integer, Ash.Type.Decimal, Ash.Type.Float] ->
+                      %{filter_type: :number_range, filter_options: []}
 
-            type in [Ash.Type.Integer, Ash.Type.Decimal, Ash.Type.Float] ->
-              %{filter_type: :number_range, filter_options: []}
+                    type == Ash.Type.String ->
+                      %{
+                        filter_type: :text,
+                        filter_options: [
+                          operator: :contains,
+                          placeholder: "Search #{humanize_key(key)}...",
+                          case_sensitive: false
+                        ]
+                      }
 
-            type == Ash.Type.String ->
-              %{
-                filter_type: :text,
-                filter_options: [
-                  operator: :contains,
-                  placeholder: "Search #{humanize_key(key)}...",
-                  case_sensitive: false
-                ]
-              }
+                    true ->
+                      %{filter_type: :text, filter_options: []}
+                  end
+              end
 
             true ->
               %{filter_type: :text, filter_options: []}

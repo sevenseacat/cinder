@@ -821,6 +821,80 @@ defmodule Cinder.TableTest do
       refute html =~ ~r/<option[^>]*value=""[^>]*selected/
     end
 
+    test "multi-select filter renders checkboxes correctly" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        filters: %{
+          "genres" => %{type: :multi_select, value: ["rock", "pop"], operator: :in}
+        },
+        col: [
+          %{
+            key: "genres",
+            label: "Genres",
+            filterable: true,
+            filter_type: :multi_select,
+            filter_options: [
+              options: [{"Rock", :rock}, {"Pop", :pop}, {"Jazz", :jazz}]
+            ],
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render checkboxes with correct selections
+      assert html =~ ~r/type="checkbox"/
+      assert html =~ ~r/name="filters\[genres\]\[\]"/
+      assert html =~ "Rock"
+      assert html =~ "Pop"
+      assert html =~ "Jazz"
+
+      # Test string/atom conversion fix - rock and pop should be checked, jazz should not
+      assert html =~ ~r/value="rock"[^>]*checked/
+      assert html =~ ~r/value="pop"[^>]*checked/
+      refute html =~ ~r/value="jazz"[^>]*checked/
+    end
+
+    test "multi-select filter can be completely cleared" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        filters: %{
+          "genres" => %{type: :multi_select, value: ["rock"], operator: :in}
+        },
+        col: [
+          %{
+            key: "genres",
+            label: "Genres",
+            filterable: true,
+            filter_type: :multi_select,
+            filter_options: [
+              options: [{"Rock", :rock}, {"Pop", :pop}, {"Jazz", :jazz}]
+            ],
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should show rock as checked initially
+      assert html =~ ~r/value="rock"[^>]*checked/
+
+      # Now test with empty filters (simulating all checkboxes unchecked)
+      cleared_assigns = Map.put(assigns, :filters, %{})
+      html = render_component(Table.LiveComponent, cleared_assigns)
+
+      # No checkboxes should be checked
+      refute html =~ ~r/value="rock"[^>]*checked/
+      refute html =~ ~r/value="pop"[^>]*checked/
+      refute html =~ ~r/value="jazz"[^>]*checked/
+    end
+
     test "shows clear button for active filters" do
       assigns = %{
         id: "test-table",
