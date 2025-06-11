@@ -895,6 +895,54 @@ defmodule Cinder.TableTest do
       refute html =~ ~r/value="jazz"[^>]*checked/
     end
 
+    test "decodes filters from URL parameters correctly" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{
+          "title" => "search_term",
+          "status" => "active",
+          "genres" => "rock,pop",
+          "price" => "10.00,99.99",
+          "featured" => "true"
+        },
+        col: [
+          %{key: "title", label: "Title", filterable: true, filter_type: :text, inner_block: fn _item -> "Content" end},
+          %{key: "status", label: "Status", filterable: true, filter_type: :select, inner_block: fn _item -> "Content" end},
+          %{key: "genres", label: "Genres", filterable: true, filter_type: :multi_select, inner_block: fn _item -> "Content" end},
+          %{key: "price", label: "Price", filterable: true, filter_type: :number_range, inner_block: fn _item -> "Content" end},
+          %{key: "featured", label: "Featured", filterable: true, filter_type: :boolean, inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render with filters applied from URL
+      assert html =~ "search_term"
+      assert html =~ "(5 active)"
+    end
+
+    test "URL management can be disabled" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        manage_url: false,
+        filters: %{
+          "title" => %{type: :text, value: "test", operator: :contains}
+        },
+        col: [
+          %{key: "title", label: "Title", filterable: true, filter_type: :text, inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      # Should render without attempting URL management
+      html = render_component(Table.LiveComponent, assigns)
+      assert html =~ "test"
+      assert html =~ "(1 active)"
+    end
+
     test "shows clear button for active filters" do
       assigns = %{
         id: "test-table",

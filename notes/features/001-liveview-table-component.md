@@ -41,23 +41,50 @@ Build a reusable LiveView component (`Cinder.Table`) that automatically generate
 - Custom sort function integration
 - URL state synchronization for sorts
 
-#### Phase 4: Filtering System
-- Design filter state management
-- Implement filter UI above table
-- Auto-detect filter types:
-  - Enum attributes → dropdown
-  - Boolean attributes → tri-state selector
-  - Array attributes → matching any item in list
-  - Belongs_to relationships → dropdown with related data
-  - Custom options support
-- URL state synchronization for filters
+### Phase 4: Filtering System - COMPLETE ✅
 
-#### Phase 5: Search Functionality
-- Add search input UI
-- Implement text search for searchable columns
-- Support custom search functions
-- Combine search with existing filters
-- URL state synchronization for search
+#### URL State Management Implementation
+- Added URL parameter encoding/decoding for all filter types
+- Component sends filter change notifications to parent LiveView
+- Parent LiveView can update URL via push_patch with encoded filters
+- Filters are restored from URL parameters on page load
+- Supported URL formats:
+  - Text: `?title=search_term`
+  - Select: `?status=active` 
+  - Multi-select: `?genres=rock,pop,jazz`
+  - Date ranges: `?release_date=2020-01-01,2023-12-31`
+  - Number ranges: `?price=10.00,99.99`
+  - Boolean: `?featured=true`
+
+#### Key Technical Achievements
+- Form-based filter architecture prevents state loss during interactions
+- String/atom conversion handling for enum dropdowns and checkboxes
+- Multi-select checkbox arrays with proper empty state handling
+- Automatic filter type inference from Ash resource attributes
+- Try/catch pattern for robust enum type detection
+- Comprehensive test coverage for all filter scenarios
+
+### Phase 5: Search Functionality - SUPERSEDED ✅
+*This phase was superseded by the advanced filtering system which provides superior search capabilities through column-specific text filters.*
+- ✅ Design filter state management
+- ✅ Implement filter UI above table
+- ✅ Auto-detect filter types:
+  - ✅ Enum attributes → dropdown
+  - ✅ Boolean attributes → tri-state selector
+  - ✅ Array attributes → matching any item in list
+  - ✅ Multi-select attributes → checkbox lists
+  - ✅ Date/Number attributes → range inputs
+  - ✅ Custom options support
+- ✅ URL state synchronization for filters
+
+#### Phase 5: Search Functionality - SUPERSEDED ✅
+- ✅ Add search input UI (via text filters)
+- ✅ Implement text search for searchable columns (via column-specific text filters)
+- ✅ Support custom search functions (via filter_fn)
+- ✅ Combine search with existing filters (all filters work together)
+- ✅ URL state synchronization for search (included in filter URL state)
+
+*Note: This phase was superseded by the more powerful column-specific filtering system implemented in Phase 4, which provides better UX and more granular control than a single global search.*
 
 #### Phase 6: Theming and Customization
 - Define comprehensive theming system

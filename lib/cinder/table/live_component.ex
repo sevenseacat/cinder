@@ -25,6 +25,7 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(assigns)
       |> assign_defaults()
       |> assign_column_definitions()
+      |> decode_url_filters(assigns)
       |> load_data_if_needed()
 
     {:ok, socket}
@@ -126,6 +127,9 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:current_page, 1)
       |> load_data()
 
+    # Notify parent about filter changes
+    socket = notify_filter_change(socket, new_filters)
+
     {:noreply, socket}
   end
 
@@ -149,9 +153,11 @@ defmodule Cinder.Table.LiveComponent do
     socket =
       socket
       |> assign(:filters, %{})
-      # Reset to first page when filters change
       |> assign(:current_page, 1)
       |> load_data()
+
+    # Notify parent about filter clear
+    socket = notify_filter_change(socket, %{})
 
     {:noreply, socket}
   end
@@ -236,7 +242,104 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:current_page, 1)
       |> load_data()
 
+    # Notify parent about filter changes
+    socket = notify_filter_change(socket, new_filters)
+
     {:noreply, socket}
+  end
+
+  # Notify parent LiveView about filter changes
+  defp notify_filter_change(socket, filters) do
+    if socket.assigns[:on_filter_change] do
+      encoded_filters = encode_filters_for_url(filters)
+      # Use send/2 with self() to send to the current LiveView process
+      # This works because LiveComponents run in the same process as their parent LiveView
+      send(self(), {socket.assigns.on_filter_change, socket.assigns.id, encoded_filters})
+    end
+    socket
+  end
+
+  # Decode filter state from URL parameters
+  defp decode_url_filters(socket, assigns) do
+    url_filters = Map.get(assigns, :url_filters, %{})
+    
+    # Only decode URL filters if they are provided, otherwise keep existing filters
+    if Enum.empty?(url_filters) do
+      socket
+    else
+      decoded_filters = decode_filters_from_url(url_filters, socket.assigns.columns)
+      assign(socket, :filters, decoded_filters)
+    end
+  end
+
+  # Encode filters for URL parameters
+  defp encode_filters_for_url(filters) do
+    filters
+    |> Enum.map(fn {key, filter} ->
+      encoded_value = case filter.type do
+        :multi_select when is_list(filter.value) ->
+          Enum.join(filter.value, ",")
+        :date_range ->
+          "#{filter.value.from},#{filter.value.to}"
+        :number_range ->
+          "#{filter.value.min},#{filter.value.max}"
+        _ ->
+          to_string(filter.value)
+      end
+      {key, encoded_value}
+    end)
+    |> Enum.into(%{})
+  end
+
+  # Decode filters from URL parameters
+  defp decode_filters_from_url(url_filters, columns) do
+    url_filters
+    |> Enum.reduce(%{}, fn {key, value}, acc ->
+      column = Enum.find(columns, &(&1.key == key))
+      
+      if column && column.filterable && value != "" do
+        filter_type = column.filter_type
+        
+        decoded_value = case filter_type do
+          :multi_select ->
+            String.split(value, ",")
+          :date_range ->
+            case String.split(value, ",") do
+              [from, to] -> %{from: from, to: to}
+              [from] -> %{from: from, to: ""}
+              _ -> %{from: "", to: ""}
+            end
+          :number_range ->
+            case String.split(value, ",") do
+              [min, max] -> %{min: min, max: max}
+              [min] -> %{min: min, max: ""}
+              _ -> %{min: "", max: ""}
+            end
+          :boolean ->
+            value
+          _ ->
+            value
+        end
+
+        operator = case filter_type do
+          :text -> :contains
+          :select -> :equals
+          :multi_select -> :in
+          :boolean -> :equals
+          :date_range -> :between
+          :number_range -> :between
+          _ -> :equals
+        end
+
+        Map.put(acc, key, %{
+          type: filter_type,
+          value: decoded_value,
+          operator: operator
+        })
+      else
+        acc
+      end
+    end)
   end
 
   # Ensure multi-select fields are included even when no checkboxes are selected
@@ -753,6 +856,7 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:data, [])
     |> assign(:sort_by, [])
     |> assign(:filters, assigns[:filters] || %{})
+
     |> assign(:search_term, "")
     |> assign(:theme, merge_theme(assigns[:theme] || %{}))
     |> assign(:query_opts, assigns[:query_opts] || [])

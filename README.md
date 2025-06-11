@@ -7,6 +7,7 @@ A powerful, flexible data table component for Phoenix LiveView applications. Cin
 - **Rich Filtering System**: Support for text, select, multi-select, date ranges, number ranges, and boolean filters
 - **Automatic Type Inference**: Automatically detects appropriate filter types from Ash resource attributes
 - **Real-time Updates**: Form-based filtering with live updates and debouncing
+- **URL State Management**: Persist filter state in URL for shareable, bookmarkable filtered views
 - **Flexible Sorting**: Multi-column sorting with customizable sort functions
 - **Pagination**: Built-in pagination with configurable page sizes
 - **Themeable**: Comprehensive theming system with Tailwind CSS classes
@@ -29,8 +30,7 @@ end
 ## Basic Usage
 
 ```elixir
-<.live_component
-  module={Cinder.Table.LiveComponent}
+<Cinder.Table.table
   id="my-table"
   query={MyApp.Music.Album}
   current_user={@current_user}
@@ -44,7 +44,7 @@ end
   <:col key="release_date" label="Release Date" sortable>
     <%= Calendar.strftime(item.release_date, "%B %d, %Y") %>
   </:col>
-</.live_component>
+</Cinder.Table.table>
 ```
 
 ## Filter Types
@@ -232,8 +232,7 @@ For complex filtering logic:
 Customize the appearance with theme options:
 
 ```elixir
-<.live_component
-  module={Cinder.Table.LiveComponent}
+<Cinder.Table.table
   id="my-table"
   query={MyApp.Music.Album}
   current_user={@current_user}
@@ -245,7 +244,7 @@ Customize the appearance with theme options:
   }}
 >
   <!-- columns -->
-</.live_component>
+</Cinder.Table.table>
 ```
 
 ### Available Theme Keys
@@ -260,16 +259,14 @@ Customize the appearance with theme options:
 ### Pagination Configuration
 
 ```elixir
-<.live_component
-  module={Cinder.Table.LiveComponent}
+<Cinder.Table.table
   id="my-table"
   query={MyApp.Music.Album}
   current_user={@current_user}
   page_size={50}
-  current_page={1}
 >
   <!-- columns -->
-</.live_component>
+</Cinder.Table.table>
 ```
 
 ### Relationship Filtering
@@ -284,30 +281,103 @@ Filter on related data:
 
 ### Pre-applied Filters
 
-Start with filters already active:
+Start with filters already active by passing them through URL parameters or initial state in your LiveView.
+
+## URL State Management
+
+Enable URL synchronization to persist filter state across page reloads and allow shareable filtered URLs:
 
 ```elixir
-<.live_component
-  module={Cinder.Table.LiveComponent}
+# In your LiveView
+<Cinder.Table.table
   id="my-table"
   query={MyApp.Music.Album}
   current_user={@current_user}
-  filters={%{
-    "status" => %{type: :select, value: "active", operator: :equals},
-    "featured" => %{type: :boolean, value: "true", operator: :equals}
-  }}
+  url_filters={@url_filters}
+  on_filter_change={:filter_changed}
 >
   <!-- columns -->
-</.live_component>
+</Cinder.Table.table>
+```
+
+Handle filter change events to update the URL:
+
+```elixir
+def handle_info({:filter_changed, _table_id, encoded_filters}, socket) do
+  # Get current path and update URL with new filter state
+  current_path = socket.assigns.current_path || "/"
+
+  new_url = if Enum.empty?(encoded_filters) do
+    current_path
+  else
+    current_path <> "?" <> URI.encode_query(encoded_filters)
+  end
+
+  {:noreply, push_patch(socket, to: new_url)}
+end
+
+def handle_params(params, url, socket) do
+  # Extract current path and filter parameters
+  uri = URI.parse(url)
+  current_path = uri.path || "/"
+  filter_params = Map.drop(params, ["live_action"])
+
+  socket =
+    socket
+    |> assign(:current_path, current_path)
+    |> assign(:url_filters, filter_params)
+
+  {:noreply, socket}
+end
+```
+
+### Helper Function
+
+For easier setup, you can copy this helper function to your LiveView:
+
+```elixir
+# Add this to your LiveView module
+defp handle_table_filter_change(socket, encoded_filters) do
+  current_path = socket.assigns.current_path || "/"
+
+  new_url = if Enum.empty?(encoded_filters) do
+    current_path
+  else
+    current_path <> "?" <> URI.encode_query(encoded_filters)
+  end
+
+  push_patch(socket, to: new_url)
+end
+
+# Then use it in your filter change handler
+def handle_info({:filter_changed, _table_id, encoded_filters}, socket) do
+  {:noreply, handle_table_filter_change(socket, encoded_filters)}
+end
+```
+
+### Filter URL Format
+
+Filters are encoded in the URL as query parameters:
+
+- **Text filters**: `?title=search_term`
+- **Select filters**: `?status=active`
+- **Multi-select filters**: `?genres=rock,pop,jazz`
+- **Date ranges**: `?release_date=2020-01-01,2023-12-31`
+- **Number ranges**: `?price=10.00,99.99`
+- **Boolean filters**: `?featured=true`
+
+Example filtered URL:
+```
+/albums?status=active&genres=rock,pop&price=10.00,50.00&featured=true
 ```
 
 ## Event Handling
 
-The component emits events that you can handle in your LiveView:
+The component can emit custom events that you can handle in your LiveView:
 
 ```elixir
 def handle_info({:table_updated, table_id, data}, socket) do
-  # Handle table updates
+  # Handle table updates (if using custom events)
   {:noreply, socket}
 end
 ```

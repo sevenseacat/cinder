@@ -18,6 +18,8 @@ defmodule Cinder.Table do
   attr(:page_size, :integer, default: 25, doc: "Number of items per page")
   attr(:id, :string, required: true, doc: "Required unique identifier for the component")
   attr(:theme, :map, default: %{}, doc: "Custom theme classes")
+  attr(:url_filters, :map, default: %{}, doc: "Filter parameters from URL for state restoration")
+  attr(:on_filter_change, :atom, doc: "Callback atom for filter change notifications (e.g., :filter_changed)")
 
   slot :col, required: true, doc: "Column definition" do
     attr(:key, :string, required: true, doc: "Column identifier (attribute name or dot notation)")
@@ -25,10 +27,14 @@ defmodule Cinder.Table do
     attr(:sortable, :boolean, doc: "Enable sorting for this column")
     attr(:searchable, :boolean, doc: "Include this column in text search")
     attr(:filterable, :boolean, doc: "Enable filtering for this column")
+    attr(:filter_type, :atom, doc: "Filter type (:text, :select, :multi_select, :boolean, :date_range, :number_range)")
+    attr(:filter_options, :list, doc: "Filter configuration options")
+    attr(:filter_fn, :any, doc: "Custom filter function")
     attr(:options, :list, doc: "Custom filter options (list of values)")
     attr(:display_field, :atom, doc: "Field to display for relationship columns")
     attr(:sort_fn, :any, doc: "Custom sort function")
     attr(:search_fn, :any, doc: "Custom search function")
+    attr(:class, :string, doc: "Custom CSS classes for the column")
   end
 
   @doc """
