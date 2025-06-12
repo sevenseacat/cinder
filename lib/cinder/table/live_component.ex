@@ -56,10 +56,10 @@ defmodule Cinder.Table.LiveComponent do
                      phx-click="toggle_sort"
                      phx-value-key={column.key}
                      phx-target={@myself}>
-                  {column.label}
-                  <span class={@theme.sort_indicator_class}>
-                    <.sort_arrow sort_direction={get_sort_direction(@sort_by, column.key)} theme={@theme} loading={@loading} />
-                  </span>
+                     {column.label}
+                     <span class={@theme.sort_indicator_class}>
+                       <.sort_arrow sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.key)} theme={@theme} loading={@loading} />
+                     </span>
                 </div>
                 <div :if={not column.sortable}>
                   {column.label}
@@ -137,7 +137,7 @@ defmodule Cinder.Table.LiveComponent do
   @impl true
   def handle_event("toggle_sort", %{"key" => key}, socket) do
     current_sort = socket.assigns.sort_by
-    new_sort = toggle_sort_direction(current_sort, key)
+    new_sort = Cinder.QueryBuilder.toggle_sort_direction(current_sort, key)
 
     socket =
       socket
@@ -796,7 +796,7 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:search_term, "")
     |> assign(:theme, Cinder.Theme.merge(assigns[:theme] || %{}))
     |> assign(:query_opts, assigns[:query_opts] || [])
-    |> assign(:page_info, build_error_page_info())
+    |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
   end
 
   defp assign_column_definitions(socket) do
@@ -828,72 +828,31 @@ defmodule Cinder.Table.LiveComponent do
 
     # Extract variables to avoid socket copying in async function
     resource_var = resource
-    query_opts_var = query_opts
-    current_user_var = current_user
-    page_size_var = page_size
-    current_page_var = current_page
-    sort_by_var = sort_by
-    filters_var = filters
-    columns_var = columns
+
+    options = [
+      actor: current_user,
+      query_opts: query_opts,
+      filters: filters,
+      sort_by: sort_by,
+      page_size: page_size,
+      current_page: current_page,
+      columns: columns
+    ]
 
     socket
     |> assign(:loading, true)
     |> start_async(:load_data, fn ->
-      # Build the query with pagination, sorting, and filtering
-      query =
-        resource_var
-        |> Ash.Query.for_read(:read, %{}, actor: current_user_var)
-        |> apply_query_opts(query_opts_var)
-        |> apply_filters(filters_var, columns_var)
-        |> apply_sorting(sort_by_var, columns_var)
-        |> Ash.Query.limit(page_size_var)
-        |> Ash.Query.offset((current_page_var - 1) * page_size_var)
-
-      # Execute the query to get paginated results
-      case Ash.read(query, actor: current_user_var) do
-        {:ok, results} when is_list(results) ->
-          # Get total count for pagination info
-          count_query =
-            resource_var
-            |> Ash.Query.for_read(:read, %{}, actor: current_user_var)
-            |> apply_query_opts(query_opts_var)
-            |> apply_filters(filters_var, columns_var)
-
-          case Ash.count(count_query, actor: current_user_var) do
-            {:ok, total_count} ->
-              {results, current_page_var, page_size_var, total_count}
-
-            {:error, _count_error} ->
-              # Fall back to length-based calculation if count fails
-              {results, current_page_var, page_size_var}
-          end
-
-        {:error, error} ->
-          {:error, error}
-      end
+      Cinder.QueryBuilder.build_and_execute(resource_var, options)
     end)
   end
 
   @impl true
-  def handle_async(:load_data, {:ok, {results, current_page, page_size}}, socket) do
+  def handle_async(:load_data, {:ok, {:ok, {results, page_info}}}, socket) do
     socket =
       socket
       |> assign(:loading, false)
       |> assign(:data, results)
-      |> assign(:page_info, build_page_info_from_list(results, current_page, page_size))
-
-    {:noreply, socket}
-  end
-
-  def handle_async(:load_data, {:ok, {results, current_page, page_size, total_count}}, socket) do
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:data, results)
-      |> assign(
-        :page_info,
-        build_page_info_with_total_count(results, current_page, page_size, total_count)
-      )
+      |> assign(:page_info, page_info)
 
     {:noreply, socket}
   end
@@ -904,7 +863,7 @@ defmodule Cinder.Table.LiveComponent do
       socket
       |> assign(:loading, false)
       |> assign(:data, [])
-      |> assign(:page_info, build_error_page_info())
+      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
       |> put_flash(:error, "Failed to load data: #{inspect(error)}")
 
     {:noreply, socket}
@@ -916,323 +875,10 @@ defmodule Cinder.Table.LiveComponent do
       socket
       |> assign(:loading, false)
       |> assign(:data, [])
-      |> assign(:page_info, build_error_page_info())
+      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
       |> put_flash(:error, "Failed to load data: #{inspect(reason)}")
 
     {:noreply, socket}
-  end
-
-  defp apply_query_opts(query, opts) do
-    Enum.reduce(opts, query, fn
-      {:load, load_opts}, query ->
-        Ash.Query.load(query, load_opts)
-
-      {:select, select_opts}, query ->
-        Ash.Query.select(query, select_opts)
-
-      {:filter, _filter_opts}, query ->
-        # Filters now handled in apply_filters/3 function
-        query
-
-      _other, query ->
-        query
-    end)
-  end
-
-  defp apply_filters(query, filters, _columns) when filters == %{}, do: query
-
-  defp apply_filters(query, filters, columns) do
-    Enum.reduce(filters, query, fn {key, filter_config}, query ->
-      column = Enum.find(columns, &(&1.key == key))
-
-      cond do
-        column && column.filter_fn ->
-          # Use custom filter function
-          column.filter_fn.(query, filter_config)
-
-        true ->
-          # Apply standard filter based on type
-          apply_standard_filter(query, key, filter_config, column)
-      end
-    end)
-  end
-
-  defp apply_standard_filter(query, key, filter_config, _column) do
-    %{type: type, value: value, operator: operator} = filter_config
-
-    case {type, operator} do
-      {:text, :contains} ->
-        # Use Ash's ilike filter for case insensitive text search
-        if String.contains?(key, ".") do
-          # Handle relationship fields (e.g., "artist.name") - simplified for now
-          query
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          search_value = "%#{value}%"
-          Ash.Query.filter(query, ilike(^field_ref, ^search_value))
-        end
-
-      {:text, :starts_with} ->
-        if String.contains?(key, ".") do
-          query
-        else
-          # Use ilike filter that matches from the beginning
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          search_value = "#{value}%"
-          Ash.Query.filter(query, ilike(^field_ref, ^search_value))
-        end
-
-      {:text, :equals} ->
-        if String.contains?(key, ".") do
-          query
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          Ash.Query.filter(query, ^field_ref == ^value)
-        end
-
-      {:select, :equals} ->
-        if String.contains?(key, ".") do
-          query
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          Ash.Query.filter(query, ^field_ref == ^value)
-        end
-
-      {:multi_select, :in} ->
-        if String.contains?(key, ".") do
-          query
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          Ash.Query.filter(query, ^field_ref in ^value)
-        end
-
-      {:date_range, :between} ->
-        if String.contains?(key, ".") do
-          query
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          %{from: from_date, to: to_date} = value
-
-          cond do
-            from_date != "" and to_date != "" ->
-              Ash.Query.filter(query, ^field_ref >= ^from_date and ^field_ref <= ^to_date)
-
-            from_date != "" ->
-              Ash.Query.filter(query, ^field_ref >= ^from_date)
-
-            to_date != "" ->
-              Ash.Query.filter(query, ^field_ref <= ^to_date)
-
-            true ->
-              query
-          end
-        end
-
-      {:number_range, :between} ->
-        if String.contains?(key, ".") do
-          query
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          %{min: min_val, max: max_val} = value
-
-          cond do
-            min_val != "" and max_val != "" ->
-              min_num = parse_number(min_val)
-              max_num = parse_number(max_val)
-              Ash.Query.filter(query, ^field_ref >= ^min_num and ^field_ref <= ^max_num)
-
-            min_val != "" ->
-              min_num = parse_number(min_val)
-              Ash.Query.filter(query, ^field_ref >= ^min_num)
-
-            max_val != "" ->
-              max_num = parse_number(max_val)
-              Ash.Query.filter(query, ^field_ref <= ^max_num)
-
-            true ->
-              query
-          end
-        end
-
-      {:boolean, :equals} ->
-        if String.contains?(key, ".") do
-          query
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-
-          case value do
-            "true" -> Ash.Query.filter(query, ^field_ref == true)
-            "false" -> Ash.Query.filter(query, ^field_ref == false)
-            # "all" or any other value means no filter
-            _ -> query
-          end
-        end
-
-      _ ->
-        # Fallback for unsupported filter types
-        query
-    end
-  end
-
-  # Helper function for safe number parsing
-  defp parse_number(str) do
-    case Integer.parse(str) do
-      {int, ""} ->
-        int
-
-      _ ->
-        case Float.parse(str) do
-          {float, ""} -> float
-          _ -> 0
-        end
-    end
-  end
-
-  # Helper function to check if filter has a value
-
-  defp apply_sorting(query, [], _columns), do: query
-
-  defp apply_sorting(query, sort_by, columns) do
-    # Check if any columns have custom sort functions
-    has_custom_sorts =
-      Enum.any?(sort_by, fn {key, _direction} ->
-        column = Enum.find(columns, &(&1.key == key))
-        column && column.sort_fn
-      end)
-
-    if has_custom_sorts do
-      # Use custom logic when custom sort functions are present
-      Enum.reduce(sort_by, query, fn {key, direction}, query ->
-        column = Enum.find(columns, &(&1.key == key))
-
-        cond do
-          column && column.sort_fn ->
-            # Use custom sort function
-            column.sort_fn.(query, direction)
-
-          String.contains?(key, ".") ->
-            # Handle dot notation for relationship sorting
-            sort_expr = build_expression_sort(key)
-            Ash.Query.sort(query, [{sort_expr, direction}])
-
-          true ->
-            # Standard attribute sorting
-            Ash.Query.sort(query, [{String.to_atom(key), direction}])
-        end
-      end)
-    else
-      # Use Ash sort input for standard sorting (more efficient)
-      sort_string = Cinder.UrlManager.encode_sort(sort_by)
-
-      if sort_string != "" do
-        Ash.Query.sort(query, sort_string)
-      else
-        query
-      end
-    end
-  end
-
-  defp build_expression_sort(key) do
-    # Convert "author.name" to expression sort
-    parts = String.split(key, ".")
-
-    case parts do
-      [rel, field] ->
-        # For now, create a simple expression - this may need adjustment based on Ash version
-        {String.to_atom(rel), String.to_atom(field)}
-
-      _ ->
-        String.to_atom(key)
-    end
-  end
-
-  defp toggle_sort_direction(current_sort, key) do
-    case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
-      {^key, :asc} ->
-        # Currently ascending, change to descending
-        Enum.map(current_sort, fn
-          {^key, :asc} -> {key, :desc}
-          other -> other
-        end)
-
-      {^key, :desc} ->
-        # Currently descending, remove sort
-        Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
-
-      nil ->
-        # Not currently sorted, add ascending sort
-        [{key, :asc} | current_sort]
-    end
-  end
-
-  defp get_sort_direction(sort_by, key) do
-    case Enum.find(sort_by, fn {sort_key, _direction} -> sort_key == key end) do
-      {^key, direction} -> direction
-      nil -> nil
-    end
-  end
-
-  # This will be used when we implement actual Ash pagination
-  # defp build_page_info_from_ash_page(page, current_page, page_size) do
-  #   total_count = page.count || length(page.results)
-  #   total_pages = max(1, ceil(total_count / page_size))
-  #   start_index = (current_page - 1) * page_size + 1
-  #   end_index = min(current_page * page_size, total_count)
-  #
-  #   %{
-  #     current_page: current_page,
-  #     total_pages: total_pages,
-  #     total_count: total_count,
-  #     has_next_page: page.more?,
-  #     has_previous_page: current_page > 1,
-  #     start_index: if(total_count > 0, do: start_index, else: 0),
-  #     end_index: if(total_count > 0, do: end_index, else: 0)
-  #   }
-  # end
-
-  defp build_page_info_from_list(results, current_page, page_size) do
-    total_count = length(results)
-    total_pages = max(1, ceil(total_count / page_size))
-    start_index = (current_page - 1) * page_size + 1
-    end_index = min(current_page * page_size, total_count)
-
-    %{
-      current_page: current_page,
-      total_pages: total_pages,
-      total_count: total_count,
-      has_next_page: current_page < total_pages,
-      has_previous_page: current_page > 1,
-      start_index: if(total_count > 0, do: start_index, else: 0),
-      end_index: if(total_count > 0, do: end_index, else: 0)
-    }
-  end
-
-  defp build_page_info_with_total_count(results, current_page, page_size, total_count) do
-    total_pages = max(1, ceil(total_count / page_size))
-    start_index = (current_page - 1) * page_size + 1
-    actual_end_index = start_index + length(results) - 1
-
-    %{
-      current_page: current_page,
-      total_pages: total_pages,
-      total_count: total_count,
-      has_next_page: current_page < total_pages,
-      has_previous_page: current_page > 1,
-      start_index: if(total_count > 0, do: start_index, else: 0),
-      end_index: if(total_count > 0, do: max(actual_end_index, 0), else: 0)
-    }
-  end
-
-  defp build_error_page_info do
-    %{
-      current_page: 1,
-      total_pages: 1,
-      total_count: 0,
-      has_next_page: false,
-      has_previous_page: false,
-      start_index: 0,
-      end_index: 0
-    }
   end
 
   defp parse_column_definition(slot, resource) do
