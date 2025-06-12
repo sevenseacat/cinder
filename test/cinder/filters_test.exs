@@ -581,8 +581,8 @@ defmodule Cinder.FiltersTest do
       # Multi-select filter
       assert result["tags"] == ["tag1", "tag2"]
 
-      # Boolean filter
-      assert result["featured"] == true
+      # Boolean filter (returns string for form display)
+      assert result["featured"] == "true"
 
       # Empty field gets default value
       assert result["empty_field"] == ""

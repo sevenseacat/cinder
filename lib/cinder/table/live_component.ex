@@ -313,7 +313,8 @@ defmodule Cinder.Table.LiveComponent do
 
     columns =
       socket.assigns.col
-      |> Enum.map(&parse_column_definition(&1, resource))
+      |> Enum.map(&Cinder.Column.parse_column(&1, resource))
+      |> Enum.map(&convert_column_to_legacy_format/1)
 
     assign(socket, :columns, columns)
   end
@@ -390,25 +391,23 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
-  defp parse_column_definition(slot, resource) do
-    # Infer filter type and options from Ash resource if not explicitly set
-    inferred = Cinder.FilterManager.infer_filter_config(slot.key, resource, slot)
-
+  # Convert new Column struct to legacy format for backward compatibility
+  defp convert_column_to_legacy_format(%Cinder.Column{} = column) do
     %{
-      key: slot.key,
-      label: Map.get(slot, :label, to_string(slot.key)),
-      sortable: Map.get(slot, :sortable, false),
-      searchable: Map.get(slot, :searchable, false),
-      filterable: Map.get(slot, :filterable, false),
-      filter_type: Map.get(slot, :filter_type, inferred.filter_type),
-      filter_options: Map.get(slot, :filter_options, inferred.filter_options),
-      filter_fn: Map.get(slot, :filter_fn),
-      options: Map.get(slot, :options, []),
-      display_field: Map.get(slot, :display_field),
-      sort_fn: Map.get(slot, :sort_fn),
-      search_fn: Map.get(slot, :search_fn),
-      class: Map.get(slot, :class, ""),
-      slot: slot
+      key: column.key,
+      label: column.label,
+      sortable: column.sortable,
+      searchable: column.searchable,
+      filterable: column.filterable,
+      filter_type: column.filter_type,
+      filter_options: column.filter_options,
+      filter_fn: column.filter_fn,
+      options: column.options,
+      display_field: column.display_field,
+      sort_fn: column.sort_fn,
+      search_fn: column.search_fn,
+      class: column.class,
+      slot: column.slot
     }
   end
 end
