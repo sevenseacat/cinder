@@ -27,6 +27,7 @@ defmodule Cinder.Table.LiveComponent do
       |> assign_column_definitions()
       |> decode_url_filters(assigns)
       |> decode_url_pagination(assigns)
+      |> decode_url_sorting(assigns)
       |> load_data_if_needed()
 
     {:ok, socket}
@@ -256,8 +257,9 @@ defmodule Cinder.Table.LiveComponent do
     if socket.assigns[:on_state_change] do
       filters = filters || socket.assigns.filters
       current_page = socket.assigns.current_page
+      sort_by = socket.assigns.sort_by
 
-      encoded_state = encode_state_for_url(filters, current_page)
+      encoded_state = encode_state_for_url(filters, current_page, sort_by)
       # Use send/2 with self() to send to the current LiveView process
       # This works because LiveComponents run in the same process as their parent LiveView
       send(self(), {socket.assigns.on_state_change, socket.assigns.id, encoded_state})
@@ -295,6 +297,17 @@ defmodule Cinder.Table.LiveComponent do
     end
   end
 
+  defp decode_url_sorting(socket, assigns) do
+    url_sort = Map.get(assigns, :url_sort)
+
+    if url_sort && is_binary(url_sort) do
+      sort_by = decode_sort_from_url(url_sort)
+      assign(socket, :sort_by, sort_by)
+    else
+      socket
+    end
+  end
+
   # Encode filters for URL parameters
   defp encode_filters_for_url(filters) do
     filters
@@ -319,7 +332,7 @@ defmodule Cinder.Table.LiveComponent do
     |> Enum.into(%{})
   end
 
-  defp encode_state_for_url(filters, current_page) do
+  defp encode_state_for_url(filters, current_page, sort_by) do
     encoded_filters = encode_filters_for_url(filters)
 
     state =
@@ -329,7 +342,42 @@ defmodule Cinder.Table.LiveComponent do
         encoded_filters
       end
 
+    state =
+      if not Enum.empty?(sort_by) do
+        Map.put(state, :sort, encode_sort_for_url(sort_by))
+      else
+        state
+      end
+
     state
+  end
+
+  defp encode_sort_for_url(sort_by) do
+    sort_by
+    |> Enum.map(fn {key, direction} ->
+      case direction do
+        :desc -> "-#{key}"
+        _ -> key
+      end
+    end)
+    |> Enum.join(",")
+  end
+
+  defp decode_sort_from_url(url_sort) do
+    # Parse Ash sort string format manually since sort_input needs a query
+    url_sort
+    |> String.split(",")
+    |> Enum.filter(&(&1 != ""))
+    |> Enum.map(fn sort_item ->
+      case String.starts_with?(sort_item, "-") do
+        true ->
+          key = String.slice(sort_item, 1..-1//1)
+          {key, :desc}
+
+        false ->
+          {sort_item, :asc}
+      end
+    end)
   end
 
   # Decode filters from URL parameters
@@ -1203,24 +1251,43 @@ defmodule Cinder.Table.LiveComponent do
   defp apply_sorting(query, [], _columns), do: query
 
   defp apply_sorting(query, sort_by, columns) do
-    Enum.reduce(sort_by, query, fn {key, direction}, query ->
-      column = Enum.find(columns, &(&1.key == key))
+    # Check if any columns have custom sort functions
+    has_custom_sorts =
+      Enum.any?(sort_by, fn {key, _direction} ->
+        column = Enum.find(columns, &(&1.key == key))
+        column && column.sort_fn
+      end)
 
-      cond do
-        column && column.sort_fn ->
-          # Use custom sort function
-          column.sort_fn.(query, direction)
+    if has_custom_sorts do
+      # Use custom logic when custom sort functions are present
+      Enum.reduce(sort_by, query, fn {key, direction}, query ->
+        column = Enum.find(columns, &(&1.key == key))
 
-        String.contains?(key, ".") ->
-          # Handle dot notation for relationship sorting
-          sort_expr = build_expression_sort(key)
-          Ash.Query.sort(query, [{sort_expr, direction}])
+        cond do
+          column && column.sort_fn ->
+            # Use custom sort function
+            column.sort_fn.(query, direction)
 
-        true ->
-          # Standard attribute sorting
-          Ash.Query.sort(query, [{String.to_atom(key), direction}])
+          String.contains?(key, ".") ->
+            # Handle dot notation for relationship sorting
+            sort_expr = build_expression_sort(key)
+            Ash.Query.sort(query, [{sort_expr, direction}])
+
+          true ->
+            # Standard attribute sorting
+            Ash.Query.sort(query, [{String.to_atom(key), direction}])
+        end
+      end)
+    else
+      # Use Ash sort input for standard sorting (more efficient)
+      sort_string = encode_sort_for_url(sort_by)
+
+      if sort_string != "" do
+        Ash.Query.sort(query, sort_string)
+      else
+        query
       end
-    end)
+    end
   end
 
   defp build_expression_sort(key) do

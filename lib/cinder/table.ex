@@ -20,10 +20,11 @@ defmodule Cinder.Table do
   attr(:theme, :map, default: %{}, doc: "Custom theme classes")
   attr(:url_filters, :map, default: %{}, doc: "Filter parameters from URL for state restoration")
   attr(:url_page, :string, doc: "Page number from URL for state restoration")
+  attr(:url_sort, :string, doc: "Sort parameters from URL for state restoration")
 
   attr(:on_state_change, :atom,
     doc:
-      "Callback atom for state change notifications including filters and pagination (e.g., :state_changed)"
+      "Callback atom for state change notifications including filters, pagination, and sorting (e.g., :state_changed)"
   )
 
   slot :col, required: true, doc: "Column definition" do
@@ -69,31 +70,36 @@ defmodule Cinder.Table do
 
   ## URL State Management
 
-  The table component supports URL synchronization for both filters and pagination state.
+  The table component supports URL synchronization for filters, pagination, and sorting state.
   This enables shareable URLs, browser back/forward navigation, and state persistence on page refresh.
+
+  Sorting uses Ash's native sort string format:
+  - Ascending: `field1,field2`  
+  - Descending: `-field1,-field2`
+  - Mixed: `-field1,field2,-field3`
 
   Example usage:
 
       # In your LiveView, handle state change notifications
       def handle_info({:state_changed, table_id, state}, socket) do
-        url_filters = Map.drop(state, [:page])
+        url_filters = Map.drop(state, [:page, :sort])
         url_page = Map.get(state, :page)
+        url_sort = Map.get(state, :sort)
 
-        params = if url_page do
-          Map.put(url_filters, "page", url_page)
-        else
-          url_filters
-        end
+        params = url_filters
+        params = if url_page, do: Map.put(params, "page", url_page), else: params
+        params = if url_sort, do: Map.put(params, "sort", url_sort), else: params
 
         {:noreply, push_patch(socket, to: ~p"/albums?\#{params}")}
       end
 
       # Pass URL parameters back to table component
       def mount(params, _session, socket) do
-        url_filters = Map.drop(params, ["page"])
+        url_filters = Map.drop(params, ["page", "sort"])
         url_page = Map.get(params, "page")
+        url_sort = Map.get(params, "sort")
 
-        socket = assign(socket, url_filters: url_filters, url_page: url_page)
+        socket = assign(socket, url_filters: url_filters, url_page: url_page, url_sort: url_sort)
         {:ok, socket}
       end
 
@@ -105,6 +111,7 @@ defmodule Cinder.Table do
         current_user={@current_user}
         url_filters={@url_filters}
         url_page={@url_page}
+        url_sort={@url_sort}
         on_state_change={:state_changed}
       >
         <!-- columns -->

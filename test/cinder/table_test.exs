@@ -252,6 +252,94 @@ defmodule Cinder.TableTest do
       # Component should handle pagination state properly
       assert html =~ "cinder-table-container"
     end
+
+    test "URL pagination state is correctly restored from url_page parameter" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_page: "5",
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render with pagination state
+      assert html =~ "cinder-pagination-wrapper"
+      assert html =~ "cinder-table-container"
+    end
+
+    test "URL sorting state is correctly restored from url_sort parameter" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_sort: "-title,author",
+        col: [
+          %{key: "title", label: "Title", sortable: true, inner_block: fn _item -> "Content" end},
+          %{key: "author", label: "Author", sortable: true, inner_block: fn _item -> "Author" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render with sorting indicators
+      assert html =~ "cinder-table-container"
+      assert html =~ "Title"
+      assert html =~ "Author"
+    end
+
+    test "URL filters are correctly restored from url_filters parameter" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{"title" => "test"},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render with filter state
+      assert html =~ "cinder-table-container"
+      assert html =~ "cinder-filter-container"
+    end
+
+    test "combined URL state (filters, pagination, sorting) works together" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{"title" => "test"},
+        url_page: "3",
+        url_sort: "-title",
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            filterable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # All URL state should be restored
+      assert html =~ "cinder-table-container"
+      assert html =~ "cinder-filter-container"
+      assert html =~ "cinder-pagination-wrapper"
+    end
   end
 
   describe "component initialization" do

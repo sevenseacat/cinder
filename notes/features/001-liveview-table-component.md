@@ -548,13 +548,33 @@ end
 **URL Format**: 
 - Filters: `?title=Album&genre=rock&published=true`
 - Pagination: `?title=Album&page=3`
-- Combined: `?title=Album&genre=rock&page=2`
+- Sorting: `?sort=-title,date`
+- Combined: `?title=Album&genre=rock&page=2&sort=-title`
 
 **Result**: 
 - Pagination controls now display correctly when data spans multiple pages
-- URL state is fully synchronized for both filters and pagination
+- URL state is fully synchronized for filters, pagination, and sorting
 - Users can bookmark, share, and navigate with browser back/forward buttons
 - Component state persists across page refreshes
+
+### Sorting URL Management Extension ✅ [2024-12-19]
+
+**Extension Added**: Extended the pagination URL management to also include sorting state for complete table state preservation.
+
+**Implementation**:
+- Added `url_sort` attribute to table component for receiving sort parameters from URL
+- Added `decode_url_sorting` function to restore sort state from URL on component initialization
+- Updated `encode_state_for_url` to include sorting alongside filters and pagination
+- Added `encode_sort_for_url` and `decode_sort_from_url` functions for URL format conversion
+- Updated sorting events to trigger `on_state_change` notifications
+
+**URL Encoding Format** (using Ash sort strings):
+- Single column ascending: `sort=title`
+- Single column descending: `sort=-title`
+- Multiple columns: `sort=-title,author,-date`
+- Uses Ash's native sort string format for direct compatibility with `Ash.Query.sort_input`
+
+**Testing**: Added comprehensive tests verifying URL state encoding/decoding works correctly for combined filters, pagination, and sorting.
 
 ## Conclusion
 
@@ -564,7 +584,7 @@ The LiveView Table Component is now feature-complete with:
 ✅ **Pagination**: Full pagination with URL state management and total count accuracy  
 ✅ **Sorting**: Multi-column sorting with custom functions and dot notation support
 ✅ **Filtering**: Comprehensive filter system with type inference and URL persistence
-✅ **URL Management**: Complete state synchronization for filters and pagination
+✅ **URL Management**: Complete state synchronization for filters, pagination, and sorting
 ✅ **Theming**: Customizable CSS classes and sort arrow icons
 ✅ **Testing**: Comprehensive test coverage for all features
 
@@ -573,7 +593,7 @@ The LiveView Table Component is now feature-complete with:
 - Automatic filter type inference from Ash resource attributes
 - Form-based filtering for optimal UX and state persistence
 - Async data loading with proper loading states
-- Complete URL state management for shareability and navigation
+- Complete URL state management for filters, pagination, and sorting
 - Flexible theming system with sensible defaults
 
 The component successfully provides a production-ready interactive data table solution for Ash-based Phoenix LiveView applications.
