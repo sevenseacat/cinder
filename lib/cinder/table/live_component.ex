@@ -952,7 +952,7 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:sort_by, [])
     |> assign(:filters, assigns[:filters] || %{})
     |> assign(:search_term, "")
-    |> assign(:theme, merge_theme(assigns[:theme] || %{}))
+    |> assign(:theme, Cinder.Theme.merge(assigns[:theme] || %{}))
     |> assign(:query_opts, assigns[:query_opts] || [])
     |> assign(:page_info, build_error_page_info())
   end
@@ -1600,65 +1600,5 @@ defmodule Cinder.Table.LiveComponent do
     |> String.split(" ")
     |> Enum.map(&String.capitalize/1)
     |> Enum.join(" ")
-  end
-
-  defp merge_theme(custom_theme) do
-    default_theme()
-    |> Map.merge(custom_theme)
-  end
-
-  defp default_theme do
-    %{
-      container_class: "cinder-table-container",
-      controls_class: "cinder-table-controls mb-4",
-      table_wrapper_class: "cinder-table-wrapper overflow-x-auto",
-      table_class: "cinder-table w-full border-collapse",
-      thead_class: "cinder-table-head",
-      tbody_class: "cinder-table-body",
-      header_row_class: "cinder-table-header-row",
-      row_class: "cinder-table-row border-b",
-      th_class: "cinder-table-th px-4 py-2 text-left font-medium border-b",
-      td_class: "cinder-table-td px-4 py-2",
-      sort_indicator_class: "cinder-sort-indicator ml-1",
-      loading_class: "cinder-table-loading text-center py-8 text-gray-500",
-      empty_class: "cinder-table-empty text-center py-8 text-gray-500",
-      pagination_wrapper_class: "cinder-pagination-wrapper mt-4",
-      pagination_container_class: "cinder-pagination-container flex items-center justify-between",
-      pagination_button_class:
-        "cinder-pagination-button px-3 py-1 border rounded hover:bg-gray-100",
-      pagination_info_class: "cinder-pagination-info text-sm text-gray-600",
-      pagination_count_class: "cinder-pagination-count text-xs text-gray-500",
-      # Sort icon customization
-      sort_arrow_wrapper_class: "inline-block ml-1",
-      sort_asc_icon_name: "hero-chevron-up",
-      sort_asc_icon_class: "w-3 h-3 inline-block",
-      sort_desc_icon_name: "hero-chevron-down",
-      sort_desc_icon_class: "w-3 h-3 inline-block",
-      sort_none_icon_name: "hero-chevron-up-down",
-      sort_none_icon_class: "w-3 h-3 inline-block opacity-30",
-      # Filter customization
-      filter_container_class: "cinder-filter-container border rounded-lg p-4 mb-4 bg-gray-50",
-      filter_header_class: "cinder-filter-header flex items-center justify-between mb-3",
-      filter_title_class: "cinder-filter-title text-sm font-medium text-gray-700",
-      filter_count_class: "cinder-filter-count text-xs text-gray-500",
-      filter_clear_all_class:
-        "cinder-filter-clear-all text-xs text-blue-600 hover:text-blue-800 underline",
-      filter_inputs_class:
-        "cinder-filter-inputs grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
-      filter_input_wrapper_class: "cinder-filter-input-wrapper",
-      filter_label_class: "cinder-filter-label block text-sm font-medium text-gray-700 mb-1",
-      filter_placeholder_class:
-        "cinder-filter-placeholder text-xs text-gray-400 italic p-2 border rounded",
-      filter_text_input_class:
-        "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-      filter_date_input_class:
-        "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-      filter_number_input_class:
-        "w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-      filter_select_input_class:
-        "cinder-filter-select-input w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-      filter_clear_button_class:
-        "cinder-filter-clear-button text-gray-400 hover:text-gray-600 text-sm font-medium px-2 py-1 rounded hover:bg-gray-100"
-    }
   end
 end
