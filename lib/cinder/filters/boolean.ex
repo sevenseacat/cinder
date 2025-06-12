@@ -1,0 +1,131 @@
+defmodule Cinder.Filters.Boolean do
+  @moduledoc """
+  Boolean filter implementation for Cinder tables.
+
+  Provides boolean filtering with radio button inputs for true/false/all options.
+  """
+
+  @behaviour Cinder.Filters.Base
+  use Phoenix.Component
+
+  import Cinder.Filters.Base
+
+  @impl true
+  def render(column, current_value, theme, _assigns) do
+    current_boolean_value = current_value || ""
+    options = get_option(column.filter_options, :labels, %{})
+
+    all_label = Map.get(options, :all, "All")
+    true_label = Map.get(options, true, "True")
+    false_label = Map.get(options, false, "False")
+
+    assigns = %{
+      column: column,
+      current_boolean_value: current_boolean_value,
+      all_label: all_label,
+      true_label: true_label,
+      false_label: false_label,
+      theme: theme
+    }
+
+    ~H"""
+    <div class="flex space-x-4">
+      <label class="flex items-center">
+        <input
+          type="radio"
+          name={field_name(@column.key)}
+          value=""
+          checked={@current_boolean_value == "" || @current_boolean_value == "all"}
+          class="mr-1"
+        />
+        <span class="text-sm">{@all_label}</span>
+      </label>
+      <label class="flex items-center">
+        <input
+          type="radio"
+          name={field_name(@column.key)}
+          value="true"
+          checked={@current_boolean_value == "true"}
+          class="mr-1"
+        />
+        <span class="text-sm">{@true_label}</span>
+      </label>
+      <label class="flex items-center">
+        <input
+          type="radio"
+          name={field_name(@column.key)}
+          value="false"
+          checked={@current_boolean_value == "false"}
+          class="mr-1"
+        />
+        <span class="text-sm">{@false_label}</span>
+      </label>
+    </div>
+    """
+  end
+
+  @impl true
+  def process(raw_value, _column) when is_binary(raw_value) do
+    trimmed = String.trim(raw_value)
+
+    case trimmed do
+      "" ->
+        nil
+
+      "all" ->
+        nil
+
+      "true" ->
+        %{
+          type: :boolean,
+          value: true,
+          operator: :equals
+        }
+
+      "false" ->
+        %{
+          type: :boolean,
+          value: false,
+          operator: :equals
+        }
+
+      _ ->
+        nil
+    end
+  end
+
+  def process(_raw_value, _column), do: nil
+
+  @impl true
+  def validate(value) do
+    case value do
+      %{type: :boolean, value: val, operator: :equals} when is_boolean(val) ->
+        true
+
+      _ ->
+        false
+    end
+  end
+
+  @impl true
+  def default_options do
+    [
+      labels: %{
+        all: "All",
+        true: "True",
+        false: "False"
+      }
+    ]
+  end
+
+  @impl true
+  def empty?(value) do
+    case value do
+      nil -> true
+      "" -> true
+      "all" -> true
+      %{value: nil} -> true
+      _ -> false
+    end
+  end
+end

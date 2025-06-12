@@ -211,16 +211,16 @@ defmodule Cinder.QueryBuilder do
           try do
             case value do
               %{min: min, max: max} when min != "" and max != "" ->
-                {min_val, _} = Float.parse(min)
-                {max_val, _} = Float.parse(max)
+                min_val = parse_number(min)
+                max_val = parse_number(max)
                 Ash.Query.filter(query, ^field_ref >= ^min_val and ^field_ref <= ^max_val)
 
               %{min: min, max: ""} when min != "" ->
-                {min_val, _} = Float.parse(min)
+                min_val = parse_number(min)
                 Ash.Query.filter(query, ^field_ref >= ^min_val)
 
               %{min: "", max: max} when max != "" ->
-                {max_val, _} = Float.parse(max)
+                max_val = parse_number(max)
                 Ash.Query.filter(query, ^field_ref <= ^max_val)
 
               _ ->
@@ -236,6 +236,20 @@ defmodule Cinder.QueryBuilder do
       _ ->
         # Unknown combination, skip filter
         query
+    end
+  end
+
+  # Helper function to parse numbers, trying integer first, then float
+  defp parse_number(str) when is_binary(str) do
+    case Integer.parse(str) do
+      {int_val, ""} ->
+        int_val
+
+      _ ->
+        case Float.parse(str) do
+          {float_val, ""} -> float_val
+          _ -> raise ArgumentError, "Invalid number format: #{str}"
+        end
     end
   end
 
