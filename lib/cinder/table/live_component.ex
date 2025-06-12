@@ -25,9 +25,7 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(assigns)
       |> assign_defaults()
       |> assign_column_definitions()
-      |> decode_url_filters(assigns)
-      |> decode_url_pagination(assigns)
-      |> decode_url_sorting(assigns)
+      |> decode_url_state(assigns)
       |> load_data_if_needed()
 
     {:ok, socket}
@@ -254,201 +252,45 @@ defmodule Cinder.Table.LiveComponent do
 
   # Notify parent LiveView about filter changes
   defp notify_state_change(socket, filters \\ nil) do
-    if socket.assigns[:on_state_change] do
-      filters = filters || socket.assigns.filters
-      current_page = socket.assigns.current_page
-      sort_by = socket.assigns.sort_by
+    filters = filters || socket.assigns.filters
+    current_page = socket.assigns.current_page
+    sort_by = socket.assigns.sort_by
 
-      encoded_state = encode_state_for_url(filters, current_page, sort_by)
-      # Use send/2 with self() to send to the current LiveView process
-      # This works because LiveComponents run in the same process as their parent LiveView
-      send(self(), {socket.assigns.on_state_change, socket.assigns.id, encoded_state})
-    end
+    state = %{
+      filters: filters,
+      current_page: current_page,
+      sort_by: sort_by
+    }
 
-    socket
+    Cinder.UrlManager.notify_state_change(socket, state)
   end
 
-  # Decode filter state from URL parameters
-  defp decode_url_filters(socket, assigns) do
-    url_filters = Map.get(assigns, :url_filters, %{})
+  # Decode URL state from URL parameters
+  defp decode_url_state(socket, assigns) do
+    url_params =
+      %{
+        "page" => Map.get(assigns, :url_page),
+        "sort" => Map.get(assigns, :url_sort)
+      }
+      |> Map.merge(Map.get(assigns, :url_filters, %{}))
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Enum.into(%{})
 
-    # Only decode URL filters if they are provided, otherwise keep existing filters
-    if Enum.empty?(url_filters) do
+    if Enum.empty?(url_params) do
       socket
     else
-      decoded_filters = decode_filters_from_url(url_filters, socket.assigns.columns)
-      assign(socket, :filters, decoded_filters)
-    end
-  end
+      decoded_state = Cinder.UrlManager.decode_state(url_params, socket.assigns.columns)
 
-  defp decode_url_pagination(socket, assigns) do
-    url_page = Map.get(assigns, :url_page)
-
-    if url_page && is_binary(url_page) do
-      case Integer.parse(url_page) do
-        {page, ""} when page > 0 ->
-          assign(socket, :current_page, page)
-
-        _ ->
-          socket
-      end
-    else
       socket
+      |> assign(:filters, decoded_state.filters)
+      |> assign(:current_page, decoded_state.current_page)
+      |> assign(:sort_by, decoded_state.sort_by)
     end
-  end
-
-  defp decode_url_sorting(socket, assigns) do
-    url_sort = Map.get(assigns, :url_sort)
-
-    if url_sort && is_binary(url_sort) do
-      sort_by = decode_sort_from_url(url_sort)
-      assign(socket, :sort_by, sort_by)
-    else
-      socket
-    end
-  end
-
-  # Encode filters for URL parameters
-  defp encode_filters_for_url(filters) do
-    filters
-    |> Enum.map(fn {key, filter} ->
-      encoded_value =
-        case filter.type do
-          :multi_select when is_list(filter.value) ->
-            Enum.join(filter.value, ",")
-
-          :date_range ->
-            "#{filter.value.from},#{filter.value.to}"
-
-          :number_range ->
-            "#{filter.value.min},#{filter.value.max}"
-
-          _ ->
-            to_string(filter.value)
-        end
-
-      {key, encoded_value}
-    end)
-    |> Enum.into(%{})
-  end
-
-  defp encode_state_for_url(filters, current_page, sort_by) do
-    encoded_filters = encode_filters_for_url(filters)
-
-    state =
-      if current_page > 1 do
-        Map.put(encoded_filters, :page, to_string(current_page))
-      else
-        encoded_filters
-      end
-
-    state =
-      if not Enum.empty?(sort_by) do
-        Map.put(state, :sort, encode_sort_for_url(sort_by))
-      else
-        state
-      end
-
-    state
-  end
-
-  defp encode_sort_for_url(sort_by) do
-    sort_by
-    |> Enum.map(fn {key, direction} ->
-      case direction do
-        :desc -> "-#{key}"
-        _ -> key
-      end
-    end)
-    |> Enum.join(",")
-  end
-
-  defp decode_sort_from_url(url_sort) do
-    # Parse Ash sort string format manually since sort_input needs a query
-    url_sort
-    |> String.split(",")
-    |> Enum.filter(&(&1 != ""))
-    |> Enum.map(fn sort_item ->
-      case String.starts_with?(sort_item, "-") do
-        true ->
-          key = String.slice(sort_item, 1..-1//1)
-          {key, :desc}
-
-        false ->
-          {sort_item, :asc}
-      end
-    end)
-  end
-
-  # Decode filters from URL parameters
-  defp decode_filters_from_url(url_filters, columns) do
-    url_filters
-    |> Enum.reduce(%{}, fn {key, value}, acc ->
-      column = Enum.find(columns, &(&1.key == key))
-
-      if column && column.filterable && value != "" do
-        filter_type = column.filter_type
-
-        decoded_value =
-          case filter_type do
-            :multi_select ->
-              String.split(value, ",")
-
-            :date_range ->
-              case String.split(value, ",") do
-                [from, to] -> %{from: from, to: to}
-                [from] -> %{from: from, to: ""}
-                _ -> %{from: "", to: ""}
-              end
-
-            :number_range ->
-              case String.split(value, ",") do
-                [min, max] -> %{min: min, max: max}
-                [min] -> %{min: min, max: ""}
-                _ -> %{min: "", max: ""}
-              end
-
-            :boolean ->
-              value
-
-            _ ->
-              value
-          end
-
-        operator =
-          case filter_type do
-            :text -> :contains
-            :select -> :equals
-            :multi_select -> :in
-            :boolean -> :equals
-            :date_range -> :between
-            :number_range -> :between
-            _ -> :equals
-          end
-
-        Map.put(acc, key, %{
-          type: filter_type,
-          value: decoded_value,
-          operator: operator
-        })
-      else
-        acc
-      end
-    end)
   end
 
   # Ensure multi-select fields are included even when no checkboxes are selected
   defp ensure_multiselect_fields(filter_params, columns) do
-    columns
-    |> Enum.filter(&(&1.filterable and &1.filter_type == :multi_select))
-    |> Enum.reduce(filter_params, fn column, acc ->
-      # If multi-select field is missing (all checkboxes unchecked), add it as empty array
-      if not Map.has_key?(acc, column.key) do
-        Map.put(acc, column.key, [])
-      else
-        acc
-      end
-    end)
+    Cinder.UrlManager.ensure_multiselect_fields(filter_params, columns)
   end
 
   # Process filter params to handle special cases like ranges
@@ -1280,7 +1122,7 @@ defmodule Cinder.Table.LiveComponent do
       end)
     else
       # Use Ash sort input for standard sorting (more efficient)
-      sort_string = encode_sort_for_url(sort_by)
+      sort_string = Cinder.UrlManager.encode_sort(sort_by)
 
       if sort_string != "" do
         Ash.Query.sort(query, sort_string)
