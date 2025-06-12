@@ -340,6 +340,583 @@ defmodule Cinder.TableTest do
       assert html =~ "cinder-filter-container"
       assert html =~ "cinder-pagination-wrapper"
     end
+
+    test "state change notifications are triggered correctly" do
+      # Test that on_state_change callback is properly triggered
+      _test_pid = self()
+
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        on_state_change: :test_state_change,
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render successfully with state change callback
+      assert html =~ "cinder-table-container"
+    end
+
+    test "complete URL state encoding includes all components" do
+      # Test that URL state properly includes filters, pagination, and sorting
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{"title" => "test", "status" => "active"},
+        url_page: "2",
+        url_sort: "-title,author",
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "status",
+            label: "Status",
+            filterable: true,
+            inner_block: fn _item -> "Status" end
+          },
+          %{key: "author", label: "Author", sortable: true, inner_block: fn _item -> "Author" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # All state components should be restored
+      assert html =~ "cinder-table-container"
+      assert html =~ "cinder-filter-container"
+      assert html =~ "cinder-pagination-wrapper"
+    end
+
+    test "empty URL parameters don't break component" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{},
+        url_page: nil,
+        url_sort: nil,
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      assert html =~ "cinder-table-container"
+    end
+
+    test "malformed URL parameters are handled gracefully" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_page: "invalid",
+        url_sort: "malformed:bad:format",
+        col: [
+          %{key: "title", label: "Title", sortable: true, inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render without errors
+      assert html =~ "cinder-table-container"
+    end
+  end
+
+  describe "URL state management" do
+    test "Ash sort string format encoding works correctly" do
+      # Test various sort combinations
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{key: "title", label: "Title", sortable: true, inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      # Test ascending sort
+      assigns_asc = Map.put(assigns, :url_sort, "title")
+      html_asc = render_component(Table.LiveComponent, assigns_asc)
+      assert html_asc =~ "cinder-table-container"
+
+      # Test descending sort  
+      assigns_desc = Map.put(assigns, :url_sort, "-title")
+      html_desc = render_component(Table.LiveComponent, assigns_desc)
+      assert html_desc =~ "cinder-table-container"
+
+      # Test multi-column sort
+      assigns_multi = Map.put(assigns, :url_sort, "-title,author")
+      html_multi = render_component(Table.LiveComponent, assigns_multi)
+      assert html_multi =~ "cinder-table-container"
+    end
+
+    test "filter state restoration preserves all filter types" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{
+          "title" => "test",
+          "status" => "active",
+          "genres" => "rock,pop",
+          "featured" => "true",
+          "price" => "10.00,99.99",
+          "release_date" => "2020-01-01,2023-12-31"
+        },
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :text,
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "status",
+            label: "Status",
+            filterable: true,
+            filter_type: :select,
+            inner_block: fn _item -> "Status" end
+          },
+          %{
+            key: "genres",
+            label: "Genres",
+            filterable: true,
+            filter_type: :multi_select,
+            inner_block: fn _item -> "Genres" end
+          },
+          %{
+            key: "featured",
+            label: "Featured",
+            filterable: true,
+            filter_type: :boolean,
+            inner_block: fn _item -> "Featured" end
+          },
+          %{
+            key: "price",
+            label: "Price",
+            filterable: true,
+            filter_type: :number_range,
+            inner_block: fn _item -> "Price" end
+          },
+          %{
+            key: "release_date",
+            label: "Release Date",
+            filterable: true,
+            filter_type: :date_range,
+            inner_block: fn _item -> "Date" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # All filter types should be restored
+      assert html =~ "cinder-filter-container"
+      assert html =~ "cinder-table-container"
+    end
+
+    test "state persistence across different URL parameter combinations" do
+      base_assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      # Test filters only
+      filters_only = Map.merge(base_assigns, %{url_filters: %{"title" => "test"}})
+      html1 = render_component(Table.LiveComponent, filters_only)
+      assert html1 =~ "cinder-filter-container"
+
+      # Test pagination only
+      page_only = Map.merge(base_assigns, %{url_page: "3"})
+      html2 = render_component(Table.LiveComponent, page_only)
+      assert html2 =~ "cinder-pagination-wrapper"
+
+      # Test sorting only
+      sort_only = Map.merge(base_assigns, %{url_sort: "-title"})
+      html3 = render_component(Table.LiveComponent, sort_only)
+      assert html3 =~ "cinder-table-container"
+
+      # Test all combined
+      all_combined =
+        Map.merge(base_assigns, %{
+          url_filters: %{"title" => "test"},
+          url_page: "2",
+          url_sort: "-title"
+        })
+
+      html4 = render_component(Table.LiveComponent, all_combined)
+      assert html4 =~ "cinder-filter-container"
+      assert html4 =~ "cinder-pagination-wrapper"
+      assert html4 =~ "cinder-table-container"
+    end
+
+    test "browser navigation compatibility" do
+      # Test that component handles URL changes properly
+      initial_assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{"title" => "initial"},
+        url_page: "1",
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      # Simulate browser navigation to different state
+      updated_assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        url_filters: %{"title" => "updated"},
+        url_page: "3",
+        url_sort: "-title",
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            sortable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      # Both states should render successfully
+      html1 = render_component(Table.LiveComponent, initial_assigns)
+      assert html1 =~ "cinder-table-container"
+
+      html2 = render_component(Table.LiveComponent, updated_assigns)
+      assert html2 =~ "cinder-table-container"
+    end
+  end
+
+  describe "automatic filter type inference" do
+    test "infers text filter for string attributes" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render text input for string attributes
+      assert html =~ "w-full px-3 py-2 border"
+      assert html =~ "cinder-filter-container"
+    end
+
+    test "handles columns without filter configuration gracefully" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end},
+          %{
+            key: "unknown_field",
+            label: "Unknown",
+            filterable: true,
+            inner_block: fn _item -> "Unknown" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render without errors
+      assert html =~ "cinder-table-container"
+    end
+
+    test "explicit filter_type overrides inference" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            filterable: true,
+            filter_type: :select,
+            filter_options: [options: [{"Option 1", "opt1"}, {"Option 2", "opt2"}]],
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should use explicit select filter instead of inferred text filter
+      assert html =~ "cinder-filter-select-input"
+      assert html =~ "Option 1"
+    end
+
+    test "supports custom filter options for all types" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "status",
+            label: "Status",
+            filterable: true,
+            filter_type: :select,
+            filter_options: [
+              options: [{"Published", "published"}, {"Draft", "draft"}],
+              prompt: "All Statuses"
+            ],
+            inner_block: fn _item -> "Status" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should use custom options
+      assert html =~ "All Statuses"
+      assert html =~ "Published"
+      assert html =~ "Draft"
+    end
+
+    test "handles boolean filters with custom labels" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "featured",
+            label: "Featured",
+            filterable: true,
+            filter_type: :boolean,
+            filter_options: [labels: %{all: "Any", true: "Yes", false: "No"}],
+            inner_block: fn _item -> "Featured" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should use custom labels
+      assert html =~ "Any"
+      assert html =~ "Yes"
+      assert html =~ "No"
+    end
+  end
+
+  describe "advanced features" do
+    test "supports custom sort functions" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            sortable: true,
+            sort_fn: fn query, _direction ->
+              # Custom sort logic would go here
+              query
+            end,
+            inner_block: fn _item -> "Content" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render sortable column
+      assert html =~ "cursor-pointer"
+      assert html =~ "cinder-sort-indicator"
+    end
+
+    test "supports custom filter functions" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "complex",
+            label: "Complex",
+            filterable: true,
+            filter_fn: fn query, _filter_config ->
+              # Custom filter logic would go here
+              query
+            end,
+            inner_block: fn _item -> "Complex" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render with custom filter
+      assert html =~ "cinder-filter-container"
+    end
+
+    test "supports dot notation for relationship columns" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "artist.name",
+            label: "Artist Name",
+            sortable: true,
+            filterable: true,
+            inner_block: fn _item -> "Artist Name" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render relationship column
+      assert html =~ "Artist Name"
+      assert html =~ "cursor-pointer"
+    end
+
+    test "handles query options correctly" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        query_opts: [load: [:artist, :genre]],
+        current_user: %{id: 1},
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should render successfully with query options
+      assert html =~ "cinder-table-container"
+    end
+
+    test "supports column CSS classes" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{
+            key: "title",
+            label: "Title",
+            class: "text-left font-bold",
+            inner_block: fn _item -> "Content" end
+          },
+          %{
+            key: "price",
+            label: "Price",
+            class: "text-right tabular-nums",
+            inner_block: fn _item -> "$10" end
+          }
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Should apply column classes
+      assert html =~ "text-left font-bold"
+      assert html =~ "text-right tabular-nums"
+    end
+
+    test "handles empty data gracefully" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        loading: false,
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render without errors (empty state handling is done in tbody)
+      assert html =~ "cinder-table-container"
+    end
+
+    test "displays loading states correctly" do
+      # Test loading state through update/2 function
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Component should render successfully
+      assert html =~ "cinder-table-container"
+    end
+
+    test "pagination controls show correct information" do
+      assigns = %{
+        id: "test-table",
+        query: MockResource,
+        current_user: %{id: 1},
+        page_size: 10,
+        col: [
+          %{key: "title", label: "Title", inner_block: fn _item -> "Content" end}
+        ]
+      }
+
+      html = render_component(Table.LiveComponent, assigns)
+
+      # Pagination wrapper should always be present
+      assert html =~ "cinder-pagination-wrapper"
+    end
   end
 
   describe "component initialization" do

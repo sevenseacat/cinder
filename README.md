@@ -7,7 +7,7 @@ A powerful, flexible data table component for Phoenix LiveView applications. Cin
 - **Rich Filtering System**: Support for text, select, multi-select, date ranges, number ranges, and boolean filters
 - **Automatic Type Inference**: Automatically detects appropriate filter types from Ash resource attributes
 - **Real-time Updates**: Form-based filtering with live updates and debouncing
-- **URL State Management**: Persist filter state in URL for shareable, bookmarkable filtered views
+- **Complete URL State Management**: Persist filters, pagination, and sorting in URL for shareable, bookmarkable table states
 - **Flexible Sorting**: Multi-column sorting with customizable sort functions
 - **Pagination**: Built-in pagination with configurable page sizes
 - **Themeable**: Comprehensive theming system with Tailwind CSS classes
@@ -202,6 +202,11 @@ Enable sorting on columns:
 >
   <%= item.artist.name %>
 </:col>
+
+# Dot notation for relationship sorting
+<:col key="artist.name" label="Artist Name" sortable>
+  <%= item.artist.name %>
+</:col>
 ```
 
 ## Custom Filter Functions
@@ -269,6 +274,8 @@ Customize the appearance with theme options:
 </Cinder.Table.table>
 ```
 
+Pagination controls automatically appear when data spans multiple pages. Navigation preserves filter and sort state.
+
 ### Relationship Filtering
 
 Filter on related data:
@@ -279,115 +286,144 @@ Filter on related data:
 </:col>
 ```
 
-### Pre-applied Filters
+### Pre-applied State
 
-Start with filters already active by passing them through URL parameters or initial state in your LiveView.
-
-## URL State Management
-
-Enable URL synchronization to persist filter state across page reloads and allow shareable filtered URLs:
+Start with filters, pagination, or sorting already active by passing URL parameters:
 
 ```elixir
-# In your LiveView
+# Navigate to a pre-filtered, sorted, paginated view
+{:noreply, push_navigate(socket, to: ~p"/albums?status=active&sort=-title&page=2")}
+```
+
+## Complete URL State Management
+
+The table component supports complete URL synchronization for filters, pagination, and sorting state. This enables shareable URLs, browser back/forward navigation, and state persistence on page refresh.
+
+### Setup
+
+```elixir
+# In your LiveView template
 <Cinder.Table.table
-  id="my-table"
+  id="albums-table"
   query={MyApp.Music.Album}
   current_user={@current_user}
   url_filters={@url_filters}
   url_page={@url_page}
+  url_sort={@url_sort}
   on_state_change={:state_changed}
 >
   <!-- columns -->
 </Cinder.Table.table>
 ```
 
-Handle filter change events to update the URL:
+### LiveView Implementation
 
 ```elixir
-def handle_info({:filter_changed, _table_id, encoded_filters}, socket) do
-  # Get current path and update URL with new filter state
-  current_path = socket.assigns.current_path || "/"
+# Handle state change notifications
+def handle_info({:state_changed, table_id, state}, socket) do
+  # Extract filters, pagination, and sorting from state
+  url_filters = Map.drop(state, [:page, :sort])
+  url_page = Map.get(state, :page)
+  url_sort = Map.get(state, :sort)
 
-  new_url = if Enum.empty?(encoded_filters) do
-    current_path
-  else
-    current_path <> "?" <> URI.encode_query(encoded_filters)
-  end
+  # Build query parameters
+  params = url_filters
+  params = if url_page, do: Map.put(params, "page", url_page), else: params
+  params = if url_sort, do: Map.put(params, "sort", url_sort), else: params
 
-  {:noreply, push_patch(socket, to: new_url)}
+  {:noreply, push_patch(socket, to: ~p"/albums?#{params}")}
 end
 
-def handle_params(params, url, socket) do
-  # Extract current path and filter parameters
-  uri = URI.parse(url)
-  current_path = uri.path || "/"
-  filter_params = Map.drop(params, ["live_action"])
+# Pass URL parameters back to table component
+def mount(params, _session, socket) do
+  url_filters = Map.drop(params, ["page", "sort"])
+  url_page = Map.get(params, "page")
+  url_sort = Map.get(params, "sort")
 
-  socket =
-    socket
-    |> assign(:current_path, current_path)
-    |> assign(:url_filters, filter_params)
+  socket = assign(socket, 
+    url_filters: url_filters, 
+    url_page: url_page, 
+    url_sort: url_sort
+  )
+  
+  {:ok, socket}
+end
+
+# Update state when URL changes
+def handle_params(params, _url, socket) do
+  url_filters = Map.drop(params, ["page", "sort"])
+  url_page = Map.get(params, "page")
+  url_sort = Map.get(params, "sort")
+
+  socket = assign(socket,
+    url_filters: url_filters,
+    url_page: url_page,
+    url_sort: url_sort
+  )
 
   {:noreply, socket}
 end
 ```
 
-### Helper Function
+### URL Format
 
-For easier setup, you can copy this helper function to your LiveView:
+The complete table state is encoded in URL parameters:
 
-```elixir
-# Add this to your LiveView module
-defp handle_table_filter_change(socket, encoded_filters) do
-  current_path = socket.assigns.current_path || "/"
-
-  new_url = if Enum.empty?(encoded_filters) do
-    current_path
-  else
-    current_path <> "?" <> URI.encode_query(encoded_filters)
-  end
-
-  push_patch(socket, to: new_url)
-end
-
-# Then use it in your filter change handler
-def handle_info({:filter_changed, _table_id, encoded_filters}, socket) do
-  {:noreply, handle_table_filter_change(socket, encoded_filters)}
-end
-```
-
-### Filter URL Format
-
-Filters are encoded in the URL as query parameters:
-
+**Filters**:
 - **Text filters**: `?title=search_term`
-- **Select filters**: `?status=active`
+- **Select filters**: `?status=active`  
 - **Multi-select filters**: `?genres=rock,pop,jazz`
 - **Date ranges**: `?release_date=2020-01-01,2023-12-31`
 - **Number ranges**: `?price=10.00,99.99`
 - **Boolean filters**: `?featured=true`
 
-Example filtered URL:
+**Pagination**:
+- **Page number**: `?page=3`
+
+**Sorting** (using Ash sort string format):
+- **Single column ascending**: `?sort=title`
+- **Single column descending**: `?sort=-title`
+- **Multiple columns**: `?sort=-title,author,-date`
+
+**Complete Example**:
 ```
-/albums?status=active&genres=rock,pop&price=10.00,50.00&featured=true
+/albums?status=active&genres=rock,pop&price=10.00,50.00&page=2&sort=-title,author
 ```
+
+This URL represents:
+- Albums with status "active"
+- Genres including "rock" or "pop"  
+- Price between $10.00 and $50.00
+- Page 2 of results
+- Sorted by title descending, then author ascending
 
 ## Event Handling
 
-The component can emit custom events that you can handle in your LiveView:
+The component emits state change events that you can handle in your LiveView:
 
 ```elixir
-def handle_info({:table_updated, table_id, data}, socket) do
-  # Handle table updates (if using custom events)
+def handle_info({:state_changed, table_id, state}, socket) do
+  # Handle complete table state changes (filters, pagination, sorting)
+  # See URL State Management section for full implementation
   {:noreply, socket}
 end
 ```
 
+## Key Features Summary
+
+✅ **Automatic Filter Type Inference**: Detects appropriate filters from Ash resource attributes  
+✅ **Complete URL State Management**: Filters, pagination, and sorting synchronized with URL  
+✅ **Form-Based Filtering**: Real-time updates with optimal UX and state persistence  
+✅ **Multi-Column Sorting**: With custom functions and dot notation for relationships  
+✅ **Comprehensive Theming**: Customizable CSS classes for all components  
+✅ **Responsive Design**: Mobile-friendly with proper loading states  
+✅ **Production Ready**: Comprehensive testing and error handling  
+
 ## Requirements
 
-- Phoenix LiveView 0.20+
+- Phoenix LiveView 1.0+
 - Ash Framework 3.0+
-- Elixir 1.14+
+- Elixir 1.17+
 
 ## Contributing
 
