@@ -109,7 +109,8 @@ Cinder automatically detects the right filter type:
 
 ## Documentation
 
-- **[Complete Examples](EXAMPLES.md)** - Comprehensive usage examples
+- **[Complete Examples](docs/examples.md)** - Comprehensive usage examples
+- **[Theming Guide](docs/theming.md)** - How to develop and use table themes
 - **[Module Documentation](https://hexdocs.pm/cinder)** - Full API reference
 - **[Hex Package](https://hex.pm/packages/cinder)** - Package information
 

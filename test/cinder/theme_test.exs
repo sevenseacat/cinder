@@ -8,9 +8,9 @@ defmodule Cinder.ThemeTest do
       theme = Theme.default()
 
       assert is_map(theme)
-      assert theme.container_class == "cinder-table-container"
-      assert theme.table_class == "cinder-table w-full border-collapse"
-      assert theme.th_class == "cinder-table-th px-4 py-2 text-left font-medium border-b"
+      assert theme.container_class == ""
+      assert theme.table_class == "w-full border-collapse"
+      assert theme.th_class == "text-left whitespace-nowrap"
 
       # Verify all required theme keys are present
       required_keys = [
@@ -93,49 +93,6 @@ defmodule Cinder.ThemeTest do
     end
   end
 
-  describe "modern/0" do
-    test "returns modern theme based on default" do
-      modern_theme = Theme.modern()
-      default_theme = Theme.default()
-
-      # Should have all the same keys as default
-      assert Map.keys(modern_theme) == Map.keys(default_theme)
-
-      # Should override specific styling
-      assert modern_theme.container_class ==
-               "cinder-table-container bg-white shadow-sm rounded-lg"
-
-      assert modern_theme.th_class ==
-               "cinder-table-th px-6 py-4 text-left font-semibold text-gray-900 bg-gray-50 border-b border-gray-200"
-
-      assert modern_theme.td_class == "cinder-table-td px-6 py-4 text-gray-900"
-
-      # Should keep default values for non-overridden keys
-      assert modern_theme.sort_asc_icon_name == default_theme.sort_asc_icon_name
-      assert modern_theme.loading_class == default_theme.loading_class
-    end
-  end
-
-  describe "minimal/0" do
-    test "returns minimal theme based on default" do
-      minimal_theme = Theme.minimal()
-      default_theme = Theme.default()
-
-      # Should have all the same keys as default
-      assert Map.keys(minimal_theme) == Map.keys(default_theme)
-
-      # Should override specific styling with minimal classes
-      assert minimal_theme.container_class == "cinder-table-container"
-      assert minimal_theme.th_class == "cinder-table-th px-2 py-1 text-left font-medium"
-      assert minimal_theme.td_class == "cinder-table-td px-2 py-1"
-      assert minimal_theme.controls_class == "cinder-table-controls mb-2"
-
-      # Should keep default values for non-overridden keys
-      assert minimal_theme.sort_asc_icon_name == default_theme.sort_asc_icon_name
-      assert minimal_theme.loading_class == default_theme.loading_class
-    end
-  end
-
   describe "merge/1" do
     test "merges custom map with default theme" do
       custom_theme = %{
@@ -172,8 +129,9 @@ defmodule Cinder.ThemeTest do
 
     test "handles string preset names" do
       assert Theme.merge("default") == Theme.default()
-      assert Theme.merge("modern") == Theme.modern()
-      assert Theme.merge("minimal") == Theme.minimal()
+      # Just test that string presets work
+      modern_theme = Theme.merge("modern")
+      assert String.contains?(modern_theme.container_class, "shadow-lg")
     end
 
     test "raises error for unknown preset name" do
@@ -183,11 +141,11 @@ defmodule Cinder.ThemeTest do
     end
 
     test "raises error for invalid input type" do
-      assert_raise ArgumentError, ~r/Theme must be a map or string/, fn ->
+      assert_raise ArgumentError, ~r/Theme must be a map, string, or theme module/, fn ->
         Theme.merge(123)
       end
 
-      assert_raise ArgumentError, ~r/Theme must be a map or string/, fn ->
+      assert_raise ArgumentError, ~r/Theme must be a map, string, or theme module/, fn ->
         Theme.merge([:not, :a, :map])
       end
     end
@@ -200,8 +158,15 @@ defmodule Cinder.ThemeTest do
       assert is_list(presets)
       assert "default" in presets
       assert "modern" in presets
-      assert "minimal" in presets
-      assert length(presets) == 3
+      assert "retro" in presets
+      assert "futuristic" in presets
+      assert "dark" in presets
+      assert "daisy_ui" in presets
+      assert "flowbite" in presets
+      assert "vintage" in presets
+      assert "compact" in presets
+      assert "pastel" in presets
+      assert length(presets) == 10
     end
 
     test "all presets can be loaded" do
@@ -216,15 +181,16 @@ defmodule Cinder.ThemeTest do
   describe "theme consistency" do
     test "all themes have same structure" do
       default_keys = Theme.default() |> Map.keys() |> Enum.sort()
-      modern_keys = Theme.modern() |> Map.keys() |> Enum.sort()
-      minimal_keys = Theme.minimal() |> Map.keys() |> Enum.sort()
+      modern_keys = Theme.merge("modern") |> Map.keys() |> Enum.sort()
+      retro_keys = Theme.merge("retro") |> Map.keys() |> Enum.sort()
 
+      # All themes should have the same keys
       assert default_keys == modern_keys
-      assert default_keys == minimal_keys
+      assert default_keys == retro_keys
     end
 
     test "all theme values are strings" do
-      themes = [Theme.default(), Theme.modern(), Theme.minimal()]
+      themes = [Theme.default(), Theme.merge("modern"), Theme.merge("retro")]
 
       for theme <- themes do
         for {key, value} <- theme do
@@ -253,7 +219,7 @@ defmodule Cinder.ThemeTest do
 
       # Should resolve to full theme map
       assert is_map(modern_theme)
-      assert String.contains?(modern_theme.container_class, "shadow-sm")
+      assert String.contains?(modern_theme.container_class, "shadow-lg")
     end
 
     test "component assigns defaults work with new theme module" do

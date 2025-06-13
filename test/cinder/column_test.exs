@@ -5,7 +5,7 @@ defmodule Cinder.ColumnTest do
 
   describe "parse_column/2" do
     test "parses basic column with defaults" do
-      slot = %{key: "name", label: "Name"}
+      slot = %{field: "name", label: "Name"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -20,7 +20,7 @@ defmodule Cinder.ColumnTest do
     end
 
     test "respects filterable attribute when false" do
-      slot = %{key: "name", label: "Name", filterable: false}
+      slot = %{field: "name", label: "Name", filterable: false}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -30,7 +30,7 @@ defmodule Cinder.ColumnTest do
     end
 
     test "respects filterable attribute when true" do
-      slot = %{key: "name", label: "Name", filterable: true}
+      slot = %{field: "name", label: "Name", filterable: true}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -41,7 +41,7 @@ defmodule Cinder.ColumnTest do
 
     test "preserves slot configuration over defaults" do
       slot = %{
-        key: "email",
+        field: "email",
         label: "Email Address",
         sortable: false,
         filterable: true,
@@ -61,8 +61,8 @@ defmodule Cinder.ColumnTest do
       assert column.class == "w-1/4"
     end
 
-    test "generates label from key when not provided" do
-      slot = %{key: "user_name"}
+    test "generates label from field when not provided" do
+      slot = %{field: "user_name"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -70,8 +70,35 @@ defmodule Cinder.ColumnTest do
       assert column.label == "User Name"
     end
 
-    test "handles relationship keys with dot notation" do
-      slot = %{key: "user.name", label: "User Name"}
+    test "raises error when field attribute is missing" do
+      slot = %{label: "Name"}
+      resource = nil
+
+      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
+        Column.parse_column(slot, resource)
+      end
+    end
+
+    test "raises error when field attribute is empty" do
+      slot = %{field: "", label: "Name"}
+      resource = nil
+
+      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
+        Column.parse_column(slot, resource)
+      end
+    end
+
+    test "raises error when field attribute is nil" do
+      slot = %{field: nil, label: "Name"}
+      resource = nil
+
+      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
+        Column.parse_column(slot, resource)
+      end
+    end
+
+    test "handles relationship fields with dot notation" do
+      slot = %{field: "user.name", label: "User Name"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -86,9 +113,9 @@ defmodule Cinder.ColumnTest do
   describe "parse_columns/2" do
     test "parses multiple columns" do
       slots = [
-        %{key: "id", label: "ID"},
-        %{key: "name", label: "Name"},
-        %{key: "email", label: "Email"}
+        %{field: "id", label: "ID"},
+        %{field: "name", label: "Name"},
+        %{field: "email", label: "Email"}
       ]
 
       resource = nil
@@ -209,7 +236,7 @@ defmodule Cinder.ColumnTest do
 
   describe "relationship key parsing" do
     test "parses simple relationship" do
-      slot = %{key: "user.email"}
+      slot = %{field: "user.email"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -219,8 +246,8 @@ defmodule Cinder.ColumnTest do
       assert column.display_field == "email"
     end
 
-    test "handles non-relationship keys" do
-      slot = %{key: "simple_field"}
+    test "handles non-relationship fields" do
+      slot = %{field: "simple_field"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -231,7 +258,7 @@ defmodule Cinder.ColumnTest do
     end
 
     test "generates proper label for relationship fields" do
-      slot = %{key: "user.profile.avatar"}
+      slot = %{field: "user.profile.avatar"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -242,7 +269,7 @@ defmodule Cinder.ColumnTest do
 
   describe "type inference without Ash resource" do
     test "returns default config when no resource provided" do
-      slot = %{key: "test_field"}
+      slot = %{field: "test_field"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -254,7 +281,7 @@ defmodule Cinder.ColumnTest do
     end
 
     test "returns default config for non-Ash resource" do
-      slot = %{key: "test_field"}
+      slot = %{field: "test_field"}
       resource = %{not: "an_ash_resource"}
 
       column = Column.parse_column(slot, resource)
@@ -267,8 +294,8 @@ defmodule Cinder.ColumnTest do
   end
 
   describe "humanization" do
-    test "humanizes snake_case keys" do
-      slot = %{key: "user_name"}
+    test "humanizes snake_case fields" do
+      slot = %{field: "user_name"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -276,8 +303,8 @@ defmodule Cinder.ColumnTest do
       assert column.label == "User Name"
     end
 
-    test "humanizes dot notation keys" do
-      slot = %{key: "user.profile.first_name"}
+    test "humanizes dot notation fields" do
+      slot = %{field: "user.profile.first_name"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -286,7 +313,7 @@ defmodule Cinder.ColumnTest do
     end
 
     test "capitalizes single words" do
-      slot = %{key: "email"}
+      slot = %{field: "email"}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -303,20 +330,17 @@ defmodule Cinder.ColumnTest do
       end)
     end
 
-    test "handles empty slot" do
+    test "handles empty slot raises error" do
       slot = %{}
       resource = nil
 
-      column = Column.parse_column(slot, resource)
-
-      # Should have reasonable defaults
-      assert column.key == nil
-      assert column.sortable == true
-      assert column.filterable == false
+      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
+        Column.parse_column(slot, resource)
+      end
     end
 
-    test "handles integer keys" do
-      slot = %{key: 123}
+    test "handles integer fields" do
+      slot = %{field: 123}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -325,8 +349,8 @@ defmodule Cinder.ColumnTest do
       assert column.label == "123"
     end
 
-    test "handles atom keys" do
-      slot = %{key: :test_field}
+    test "handles atom fields" do
+      slot = %{field: :test_field}
       resource = nil
 
       column = Column.parse_column(slot, resource)
@@ -339,7 +363,7 @@ defmodule Cinder.ColumnTest do
   describe "complex configurations" do
     test "handles full configuration with all options" do
       slot = %{
-        key: "status",
+        field: "status",
         label: "Status",
         sortable: true,
         filterable: true,
@@ -376,9 +400,9 @@ defmodule Cinder.ColumnTest do
   describe "filterable attribute behavior" do
     test "columns default to non-filterable when filterable not specified" do
       slots = [
-        %{key: "id", label: "ID"},
-        %{key: "name", label: "Name"},
-        %{key: "email", label: "Email", filterable: true}
+        %{field: "id", label: "ID"},
+        %{field: "name", label: "Name"},
+        %{field: "email", label: "Email", filterable: true}
       ]
 
       resource = nil
@@ -395,8 +419,8 @@ defmodule Cinder.ColumnTest do
 
     test "filterable: false is explicitly respected" do
       slots = [
-        %{key: "id", label: "ID", filterable: false},
-        %{key: "secret", label: "Secret", filterable: false, sortable: false}
+        %{field: "id", label: "ID", filterable: false},
+        %{field: "secret", label: "Secret", filterable: false, sortable: false}
       ]
 
       resource = nil
@@ -417,13 +441,13 @@ defmodule Cinder.ColumnTest do
     test "mixed filterable configuration in single table" do
       slots = [
         # not filterable (default)
-        %{key: "id", label: "ID"},
+        %{field: "id", label: "ID"},
         # filterable
-        %{key: "name", label: "Name", filterable: true},
+        %{field: "name", label: "Name", filterable: true},
         # explicitly not filterable
-        %{key: "email", label: "Email", filterable: false},
+        %{field: "email", label: "Email", filterable: false},
         # filterable
-        %{key: "status", label: "Status", filterable: true}
+        %{field: "status", label: "Status", filterable: true}
       ]
 
       resource = nil

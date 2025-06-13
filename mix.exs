@@ -71,7 +71,8 @@ defmodule Cinder.MixProject do
       source_url: @source_url,
       extras: [
         "README.md",
-        "EXAMPLES.md"
+        "docs/examples.md",
+        "docs/theming.md"
       ],
       groups_for_modules: [
         "Core Components": [

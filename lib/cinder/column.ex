@@ -63,21 +63,29 @@ defmodule Cinder.Column do
   Parses a single column definition with automatic type inference.
   """
   def parse_column(slot, resource) do
-    key = Map.get(slot, :key)
+    field = Map.get(slot, :field)
 
-    # Parse relationship information if key contains dots
-    {base_key, relationship_info} = parse_relationship_key(key)
+    # Validate that field attribute is present and non-empty
+    if is_nil(field) or field == "" do
+      raise ArgumentError, """
+      Cinder table column is missing required 'field' attribute.
+      Use: <:col field="column_name" ...>
+      """
+    end
+
+    # Parse relationship information if field contains dots
+    {base_field, relationship_info} = parse_relationship_key(field)
 
     # Infer column configuration from Ash resource (only if slot allows filtering)
-    inferred = infer_from_resource(resource, base_key, relationship_info, slot)
+    inferred = infer_from_resource(resource, base_field, relationship_info, slot)
 
     # Merge slot configuration with inferred defaults
     merged_config = merge_config(slot, inferred)
 
     # Create column struct
     %__MODULE__{
-      key: key,
-      label: Map.get(merged_config, :label, humanize_key(key)),
+      key: field,
+      label: Map.get(merged_config, :label, humanize_key(field)),
       sortable: Map.get(merged_config, :sortable, true),
       filterable: Map.get(merged_config, :filterable, false),
       filter_type: Map.get(merged_config, :filter_type, :text),
@@ -202,17 +210,17 @@ defmodule Cinder.Column do
 
   # Private helper functions
 
-  defp parse_relationship_key(key) when is_binary(key) do
-    case String.split(key, ".", parts: 2) do
-      [single_key] ->
-        {single_key, %{}}
+  defp parse_relationship_key(field) when is_binary(field) do
+    case String.split(field, ".", parts: 2) do
+      [single_field] ->
+        {single_field, %{}}
 
-      [relationship, field] ->
-        {key, %{relationship: relationship, field: field}}
+      [relationship, field_name] ->
+        {field, %{relationship: relationship, field: field_name}}
     end
   end
 
-  defp parse_relationship_key(key), do: {to_string(key), %{}}
+  defp parse_relationship_key(field), do: {to_string(field), %{}}
 
   defp default_column_config do
     %{
@@ -224,8 +232,8 @@ defmodule Cinder.Column do
     }
   end
 
-  defp humanize_key(key) when is_binary(key) do
-    key
+  defp humanize_key(field) when is_binary(field) do
+    field
     |> String.replace("_", " ")
     |> String.replace(".", " > ")
     |> String.split()
@@ -233,5 +241,5 @@ defmodule Cinder.Column do
     |> Enum.join(" ")
   end
 
-  defp humanize_key(key), do: humanize_key(to_string(key))
+  defp humanize_key(field), do: humanize_key(to_string(field))
 end

@@ -119,7 +119,7 @@ defmodule Cinder.TableTest do
       # Should contain custom class
       assert html =~ "custom-class"
       # Should apply modern theme
-      assert html =~ "bg-white shadow-sm rounded-lg"
+      assert html =~ "bg-white shadow-lg rounded-xl"
     end
   end
 

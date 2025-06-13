@@ -59,7 +59,7 @@ defmodule Cinder.AggregateFilteringTest do
     test "aggregate fields should be detected correctly" do
       # Test that Column module can properly detect aggregate field types
       aggregate_column = %{
-        key: "track_count",
+        field: "track_count",
         filterable: true
       }
 
@@ -73,7 +73,7 @@ defmodule Cinder.AggregateFilteringTest do
     test "text field detection works correctly" do
       # Verify that text fields are still detected correctly
       text_column = %{
-        key: "title",
+        field: "title",
         filterable: true
       }
 
@@ -103,7 +103,7 @@ defmodule Cinder.AggregateFilteringTest do
 
       columns = [
         %{
-          key: "track_count",
+          field: "track_count",
           filterable: true,
           # This is the bug - should be :number_range
           filter_type: :text,
