@@ -1,15 +1,23 @@
 defmodule Cinder.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/sevenseacat/cinder"
+
   def project do
     [
       app: :cinder,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       consolidate_protocols: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      docs: docs(),
+      package: package(),
+      description: description(),
+      name: "Cinder",
+      source_url: @source_url
     ]
   end
 
@@ -27,6 +35,7 @@ defmodule Cinder.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:ash, "~> 3.0"},
       {:ash_phoenix, "~> 2.3"},
       {:phoenix_live_view, "~> 1.0"},
@@ -34,6 +43,61 @@ defmodule Cinder.MixProject do
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:igniter, "~> 0.5", only: [:dev, :test]}
+    ]
+  end
+
+  defp description do
+    "A powerful, intelligent data table component for Phoenix LiveView applications with seamless Ash Framework integration."
+  end
+
+  defp package do
+    [
+      name: "cinder",
+      maintainers: ["Rebecca Le"],
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => @source_url,
+        "Documentation" => "https://hexdocs.pm/cinder"
+      },
+      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
+    ]
+  end
+
+  defp docs do
+    [
+      main: "Cinder",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      extras: [
+        "README.md",
+        "EXAMPLES.md"
+      ],
+      groups_for_modules: [
+        "Core Components": [
+          Cinder,
+          Cinder.Table
+        ],
+        "URL Management": [
+          Cinder.Table.UrlSync,
+          Cinder.UrlManager
+        ],
+        "Internal Systems": [
+          Cinder.Theme,
+          Cinder.QueryBuilder,
+          Cinder.Column,
+          Cinder.FilterManager
+        ],
+        "Filter Types": [
+          Cinder.Filters.Base,
+          Cinder.Filters.Registry,
+          Cinder.Filters.Text,
+          Cinder.Filters.Select,
+          Cinder.Filters.MultiSelect,
+          Cinder.Filters.Boolean,
+          Cinder.Filters.DateRange,
+          Cinder.Filters.NumberRange
+        ]
+      ]
     ]
   end
 end
