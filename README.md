@@ -113,7 +113,7 @@ defmodule MyAppWeb.UsersLive do
     <Cinder.Table.table 
       resource={MyApp.User} 
       current_user={@current_user}
-      url_sync
+      url_state={@url_state}
     >
       <:col field="name" filter sort>Name</:col>
       <:col field="email" filter>Email</:col>

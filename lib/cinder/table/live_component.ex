@@ -200,24 +200,38 @@ defmodule Cinder.Table.LiveComponent do
 
   # Decode URL state from URL parameters
   defp decode_url_state(socket, assigns) do
-    url_params =
-      %{
-        "page" => Map.get(assigns, :url_page),
-        "sort" => Map.get(assigns, :url_sort)
-      }
-      |> Map.merge(Map.get(assigns, :url_filters, %{}))
-      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-      |> Enum.into(%{})
+    # Check if we have raw URL params (preferred method for proper filter decoding)
+    raw_params = Map.get(assigns, :url_raw_params, %{})
 
-    if Enum.empty?(url_params) do
-      socket
-    else
-      decoded_state = Cinder.UrlManager.decode_state(url_params, socket.assigns.columns)
+    if not Enum.empty?(raw_params) do
+      # Use raw params with actual columns for proper filter decoding
+      decoded_state = Cinder.UrlManager.decode_state(raw_params, socket.assigns.columns)
 
       socket
       |> assign(:filters, decoded_state.filters)
       |> assign(:current_page, decoded_state.current_page)
       |> assign(:sort_by, decoded_state.sort_by)
+    else
+      # Fallback to old method (for backward compatibility)
+      url_params =
+        %{
+          "page" => Map.get(assigns, :url_page),
+          "sort" => Map.get(assigns, :url_sort)
+        }
+        |> Map.merge(Map.get(assigns, :url_filters, %{}))
+        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+        |> Enum.into(%{})
+
+      if Enum.empty?(url_params) do
+        socket
+      else
+        decoded_state = Cinder.UrlManager.decode_state(url_params, socket.assigns.columns)
+
+        socket
+        |> assign(:filters, decoded_state.filters)
+        |> assign(:current_page, decoded_state.current_page)
+        |> assign(:sort_by, decoded_state.sort_by)
+      end
     end
   end
 

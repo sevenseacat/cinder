@@ -210,7 +210,7 @@ defmodule MyAppWeb.UsersLive do
     <Cinder.Table.table 
       resource={MyApp.User} 
       current_user={@current_user}
-      url_sync
+      url_state={@url_state}
       id="users-table"
     >
       <:col field="name" filter sort>Name</:col>
@@ -249,7 +249,7 @@ Here's a comprehensive example showing all available options:
   id="advanced-users-table"
   page_size={50}
   theme="modern"
-  url_sync
+  url_state={@url_state}
   query_opts={[load: [:profile, :department]]}
   show_filters={true}
   show_pagination={true}
@@ -310,7 +310,7 @@ Here's a comprehensive example showing all available options:
 - `id` - Unique component identifier (default: "cinder-table")
 - `page_size` - Items per page (default: 25)
 - `theme` - Theme preset string or custom theme map (default: "default")
-- `url_sync` - Enable URL state synchronization (default: false)
+- `url_state` - URL state object from UrlSync.handle_params, or false to disable URL synchronization
 - `query_opts` - Additional Ash query options (default: [])
 - `on_state_change` - Custom state change callback
 - `show_filters` - Show filter controls (default: auto-detect)

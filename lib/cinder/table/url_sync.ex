@@ -8,8 +8,9 @@ defmodule Cinder.Table.UrlSync do
   ## Usage
 
   1. Add `use Cinder.Table.UrlSync` to your LiveView
-  2. Add `url_sync` to your Table component
-  3. That's it! The helper handles all URL updates automatically.
+  2. Call `Cinder.Table.UrlSync.handle_params/3` in your `handle_params/3` callback
+  3. Pass `url_state={@url_state}` to your Table component
+  4. That's it! The helper handles all URL updates automatically.
 
   ## Example
 
@@ -21,12 +22,17 @@ defmodule Cinder.Table.UrlSync do
           {:ok, assign(socket, :current_user, get_current_user())}
         end
 
+        def handle_params(params, uri, socket) do
+          socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
+          {:noreply, socket}
+        end
+
         def render(assigns) do
           ~H\"\"\"
           <Cinder.Table.table
             resource={MyApp.User}
             current_user={@current_user}
-            url_sync
+            url_state={@url_state}
           >
             <:col field="name" filter sort>Name</:col>
             <:col field="email" filter>Email</:col>
@@ -59,7 +65,7 @@ defmodule Cinder.Table.UrlSync do
       It handles `:table_state_change` messages from Table components.
       """
       def handle_info({:table_state_change, _table_id, encoded_state}, socket) do
-        current_uri = socket.assigns[:table_current_uri]
+        current_uri = get_in(socket.assigns, [:url_state, :uri])
         {:noreply, Cinder.Table.UrlSync.update_url(socket, encoded_state, current_uri)}
       end
     end
@@ -104,37 +110,42 @@ defmodule Cinder.Table.UrlSync do
 
       Phoenix.LiveView.push_patch(socket, to: new_url)
     else
-      # Fallback to relative path update
+      # Fallback: Extract path from socket's url_state or use root
+      fallback_uri = get_in(socket.assigns, [:url_state, :uri]) || "/"
+
+      current_path =
+        if is_binary(fallback_uri) do
+          URI.parse(fallback_uri).path || "/"
+        else
+          "/"
+        end
+
       if map_size(new_params) > 0 do
         query_string = URI.encode_query(new_params)
-        Phoenix.LiveView.push_patch(socket, to: "?#{query_string}")
+        Phoenix.LiveView.push_patch(socket, to: "#{current_path}?#{query_string}")
       else
         # No parameters - clear query string but keep current path
-        Phoenix.LiveView.push_patch(socket, to: ".")
+        Phoenix.LiveView.push_patch(socket, to: current_path)
       end
     end
   end
 
   @doc """
-  Extracts table state from URL parameters.
+  Extracts complete URL state from URL parameters for use with table components.
 
   This function can be used in `handle_params/3` to initialize
-  table state from URL parameters.
+  URL state for table components.
 
   ## Example
 
       def handle_params(params, _uri, socket) do
-        table_state = Cinder.Table.UrlSync.extract_table_state(params)
-        socket = assign(socket, :initial_table_state, table_state)
+        url_state = Cinder.Table.UrlSync.extract_url_state(params)
+        socket = assign(socket, :url_state, url_state)
         {:noreply, socket}
       end
 
   """
-  def extract_table_state(params) when is_map(params) do
-    # Decode table state from URL parameters
-    # We don't have columns context here, but UrlManager handles this
-    columns = []
-
+  def extract_url_state(params) when is_map(params) do
     # Handle case where sort_by might be an empty list (causing UrlManager error)
     safe_params =
       Map.update(params, "sort", nil, fn
@@ -144,7 +155,38 @@ defmodule Cinder.Table.UrlSync do
         sort -> sort
       end)
 
-    Cinder.UrlManager.decode_state(safe_params, columns)
+    # Use empty columns list since we don't have column context here
+    Cinder.UrlManager.decode_state(safe_params, [])
+  end
+
+  @doc """
+  Extracts table state from URL parameters using empty columns list.
+
+  This function provides a simplified extraction that works without column
+  metadata. It preserves page and sort information but may not fully decode
+  filters (which is why we also preserve raw params in handle_params).
+
+  ## Parameters
+
+  - `params` - URL parameters map
+
+  ## Returns
+
+  Map with `:filters`, `:current_page`, and `:sort_by` keys
+  """
+  def extract_table_state(params) when is_map(params) do
+    # Handle case where sort_by might be an empty list (causing UrlManager error)
+    safe_params =
+      Map.update(params, "sort", nil, fn
+        [] -> nil
+        # Convert lists to nil
+        sort when is_list(sort) -> nil
+        sort -> sort
+      end)
+
+    # Use empty columns list - this will preserve page/sort but may lose filter details
+    # That's why we also preserve raw params in the url_state
+    Cinder.UrlManager.decode_state(safe_params, [])
   end
 
   # Private helper functions
@@ -160,8 +202,23 @@ defmodule Cinder.Table.UrlSync do
   @doc """
   Helper function to handle table state in LiveView handle_params.
 
-  This is a convenience function that can be called from handle_params
-  to pass URL state to Table components and store the current URI.
+  This function extracts URL parameters and creates a URL state object that
+  can be passed to Table components. It should be called from your LiveView's
+  `handle_params/3` callback.
+
+  ## Parameters
+
+  - `socket` - The LiveView socket
+  - `params` - URL parameters from `handle_params/3`
+  - `uri` - Current URI from `handle_params/3` (optional but recommended)
+
+  ## Returns
+
+  Updated socket with `:url_state` assign containing:
+  - `filters` - Raw URL parameters for proper filter decoding
+  - `current_page` - Current page number
+  - `sort_by` - Sort configuration
+  - `uri` - Current URI for URL generation
 
   ## Example
 
@@ -170,15 +227,62 @@ defmodule Cinder.Table.UrlSync do
         {:noreply, socket}
       end
 
-  The table component will automatically pick up the state from socket assigns.
+      def render(assigns) do
+        ~H\"\"\"
+        <Cinder.Table.table
+          resource={MyApp.User}
+          current_user={@current_user}
+          url_state={@url_state}
+        >
+          <:col field="name" filter sort>Name</:col>
+        </Cinder.Table.table>
+        \"\"\"
+      end
+
+  The `@url_state` assign will be available for use with the Table component.
   """
   def handle_params(socket, params, uri \\ nil) do
     table_state = extract_table_state(params)
 
-    socket
-    |> assign(:table_url_filters, table_state.filters)
-    |> assign(:table_url_page, table_state.current_page)
-    |> assign(:table_url_sort, table_state.sort_by)
-    |> assign(:table_current_uri, uri)
+    url_state = %{
+      # Raw params for proper filter decoding
+      filters: params,
+      current_page: table_state.current_page,
+      sort_by: table_state.sort_by,
+      uri: uri
+    }
+
+    assign(socket, :url_state, url_state)
+  end
+
+  @doc """
+  Helper to get the URL state for passing to table components.
+
+  Use this to get the URL state object created by `handle_params/3`.
+
+  ## Example
+
+      def render(assigns) do
+        ~H\"\"\"
+        <Cinder.Table.table
+          resource={Album}
+          current_user={@current_user}
+          url_state={@url_state}
+          theme="minimal"
+        >
+          <:col field="name" filter="text">Name</:col>
+          <:col field="artist.name" filter="text">Artist</:col>
+        </Cinder.Table.table>
+        \"\"\"
+      end
+
+  The URL state object contains:
+  - filters: Raw URL parameters for proper filter decoding
+  - current_page: Current page number
+  - sort_by: Sort configuration
+  - uri: Current URI
+  """
+  def get_url_state(socket_assigns) do
+    Map.get(socket_assigns, :url_state, nil)
   end
 end

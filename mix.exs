@@ -8,6 +8,7 @@ defmodule Cinder.MixProject do
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
+      consolidate_protocols: Mix.env() == :prod,
       deps: deps()
     ]
   end

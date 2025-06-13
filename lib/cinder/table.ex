@@ -18,7 +18,7 @@ defmodule Cinder.Table do
       <Cinder.Table.table
         resource={MyApp.Album}
         current_user={@current_user}
-        url_sync
+        url_state={@url_state}
         page_size={50}
         theme="modern"
       >
@@ -61,7 +61,7 @@ defmodule Cinder.Table do
   - `id` - Component ID (defaults to "cinder-table")
   - `page_size` - Number of items per page (default: 25)
   - `theme` - Theme preset or custom theme map (default: "default")
-  - `url_sync` - Enable URL state synchronization (default: false) - requires parent LiveView to handle `:table_state_change` messages
+  - `url_state` - URL state object from UrlSync.handle_params, or false to disable URL synchronization - requires parent LiveView to handle `:table_state_change` messages
   - `query_opts` - Additional query options for Ash (default: [])
   - `on_state_change` - Callback for state changes
   - `show_filters` - Show filter controls (default: auto-detect from columns)
@@ -92,6 +92,51 @@ defmodule Cinder.Table do
 
   You can override the auto-generated label by providing a `label` attribute.
   """
+
+  use Phoenix.Component
+
+  attr(:resource, :atom, required: true, doc: "The Ash resource to query")
+  attr(:current_user, :any, default: nil, doc: "Current user for authorization")
+  attr(:id, :string, default: "cinder-table", doc: "Unique identifier for the table")
+  attr(:page_size, :integer, default: 25, doc: "Number of items per page")
+  attr(:theme, :any, default: "default", doc: "Theme name or theme map")
+
+  attr(:url_state, :any,
+    default: false,
+    doc: "URL state object from UrlSync.handle_params, or false to disable"
+  )
+
+  attr(:query_opts, :list, default: [], doc: "Additional query options (load, select, etc.)")
+  attr(:on_state_change, :any, default: nil, doc: "Custom state change handler")
+  attr(:show_pagination, :boolean, default: true, doc: "Whether to show pagination controls")
+
+  attr(:show_filters, :boolean,
+    default: nil,
+    doc: "Whether to show filter controls (auto-detected if nil)"
+  )
+
+  attr(:loading_message, :string, default: "Loading...", doc: "Message to show while loading")
+
+  attr(:empty_message, :string,
+    default: "No results found",
+    doc: "Message to show when no results"
+  )
+
+  attr(:class, :string, default: "", doc: "Additional CSS classes")
+
+  slot :col, required: true do
+    attr(:field, :string,
+      required: true,
+      doc: "Field name (supports dot notation for relationships)"
+    )
+
+    attr(:filter, :any, doc: "Enable filtering (true, false, or filter type atom)")
+
+    attr(:sort, :boolean, doc: "Enable sorting")
+    attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
+    attr(:class, :string, doc: "CSS classes for this column")
+  end
+
   def table(assigns) do
     # Set intelligent defaults
     assigns =
@@ -99,7 +144,7 @@ defmodule Cinder.Table do
       |> assign_new(:id, fn -> "cinder-table" end)
       |> assign_new(:page_size, fn -> 25 end)
       |> assign_new(:theme, fn -> "default" end)
-      |> assign_new(:url_sync, fn -> false end)
+      |> assign_new(:url_state, fn -> false end)
       |> assign_new(:query_opts, fn -> [] end)
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
@@ -125,11 +170,12 @@ defmodule Cinder.Table do
         current_user={@current_user}
         page_size={@page_size}
         theme={resolve_theme(@theme)}
-        url_filters={get_url_filters(@url_sync, assigns)}
-        url_page={get_url_page(@url_sync, assigns)}
-        url_sort={get_url_sort(@url_sync, assigns)}
+        url_filters={get_url_filters(@url_state)}
+        url_page={get_url_page(@url_state)}
+        url_sort={get_url_sort(@url_state)}
+        url_raw_params={get_raw_url_params(@url_state)}
         query_opts={@query_opts}
-        on_state_change={get_state_change_handler(@url_sync, @on_state_change, @id)}
+        on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
         show_filters={@show_filters}
         show_pagination={@show_pagination}
         loading_message={@loading_message}
@@ -255,29 +301,37 @@ defmodule Cinder.Table do
 
   defp resolve_theme(_), do: Cinder.Theme.merge("default")
 
-  # URL sync helpers - read from socket assigns when url_sync is enabled
-  defp get_url_filters(true, assigns) do
-    Map.get(assigns, :table_url_filters, %{})
+  # URL state helpers - extract state from URL state object
+  defp get_url_filters(url_state) when is_map(url_state) do
+    Map.get(url_state, :filters, %{})
   end
 
-  defp get_url_filters(_url_sync, _assigns), do: %{}
+  defp get_url_filters(_url_state), do: %{}
 
-  defp get_url_page(true, assigns) do
-    Map.get(assigns, :table_url_page, nil)
+  defp get_url_page(url_state) when is_map(url_state) do
+    Map.get(url_state, :current_page, nil)
   end
 
-  defp get_url_page(_url_sync, _assigns), do: nil
+  defp get_url_page(_url_state), do: nil
 
-  defp get_url_sort(true, assigns) do
-    case Map.get(assigns, :table_url_sort, []) do
+  defp get_url_sort(url_state) when is_map(url_state) do
+    sort = Map.get(url_state, :sort_by, [])
+
+    case sort do
       [] -> nil
       sort -> sort
     end
   end
 
-  defp get_url_sort(_url_sync, _assigns), do: nil
+  defp get_url_sort(_url_state), do: nil
 
-  defp get_state_change_handler(true, custom_handler, _table_id) do
+  defp get_raw_url_params(url_state) when is_map(url_state) do
+    Map.get(url_state, :filters, %{})
+  end
+
+  defp get_raw_url_params(_url_state), do: %{}
+
+  defp get_state_change_handler(url_state, custom_handler, _table_id) when is_map(url_state) do
     # Return the callback atom that UrlManager expects
     # UrlManager will send {:table_state_change, table_id, encoded_state}
     if custom_handler do
@@ -287,7 +341,7 @@ defmodule Cinder.Table do
     end
   end
 
-  defp get_state_change_handler(_url_sync, custom_handler, _table_id) do
+  defp get_state_change_handler(_url_state, custom_handler, _table_id) do
     custom_handler
   end
 

@@ -362,6 +362,62 @@ defmodule Cinder.TableTest do
     end
   end
 
+  describe "query_opts functionality" do
+    test "passes query_opts to underlying component" do
+      assigns = %{
+        resource: TestAlbum,
+        current_user: nil,
+        query_opts: [load: [:artist]],
+        col: [
+          %{field: "title", __slot__: :col},
+          %{field: "artist.name", __slot__: :col}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should render successfully with query_opts
+      assert html =~ "cinder-table"
+      assert html =~ "Title"
+      assert html =~ "Artist &gt; Name"
+    end
+
+    test "works without query_opts" do
+      assigns = %{
+        resource: TestUser,
+        current_user: nil,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should work fine without query_opts
+      assert html =~ "cinder-table"
+      assert html =~ "Name"
+    end
+
+    test "supports relationship fields when query_opts loads them" do
+      assigns = %{
+        resource: TestAlbum,
+        current_user: nil,
+        query_opts: [load: [:artist, :publisher]],
+        col: [
+          %{field: "title", filter: true, sort: true, __slot__: :col},
+          %{field: "artist.name", filter: true, sort: true, __slot__: :col},
+          %{field: "publisher.name", filter: true, __slot__: :col}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should handle relationship fields properly
+      assert html =~ "cinder-table"
+      assert html =~ "Title"
+      assert html =~ "Artist &gt; Name"
+      assert html =~ "Publisher &gt; Name"
+    end
+  end
+
   describe "edge cases and error handling" do
     test "handles empty column list" do
       assigns = %{
