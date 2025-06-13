@@ -7,6 +7,7 @@ defmodule Cinder.Table.LiveComponent do
 
   use Phoenix.LiveComponent
   require Ash.Query
+  require Logger
 
   @impl true
   def mount(socket) do
@@ -383,24 +384,46 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_async(:load_data, {:ok, {:error, error}}, socket) do
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder table query failed for #{socket.assigns.query}: #{inspect(error)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        current_page: socket.assigns.current_page,
+        error: inspect(error)
+      }
+    )
+
     socket =
       socket
       |> assign(:loading, false)
       |> assign(:data, [])
       |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
-      |> put_flash(:error, "Failed to load data: #{inspect(error)}")
 
     {:noreply, socket}
   end
 
   @impl true
   def handle_async(:load_data, {:exit, reason}, socket) do
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder table query crashed for #{socket.assigns.query}: #{inspect(reason)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        current_page: socket.assigns.current_page,
+        reason: inspect(reason)
+      }
+    )
+
     socket =
       socket
       |> assign(:loading, false)
       |> assign(:data, [])
       |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
-      |> put_flash(:error, "Failed to load data: #{inspect(reason)}")
 
     {:noreply, socket}
   end

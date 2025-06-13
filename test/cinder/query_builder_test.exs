@@ -1,5 +1,6 @@
 defmodule Cinder.QueryBuilderTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureLog
 
   alias Cinder.QueryBuilder
 
@@ -32,6 +33,82 @@ defmodule Cinder.QueryBuilderTest do
       current_sort = [{"created_at", :desc}]
       result = QueryBuilder.toggle_sort_direction(current_sort, "title")
       assert result == [{"title", :asc}, {"created_at", :desc}]
+    end
+  end
+
+  describe "build_and_execute/2 error logging" do
+    defmodule TestResource do
+      use Ash.Resource, domain: nil, validate_domain_inclusion?: false
+
+      attributes do
+        uuid_primary_key(:id)
+        attribute(:name, :string)
+      end
+
+      actions do
+        defaults([:read])
+      end
+    end
+
+    test "logs errors when query execution fails" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      log_output =
+        capture_log(fn ->
+          # This should fail because TestResource doesn't have a proper domain setup
+          result = QueryBuilder.build_and_execute(TestResource, options)
+          assert {:error, _} = result
+        end)
+
+      assert log_output =~ "Cinder table query crashed with exception for"
+      assert log_output =~ "TestResource"
+    end
+
+    test "logs calculation errors with detailed error information" do
+      defmodule TestResourceWithCalculation do
+        use Ash.Resource, domain: nil, validate_domain_inclusion?: false
+
+        attributes do
+          uuid_primary_key(:id)
+          attribute(:name, :string)
+        end
+
+        calculations do
+          calculate(:failing_calc, :string, expr(fragment("INVALID_SQL_FUNCTION(?)", name)))
+        end
+
+        actions do
+          defaults([:read])
+        end
+      end
+
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: [load: [:failing_calc]]
+      ]
+
+      log_output =
+        capture_log(fn ->
+          result = QueryBuilder.build_and_execute(TestResourceWithCalculation, options)
+          assert {:error, _} = result
+        end)
+
+      # Should show the resource name and actual error details
+      assert log_output =~ "TestResourceWithCalculation"
+      assert log_output =~ "Cinder table query crashed with exception for"
     end
   end
 

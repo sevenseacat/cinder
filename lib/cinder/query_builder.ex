@@ -7,6 +7,7 @@ defmodule Cinder.QueryBuilder do
   """
 
   require Ash.Query
+  require Logger
 
   @type filter :: %{type: atom(), value: any(), operator: atom()}
   @type filters :: %{String.t() => filter()}
@@ -74,17 +75,56 @@ defmodule Cinder.QueryBuilder do
 
               {:ok, {results, page_info}}
 
-            {:error, _count_error} ->
-              # Fallback to basic pagination without total count
+            {:error, count_error} ->
+              # Log count query error but continue with basic pagination
+              Logger.warning(
+                "Cinder table count query failed: #{inspect(count_error)} - falling back to basic pagination for #{resource}",
+                %{
+                  resource: resource,
+                  filters: filters,
+                  sort_by: sort_by,
+                  error: inspect(count_error)
+                }
+              )
+
               page_info = build_page_info_from_list(results, current_page, page_size)
               {:ok, {results, page_info}}
           end
 
         {:error, query_error} ->
+          # Log query execution error with full context
+          Logger.error(
+            "Cinder table query execution failed for #{resource}: #{inspect(query_error)}",
+            %{
+              resource: resource,
+              filters: filters,
+              sort_by: sort_by,
+              current_page: current_page,
+              page_size: page_size,
+              query_opts: query_opts,
+              error: inspect(query_error)
+            }
+          )
+
           {:error, query_error}
       end
     rescue
       error ->
+        # Log exceptions (like calculation errors) with full context
+        Logger.error(
+          "Cinder table query crashed with exception for #{resource}: #{inspect(error)}",
+          %{
+            resource: resource,
+            filters: filters,
+            sort_by: sort_by,
+            current_page: current_page,
+            page_size: page_size,
+            query_opts: query_opts,
+            exception: inspect(error),
+            stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+          }
+        )
+
         {:error, error}
     end
   end
