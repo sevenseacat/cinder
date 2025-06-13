@@ -1,88 +1,133 @@
 defmodule Cinder do
   @moduledoc """
-   Cinder is a library for building interactive LiveView components with Ash Framework.
+  Cinder is a library for building interactive LiveView components with Ash Framework.
 
-   ## Components
+  ## Components
 
-   * `Cinder.Table` - Interactive data tables for Ash queries with sorting, filtering, and pagination
+  * `Cinder.Table` - Interactive data tables for Ash queries with sorting, filtering, and pagination
 
-   ## Usage
+  ## Quick Start
 
-   Add Cinder to your Phoenix LiveView templates:
+  Add Cinder to your Phoenix LiveView templates:
 
-       <Cinder.Table.table
-         id="my-table"
-         query={MyApp.Album}
-         current_user={@current_user}
-         query_opts={[load: [:artist, :publisher]]}
-         page_size={50}
-       >
-         <:col :let={album} key="title" label="Title" sortable searchable>
-           {album.title}
-         </:col>
-         
-         <:col :let={album} key="artist.name" label="Artist" sortable filterable>
-           {album.artist.name}
-         </:col>
-         
-         <:col :let={album} key="publisher" label="Label" sortable sort_fn={&sort_by_publisher/2}>
-           {album.publisher.name}
-         </:col>
-         
-         <:col :let={album} key="genre" label="Genre" filterable sortable>
-           {album.genre}
-         </:col>
-       </Cinder.Table.table>
+      <Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+        <:col field="created_at" sort>Created</:col>
+      </Cinder.Table.table>
 
-   ## Features
+  ## Advanced Usage
 
-   * **Ash Integration** - Native support for Ash resources with actor authorization
-   * **Async Data Loading** - Non-blocking data fetching with loading states
-   * **Interactive Sorting** - Click column headers to sort, supports custom sort functions
-   * **Pagination** - Built-in pagination with Previous/Next controls
-   * **Theming** - Fully customizable CSS classes for all elements
-   * **Required Columns** - Compile-time validation ensures all columns have required `key` attribute
-   * **Query Options** - Support for Ash query options like load, select, filter
-   * **Relationship Sorting** - Dot notation support for sorting by related fields (e.g., "artist.name")
-   * **Customizable Sort Icons** - Use any heroicons or custom HTML for sort arrows
+      <Cinder.Table.table
+        resource={MyApp.Album}
+        current_user={@current_user}
+        url_sync
+        page_size={50}
+        theme="modern"
+      >
+        <:col field="title" filter sort class="w-1/2">
+          Title
+        </:col>
+        <:col field="artist.name" filter sort>
+          Artist
+        </:col>
+        <:col field="release_date" filter={:date_range} sort>
+          Released
+        </:col>
+        <:col field="status" filter={:select} sort>
+          Status
+        </:col>
+        <:col field="actions" class="text-center">
+          <.link navigate={~p"/albums/\#{album.id}"}>View</.link>
+        </:col>
+      </Cinder.Table.table>
 
-   ## Sorting Features
+  ## Key Features
 
-   * **Click-to-sort** - Sortable columns have clickable headers with visual feedback
-   * **Three-state cycling** - Click toggles: none → ascending → descending → none
-   * **Visual indicators** - Clear SVG arrows show current sort direction
-   * **Multi-column support** - Sort by multiple columns simultaneously
-   * **Custom sort functions** - Use `sort_fn` attribute for complex sorting logic
-   * **Relationship sorting** - Sort by related fields using dot notation
-   * **Auto page reset** - Returns to page 1 when sort changes
-   * **Customizable arrows** - Use heroicons, custom CSS, or raw HTML for sort indicators
+  * **Intelligent Defaults** - Automatic type inference from Ash resources
+  * **Ash Integration** - Native support for Ash resources with actor authorization
+  * **URL State Management** - Browser back/forward support with automatic URL synchronization
+  * **Modular Filtering** - Six filter types with automatic detection
+  * **Interactive Sorting** - Click column headers to sort with visual feedback
+  * **Relationship Support** - Dot notation for related fields (e.g., `artist.name`)
+  * **Flexible Theming** - Built-in presets (default, modern, minimal) and full customization
+  * **Responsive Design** - Mobile-friendly with configurable CSS classes
+  * **Async Data Loading** - Non-blocking data fetching with loading states
 
-   ## Sort Arrow Customization
+  ## Filter Types
 
-   Customize sort arrows using the theme attribute:
+  Cinder automatically detects the appropriate filter type based on your Ash resource attributes:
 
-       # Use different heroicons
-       theme = %{
-         sort_asc_icon_name: "hero-arrow-up",
-         sort_desc_icon_name: "hero-arrow-down", 
-         sort_none_icon_name: "hero-arrows-up-down"
-       }
+  * **Text** - For string fields
+  * **Select** - For enum fields with options
+  * **Multi-select** - For multi-value selections
+  * **Boolean** - For true/false fields
+  * **Date Range** - For date/datetime fields
+  * **Number Range** - For integer/decimal fields
 
-       # Customize icon classes and colors
-       theme = %{
-         sort_asc_icon_class: "w-4 h-4 text-green-500",
-         sort_desc_icon_class: "w-4 h-4 text-red-500",
-         sort_none_icon_class: "w-4 h-4 text-gray-400"
-       }
+  ## Relationship Support
 
-   Icons are rendered as `<span class={[icon_name, icon_class]} />` which works
-   with Phoenix heroicons when you have heroicons CSS loaded.
+  Use dot notation to display and filter by related fields:
 
-   ## Phase Completion Status
+      <:col field="artist.name" filter sort>Artist</:col>
+      <:col field="publisher.country" filter>Country</:col>
 
-   * ✅ Phase 1: Core Component Structure - Complete
-   * ✅ Phase 2: Data Loading and Pagination - Complete with full Ash integration
-   * ✅ Phase 3: Sorting Implementation - Complete with interactive sorting
-   * 🚧 Phase 4: Filtering System - Coming next
+  ## Theming
+
+  Choose from built-in themes or create custom styling:
+
+      # Built-in themes
+      <Cinder.Table.table theme="modern" ...>
+      <Cinder.Table.table theme="minimal" ...>
+
+      # Custom theme
+      <Cinder.Table.table theme={%{
+        table_class: "custom-table",
+        header_class: "custom-header"
+      }} ...>
+
+  ## URL State Management
+
+  Enable automatic URL synchronization to preserve table state:
+
+      <Cinder.Table.table url_sync ...>
+
+  This keeps filters, sorting, and pagination in the URL, enabling:
+  * Browser back/forward navigation
+  * Bookmarkable filtered views
+  * Shareable links with current state
+
+  ## Configuration
+
+  Cinder requires minimal configuration:
+
+  * `resource` - Your Ash resource (required)
+  * `current_user` - For authorization (required)
+  * `url_sync` - Enable URL state management (optional)
+  * `page_size` - Items per page (default: 25)
+  * `theme` - Styling preset or custom theme (optional)
+
+  Column configuration is equally simple:
+
+      <:col field="field_name" filter sort>Label</:col>
+
+  * `field` - Ash resource attribute name (required)
+  * `filter` - Enable filtering (optional)
+  * `sort` - Enable sorting (optional)
+  * `label` - Override auto-generated label (optional)
+
+  ## Architecture
+
+  Cinder 2.0 features a modular architecture with focused, testable components:
+
+  * **Theme System** - Centralized styling with smart defaults
+  * **URL Manager** - State serialization and browser integration
+  * **Query Builder** - Ash query construction and optimization
+  * **Column System** - Intelligent type inference and configuration
+  * **Filter Registry** - Pluggable filter types with consistent interface
+  * **Table Component** - Lightweight coordinator that orchestrates all systems
+
+  This modular design enables easy extension and customization while maintaining
+  simplicity for common use cases.
   """
 end

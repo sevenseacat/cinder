@@ -1,7 +1,7 @@
-defmodule Cinder.TableV2.UrlSyncTest do
+defmodule Cinder.Table.UrlSyncTest do
   use ExUnit.Case, async: true
 
-  alias Cinder.TableV2.UrlSync
+  alias Cinder.Table.UrlSync
 
   describe "extract_table_state/1" do
     test "extracts empty state from empty params" do
@@ -58,7 +58,7 @@ defmodule Cinder.TableV2.UrlSyncTest do
 
   describe "__using__ macro" do
     defmodule TestLiveView do
-      use Cinder.TableV2.UrlSync
+      use Cinder.Table.UrlSync
 
       # Simulate a minimal LiveView for testing
       def test_handle_info_exists?, do: function_exported?(__MODULE__, :handle_info, 2)
@@ -116,7 +116,7 @@ defmodule Cinder.TableV2.UrlSyncTest do
 
   describe "integration with UrlManager" do
     test "URL sync sends correct message format" do
-      # This test verifies that the TableV2 component sends the expected message format
+      # This test verifies that the Table component sends the expected message format
       # when url_sync is enabled
 
       # The UrlManager expects messages in the format:
@@ -140,7 +140,7 @@ defmodule Cinder.TableV2.UrlSyncTest do
       assert decoded_state.sort_by == [{"created_at", :desc}]
 
       # Test that the callback atom is properly set up
-      # (TableV2 should set on_state_change to :table_state_change when url_sync is true)
+      # (Table should set on_state_change to :table_state_change when url_sync is true)
       assert :table_state_change == :table_state_change
     end
 
@@ -174,7 +174,7 @@ defmodule Cinder.TableV2.UrlSyncTest do
     test "URL sync helper macro injection works correctly" do
       # Test that the injected handle_info can process the expected message format
       defmodule TestUrlSyncLiveView do
-        use Cinder.TableV2.UrlSync
+        use Cinder.Table.UrlSync
 
         # Test helper to check if handle_info exists and accepts the right format
         def test_message_handling do

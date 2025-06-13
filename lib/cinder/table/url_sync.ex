@@ -1,21 +1,21 @@
-defmodule Cinder.TableV2.UrlSync do
+defmodule Cinder.Table.UrlSync do
   @moduledoc """
-  Simple URL synchronization helper for TableV2 components.
+  Simple URL synchronization helper for Table components.
 
   This module provides an easy way to enable URL state synchronization
-  for TableV2 components with minimal setup.
+  for Table components with minimal setup.
 
   ## Usage
 
-  1. Add `use Cinder.TableV2.UrlSync` to your LiveView
-  2. Add `url_sync` to your TableV2 component
+  1. Add `use Cinder.Table.UrlSync` to your LiveView
+  2. Add `url_sync` to your Table component
   3. That's it! The helper handles all URL updates automatically.
 
   ## Example
 
       defmodule MyAppWeb.UsersLive do
         use MyAppWeb, :live_view
-        use Cinder.TableV2.UrlSync
+        use Cinder.Table.UrlSync
 
         def mount(_params, _session, socket) do
           {:ok, assign(socket, :current_user, get_current_user())}
@@ -23,23 +23,23 @@ defmodule Cinder.TableV2.UrlSync do
 
         def render(assigns) do
           ~H\"\"\"
-          <Cinder.TableV2.table
+          <Cinder.Table.table
             resource={MyApp.User}
             current_user={@current_user}
             url_sync
           >
             <:col field="name" filter sort>Name</:col>
             <:col field="email" filter>Email</:col>
-          </Cinder.TableV2.table>
+          </Cinder.Table.table>
           \"\"\"
         end
       end
 
   The helper automatically:
-  - Handles `:table_state_change` messages from TableV2 components
+  - Handles `:table_state_change` messages from Table components
   - Updates the URL with new table state
   - Preserves other URL parameters
-  - Works with any number of TableV2 components on the same page
+  - Works with any number of Table components on the same page
   """
 
   import Phoenix.Component, only: [assign: 3]
@@ -55,12 +55,12 @@ defmodule Cinder.TableV2.UrlSync do
       @doc """
       Handles table state changes and updates the URL.
 
-      This function is automatically injected by `use Cinder.TableV2.UrlSync`.
-      It handles `:table_state_change` messages from TableV2 components.
+      This function is automatically injected by `use Cinder.Table.UrlSync`.
+      It handles `:table_state_change` messages from Table components.
       """
       def handle_info({:table_state_change, _table_id, encoded_state}, socket) do
         current_uri = socket.assigns[:table_current_uri]
-        {:noreply, Cinder.TableV2.UrlSync.update_url(socket, encoded_state, current_uri)}
+        {:noreply, Cinder.Table.UrlSync.update_url(socket, encoded_state, current_uri)}
       end
     end
   end
@@ -124,7 +124,7 @@ defmodule Cinder.TableV2.UrlSync do
   ## Example
 
       def handle_params(params, _uri, socket) do
-        table_state = Cinder.TableV2.UrlSync.extract_table_state(params)
+        table_state = Cinder.Table.UrlSync.extract_table_state(params)
         socket = assign(socket, :initial_table_state, table_state)
         {:noreply, socket}
       end
@@ -161,12 +161,12 @@ defmodule Cinder.TableV2.UrlSync do
   Helper function to handle table state in LiveView handle_params.
 
   This is a convenience function that can be called from handle_params
-  to pass URL state to TableV2 components and store the current URI.
+  to pass URL state to Table components and store the current URI.
 
   ## Example
 
       def handle_params(params, uri, socket) do
-        socket = Cinder.TableV2.UrlSync.handle_params(socket, params, uri)
+        socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
         {:noreply, socket}
       end
 
