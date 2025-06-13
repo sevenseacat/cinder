@@ -52,7 +52,29 @@ defmodule Cinder.ThemeTest do
         :filter_date_input_class,
         :filter_number_input_class,
         :filter_select_input_class,
-        :filter_clear_button_class
+        :filter_clear_button_class,
+        # Boolean filter styling
+        :filter_boolean_container_class,
+        :filter_boolean_option_class,
+        :filter_boolean_radio_class,
+        :filter_boolean_label_class,
+        # Multi-select filter styling
+        :filter_multiselect_container_class,
+        :filter_multiselect_option_class,
+        :filter_multiselect_checkbox_class,
+        :filter_multiselect_label_class,
+        # Range filter styling
+        :filter_range_container_class,
+        :filter_range_input_group_class,
+        # Loading indicator styling
+        :loading_overlay_class,
+        :loading_container_class,
+        :loading_spinner_class,
+        :loading_spinner_circle_class,
+        :loading_spinner_path_class,
+        # Error message styling
+        :error_container_class,
+        :error_message_class
       ]
 
       for key <- required_keys do

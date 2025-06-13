@@ -23,8 +23,8 @@ defmodule Cinder.Filters.NumberRange do
     }
 
     ~H"""
-    <div class="flex space-x-2">
-      <div class="flex-1">
+    <div class={@theme.filter_range_container_class}>
+      <div class={@theme.filter_range_input_group_class}>
         <input
           type="number"
           name={field_name(@column.key, "min")}
@@ -34,7 +34,7 @@ defmodule Cinder.Filters.NumberRange do
           class={@theme.filter_number_input_class}
         />
       </div>
-      <div class="flex-1">
+      <div class={@theme.filter_range_input_group_class}>
         <input
           type="number"
           name={field_name(@column.key, "max")}

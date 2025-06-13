@@ -24,16 +24,16 @@ defmodule Cinder.Filters.MultiSelect do
     }
 
     ~H"""
-    <div class="space-y-2">
-      <div :for={{label, value} <- @options} class="flex items-center space-x-2">
+    <div class={@theme.filter_multiselect_container_class}>
+      <div :for={{label, value} <- @options} class={@theme.filter_multiselect_option_class}>
         <input
           type="checkbox"
           name={field_name(@column.key) <> "[]"}
           value={to_string(value)}
           checked={to_string(value) in Enum.map(@selected_values, &to_string/1)}
-          class="mr-2"
+          class={@theme.filter_multiselect_checkbox_class}
         />
-        <label class="text-sm">{label}</label>
+        <label class={@theme.filter_multiselect_label_class}>{label}</label>
       </div>
     </div>
     """

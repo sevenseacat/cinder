@@ -30,36 +30,36 @@ defmodule Cinder.Filters.Boolean do
     }
 
     ~H"""
-    <div class="flex space-x-4">
-      <label class="flex items-center">
+    <div class={@theme.filter_boolean_container_class}>
+      <label class={@theme.filter_boolean_option_class}>
         <input
           type="radio"
           name={field_name(@column.key)}
           value=""
           checked={@current_boolean_value == "" || @current_boolean_value == "all"}
-          class="mr-1"
+          class={@theme.filter_boolean_radio_class}
         />
-        <span class="text-sm">{@all_label}</span>
+        <span class={@theme.filter_boolean_label_class}>{@all_label}</span>
       </label>
-      <label class="flex items-center">
+      <label class={@theme.filter_boolean_option_class}>
         <input
           type="radio"
           name={field_name(@column.key)}
           value="true"
           checked={@current_boolean_value == "true"}
-          class="mr-1"
+          class={@theme.filter_boolean_radio_class}
         />
-        <span class="text-sm">{@true_label}</span>
+        <span class={@theme.filter_boolean_label_class}>{@true_label}</span>
       </label>
-      <label class="flex items-center">
+      <label class={@theme.filter_boolean_option_class}>
         <input
           type="radio"
           name={field_name(@column.key)}
           value="false"
           checked={@current_boolean_value == "false"}
-          class="mr-1"
+          class={@theme.filter_boolean_radio_class}
         />
-        <span class="text-sm">{@false_label}</span>
+        <span class={@theme.filter_boolean_label_class}>{@false_label}</span>
       </label>
     </div>
     """

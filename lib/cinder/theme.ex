@@ -61,7 +61,31 @@ defmodule Cinder.Theme do
       filter_select_input_class:
         "cinder-filter-select-input w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
       filter_clear_button_class:
-        "cinder-filter-clear-button text-gray-400 hover:text-gray-600 text-sm font-medium px-2 py-1 rounded hover:bg-gray-100"
+        "cinder-filter-clear-button text-gray-400 hover:text-gray-600 text-sm font-medium px-2 py-1 rounded hover:bg-gray-100",
+      # Boolean filter styling
+      filter_boolean_container_class: "cinder-filter-boolean-container flex space-x-4",
+      filter_boolean_option_class: "cinder-filter-boolean-option flex items-center",
+      filter_boolean_radio_class: "cinder-filter-boolean-radio mr-1",
+      filter_boolean_label_class: "cinder-filter-boolean-label text-sm",
+      # Multi-select filter styling
+      filter_multiselect_container_class: "cinder-filter-multiselect-container space-y-2",
+      filter_multiselect_option_class:
+        "cinder-filter-multiselect-option flex items-center space-x-2",
+      filter_multiselect_checkbox_class: "cinder-filter-multiselect-checkbox mr-2",
+      filter_multiselect_label_class: "cinder-filter-multiselect-label text-sm",
+      # Range filter styling (date and number)
+      filter_range_container_class: "cinder-filter-range-container flex space-x-2",
+      filter_range_input_group_class: "cinder-filter-range-input-group flex-1",
+      # Loading indicator styling
+      loading_overlay_class: "cinder-loading-overlay absolute top-0 right-0 mt-2 mr-2",
+      loading_container_class: "cinder-loading-container flex items-center text-sm text-gray-500",
+      loading_spinner_class:
+        "cinder-loading-spinner animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500",
+      loading_spinner_circle_class: "cinder-loading-spinner-circle opacity-25",
+      loading_spinner_path_class: "cinder-loading-spinner-path opacity-75",
+      # Error message styling
+      error_container_class: "cinder-error-container text-red-600 text-sm mt-1",
+      error_message_class: "cinder-error-message"
     }
   end
 
@@ -81,7 +105,22 @@ defmodule Cinder.Theme do
       pagination_button_class:
         "cinder-pagination-button px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors font-medium",
       filter_container_class:
-        "cinder-filter-container border border-gray-200 rounded-lg p-6 mb-6 bg-white shadow-sm"
+        "cinder-filter-container border border-gray-200 rounded-lg p-6 mb-6 bg-white shadow-sm",
+      # Modern filter styling
+      filter_boolean_container_class: "cinder-filter-boolean-container flex space-x-6",
+      filter_boolean_option_class: "cinder-filter-boolean-option flex items-center space-x-2",
+      filter_boolean_radio_class:
+        "cinder-filter-boolean-radio h-4 w-4 text-blue-600 focus:ring-blue-500",
+      filter_boolean_label_class: "cinder-filter-boolean-label text-sm font-medium text-gray-700",
+      filter_multiselect_container_class: "cinder-filter-multiselect-container space-y-3",
+      filter_multiselect_option_class:
+        "cinder-filter-multiselect-option flex items-center space-x-3",
+      filter_multiselect_checkbox_class:
+        "cinder-filter-multiselect-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 rounded",
+      filter_multiselect_label_class:
+        "cinder-filter-multiselect-label text-sm font-medium text-gray-700",
+      loading_container_class:
+        "cinder-loading-container flex items-center text-sm text-blue-600 font-medium"
     })
   end
 
@@ -99,7 +138,20 @@ defmodule Cinder.Theme do
       td_class: "cinder-table-td px-2 py-1",
       row_class: "cinder-table-row",
       pagination_button_class: "cinder-pagination-button px-2 py-1 hover:underline",
-      filter_container_class: "cinder-filter-container p-2 mb-2"
+      filter_container_class: "cinder-filter-container p-2 mb-2",
+      # Minimal filter styling
+      filter_boolean_container_class: "cinder-filter-boolean-container flex space-x-2",
+      filter_boolean_option_class: "cinder-filter-boolean-option flex items-center",
+      filter_boolean_radio_class: "cinder-filter-boolean-radio mr-1",
+      filter_boolean_label_class: "cinder-filter-boolean-label text-xs",
+      filter_multiselect_container_class: "cinder-filter-multiselect-container space-y-1",
+      filter_multiselect_option_class:
+        "cinder-filter-multiselect-option flex items-center space-x-1",
+      filter_multiselect_checkbox_class: "cinder-filter-multiselect-checkbox mr-1",
+      filter_multiselect_label_class: "cinder-filter-multiselect-label text-xs",
+      filter_range_container_class: "cinder-filter-range-container flex space-x-1",
+      loading_overlay_class: "cinder-loading-overlay absolute top-0 right-0 m-1",
+      loading_container_class: "cinder-loading-container flex items-center text-xs text-gray-400"
     })
   end
 

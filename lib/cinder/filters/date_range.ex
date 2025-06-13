@@ -23,8 +23,8 @@ defmodule Cinder.Filters.DateRange do
     }
 
     ~H"""
-    <div class="flex space-x-2">
-      <div class="flex-1">
+    <div class={@theme.filter_range_container_class}>
+      <div class={@theme.filter_range_input_group_class}>
         <input
           type="date"
           name={field_name(@column.key, "from")}
@@ -33,7 +33,7 @@ defmodule Cinder.Filters.DateRange do
           class={@theme.filter_date_input_class}
         />
       </div>
-      <div class="flex-1">
+      <div class={@theme.filter_range_input_group_class}>
         <input
           type="date"
           name={field_name(@column.key, "to")}
