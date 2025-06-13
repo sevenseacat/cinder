@@ -30,14 +30,14 @@ Comprehensive testing shows that **relationship filter processing is working per
 
 **Evidence**:
 - ✅ Form parameters correctly processed for relationship fields
-- ✅ All filter types work (text, select, number_range, boolean) for relationship fields  
+- ✅ All filter types work (text, select, number_range, boolean) for relationship fields
 - ✅ Relationship field detection logic works (`String.contains?(key, ".")`)
 - ✅ Filter structure generation is correct with proper type, value, and operator
 
 #### 🔍 Issue is NOT in Filter Processing
 The relationship filter processing pipeline works identically to regular filters:
 1. **Form submission** → correct parameters (`"artist.name" => "Beatles"`)
-2. **Parameter processing** → correct structure  
+2. **Parameter processing** → correct structure
 3. **Filter generation** → correct filter objects
 4. **Column detection** → correctly identifies relationship vs regular fields
 
@@ -69,7 +69,7 @@ This indicates:
 **Evidence from Automated Tests**:
 ```
 Generated filters: ["artist.country", "artist.founded_year", "artist.name", "title"]
-- Regular filters: 1  
+- Regular filters: 1
 - Relationship filters: 3
 
 Building query with filters: ["artist.country", "artist.founded_year", "artist.name", "title"]
@@ -89,7 +89,7 @@ This proves the issue is NOT relationship-specific
 
 #### ✅ QueryBuilder Integration (Working Correctly)
 - **Filter application**: ✅ `apply_standard_filter` processes relationship fields correctly
-- **Query building**: ✅ Generates proper `exists(:artist, ilike(:name, "%Beatles%"))` queries
+- **Query building**: ✅ Generates proper `exists(:artist, contains(:name, "%Beatles%"))` queries
 - **Path parsing**: ✅ Correctly splits "artist.name" into `[:artist, :name]` atoms
 - **Error handling**: ✅ Handles edge cases gracefully
 
@@ -104,7 +104,7 @@ ArgumentError: Could not determine domain for query. Provide the `domain` option
 The manual testing issues are caused by **environment/configuration differences**, not relationship filtering bugs:
 
 1. **Development Environment**: Test environment may have different Ash domain setup
-2. **Resource Configuration**: Resources in manual testing may have different domain configuration  
+2. **Resource Configuration**: Resources in manual testing may have different domain configuration
 3. **Context Differences**: Manual testing code path may have different domain setup than automated tests
 
 ### Relationship Filtering Status
@@ -128,7 +128,7 @@ The manual testing issues are caused by **environment/configuration differences*
 ### Test Coverage Added
 
 - **Core Filter Processing**: 6 comprehensive tests proving filter pipeline works
-- **Integration Testing**: 4 end-to-end tests proving QueryBuilder integration works  
+- **Integration Testing**: 4 end-to-end tests proving QueryBuilder integration works
 - **Comparison Testing**: Direct comparison showing relationship and regular filters behave identically
 - **Structure Validation**: Tests proving Ash query syntax is correct
 
@@ -207,8 +207,8 @@ end
 #### Test Resources
 ```elixir
 defmodule TestDomain do
-  use Ash.Domain
-  
+  use Ash.Domain, validate_config_inclusion?: false
+
   resources do
     resource TestArtist
     resource TestAlbum

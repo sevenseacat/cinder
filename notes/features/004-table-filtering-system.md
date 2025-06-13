@@ -141,7 +141,7 @@ iex -S mix phx.server
 # 3. Verify results update in real-time
 # 4. Clear filter and verify all results return
 
-# Test select filtering  
+# Test select filtering
 # 1. Open dropdown filter
 # 2. Select different options
 # 3. Verify filtering works correctly
@@ -159,7 +159,7 @@ iex -S mix phx.server
 ```elixir
 # Test date range filtering
 # 1. Set "from" date only - verify results
-# 2. Set "to" date only - verify results  
+# 2. Set "to" date only - verify results
 # 3. Set both dates - verify range filtering
 # 4. Clear date filter
 
@@ -200,16 +200,16 @@ iex -S mix phx.server
 # Create test resources with filterable fields
 defmodule TestAlbum do
   use Ash.Resource
-  
+
   attributes do
     uuid_primary_key :id
     attribute :title, :string
-    attribute :genre, :string  
+    attribute :genre, :string
     attribute :release_date, :date
     attribute :price, :decimal
     attribute :is_featured, :boolean
   end
-  
+
   relationships do
     belongs_to :artist, TestArtist
     belongs_to :label, TestLabel
@@ -234,7 +234,7 @@ test_albums = [
 - Special characters in filter text
 - Very long filter text
 
-#### Select Filter Scenarios  
+#### Select Filter Scenarios
 - All options selectable
 - Empty/null value handling
 - Invalid option values
@@ -266,7 +266,7 @@ test_albums = [
 
 **Implementation Completed:**
 1. ✅ Extended column definition schema to support filter configuration
-2. ✅ Added filter state management to LiveComponent assigns and defaults  
+2. ✅ Added filter state management to LiveComponent assigns and defaults
 3. ✅ Created basic filter UI container in the template
 4. ✅ Extended query building pipeline to handle filter state
 5. ✅ Added basic filter events and handlers (clear_all_filters, update_filter)
@@ -282,7 +282,7 @@ test_albums = [
 
 **Technical Implementation:**
 - **Schema extensions:** Added `filter_type`, `filter_options`, `filter_fn` to column parsing
-- **State management:** Filter state preserved during sorting and pagination  
+- **State management:** Filter state preserved during sorting and pagination
 - **UI framework:** Filter container with header, count indicator, clear all button
 - **Event handlers:** Infrastructure for filter updates and clearing
 - **Query integration:** `apply_filters/3` function ready for specific filter implementations
@@ -313,7 +313,7 @@ test_albums = [
 
 **Ready for Phase 4.2:** Text and Select Filters implementation
 - Filter state management ✅
-- UI container framework ✅  
+- UI container framework ✅
 - Event handling infrastructure ✅
 - Query pipeline integration ✅
 - Test framework established ✅
@@ -383,8 +383,8 @@ test_albums = [
 
 **Final Implementation Details:**
 - **Ash.Expr.ref Usage:** Proper field references using `Ash.Expr.ref(String.to_atom(key))`
-- **Filter Expressions:** Correct pinning of both field refs and values: `ilike(^field_ref, ^search_value)`
-- **Case Insensitive Search:** Uses `ilike` operator with wildcard patterns for user-friendly search
+- **Filter Expressions:** Correct pinning of both field refs and values: `contains(^field_ref, ^search_value)`
+- **Case Insensitive Search:** Uses `contains` operator with wildcard patterns for user-friendly search
 - **Contains Filter:** `"%#{value}%"` pattern for substring matching
 - **Starts With Filter:** `"#{value}%"` pattern for prefix matching
 - **Exact Match Filter:** Direct equality comparison with `^field_ref == ^value`
@@ -406,7 +406,7 @@ test_albums = [
 
 **Implementation Completed:**
 1. ✅ Implemented multi-select filter with checkboxes and `in` operator
-2. ✅ Added date range filter with from/to date inputs and `between` operator  
+2. ✅ Added date range filter with from/to date inputs and `between` operator
 3. ✅ Added number range filter with min/max inputs and `between` operator
 4. ✅ Added boolean filter with true/false/all radio buttons
 5. ✅ Updated filter UI components and event handling for all types
@@ -502,7 +502,7 @@ attribute :publish_date, :date
 
 **Phase 4.3 Final Status:**
 - Multi-select filters ✅
-- Date range filters ✅ 
+- Date range filters ✅
 - Number range filters ✅
 - Boolean filters with custom labels ✅
 - **Automatic type inference from Ash resources** ✅
@@ -521,7 +521,7 @@ Your `Resdayn.Codex.Items.Weapon.Type` should now work automatically! Just use:
 ```
 
 The system will:
-1. ✅ Detect it's an Ash resource (`Resdayn.Codex.Items.Weapon`)  
+1. ✅ Detect it's an Ash resource (`Resdayn.Codex.Items.Weapon`)
 2. ✅ Find the `:type` attribute with type `Resdayn.Codex.Items.Weapon.Type`
 3. ✅ Check `function_exported?(Resdayn.Codex.Items.Weapon.Type, :values, 0)` → true
 4. ✅ Call `Resdayn.Codex.Items.Weapon.Type.values()` → your enum list

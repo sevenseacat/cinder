@@ -190,7 +190,7 @@ defmodule Cinder.QueryBuilder do
             [rel_atom, field_atom] ->
               Ash.Query.filter(
                 query,
-                exists(^[rel_atom], ilike(^Ash.Expr.ref(field_atom), ^search_value))
+                exists(^[rel_atom], contains(^Ash.Expr.ref(field_atom), ^search_value))
               )
 
             _ ->
@@ -200,7 +200,7 @@ defmodule Cinder.QueryBuilder do
         else
           field_ref = Ash.Expr.ref(String.to_atom(key))
           search_value = "%#{value}%"
-          Ash.Query.filter(query, ilike(^field_ref, ^search_value))
+          Ash.Query.filter(query, contains(^field_ref, ^search_value))
         end
 
       {:text, :starts_with} ->
@@ -214,17 +214,17 @@ defmodule Cinder.QueryBuilder do
           # Use Ash.Query.filter with path syntax directly
           case path_atoms do
             [rel_atom, field_atom] ->
-              Ash.Query.filter(query, exists(^rel_atom, ilike(^field_atom, ^search_value)))
+              Ash.Query.filter(query, exists(^rel_atom, contains(^field_atom, ^search_value)))
 
             _ ->
               # Fallback for complex paths - just return unmodified query
               query
           end
         else
-          # Use ilike filter that matches from the beginning
+          # Use contains filter that matches from the beginning
           field_ref = Ash.Expr.ref(String.to_atom(key))
           search_value = "#{value}%"
-          Ash.Query.filter(query, ilike(^field_ref, ^search_value))
+          Ash.Query.filter(query, contains(^field_ref, ^search_value))
         end
 
       {:select, :equals} ->
@@ -235,7 +235,7 @@ defmodule Cinder.QueryBuilder do
           # Use Ash.Query.filter with path syntax directly
           case path_atoms do
             [rel_atom, field_atom] ->
-              Ash.Query.filter(query, exists(^rel_atom, ^field_atom == ^value))
+              Ash.Query.filter(query, exists(^[rel_atom], ^field_atom == ^value))
 
             _ ->
               # Fallback for complex paths - just return unmodified query

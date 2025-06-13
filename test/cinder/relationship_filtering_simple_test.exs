@@ -7,12 +7,21 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
     use Ash.Type.Enum, values: [rock: "Rock", pop: "Pop", jazz: "Jazz", classical: "Classical"]
   end
 
+  # Test domain
+  defmodule TestDomain do
+    use Ash.Domain, validate_config_inclusion?: false
+
+    resources do
+      resource(Cinder.RelationshipFilteringSimpleTest.TestArtist)
+      resource(Cinder.RelationshipFilteringSimpleTest.TestAlbum)
+    end
+  end
+
   # Test resources with relationships
   defmodule TestArtist do
     use Ash.Resource,
-      domain: nil,
-      data_layer: Ash.DataLayer.Ets,
-      validate_domain_inclusion?: false
+      domain: TestDomain,
+      data_layer: Ash.DataLayer.Ets
 
     ets do
       private?(true)
@@ -27,7 +36,9 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
     end
 
     relationships do
-      has_many(:albums, TestAlbum, destination_attribute: :artist_id)
+      has_many(:albums, Cinder.RelationshipFilteringSimpleTest.TestAlbum,
+        destination_attribute: :artist_id
+      )
     end
 
     actions do
@@ -37,9 +48,8 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
   defmodule TestAlbum do
     use Ash.Resource,
-      domain: nil,
-      data_layer: Ash.DataLayer.Ets,
-      validate_domain_inclusion?: false
+      domain: TestDomain,
+      data_layer: Ash.DataLayer.Ets
 
     ets do
       private?(true)
@@ -56,7 +66,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
     end
 
     relationships do
-      belongs_to(:artist, TestArtist)
+      belongs_to(:artist, Cinder.RelationshipFilteringSimpleTest.TestArtist)
     end
 
     actions do
@@ -282,7 +292,8 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         query_opts: [load: [:artist]]
       ]
 
-      result = Cinder.QueryBuilder.build_and_execute(TestAlbum, options)
+      result =
+        Cinder.QueryBuilder.build_and_execute(TestAlbum, options)
 
       case result do
         {:ok, {results, _page_info}} ->
@@ -377,7 +388,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         current_user: nil,
         col: [
           %{field: "title", __slot__: :col},
-          %{field: "artist.name", filter: :text, __slot__: :col}
+          %{field: "artist.name", __slot__: :col}
         ]
       }
 
@@ -395,7 +406,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         resource: TestAlbum,
         current_user: nil,
         col: [
-          %{field: "title", __slot__: :col},
+          %{field: "title", filter: :text, __slot__: :col},
           %{field: "artist.name", filter: :text, __slot__: :col}
         ]
       }
@@ -404,8 +415,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       # Should contain form with filter inputs
       assert html =~ ~r/<form[^>]*phx-change="filter_change"/
-      # The form uses filters[field_name] format
-      assert html =~ ~r/name="filters\[artist\.name\]"/
+      assert html =~ ~r/<input[^>]*name="filters\[artist\.name\]"/
     end
 
     test "handles different relationship filter types" do
@@ -413,10 +423,16 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         resource: TestAlbum,
         current_user: nil,
         col: [
-          %{field: "artist.name", filter: :text, __slot__: :col},
+          %{field: "title", filter: :text, __slot__: :col},
+          %{
+            field: "artist.name",
+            filter: :select,
+            filter_options: ["Beatles", "Rolling Stones"],
+            __slot__: :col
+          },
+          %{field: "artist.active", filter: :boolean, __slot__: :col},
           %{field: "artist.founded_year", filter: :number_range, __slot__: :col},
-          %{field: "release_date", filter: :date_range, __slot__: :col},
-          %{field: "is_remastered", filter: :boolean, __slot__: :col}
+          %{field: "release_date", filter: :date_range, __slot__: :col}
         ]
       }
 
@@ -425,9 +441,9 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       # Should render all filter types without errors
       assert html =~ "cinder-table"
       assert html =~ "Artist &gt; Name"
+      assert html =~ "Artist &gt; Active"
       assert html =~ "Artist &gt; Founded Year"
       assert html =~ "Release Date"
-      assert html =~ "Is Remastered"
     end
   end
 

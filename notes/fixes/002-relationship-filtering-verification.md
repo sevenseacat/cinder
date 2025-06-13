@@ -27,8 +27,8 @@ The QueryBuilder correctly handles relationship filtering by:
 3. **Building Ash exists() queries** for relationship filtering:
    ```elixir
    # Text filter example
-   Ash.Query.filter(query, exists(^rel_atom, ilike(^field_atom, ^search_value)))
-   
+   Ash.Query.filter(query, exists(^rel_atom, contains(^field_atom, ^search_value)))
+
    # Number range example
    Ash.Query.filter(query, exists(^rel_atom, ^field_atom >= ^min_val and ^field_atom <= ^max_val))
    ```
@@ -91,7 +91,7 @@ All tests pass:
 Relationship filtering in Cinder tables is **fully functional and well-tested**. The implementation:
 
 - Supports all filter types on relationship fields
-- Generates proper Ash queries using `exists()` 
+- Generates proper Ash queries using `exists()`
 - Handles edge cases and errors gracefully
 - Integrates seamlessly with URL state management
 - Works with sorting and pagination

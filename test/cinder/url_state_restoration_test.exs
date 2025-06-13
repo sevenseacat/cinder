@@ -2,12 +2,21 @@ defmodule Cinder.UrlStateRestorationTest do
   use ExUnit.Case, async: true
   import Phoenix.LiveViewTest
 
+  # Test domain
+  defmodule TestDomain do
+    use Ash.Domain, validate_config_inclusion?: false
+
+    resources do
+      resource(Cinder.UrlStateRestorationTest.TestArtist)
+      resource(Cinder.UrlStateRestorationTest.TestAlbum)
+    end
+  end
+
   # Test resources
   defmodule TestArtist do
     use Ash.Resource,
-      domain: nil,
-      data_layer: Ash.DataLayer.Ets,
-      validate_domain_inclusion?: false
+      domain: TestDomain,
+      data_layer: Ash.DataLayer.Ets
 
     ets do
       private?(true)
@@ -22,7 +31,9 @@ defmodule Cinder.UrlStateRestorationTest do
     end
 
     relationships do
-      has_many(:albums, TestAlbum, destination_attribute: :artist_id)
+      has_many(:albums, Cinder.UrlStateRestorationTest.TestAlbum,
+        destination_attribute: :artist_id
+      )
     end
 
     actions do
@@ -32,9 +43,8 @@ defmodule Cinder.UrlStateRestorationTest do
 
   defmodule TestAlbum do
     use Ash.Resource,
-      domain: nil,
-      data_layer: Ash.DataLayer.Ets,
-      validate_domain_inclusion?: false
+      domain: TestDomain,
+      data_layer: Ash.DataLayer.Ets
 
     ets do
       private?(true)
@@ -50,7 +60,7 @@ defmodule Cinder.UrlStateRestorationTest do
     end
 
     relationships do
-      belongs_to(:artist, TestArtist)
+      belongs_to(:artist, Cinder.UrlStateRestorationTest.TestArtist)
     end
 
     actions do
