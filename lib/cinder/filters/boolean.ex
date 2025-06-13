@@ -34,7 +34,7 @@ defmodule Cinder.Filters.Boolean do
       <label class={@theme.filter_boolean_option_class}>
         <input
           type="radio"
-          name={field_name(@column.key)}
+          name={field_name(@column.field)}
           value=""
           checked={@current_boolean_value == "" || @current_boolean_value == "all"}
           class={@theme.filter_boolean_radio_class}
@@ -44,7 +44,7 @@ defmodule Cinder.Filters.Boolean do
       <label class={@theme.filter_boolean_option_class}>
         <input
           type="radio"
-          name={field_name(@column.key)}
+          name={field_name(@column.field)}
           value="true"
           checked={@current_boolean_value == "true"}
           class={@theme.filter_boolean_radio_class}
@@ -54,7 +54,7 @@ defmodule Cinder.Filters.Boolean do
       <label class={@theme.filter_boolean_option_class}>
         <input
           type="radio"
-          name={field_name(@column.key)}
+          name={field_name(@column.field)}
           value="false"
           checked={@current_boolean_value == "false"}
           class={@theme.filter_boolean_radio_class}

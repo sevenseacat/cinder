@@ -55,11 +55,11 @@ defmodule Cinder.Table.LiveComponent do
                 <div :if={column.sortable}
                      class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
                      phx-click="toggle_sort"
-                     phx-value-key={column.key}
+                     phx-value-key={column.field}
                      phx-target={@myself}>
                      {column.label}
                      <span class={@theme.sort_indicator_class}>
-                       <.sort_arrow sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.key)} theme={@theme} loading={@loading} />
+                       <.sort_arrow sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@loading} />
                      </span>
                 </div>
                 <div :if={not column.sortable}>
@@ -431,7 +431,7 @@ defmodule Cinder.Table.LiveComponent do
   # Convert new Column struct to legacy format for backward compatibility
   defp convert_column_to_legacy_format(%Cinder.Column{} = column) do
     %{
-      key: column.key,
+      field: column.field,
       label: column.label,
       sortable: column.sortable,
       searchable: column.searchable,

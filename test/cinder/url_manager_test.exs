@@ -64,12 +64,12 @@ defmodule Cinder.UrlManagerTest do
   describe "decode_state/2" do
     setup do
       columns = [
-        %{key: "title", filterable: true, filter_type: :text},
-        %{key: "status", filterable: true, filter_type: :select},
-        %{key: "tags", filterable: true, filter_type: :multi_select},
-        %{key: "created_at", filterable: true, filter_type: :date_range},
-        %{key: "price", filterable: true, filter_type: :number_range},
-        %{key: "active", filterable: true, filter_type: :boolean}
+        %{field: "title", filterable: true, filter_type: :text},
+        %{field: "status", filterable: true, filter_type: :select},
+        %{field: "tags", filterable: true, filter_type: :multi_select},
+        %{field: "created_at", filterable: true, filter_type: :date_range},
+        %{field: "price", filterable: true, filter_type: :number_range},
+        %{field: "active", filterable: true, filter_type: :boolean}
       ]
 
       {:ok, columns: columns}
@@ -179,12 +179,12 @@ defmodule Cinder.UrlManagerTest do
   describe "decode_filters/2" do
     setup do
       columns = [
-        %{key: "title", filterable: true, filter_type: :text},
-        %{key: "status", filterable: true, filter_type: :select},
-        %{key: "tags", filterable: true, filter_type: :multi_select},
-        %{key: "created_at", filterable: true, filter_type: :date_range},
-        %{key: "price", filterable: true, filter_type: :number_range},
-        %{key: "active", filterable: true, filter_type: :boolean}
+        %{field: "title", filterable: true, filter_type: :text},
+        %{field: "status", filterable: true, filter_type: :select},
+        %{field: "tags", filterable: true, filter_type: :multi_select},
+        %{field: "created_at", filterable: true, filter_type: :date_range},
+        %{field: "price", filterable: true, filter_type: :number_range},
+        %{field: "active", filterable: true, filter_type: :boolean}
       ]
 
       {:ok, columns: columns}
@@ -427,9 +427,9 @@ defmodule Cinder.UrlManagerTest do
       filter_params = %{"title" => ["value1"]}
 
       columns = [
-        %{key: "title", filterable: true, filter_type: :multi_select},
-        %{key: "tags", filterable: true, filter_type: :multi_select},
-        %{key: "status", filterable: true, filter_type: :select}
+        %{field: "title", filterable: true, filter_type: :multi_select},
+        %{field: "tags", filterable: true, filter_type: :multi_select},
+        %{field: "status", filterable: true, filter_type: :select}
       ]
 
       result = UrlManager.ensure_multiselect_fields(filter_params, columns)
@@ -443,7 +443,7 @@ defmodule Cinder.UrlManagerTest do
       filter_params = %{"tags" => ["tag1", "tag2"]}
 
       columns = [
-        %{key: "tags", filterable: true, filter_type: :multi_select}
+        %{field: "tags", filterable: true, filter_type: :multi_select}
       ]
 
       result = UrlManager.ensure_multiselect_fields(filter_params, columns)
@@ -455,7 +455,7 @@ defmodule Cinder.UrlManagerTest do
       filter_params = %{}
 
       columns = [
-        %{key: "tags", filterable: false, filter_type: :multi_select}
+        %{field: "tags", filterable: false, filter_type: :multi_select}
       ]
 
       result = UrlManager.ensure_multiselect_fields(filter_params, columns)
@@ -498,9 +498,9 @@ defmodule Cinder.UrlManagerTest do
   describe "integration scenarios" do
     test "round-trip encoding and decoding preserves state" do
       columns = [
-        %{key: "title", filterable: true, filter_type: :text},
-        %{key: "tags", filterable: true, filter_type: :multi_select},
-        %{key: "created_at", filterable: true, filter_type: :date_range}
+        %{field: "title", filterable: true, filter_type: :text},
+        %{field: "tags", filterable: true, filter_type: :multi_select},
+        %{field: "created_at", filterable: true, filter_type: :date_range}
       ]
 
       original_state = %{
@@ -534,12 +534,12 @@ defmodule Cinder.UrlManagerTest do
 
     test "handles complex real-world scenario" do
       columns = [
-        %{key: "name", filterable: true, filter_type: :text},
-        %{key: "status", filterable: true, filter_type: :select},
-        %{key: "categories", filterable: true, filter_type: :multi_select},
-        %{key: "price", filterable: true, filter_type: :number_range},
-        %{key: "created_at", filterable: true, filter_type: :date_range},
-        %{key: "active", filterable: true, filter_type: :boolean}
+        %{field: "name", filterable: true, filter_type: :text},
+        %{field: "status", filterable: true, filter_type: :select},
+        %{field: "categories", filterable: true, filter_type: :multi_select},
+        %{field: "price", filterable: true, filter_type: :number_range},
+        %{field: "created_at", filterable: true, filter_type: :date_range},
+        %{field: "active", filterable: true, filter_type: :boolean}
       ]
 
       # Simulate URL parameters from a real request

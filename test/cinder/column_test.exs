@@ -10,7 +10,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == "name"
+      assert column.field == "name"
       assert column.label == "Name"
       assert column.sortable == true
       assert column.filterable == false
@@ -53,7 +53,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == "email"
+      assert column.field == "email"
       assert column.label == "Email Address"
       assert column.sortable == false
       assert column.filterable == true
@@ -103,7 +103,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == "user.name"
+      assert column.field == "user.name"
       assert column.relationship == "user"
       assert column.display_field == "name"
       assert column.label == "User Name"
@@ -123,7 +123,7 @@ defmodule Cinder.ColumnTest do
       columns = Column.parse_columns(slots, resource)
 
       assert length(columns) == 3
-      assert Enum.map(columns, & &1.key) == ["id", "name", "email"]
+      assert Enum.map(columns, & &1.field) == ["id", "name", "email"]
       assert Enum.map(columns, & &1.label) == ["ID", "Name", "Email"]
     end
   end
@@ -131,7 +131,7 @@ defmodule Cinder.ColumnTest do
   describe "validate/1" do
     test "validates valid column" do
       column = %Column{
-        key: "name",
+        field: "name",
         label: "Name",
         sortable: true,
         filterable: true,
@@ -142,20 +142,20 @@ defmodule Cinder.ColumnTest do
       assert {:ok, ^column} = Column.validate(column)
     end
 
-    test "rejects column with empty key" do
+    test "rejects column with empty field" do
       column = %Column{
-        key: "",
+        field: "",
         label: "Name",
         filter_type: :text
       }
 
       assert {:error, errors} = Column.validate(column)
-      assert "Key cannot be empty" in errors
+      assert "Field cannot be empty" in errors
     end
 
     test "rejects column with empty label" do
       column = %Column{
-        key: "name",
+        field: "name",
         label: "",
         filter_type: :text
       }
@@ -166,7 +166,7 @@ defmodule Cinder.ColumnTest do
 
     test "rejects column with invalid filter type" do
       column = %Column{
-        key: "name",
+        field: "name",
         label: "Name",
         filter_type: :invalid_type
       }
@@ -177,13 +177,13 @@ defmodule Cinder.ColumnTest do
 
     test "returns multiple errors" do
       column = %Column{
-        key: "",
+        field: "",
         label: "",
         filter_type: :invalid
       }
 
       assert {:error, errors} = Column.validate(column)
-      assert "Key cannot be empty" in errors
+      assert "Field cannot be empty" in errors
       assert "Label cannot be empty" in errors
       assert "Invalid filter type: invalid" in errors
     end
@@ -241,7 +241,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == "user.email"
+      assert column.field == "user.email"
       assert column.relationship == "user"
       assert column.display_field == "email"
     end
@@ -252,7 +252,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == "simple_field"
+      assert column.field == "simple_field"
       assert column.relationship == nil
       assert column.display_field == nil
     end
@@ -345,7 +345,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == 123
+      assert column.field == 123
       assert column.label == "123"
     end
 
@@ -355,7 +355,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == :test_field
+      assert column.field == :test_field
       assert column.label == "Test Field"
     end
   end
@@ -381,7 +381,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.key == "status"
+      assert column.field == "status"
       assert column.label == "Status"
       assert column.sortable == true
       assert column.filterable == true
@@ -459,11 +459,11 @@ defmodule Cinder.ColumnTest do
 
       # Should have exactly 2 filterable columns
       assert length(filterable_columns) == 2
-      assert Enum.map(filterable_columns, & &1.key) == ["name", "status"]
+      assert Enum.map(filterable_columns, & &1.field) == ["name", "status"]
 
       # Should have exactly 2 non-filterable columns
       assert length(non_filterable_columns) == 2
-      assert Enum.map(non_filterable_columns, & &1.key) == ["id", "email"]
+      assert Enum.map(non_filterable_columns, & &1.field) == ["id", "email"]
     end
   end
 

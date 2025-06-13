@@ -26,7 +26,7 @@ defmodule Cinder.Filters.Text do
     ~H"""
     <input
       type="text"
-      name={field_name(@column.key)}
+      name={field_name(@column.field)}
       value={@current_value}
       placeholder={@placeholder}
       phx-debounce="300"

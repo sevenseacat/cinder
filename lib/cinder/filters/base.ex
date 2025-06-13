@@ -24,7 +24,7 @@ defmodule Cinder.Filters.Base do
         ]
 
   @type column :: %{
-          key: String.t(),
+          field: String.t(),
           label: String.t(),
           filter_type: atom(),
           filter_options: filter_options()

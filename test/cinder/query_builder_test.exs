@@ -362,7 +362,7 @@ defmodule Cinder.QueryBuilderTest do
       end
 
       filters = %{"title" => %{type: :text, value: "test", operator: :contains}}
-      columns = [%{key: "title", filter_fn: custom_filter_fn}]
+      columns = [%{field: "title", filter_fn: custom_filter_fn}]
 
       result = QueryBuilder.apply_filters(query, filters, columns)
       assert result.filters == [:custom_applied]
@@ -371,7 +371,7 @@ defmodule Cinder.QueryBuilderTest do
     test "attempts to apply standard filters for columns without custom functions" do
       query = %MockQueryFilters{resource: TestResource}
       filters = %{"title" => %{type: :text, value: "test", operator: :contains}}
-      columns = [%{key: "title", filter_fn: nil}]
+      columns = [%{field: "title", filter_fn: nil}]
 
       # This will fail with mock query but that's expected since it tries to use Ash.Query
       # In real usage, this would work with actual Ash queries
@@ -399,7 +399,7 @@ defmodule Cinder.QueryBuilderTest do
         %{query | sorts: [:custom_sort_applied]}
       end
 
-      columns = [%{key: "title", sort_fn: custom_sort_fn}]
+      columns = [%{field: "title", sort_fn: custom_sort_fn}]
 
       result = QueryBuilder.apply_sorting(query, sort_by, columns)
       assert result.sorts == [:custom_sort_applied]
@@ -414,8 +414,8 @@ defmodule Cinder.QueryBuilderTest do
       end
 
       columns = [
-        %{key: "title", sort_fn: custom_sort_fn},
-        %{key: "created_at", sort_fn: nil}
+        %{field: "title", sort_fn: custom_sort_fn},
+        %{field: "created_at", sort_fn: nil}
       ]
 
       # This will fail with mock query when it tries to apply standard sort

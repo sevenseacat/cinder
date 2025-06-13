@@ -19,7 +19,7 @@ defmodule Cinder.FilterManager do
   @type filter :: %{type: filter_type(), value: filter_value(), operator: atom()}
   @type filters :: %{String.t() => filter()}
   @type column :: %{
-          key: String.t(),
+          field: String.t(),
           label: String.t(),
           filterable: boolean(),
           filter_type: filter_type(),
@@ -74,7 +74,7 @@ defmodule Cinder.FilterManager do
             <label class={@theme.filter_label_class}>{column.label}:</label>
             <.filter_input
               column={column}
-              current_value={Map.get(@filter_values, column.key, "")}
+              current_value={Map.get(@filter_values, column.field, "")}
               filter_values={@filter_values}
               theme={@theme}
               target={@target}
@@ -124,7 +124,7 @@ defmodule Cinder.FilterManager do
         :if={@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}}
         type="button"
         phx-click="clear_filter"
-        phx-value-key={@column.key}
+        phx-value-key={@column.field}
         phx-target={@target}
         class={@theme.filter_clear_button_class}
         title="Clear filter"
@@ -191,12 +191,12 @@ defmodule Cinder.FilterManager do
     columns
     |> Enum.filter(& &1.filterable)
     |> Enum.reduce(%{}, fn column, acc ->
-      raw_value = Map.get(processed_params, column.key, "")
+      raw_value = Map.get(processed_params, column.field, "")
 
       if has_filter_value?(raw_value) do
         case process_filter_value(raw_value, column) do
           nil -> acc
-          processed_filter -> Map.put(acc, column.key, processed_filter)
+          processed_filter -> Map.put(acc, column.field, processed_filter)
         end
       else
         acc
@@ -210,13 +210,13 @@ defmodule Cinder.FilterManager do
   def build_filter_values(filterable_columns, filters) do
     filterable_columns
     |> Enum.reduce(%{}, fn column, acc ->
-      case Map.get(filters, column.key) do
+      case Map.get(filters, column.field) do
         nil ->
-          Map.put(acc, column.key, get_default_value(column.filter_type))
+          Map.put(acc, column.field, get_default_value(column.filter_type))
 
         filter ->
           formatted_value = format_filter_value(filter, column.filter_type)
-          Map.put(acc, column.key, formatted_value)
+          Map.put(acc, column.field, formatted_value)
       end
     end)
   end

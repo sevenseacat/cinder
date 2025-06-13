@@ -450,8 +450,8 @@ defmodule Cinder.FiltersTest do
       }
 
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range},
-        %{key: "other_field", filterable: true, filter_type: :text}
+        %{field: "value", filterable: true, filter_type: :number_range},
+        %{field: "other_field", filterable: true, filter_type: :text}
       ]
 
       result = FilterManager.process_filter_params(filter_params, columns)
@@ -470,8 +470,8 @@ defmodule Cinder.FiltersTest do
       }
 
       columns = [
-        %{key: "created_at", filterable: true, filter_type: :date_range},
-        %{key: "title", filterable: true, filter_type: :text}
+        %{field: "created_at", filterable: true, filter_type: :date_range},
+        %{field: "title", filterable: true, filter_type: :text}
       ]
 
       result = FilterManager.process_filter_params(filter_params, columns)
@@ -487,20 +487,18 @@ defmodule Cinder.FiltersTest do
         "title" => "search term",
         "status" => "active",
         "tags" => ["tag1", "tag2"],
-        "price_min" => "100",
-        "price_max" => "200",
-        "created_at_from" => "2024-01-01",
-        "created_at_to" => "2024-12-31",
+        "price" => "100,200",
+        "created_at" => "2024-01-01,2024-12-31",
         "featured" => "true"
       }
 
       columns = [
-        %{key: "title", filterable: true, filter_type: :text, filter_options: []},
-        %{key: "status", filterable: true, filter_type: :select, filter_options: []},
-        %{key: "tags", filterable: true, filter_type: :multi_select, filter_options: []},
-        %{key: "price", filterable: true, filter_type: :number_range, filter_options: []},
-        %{key: "created_at", filterable: true, filter_type: :date_range, filter_options: []},
-        %{key: "featured", filterable: true, filter_type: :boolean, filter_options: []}
+        %{field: "title", filterable: true, filter_type: :text, filter_options: []},
+        %{field: "status", filterable: true, filter_type: :select, filter_options: []},
+        %{field: "tags", filterable: true, filter_type: :multi_select, filter_options: []},
+        %{field: "price", filterable: true, filter_type: :number_range, filter_options: []},
+        %{field: "created_at", filterable: true, filter_type: :date_range, filter_options: []},
+        %{field: "featured", filterable: true, filter_type: :boolean, filter_options: []}
       ]
 
       result = FilterManager.params_to_filters(filter_params, columns)
@@ -559,12 +557,12 @@ defmodule Cinder.FiltersTest do
       }
 
       columns = [
-        %{key: "title", filterable: true, filter_type: :text},
-        %{key: "price", filterable: true, filter_type: :number_range},
-        %{key: "created_at", filterable: true, filter_type: :date_range},
-        %{key: "tags", filterable: true, filter_type: :multi_select},
-        %{key: "featured", filterable: true, filter_type: :boolean},
-        %{key: "empty_field", filterable: true, filter_type: :text}
+        %{field: "title", filterable: true, filter_type: :text},
+        %{field: "price", filterable: true, filter_type: :number_range},
+        %{field: "created_at", filterable: true, filter_type: :date_range},
+        %{field: "tags", filterable: true, filter_type: :multi_select},
+        %{field: "featured", filterable: true, filter_type: :boolean},
+        %{field: "empty_field", filterable: true, filter_type: :text}
       ]
 
       result = FilterManager.build_filter_values(columns, filters)
@@ -657,7 +655,7 @@ defmodule Cinder.FiltersTest do
 
       columns = [
         %{
-          key: "value",
+          field: "value",
           label: "Value",
           filterable: true,
           filter_type: :number_range,
@@ -708,12 +706,12 @@ defmodule Cinder.FiltersTest do
       }
 
       columns = [
-        %{key: "name", filterable: true, filter_type: :text, filter_options: []},
-        %{key: "type", filterable: true, filter_type: :select, filter_options: []},
-        %{key: "rarity", filterable: true, filter_type: :multi_select, filter_options: []},
-        %{key: "damage", filterable: true, filter_type: :number_range, filter_options: []},
-        %{key: "crafted", filterable: true, filter_type: :date_range, filter_options: []},
-        %{key: "magical", filterable: true, filter_type: :boolean, filter_options: []}
+        %{field: "name", filterable: true, filter_type: :text, filter_options: []},
+        %{field: "type", filterable: true, filter_type: :select, filter_options: []},
+        %{field: "rarity", filterable: true, filter_type: :multi_select, filter_options: []},
+        %{field: "damage", filterable: true, filter_type: :number_range, filter_options: []},
+        %{field: "crafted", filterable: true, filter_type: :date_range, filter_options: []},
+        %{field: "magical", filterable: true, filter_type: :boolean, filter_options: []}
       ]
 
       result = FilterManager.params_to_filters(filter_params, columns)

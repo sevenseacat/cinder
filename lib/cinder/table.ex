@@ -200,7 +200,7 @@ defmodule Cinder.Table do
 
       # Use Column module to parse the column configuration
       column_config = %{
-        key: field,
+        field: field,
         sortable: sort_attr,
         filterable: filter_attr != false,
         class: Map.get(slot, :class, ""),
@@ -224,7 +224,7 @@ defmodule Cinder.Table do
 
       # Create slot in internal format with proper label handling
       %{
-        key: field,
+        field: field,
         label: Map.get(slot, :label, parsed_column.label),
         filterable: parsed_column.filterable,
         filter_type: parsed_column.filter_type,

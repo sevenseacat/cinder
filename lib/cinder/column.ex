@@ -8,7 +8,7 @@ defmodule Cinder.Column do
   """
 
   @type t :: %__MODULE__{
-          key: String.t(),
+          field: String.t(),
           label: String.t(),
           sortable: boolean(),
           filterable: boolean(),
@@ -26,7 +26,7 @@ defmodule Cinder.Column do
         }
 
   defstruct [
-    :key,
+    :field,
     :label,
     :sortable,
     :filterable,
@@ -84,7 +84,7 @@ defmodule Cinder.Column do
 
     # Create column struct
     %__MODULE__{
-      key: field,
+      field: field,
       label: Map.get(merged_config, :label, humanize_key(field)),
       sortable: Map.get(merged_config, :sortable, true),
       filterable: Map.get(merged_config, :filterable, false),
@@ -156,7 +156,7 @@ defmodule Cinder.Column do
   def validate(%__MODULE__{} = column) do
     errors = []
 
-    errors = if column.key in [nil, ""], do: ["Key cannot be empty" | errors], else: errors
+    errors = if column.field in [nil, ""], do: ["Field cannot be empty" | errors], else: errors
     errors = if column.label in [nil, ""], do: ["Label cannot be empty" | errors], else: errors
 
     # Validate filter type

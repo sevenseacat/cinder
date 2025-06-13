@@ -27,7 +27,7 @@ defmodule Cinder.Filters.NumberRange do
       <div class={@theme.filter_range_input_group_class}>
         <input
           type="number"
-          name={field_name(@column.key, "min")}
+          name={field_name(@column.field, "min")}
           value={@min_value}
           placeholder="Min"
           phx-debounce="300"
@@ -37,7 +37,7 @@ defmodule Cinder.Filters.NumberRange do
       <div class={@theme.filter_range_input_group_class}>
         <input
           type="number"
-          name={field_name(@column.key, "max")}
+          name={field_name(@column.field, "max")}
           value={@max_value}
           placeholder="Max"
           phx-debounce="300"

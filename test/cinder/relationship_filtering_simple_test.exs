@@ -70,7 +70,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       columns = [
         %{
-          key: "artist.name",
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
@@ -92,7 +92,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       columns = [
         %{
-          key: "artist.country",
+          field: "artist.country",
           filterable: true,
           filter_type: :select,
           filter_fn: nil,
@@ -114,7 +114,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       columns = [
         %{
-          key: "artist.active",
+          field: "artist.active",
           filterable: true,
           filter_type: :boolean,
           filter_fn: nil,
@@ -139,7 +139,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       columns = [
         %{
-          key: "artist.founded_year",
+          field: "artist.founded_year",
           filterable: true,
           filter_type: :number_range,
           filter_fn: nil,
@@ -164,7 +164,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       columns = [
         %{
-          key: "release_date",
+          field: "release_date",
           filterable: true,
           filter_type: :date_range,
           filter_fn: nil,
@@ -193,9 +193,15 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       }
 
       columns = [
-        %{key: "title", filterable: false, filter_type: nil, filter_fn: nil, filter_options: []},
         %{
-          key: "artist.name",
+          field: "title",
+          filterable: false,
+          filter_type: nil,
+          filter_fn: nil,
+          filter_options: []
+        },
+        %{
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
@@ -243,16 +249,22 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       }
 
       columns = [
-        %{key: "title", filterable: false, filter_type: nil, filter_fn: nil, filter_options: []},
         %{
-          key: "artist.name",
+          field: "title",
+          filterable: false,
+          filter_type: nil,
+          filter_fn: nil,
+          filter_options: []
+        },
+        %{
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
           filter_options: []
         },
         %{
-          key: "artist.country",
+          field: "artist.country",
           filterable: true,
           filter_type: :select,
           filter_fn: nil,
@@ -297,9 +309,15 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       }
 
       columns = [
-        %{key: "title", filterable: true, filter_type: :text, filter_fn: nil, filter_options: []},
         %{
-          key: "artist.name",
+          field: "title",
+          filterable: true,
+          filter_type: :text,
+          filter_fn: nil,
+          filter_options: []
+        },
+        %{
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
@@ -425,7 +443,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       columns = [
         %{
-          key: "artist.name",
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
@@ -459,7 +477,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
       columns = [
         %{
-          key: "artist.name",
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,

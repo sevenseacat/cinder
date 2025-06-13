@@ -28,7 +28,7 @@ defmodule Cinder.Filters.MultiSelect do
       <div :for={{label, value} <- @options} class={@theme.filter_multiselect_option_class}>
         <input
           type="checkbox"
-          name={field_name(@column.key) <> "[]"}
+          name={field_name(@column.field) <> "[]"}
           value={to_string(value)}
           checked={to_string(value) in Enum.map(@selected_values, &to_string/1)}
           class={@theme.filter_multiselect_checkbox_class}

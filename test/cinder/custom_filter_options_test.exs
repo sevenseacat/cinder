@@ -31,7 +31,7 @@ defmodule Cinder.CustomFilterOptionsTest do
     test "slot with custom filter_options overrides inferred options" do
       # Create a slot configuration with custom multiselect options
       slot_config = %{
-        key: "type",
+        field: "type",
         filterable: true,
         filter_type: :multi_select,
         filter_options: [
@@ -58,7 +58,7 @@ defmodule Cinder.CustomFilterOptionsTest do
     test "slot without custom filter_options uses inferred enum options" do
       # Create a slot configuration without custom options
       slot_config = %{
-        key: "type",
+        field: "type",
         filterable: true,
         filter_type: :multi_select
       }
@@ -92,7 +92,7 @@ defmodule Cinder.CustomFilterOptionsTest do
 
     test "select filter with custom options" do
       slot_config = %{
-        key: "type",
+        field: "type",
         filterable: true,
         filter_type: :select,
         filter_options: [
@@ -118,7 +118,7 @@ defmodule Cinder.CustomFilterOptionsTest do
 
     test "text filter with custom options" do
       slot_config = %{
-        key: "name",
+        field: "name",
         filterable: true,
         filter_type: :text,
         filter_options: [
@@ -139,7 +139,7 @@ defmodule Cinder.CustomFilterOptionsTest do
     test "number_range filter with custom options" do
       # Add a numeric field for testing
       slot_config = %{
-        key: "damage",
+        field: "damage",
         filterable: true,
         filter_type: :number_range,
         filter_options: [
@@ -162,7 +162,7 @@ defmodule Cinder.CustomFilterOptionsTest do
     test "processes custom multiselect options correctly" do
       columns = [
         %{
-          key: "type",
+          field: "type",
           filterable: true,
           filter_type: :multi_select,
           filter_options: [
@@ -190,7 +190,7 @@ defmodule Cinder.CustomFilterOptionsTest do
     test "builds filter values with custom options" do
       columns = [
         %{
-          key: "type",
+          field: "type",
           filterable: true,
           filter_type: :multi_select,
           filter_options: [

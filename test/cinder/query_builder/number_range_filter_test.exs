@@ -151,7 +151,7 @@ defmodule Cinder.QueryBuilder.NumberRangeFilterTest do
         current_page: 1,
         columns: [
           %{
-            key: "value",
+            field: "value",
             filterable: true,
             filter_type: :number_range,
             filter_options: []
@@ -170,7 +170,7 @@ defmodule Cinder.QueryBuilder.NumberRangeFilterTest do
 
       # Verify columns structure
       columns = Keyword.get(options, :columns)
-      value_column = Enum.find(columns, &(&1.key == "value"))
+      value_column = Enum.find(columns, &(&1.field == "value"))
 
       assert value_column.filterable == true
       assert value_column.filter_type == :number_range

@@ -60,7 +60,7 @@ defmodule Cinder.UrlManager do
   ## Examples
 
       iex> url_params = %{"title" => "test", "page" => "2", "sort" => "-title"}
-      iex> columns = [%{key: "title", filterable: true, filter_type: :text}]
+      iex> columns = [%{field: "title", filterable: true, filter_type: :text}]
       iex> Cinder.UrlManager.decode_state(url_params, columns)
       %{
         filters: %{"title" => %{type: :text, value: "test", operator: :contains}},
@@ -119,7 +119,7 @@ defmodule Cinder.UrlManager do
     |> Enum.reduce(%{}, fn {key, value}, acc ->
       # Convert string keys to match column keys
       string_key = to_string(key)
-      column = Enum.find(columns, &(&1.key == string_key))
+      column = Enum.find(columns, &(&1.field == string_key))
 
       if column && column.filterable && value != "" do
         filter_type = column.filter_type
@@ -281,8 +281,8 @@ defmodule Cinder.UrlManager do
     |> Enum.filter(&(&1.filterable and &1.filter_type == :multi_select))
     |> Enum.reduce(filter_params, fn column, acc ->
       # If multi-select field is missing (all checkboxes unchecked), add it as empty array
-      if not Map.has_key?(acc, column.key) do
-        Map.put(acc, column.key, [])
+      if not Map.has_key?(acc, column.field) do
+        Map.put(acc, column.field, [])
       else
         acc
       end

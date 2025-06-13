@@ -26,7 +26,7 @@ defmodule Cinder.Filters.Select do
 
     ~H"""
     <select
-      name={field_name(@column.key)}
+      name={field_name(@column.field)}
       class={@theme.filter_select_input_class}
     >
       <option value="">{@prompt}</option>

@@ -16,7 +16,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
 
       columns = [
         %{
-          key: "value",
+          field: "value",
           label: "Value",
           sortable: false,
           searchable: false,
@@ -52,7 +52,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
 
       columns = [
         %{
-          key: "created_at",
+          field: "created_at",
           label: "Created At",
           sortable: false,
           searchable: false,
@@ -88,7 +88,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
 
       columns = [
         %{
-          key: "name",
+          field: "name",
           label: "Name",
           sortable: false,
           searchable: false,
@@ -103,7 +103,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
           class: ""
         },
         %{
-          key: "value",
+          field: "value",
           label: "Value",
           sortable: false,
           searchable: false,
@@ -118,7 +118,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
           class: ""
         },
         %{
-          key: "type",
+          field: "type",
           label: "Type",
           sortable: false,
           searchable: false,
@@ -159,8 +159,8 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []},
-        %{key: "name", filterable: true, filter_type: :text, filter_options: []}
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []},
+        %{field: "name", filterable: true, filter_type: :text, filter_options: []}
       ]
 
       result = FilterManager.params_to_filters(filter_params, columns)
@@ -178,7 +178,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
       filter_params_min = %{"value_min" => "100", "value_max" => ""}
 
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []}
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []}
       ]
 
       result = FilterManager.params_to_filters(filter_params_min, columns)
@@ -207,8 +207,8 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range},
-        %{key: "created_at", filterable: true, filter_type: :date_range}
+        %{field: "value", filterable: true, filter_type: :number_range},
+        %{field: "created_at", filterable: true, filter_type: :date_range}
       ]
 
       result = FilterManager.build_filter_values(columns, filters)
@@ -233,7 +233,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []}
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []}
       ]
 
       # Step 1: Test process_filter_params (should combine min/max)
@@ -258,7 +258,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "created_at", filterable: true, filter_type: :date_range, filter_options: []}
+        %{field: "created_at", filterable: true, filter_type: :date_range, filter_options: []}
       ]
 
       processed = FilterManager.process_filter_params(filter_params, columns)
@@ -280,8 +280,8 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range},
-        %{key: "created_at", filterable: true, filter_type: :date_range}
+        %{field: "value", filterable: true, filter_type: :number_range},
+        %{field: "created_at", filterable: true, filter_type: :date_range}
       ]
 
       processed = FilterManager.process_filter_params(filter_params, columns)
@@ -311,9 +311,9 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "active", filterable: true, filter_type: :boolean, filter_options: []},
-        %{key: "featured", filterable: true, filter_type: :boolean, filter_options: []},
-        %{key: "visible", filterable: true, filter_type: :boolean, filter_options: []}
+        %{field: "active", filterable: true, filter_type: :boolean, filter_options: []},
+        %{field: "featured", filterable: true, filter_type: :boolean, filter_options: []},
+        %{field: "visible", filterable: true, filter_type: :boolean, filter_options: []}
       ]
 
       result = FilterManager.params_to_filters(filter_params, columns)
@@ -347,9 +347,9 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "active", filterable: true, filter_type: :boolean},
-        %{key: "featured", filterable: true, filter_type: :boolean},
-        %{key: "visible", filterable: true, filter_type: :boolean}
+        %{field: "active", filterable: true, filter_type: :boolean},
+        %{field: "featured", filterable: true, filter_type: :boolean},
+        %{field: "visible", filterable: true, filter_type: :boolean}
       ]
 
       result = FilterManager.build_filter_values(columns, filters)
@@ -379,7 +379,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
       # Test that number range filter generates correct HTML field names
       alias Cinder.Filters.NumberRange
 
-      column = %{key: "value", filter_type: :number_range}
+      column = %{field: "value", filter_type: :number_range}
       current_value = %{min: "100", max: "200"}
       theme = Cinder.Theme.merge("default")
       assigns = %{}
@@ -417,10 +417,10 @@ defmodule Cinder.RangeFilterIntegrationTest do
       }
 
       columns = [
-        %{key: "name", filterable: true, filter_type: :text, filter_options: []},
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []},
-        %{key: "created_at", filterable: true, filter_type: :date_range, filter_options: []},
-        %{key: "active", filterable: true, filter_type: :boolean, filter_options: []}
+        %{field: "name", filterable: true, filter_type: :text, filter_options: []},
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []},
+        %{field: "created_at", filterable: true, filter_type: :date_range, filter_options: []},
+        %{field: "active", filterable: true, filter_type: :boolean, filter_options: []}
       ]
 
       # Step 2: Process the form params (like the handle_event does)
@@ -491,7 +491,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
 
     test "range filter edge cases that might cause real-world issues" do
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []}
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []}
       ]
 
       # Test 1: Empty form submission (initial state)
@@ -582,8 +582,8 @@ defmodule Cinder.RangeFilterIntegrationTest do
     test "number range filter integration with various number formats" do
       # Test the complete flow from form input to filter creation with different number formats
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []},
-        %{key: "price", filterable: true, filter_type: :number_range, filter_options: []}
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []},
+        %{field: "price", filterable: true, filter_type: :number_range, filter_options: []}
       ]
 
       # Test 1: Integer values (common case that was failing)
@@ -648,8 +648,8 @@ defmodule Cinder.RangeFilterIntegrationTest do
       # This could be the cause of the "flickering" issue with boolean filters
 
       columns = [
-        %{key: "active", filterable: true, filter_type: :boolean, filter_options: []},
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []}
+        %{field: "active", filterable: true, filter_type: :boolean, filter_options: []},
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []}
       ]
 
       # Step 1: Initial state - no filters
@@ -714,7 +714,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
     test "debug range filter processing step by step to identify real-world issue" do
       # This test aims to debug the exact user scenario where range filters don't work
       columns = [
-        %{key: "value", filterable: true, filter_type: :number_range, filter_options: []}
+        %{field: "value", filterable: true, filter_type: :number_range, filter_options: []}
       ]
 
       # Simulate the exact form params the user reported

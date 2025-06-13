@@ -27,7 +27,7 @@ defmodule Cinder.Filters.DateRange do
       <div class={@theme.filter_range_input_group_class}>
         <input
           type="date"
-          name={field_name(@column.key, "from")}
+          name={field_name(@column.field, "from")}
           value={@from_value}
           placeholder="From"
           class={@theme.filter_date_input_class}
@@ -36,7 +36,7 @@ defmodule Cinder.Filters.DateRange do
       <div class={@theme.filter_range_input_group_class}>
         <input
           type="date"
-          name={field_name(@column.key, "to")}
+          name={field_name(@column.field, "to")}
           value={@to_value}
           placeholder="To"
           class={@theme.filter_date_input_class}

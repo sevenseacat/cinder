@@ -88,16 +88,22 @@ defmodule Cinder.UrlStateRestorationTest do
       }
 
       columns = [
-        %{key: "title", filterable: true, filter_type: :text, filter_fn: nil, filter_options: []},
         %{
-          key: "artist.name",
+          field: "title",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
           filter_options: []
         },
         %{
-          key: "artist.country",
+          field: "artist.name",
+          filterable: true,
+          filter_type: :text,
+          filter_fn: nil,
+          filter_options: []
+        },
+        %{
+          field: "artist.country",
           filterable: true,
           filter_type: :select,
           filter_fn: nil,
@@ -130,21 +136,21 @@ defmodule Cinder.UrlStateRestorationTest do
 
       columns = [
         %{
-          key: "artist.name",
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
           filter_options: []
         },
         %{
-          key: "artist.founded_year",
+          field: "artist.founded_year",
           filterable: true,
           filter_type: :number_range,
           filter_fn: nil,
           filter_options: []
         },
         %{
-          key: "artist.active",
+          field: "artist.active",
           filterable: true,
           filter_type: :boolean,
           filter_fn: nil,
@@ -202,9 +208,15 @@ defmodule Cinder.UrlStateRestorationTest do
 
       # Simulate what should happen: raw URL params preserved and passed with columns
       columns = [
-        %{key: "title", filterable: true, filter_type: :text, filter_fn: nil, filter_options: []},
         %{
-          key: "artist.name",
+          field: "title",
+          filterable: true,
+          filter_type: :text,
+          filter_fn: nil,
+          filter_options: []
+        },
+        %{
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
@@ -254,16 +266,22 @@ defmodule Cinder.UrlStateRestorationTest do
 
       # Decode back with proper columns
       columns = [
-        %{key: "title", filterable: true, filter_type: :text, filter_fn: nil, filter_options: []},
         %{
-          key: "artist.name",
+          field: "title",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
           filter_options: []
         },
         %{
-          key: "artist.country",
+          field: "artist.name",
+          filterable: true,
+          filter_type: :text,
+          filter_fn: nil,
+          filter_options: []
+        },
+        %{
+          field: "artist.country",
           filterable: true,
           filter_type: :select,
           filter_fn: nil,
@@ -303,14 +321,14 @@ defmodule Cinder.UrlStateRestorationTest do
       # Decode back with proper columns
       columns = [
         %{
-          key: "artist.name",
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,
           filter_options: []
         },
         %{
-          key: "artist.founded_year",
+          field: "artist.founded_year",
           filterable: true,
           filter_type: :number_range,
           filter_fn: nil,
@@ -350,9 +368,15 @@ defmodule Cinder.UrlStateRestorationTest do
 
       # 4. Component receives raw params and can decode properly
       columns = [
-        %{key: "title", filterable: true, filter_type: :text, filter_fn: nil, filter_options: []},
         %{
-          key: "artist.name",
+          field: "title",
+          filterable: true,
+          filter_type: :text,
+          filter_fn: nil,
+          filter_options: []
+        },
+        %{
+          field: "artist.name",
           filterable: true,
           filter_type: :text,
           filter_fn: nil,

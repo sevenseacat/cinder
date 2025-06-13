@@ -13,7 +13,7 @@ defmodule Cinder.QueryBuilder do
   @type filters :: %{String.t() => filter()}
   @type sort_by :: [{String.t(), :asc | :desc}]
   @type column :: %{
-          key: String.t(),
+          field: String.t(),
           filterable: boolean(),
           filter_type: atom(),
           filter_fn: function() | nil,
@@ -155,8 +155,8 @@ defmodule Cinder.QueryBuilder do
   def apply_filters(query, filters, _columns) when filters == %{}, do: query
 
   def apply_filters(query, filters, columns) do
-    Enum.reduce(filters, query, fn {key, filter_config}, query ->
-      column = Enum.find(columns, &(&1.key == key))
+    Enum.reduce(filters, query, fn {field, filter_config}, query ->
+      column = Enum.find(columns, &(&1.field == field))
 
       cond do
         column && column.filter_fn ->
@@ -165,7 +165,7 @@ defmodule Cinder.QueryBuilder do
 
         true ->
           # Apply standard filter based on type
-          apply_standard_filter(query, key, filter_config, column)
+          apply_standard_filter(query, field, filter_config, column)
       end
     end)
   end
@@ -426,29 +426,29 @@ defmodule Cinder.QueryBuilder do
     # Check if any sorts have custom sort functions
     has_custom_sorts =
       sort_by
-      |> Enum.any?(fn {key, _direction} ->
-        column = Enum.find(columns, &(&1.key == key))
+      |> Enum.any?(fn {field, _direction} ->
+        column = Enum.find(columns, &(&1.field == field))
         column && column.sort_fn
       end)
 
     if has_custom_sorts do
       # Use custom logic when custom sort functions are present
-      Enum.reduce(sort_by, query, fn {key, direction}, query ->
-        column = Enum.find(columns, &(&1.key == key))
+      Enum.reduce(sort_by, query, fn {field, direction}, query ->
+        column = Enum.find(columns, &(&1.field == field))
 
         cond do
           column && column.sort_fn ->
             # Use custom sort function
             column.sort_fn.(query, direction)
 
-          String.contains?(key, ".") ->
+          String.contains?(field, ".") ->
             # Handle dot notation for relationship sorting
-            sort_expr = build_expression_sort(key)
+            sort_expr = build_expression_sort(field)
             Ash.Query.sort(query, [{sort_expr, direction}])
 
           true ->
             # Standard attribute sorting
-            Ash.Query.sort(query, [{String.to_atom(key), direction}])
+            Ash.Query.sort(query, [{String.to_atom(field), direction}])
         end
       end)
     else
