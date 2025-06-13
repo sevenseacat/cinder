@@ -38,11 +38,19 @@ defmodule Cinder.Components.Filters do
     :filter_boolean_radio_class,
     :filter_boolean_label_class,
 
-    # Multi-select filter
+    # Multi-select filter (dropdown interface)
     :filter_multiselect_container_class,
+    :filter_multiselect_dropdown_class,
     :filter_multiselect_option_class,
     :filter_multiselect_checkbox_class,
     :filter_multiselect_label_class,
+    :filter_multiselect_empty_class,
+
+    # Multi-checkboxes filter
+    :filter_multicheckboxes_container_class,
+    :filter_multicheckboxes_option_class,
+    :filter_multicheckboxes_checkbox_class,
+    :filter_multicheckboxes_label_class,
 
     # Range filters (date and number)
     :filter_range_container_class,
@@ -90,11 +98,19 @@ defmodule Cinder.Components.Filters do
       filter_boolean_radio_class: "",
       filter_boolean_label_class: "",
 
-      # Multi-select filter
+      # Multi-select filter (dropdown interface)
       filter_multiselect_container_class: "",
+      filter_multiselect_dropdown_class: "",
       filter_multiselect_option_class: "",
       filter_multiselect_checkbox_class: "",
       filter_multiselect_label_class: "",
+      filter_multiselect_empty_class: "",
+
+      # Multi-checkboxes filter
+      filter_multicheckboxes_container_class: "",
+      filter_multicheckboxes_option_class: "",
+      filter_multicheckboxes_checkbox_class: "",
+      filter_multicheckboxes_label_class: "",
 
       # Range filters (date and number)
       filter_range_container_class: "",

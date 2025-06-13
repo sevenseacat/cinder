@@ -80,19 +80,36 @@ defmodule Cinder.Themes.Compact do
         "w-full px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 bg-white"
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex space-x-4"
+    set :filter_boolean_container_class, "flex space-x-4 h-[34px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-1"
     set :filter_boolean_radio_class, "h-3 w-3 text-blue-600 focus:ring-blue-500 focus:ring-1"
     set :filter_boolean_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 
-    # Multi-select filter
-    set :filter_multiselect_container_class, "space-y-1"
-    set :filter_multiselect_option_class, "flex items-center space-x-1"
+    # Multi-select filter (tag-based interface)
+    set :filter_multiselect_container_class, "relative"
+
+    set :filter_multiselect_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded shadow-md max-h-48 overflow-auto"
+
+    set :filter_multiselect_option_class,
+        "px-2 py-1.5 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 cursor-pointer text-xs"
 
     set :filter_multiselect_checkbox_class,
+        "h-3 w-3 text-blue-600 focus:ring-blue-500 focus:ring-1 rounded mr-2"
+
+    set :filter_multiselect_label_class,
+        "text-xs font-medium text-gray-700 cursor-pointer select-none flex-1"
+
+    set :filter_multiselect_empty_class, "px-2 py-1.5 text-gray-500 italic text-xs"
+
+    # Multi-checkboxes filter
+    set :filter_multicheckboxes_container_class, "space-y-1"
+    set :filter_multicheckboxes_option_class, "flex items-center space-x-1"
+
+    set :filter_multicheckboxes_checkbox_class,
         "h-3 w-3 text-blue-600 focus:ring-blue-500 focus:ring-1"
 
-    set :filter_multiselect_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
+    set :filter_multicheckboxes_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 
     # Range filters
     set :filter_range_container_class, "flex space-x-2"
@@ -100,16 +117,19 @@ defmodule Cinder.Themes.Compact do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class,
-        "bg-white border border-gray-300 p-3 mt-4 shadow-sm"
-
+    set :pagination_wrapper_class, "p-3 mt-3"
     set :pagination_container_class, "flex items-center justify-between"
+
+    set :pagination_info_class, "text-xs text-gray-600 font-medium"
+    set :pagination_count_class, "text-xs text-gray-500 ml-1"
+
+    set :pagination_nav_class, "flex items-center space-x-0.5"
 
     set :pagination_button_class,
         "px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
 
-    set :pagination_info_class, "text-xs text-gray-600 font-medium"
-    set :pagination_count_class, "text-xs text-gray-500"
+    set :pagination_current_class,
+        "px-2 py-1 text-xs font-medium text-white bg-blue-600 border border-blue-600"
   end
 
   component Cinder.Components.Sorting do
@@ -117,7 +137,7 @@ defmodule Cinder.Themes.Compact do
     set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
     set :sort_asc_icon_class, "w-3 h-3 text-blue-600"
     set :sort_desc_icon_class, "w-3 h-3 text-blue-600"
-    set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-50"
+    set :sort_none_icon_class, "w-3 h-3 text-gray-500 opacity-70"
   end
 
   component Cinder.Components.Loading do

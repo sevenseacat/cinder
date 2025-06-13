@@ -11,6 +11,7 @@ Cinder transforms complex data table requirements into simple, declarative marku
   <:col :let="user" field="name" filter sort>{user.name}</:col>
   <:col :let="user" field="email" filter>{user.email}</:col>
   <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
+  <:col :let="user" field="tags" filter={:multi_select}>{Enum.join(user.tags, ", ")}</:col>
 </Cinder.Table.table>
 ```
 
@@ -28,7 +29,8 @@ That's it! Cinder automatically provides:
 - **⚡ Minimal Configuration**: 70% fewer attributes required compared to traditional table components
 - **🔗 Complete URL State Management**: Filters, pagination, and sorting synchronized with browser URL
 - **🌐 Relationship Support**: Dot notation for related fields (e.g., `user.department.name`)
-- **🎨 Flexible Theming**: Built-in presets (default, modern, minimal) plus full customization
+- **🎨 Advanced Theming**: 10 built-in themes (default, modern, retro, futuristic, dark, daisy_ui, flowbite, vintage, compact, pastel) plus powerful DSL for custom themes
+- **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
 - **⚡ Real-time Filtering**: Six filter types with debounced updates
 - **📱 Responsive Design**: Mobile-friendly with loading states
 - **🔐 Ash Integration**: Native support for Ash Framework resources and authorization
@@ -53,6 +55,7 @@ end
 <Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
   <:col :let="user" field="name" filter sort>{user.name}</:col>
   <:col :let="user" field="email" filter>{user.email}</:col>
+  <:col :let="user" field="skills" filter={:multi_select}>{Enum.join(user.skills, ", ")}</:col>
   <:col :let="user" field="created_at" sort>{user.created_at}</:col>
 </Cinder.Table.table>
 ```
@@ -85,6 +88,7 @@ defmodule MyAppWeb.UsersLive do
       <:col :let="user" field="name" filter sort>{user.name}</:col>
       <:col :let="user" field="email" filter>{user.email}</:col>
       <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
+      <:col :let="user" field="roles" filter={:multi_checkboxes}>{Enum.join(user.roles, ", ")}</:col>
     </Cinder.Table.table>
     """
   end
@@ -93,7 +97,7 @@ end
 
 This enables bookmarkable URLs like:
 ```
-/users?name=john&department.name=engineering&page=2&sort=-created_at
+/users?name=john&department.name=engineering&roles=admin,user&page=2&sort=-created_at
 ```
 
 ## Filter Types
@@ -105,7 +109,28 @@ Cinder automatically detects the right filter type:
 - **Boolean fields** → True/false/any radio buttons
 - **Date/DateTime fields** → Date range picker
 - **Integer/Decimal fields** → Number range inputs
-- **Array fields** → Multi-select checkboxes
+- **Array fields** → Multi-select tag interface
+
+### Multi-Select Options
+
+For multiple selection filtering, choose between two interfaces:
+
+- **`:multi_select`** - Modern tag-based interface with dropdown (default for arrays)
+  - Selected items displayed as removable tags
+  - Dropdown shows available options to add
+  - Better for long option lists
+  
+- **`:multi_checkboxes`** - Traditional checkbox interface
+  - All options displayed as checkboxes
+  - Better for short, familiar option lists
+
+```elixir
+<!-- Use tag interface (default for array fields) -->
+<:col field="tags" filter={:multi_select} />
+
+<!-- Use checkbox interface -->
+<:col field="categories" filter={:multi_checkboxes} />
+```
 
 ## Documentation
 

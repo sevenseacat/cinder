@@ -158,7 +158,7 @@ defmodule Cinder.ThemeDslTest do
       assert :filter_container_class in properties
       assert :filter_text_input_class in properties
       assert :filter_boolean_container_class in properties
-      assert :filter_multiselect_checkbox_class in properties
+      assert :filter_multiselect_dropdown_class in properties
     end
 
     test "component validation works" do

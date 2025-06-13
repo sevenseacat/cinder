@@ -32,7 +32,9 @@ defmodule Cinder.Themes.Retro do
 
     set :td_class, "px-6 py-4 text-sm text-cyan-100 font-medium"
     set :loading_class, "text-center py-12 text-cyan-400 font-bold uppercase tracking-wide"
-    set :empty_class, "text-center py-12 text-magenta-400 italic font-bold"
+
+    set :empty_class,
+        "text-center py-12 text-cyan-100 italic font-bold bg-gray-800/50 border border-cyan-400"
 
     set :error_container_class,
         "bg-red-900 border-2 border-red-400 p-4 text-red-100 shadow-lg shadow-red-400/30"
@@ -53,7 +55,7 @@ defmodule Cinder.Themes.Retro do
         "text-sm text-black bg-yellow-400 px-3 py-1 font-bold uppercase tracking-wide"
 
     set :filter_clear_all_class,
-        "text-sm text-magenta-400 hover:text-magenta-300 font-bold uppercase tracking-wide transition-colors border border-magenta-400 hover:border-magenta-300 px-3 py-1"
+        "text-sm text-cyan-100 bg-magenta-600 hover:bg-magenta-500 font-bold uppercase tracking-wide transition-colors border-2 border-cyan-400 hover:border-yellow-400 px-4 py-2 shadow-lg shadow-magenta-400/30"
 
     set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
     set :filter_input_wrapper_class, "space-y-3"
@@ -79,8 +81,8 @@ defmodule Cinder.Themes.Retro do
         "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex space-x-8"
-    set :filter_boolean_option_class, "flex items-center space-x-3"
+    set :filter_boolean_container_class, "flex space-x-8 h-[48px] items-center"
+    set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
         "h-5 w-5 text-magenta-400 focus:ring-magenta-400 focus:ring-2 border-2 border-cyan-400"
@@ -88,14 +90,32 @@ defmodule Cinder.Themes.Retro do
     set :filter_boolean_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
 
-    # Multi-select filter
-    set :filter_multiselect_container_class, "space-y-4"
-    set :filter_multiselect_option_class, "flex items-center space-x-3"
+    # Multi-select filter (dropdown interface)
+    set :filter_multiselect_container_class, "relative"
+
+    set :filter_multiselect_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-gray-800 border-2 border-cyan-400 shadow-2xl shadow-cyan-400/20 max-h-60 overflow-auto"
+
+    set :filter_multiselect_option_class,
+        "px-3 py-2 hover:bg-magenta-800 hover:shadow-lg hover:shadow-magenta-400/30 border-b border-cyan-400/50 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-5 w-5 text-magenta-400 focus:ring-magenta-400 focus:ring-2 border-2 border-cyan-400 bg-gray-800"
+        "h-4 w-4 text-yellow-400 focus:ring-yellow-400/50 focus:ring-2 border-2 border-cyan-400 bg-gray-800 mr-2"
 
     set :filter_multiselect_label_class,
+        "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide select-none flex-1"
+
+    set :filter_multiselect_empty_class,
+        "px-3 py-2 text-magenta-300 italic font-bold uppercase tracking-wide text-sm"
+
+    # Multi-checkboxes filter
+    set :filter_multicheckboxes_container_class, "space-y-4"
+    set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
+
+    set :filter_multicheckboxes_checkbox_class,
+        "h-5 w-5 text-magenta-400 focus:ring-magenta-400 focus:ring-2 border-2 border-cyan-400 bg-gray-800"
+
+    set :filter_multicheckboxes_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
 
     # Range filters
@@ -104,16 +124,19 @@ defmodule Cinder.Themes.Retro do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class,
-        "bg-gray-900 border-2 border-cyan-400 p-6 mt-6 shadow-2xl shadow-cyan-400/20 bg-gradient-to-r from-purple-900/50 to-pink-900/50"
-
+    set :pagination_wrapper_class, "p-6 mt-4"
     set :pagination_container_class, "flex items-center justify-between"
-
-    set :pagination_button_class,
-        "px-6 py-3 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 hover:bg-magenta-800 hover:border-magenta-400 hover:shadow-lg hover:shadow-magenta-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
 
     set :pagination_info_class, "text-sm text-cyan-100 font-bold uppercase tracking-wide"
     set :pagination_count_class, "text-xs text-yellow-400 ml-2 font-bold uppercase"
+
+    set :pagination_nav_class, "flex items-center space-x-1"
+
+    set :pagination_button_class,
+        "px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded hover:bg-magenta-800 hover:border-magenta-400 hover:shadow-lg hover:shadow-magenta-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+
+    set :pagination_current_class,
+        "px-4 py-2 text-sm font-bold text-black bg-gradient-to-r from-cyan-400 to-magenta-400 border-2 border-yellow-400 rounded shadow-lg shadow-yellow-400/30 uppercase tracking-wide"
   end
 
   component Cinder.Components.Sorting do
@@ -121,7 +144,7 @@ defmodule Cinder.Themes.Retro do
     set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
     set :sort_asc_icon_class, "w-4 h-4 text-cyan-400 drop-shadow-lg"
     set :sort_desc_icon_class, "w-4 h-4 text-magenta-400 drop-shadow-lg"
-    set :sort_none_icon_class, "w-4 h-4 text-gray-500 opacity-50"
+    set :sort_none_icon_class, "w-4 h-4 text-gray-400 opacity-75"
   end
 
   component Cinder.Components.Loading do

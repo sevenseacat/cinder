@@ -94,6 +94,9 @@ defmodule Cinder.UrlManager do
           :multi_select when is_list(filter.value) ->
             Enum.join(filter.value, ",")
 
+          :multi_checkboxes when is_list(filter.value) ->
+            Enum.join(filter.value, ",")
+
           :date_range ->
             "#{filter.value.from},#{filter.value.to}"
 
@@ -129,6 +132,9 @@ defmodule Cinder.UrlManager do
             :multi_select ->
               String.split(value, ",")
 
+            :multi_checkboxes ->
+              String.split(value, ",")
+
             :date_range ->
               case String.split(value, ",") do
                 [from, to] -> %{from: from, to: to}
@@ -155,6 +161,7 @@ defmodule Cinder.UrlManager do
             :text -> :contains
             :select -> :equals
             :multi_select -> :in
+            :multi_checkboxes -> :in
             :boolean -> :equals
             :date_range -> :between
             :number_range -> :between
@@ -278,7 +285,7 @@ defmodule Cinder.UrlManager do
   def ensure_multiselect_fields(filter_params, columns)
       when is_map(filter_params) and is_list(columns) do
     columns
-    |> Enum.filter(&(&1.filterable and &1.filter_type == :multi_select))
+    |> Enum.filter(&(&1.filterable and &1.filter_type in [:multi_select, :multi_checkboxes]))
     |> Enum.reduce(filter_params, fn column, acc ->
       # If multi-select field is missing (all checkboxes unchecked), add it as empty array
       if not Map.has_key?(acc, column.field) do

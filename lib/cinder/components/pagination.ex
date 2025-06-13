@@ -13,7 +13,9 @@ defmodule Cinder.Components.Pagination do
     :pagination_container_class,
     :pagination_button_class,
     :pagination_info_class,
-    :pagination_count_class
+    :pagination_count_class,
+    :pagination_nav_class,
+    :pagination_current_class
   ]
 
   @doc """
@@ -31,7 +33,9 @@ defmodule Cinder.Components.Pagination do
       pagination_container_class: "",
       pagination_button_class: "",
       pagination_info_class: "",
-      pagination_count_class: ""
+      pagination_count_class: "",
+      pagination_nav_class: "",
+      pagination_current_class: ""
     }
   end
 

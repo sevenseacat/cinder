@@ -160,7 +160,15 @@ defmodule Cinder.Column do
     errors = if column.label in [nil, ""], do: ["Label cannot be empty" | errors], else: errors
 
     # Validate filter type
-    valid_filter_types = [:text, :select, :multi_select, :boolean, :date_range, :number_range]
+    valid_filter_types = [
+      :text,
+      :select,
+      :multi_select,
+      :multi_checkboxes,
+      :boolean,
+      :date_range,
+      :number_range
+    ]
 
     errors =
       if column.filter_type not in valid_filter_types do

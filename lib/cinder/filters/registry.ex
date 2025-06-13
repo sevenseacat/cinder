@@ -14,6 +14,7 @@ defmodule Cinder.Filters.Registry do
       text: Cinder.Filters.Text,
       select: Cinder.Filters.Select,
       multi_select: Cinder.Filters.MultiSelect,
+      multi_checkboxes: Cinder.Filters.MultiCheckboxes,
       date_range: Cinder.Filters.DateRange,
       number_range: Cinder.Filters.NumberRange,
       boolean: Cinder.Filters.Boolean
@@ -56,7 +57,7 @@ defmodule Cinder.Filters.Registry do
   ## Examples
 
       iex> Cinder.Filters.Registry.filter_types()
-      [:text, :select, :multi_select, :date_range, :number_range, :boolean]
+      [:text, :select, :multi_select, :multi_checkboxes, :date_range, :number_range, :boolean]
   """
   def filter_types do
     Map.keys(all_filters())
@@ -105,9 +106,8 @@ defmodule Cinder.Filters.Registry do
   end
 
   def infer_filter_type(%{type: {:array, _inner_type}}, _column_key) do
-    # Array types default to text for now
-    # Could be extended to multi_select in the future
-    :text
+    # Array types use the new tag-based multi_select interface
+    :multi_select
   end
 
   def infer_filter_type(%{type: {:one_of, _values}}, _column_key) do

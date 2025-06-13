@@ -10,7 +10,14 @@ defmodule Cinder.FilterManager do
 
   alias Cinder.Filters.Registry
 
-  @type filter_type :: :text | :select | :multi_select | :date_range | :number_range | :boolean
+  @type filter_type ::
+          :text
+          | :select
+          | :multi_select
+          | :multi_checkboxes
+          | :date_range
+          | :number_range
+          | :boolean
   @type filter_value ::
           String.t()
           | [String.t()]
@@ -271,6 +278,7 @@ defmodule Cinder.FilterManager do
         case filter_type do
           :select -> enhance_select_options(default_options, attribute, key)
           :multi_select -> enhance_select_options(default_options, attribute, key)
+          :multi_checkboxes -> enhance_select_options(default_options, attribute, key)
           _ -> default_options
         end
 
@@ -295,6 +303,7 @@ defmodule Cinder.FilterManager do
   defp get_default_value(:date_range), do: %{from: "", to: ""}
   defp get_default_value(:number_range), do: %{min: "", max: ""}
   defp get_default_value(:multi_select), do: []
+  defp get_default_value(:multi_checkboxes), do: []
   defp get_default_value(_), do: ""
 
   defp format_filter_value(filter, filter_type) do
@@ -306,6 +315,9 @@ defmodule Cinder.FilterManager do
         %{min: min || "", max: max || ""}
 
       {:multi_select, %{value: values}} when is_list(values) ->
+        values
+
+      {:multi_checkboxes, %{value: values}} when is_list(values) ->
         values
 
       {:boolean, %{value: true}} ->

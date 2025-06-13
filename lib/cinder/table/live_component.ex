@@ -35,9 +35,9 @@ defmodule Cinder.Table.LiveComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class={[@theme.container_class, "relative"]}>
+    <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
       <!-- Filter Controls -->
-      <div class={@theme.controls_class}>
+      <div class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
           columns={@columns}
           filters={@filters}
@@ -47,18 +47,18 @@ defmodule Cinder.Table.LiveComponent do
       </div>
 
       <!-- Main table -->
-      <div class={@theme.table_wrapper_class}>
-        <table class={@theme.table_class}>
-          <thead class={@theme.thead_class}>
-            <tr class={@theme.header_row_class}>
-              <th :for={column <- @columns} class={[@theme.th_class, column.class]}>
+      <div class={@theme.table_wrapper_class} {@theme.table_wrapper_data}>
+        <table class={@theme.table_class} {@theme.table_data}>
+          <thead class={@theme.thead_class} {@theme.thead_data}>
+            <tr class={@theme.header_row_class} {@theme.header_row_data}>
+              <th :for={column <- @columns} class={[@theme.th_class, column.class]} {@theme.th_data}>
                 <div :if={column.sortable}
                      class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
                      phx-click="toggle_sort"
                      phx-value-key={column.field}
                      phx-target={@myself}>
                      {column.label}
-                     <span class={@theme.sort_indicator_class}>
+                     <span class={@theme.sort_indicator_class} {@theme.sort_indicator_data}>
                        <.sort_arrow sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@loading} />
                      </span>
                 </div>
@@ -68,14 +68,14 @@ defmodule Cinder.Table.LiveComponent do
               </th>
             </tr>
           </thead>
-          <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]}>
-            <tr :for={item <- @data} class={@theme.row_class}>
-              <td :for={column <- @columns} class={[@theme.td_class, column.class]}>
+          <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} {@theme.tbody_data}>
+            <tr :for={item <- @data} class={@theme.row_class} {@theme.row_data}>
+              <td :for={column <- @columns} class={[@theme.td_class, column.class]} {@theme.td_data}>
                 {render_slot(column.slot, item)}
               </td>
             </tr>
             <tr :if={@data == [] and not @loading}>
-              <td colspan={length(@columns)} class={@theme.empty_class}>
+              <td colspan={length(@columns)} class={@theme.empty_class} {@theme.empty_data}>
                 No results found
               </td>
             </tr>
@@ -84,18 +84,18 @@ defmodule Cinder.Table.LiveComponent do
       </div>
 
       <!-- Loading indicator -->
-      <div :if={@loading} class={@theme.loading_overlay_class}>
-        <div class={@theme.loading_container_class}>
-          <svg class={@theme.loading_spinner_class} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class={@theme.loading_spinner_circle_class} cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class={@theme.loading_spinner_path_class} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      <div :if={@loading} class={@theme.loading_overlay_class} {@theme.loading_overlay_data}>
+        <div class={@theme.loading_container_class} {@theme.loading_container_data}>
+          <svg class={@theme.loading_spinner_class} {@theme.loading_spinner_data} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class={@theme.loading_spinner_circle_class} {@theme.loading_spinner_circle_data} cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class={@theme.loading_spinner_path_class} {@theme.loading_spinner_path_data} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           Loading...
         </div>
       </div>
 
       <!-- Pagination -->
-      <div class={@theme.pagination_wrapper_class}>
+      <div :if={@page_info.total_pages > 1} class={@theme.pagination_wrapper_class} {@theme.pagination_wrapper_data}>
         <.pagination_controls
           page_info={@page_info}
           theme={@theme}
@@ -184,6 +184,54 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event(
+        "toggle_multiselect_option",
+        %{"field" => field, "option" => value},
+        socket
+      )
+      when value != "" do
+    # Get current filter values for this field
+    current_filter =
+      Map.get(socket.assigns.filters, field, %{type: :multi_select, value: [], operator: :in})
+
+    current_values = Map.get(current_filter, :value, [])
+
+    # Toggle the value - add if not present, remove if present
+    new_values =
+      if value in current_values do
+        Enum.reject(current_values, &(&1 == value))
+      else
+        current_values ++ [value]
+      end
+
+    new_filters =
+      if Enum.empty?(new_values) do
+        # Remove the filter entirely if no values left
+        Map.delete(socket.assigns.filters, field)
+      else
+        # Create proper filter structure
+        new_filter = %{
+          type: :multi_select,
+          value: new_values,
+          operator: :in
+        }
+
+        Map.put(socket.assigns.filters, field, new_filter)
+      end
+
+    socket =
+      socket
+      |> assign(:filters, new_filters)
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
+
+    {:noreply, socket}
+  end
+
   # Notify parent LiveView about filter changes
   defp notify_state_change(socket, filters \\ nil) do
     filters = filters || socket.assigns.filters
@@ -238,39 +286,102 @@ defmodule Cinder.Table.LiveComponent do
 
   # Pagination controls component
   defp pagination_controls(assigns) do
-    ~H"""
-    <div :if={@page_info.total_pages > 1} class={@theme.pagination_container_class}>
-      <!-- Previous button -->
-      <button
-        :if={@page_info.has_previous_page}
-        phx-click="goto_page"
-        phx-value-page={@page_info.current_page - 1}
-        phx-target={@myself}
-        class={@theme.pagination_button_class}
-      >
-        Previous
-      </button>
+    page_range = build_page_range(assigns.page_info)
+    assigns = assign(assigns, :page_range, page_range)
 
-      <!-- Page info -->
-      <span class={@theme.pagination_info_class}>
+    ~H"""
+    <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
+      <!-- Left side: Page info -->
+      <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
         Page {@page_info.current_page} of {@page_info.total_pages}
-        <span class={@theme.pagination_count_class}>
+        <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
           (showing {@page_info.start_index}-{@page_info.end_index} of {@page_info.total_count})
         </span>
-      </span>
+      </div>
 
-      <!-- Next button -->
-      <button
-        :if={@page_info.has_next_page}
-        phx-click="goto_page"
-        phx-value-page={@page_info.current_page + 1}
-        phx-target={@myself}
-        class={@theme.pagination_button_class}
-      >
-        Next
-      </button>
+      <!-- Right side: Page navigation -->
+      <div class={@theme.pagination_nav_class} {@theme.pagination_nav_data}>
+        <!-- First page and previous -->
+        <button
+          :if={@page_info.current_page > 2}
+          phx-click="goto_page"
+          phx-value-page="1"
+          phx-target={@myself}
+          class={@theme.pagination_button_class}
+          {@theme.pagination_button_data}
+          title="First page"
+        >
+          &laquo;
+        </button>
+
+        <button
+          :if={@page_info.has_previous_page}
+          phx-click="goto_page"
+          phx-value-page={@page_info.current_page - 1}
+          phx-target={@myself}
+          class={@theme.pagination_button_class}
+          {@theme.pagination_button_data}
+          title="Previous page"
+        >
+          &lt;
+        </button>
+
+        <!-- Page numbers -->
+        <span :for={page <- @page_range} class="inline-flex">
+          <button
+            :if={page != @page_info.current_page}
+            phx-click="goto_page"
+            phx-value-page={page}
+            phx-target={@myself}
+            class={@theme.pagination_button_class}
+            {@theme.pagination_button_data}
+          >
+            {page}
+          </button>
+          <span :if={page == @page_info.current_page} class={@theme.pagination_current_class} {@theme.pagination_current_data}>
+            {page}
+          </span>
+        </span>
+
+        <!-- Next and last page -->
+        <button
+          :if={@page_info.has_next_page}
+          phx-click="goto_page"
+          phx-value-page={@page_info.current_page + 1}
+          phx-target={@myself}
+          class={@theme.pagination_button_class}
+          {@theme.pagination_button_data}
+          title="Next page"
+        >
+          &gt;
+        </button>
+
+        <button
+          :if={@page_info.current_page < @page_info.total_pages - 1}
+          phx-click="goto_page"
+          phx-value-page={@page_info.total_pages}
+          phx-target={@myself}
+          class={@theme.pagination_button_class}
+          {@theme.pagination_button_data}
+          title="Last page"
+        >
+          &raquo;
+        </button>
+      </div>
     </div>
     """
+  end
+
+  # Build page range for pagination (show current page +/- 2 pages)
+  defp build_page_range(page_info) do
+    current = page_info.current_page
+    total = page_info.total_pages
+
+    # Calculate range around current page
+    range_start = max(1, current - 2)
+    range_end = min(total, current + 2)
+
+    Enum.to_list(range_start..range_end)
   end
 
   # Sort arrow component - customizable via theme

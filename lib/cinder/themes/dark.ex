@@ -78,19 +78,36 @@ defmodule Cinder.Themes.Dark do
         "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex space-x-6"
-    set :filter_boolean_option_class, "flex items-center space-x-3"
-    set :filter_boolean_radio_class, "h-4 w-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
+    set :filter_boolean_container_class, "flex space-x-6 h-[42px] items-center"
+    set :filter_boolean_option_class, "flex items-center space-x-2"
+    set :filter_boolean_radio_class, "h-4 w-4 text-purple-400 focus:ring-purple-500 focus:ring-2"
     set :filter_boolean_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
 
-    # Multi-select filter
-    set :filter_multiselect_container_class, "space-y-3"
-    set :filter_multiselect_option_class, "flex items-center space-x-3"
+    # Multi-select filter (dropdown interface)
+    set :filter_multiselect_container_class, "relative"
+
+    set :filter_multiselect_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto"
+
+    set :filter_multiselect_option_class,
+        "px-3 py-2 hover:bg-purple-900/50 border-b border-gray-700 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
+        "h-4 w-4 text-purple-400 focus:ring-purple-500 focus:ring-2 rounded mr-2"
+
+    set :filter_multiselect_label_class,
+        "text-sm font-medium text-gray-300 cursor-pointer select-none flex-1"
+
+    set :filter_multiselect_empty_class, "px-3 py-2 text-gray-400 italic text-sm"
+
+    # Multi-checkboxes filter
+    set :filter_multicheckboxes_container_class, "space-y-3"
+    set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
+
+    set :filter_multicheckboxes_checkbox_class,
         "h-4 w-4 text-purple-600 focus:ring-purple-500 focus:ring-2 rounded"
 
-    set :filter_multiselect_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
+    set :filter_multicheckboxes_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
 
     # Range filters
     set :filter_range_container_class, "flex space-x-3"
@@ -98,16 +115,19 @@ defmodule Cinder.Themes.Dark do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class,
-        "bg-gray-800 border border-gray-600 rounded-lg p-6 mt-6 shadow-xl"
-
+    set :pagination_wrapper_class, "p-6 mt-4"
     set :pagination_container_class, "flex items-center justify-between"
-
-    set :pagination_button_class,
-        "px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 
     set :pagination_info_class, "text-sm text-gray-300 font-medium"
     set :pagination_count_class, "text-xs text-gray-400 ml-2"
+
+    set :pagination_nav_class, "flex items-center space-x-1"
+
+    set :pagination_button_class,
+        "px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded hover:bg-gray-700 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+
+    set :pagination_current_class,
+        "px-3 py-1 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded"
   end
 
   component Cinder.Components.Sorting do
@@ -115,7 +135,7 @@ defmodule Cinder.Themes.Dark do
     set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
     set :sort_asc_icon_class, "w-4 h-4 text-purple-400"
     set :sort_desc_icon_class, "w-4 h-4 text-purple-400"
-    set :sort_none_icon_class, "w-4 h-4 text-gray-500 opacity-50"
+    set :sort_none_icon_class, "w-4 h-4 text-gray-400 opacity-75"
   end
 
   component Cinder.Components.Loading do

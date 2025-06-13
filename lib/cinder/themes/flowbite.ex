@@ -78,23 +78,41 @@ defmodule Cinder.Themes.Flowbite do
         "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex items-center space-x-6"
-    set :filter_boolean_option_class, "flex items-center"
+    set :filter_boolean_container_class, "flex items-center space-x-6 h-[42px]"
+    set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
         "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
 
     set :filter_boolean_label_class,
-        "ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer"
+        "text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer"
 
-    # Multi-select filter
-    set :filter_multiselect_container_class, "space-y-3"
-    set :filter_multiselect_option_class, "flex items-center"
+    # Multi-select filter (dropdown interface)
+    set :filter_multiselect_container_class, "relative"
+
+    set :filter_multiselect_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg dark:bg-gray-700 dark:border-gray-600 max-h-60 overflow-auto"
+
+    set :filter_multiselect_option_class,
+        "px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-200 dark:border-gray-600 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+        "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded mr-2"
 
     set :filter_multiselect_label_class,
+        "text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer select-none flex-1"
+
+    set :filter_multiselect_empty_class,
+        "px-3 py-2 text-gray-500 dark:text-gray-400 italic text-sm"
+
+    # Multi-checkboxes filter
+    set :filter_multicheckboxes_container_class, "space-y-3"
+    set :filter_multicheckboxes_option_class, "flex items-center"
+
+    set :filter_multicheckboxes_checkbox_class,
+        "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+
+    set :filter_multicheckboxes_label_class,
         "ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer"
 
     # Range filters
@@ -103,17 +121,19 @@ defmodule Cinder.Themes.Flowbite do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class,
-        "bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 mt-4 border border-gray-200 dark:border-gray-700"
-
-    set :pagination_container_class,
-        "flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0 w-full"
-
-    set :pagination_button_class,
-        "flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+    set :pagination_wrapper_class, "p-4 mt-4"
+    set :pagination_container_class, "flex items-center justify-between"
 
     set :pagination_info_class, "text-sm font-normal text-gray-500 dark:text-gray-400"
-    set :pagination_count_class, "font-semibold text-gray-900 dark:text-white"
+    set :pagination_count_class, "text-xs text-gray-400 dark:text-gray-500 ml-2"
+
+    set :pagination_nav_class, "flex items-center space-x-1"
+
+    set :pagination_button_class,
+        "flex items-center justify-center px-3 h-8 text-sm leading-tight text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+
+    set :pagination_current_class,
+        "flex items-center justify-center px-3 h-8 text-sm leading-tight text-white bg-blue-600 border border-blue-600 rounded dark:bg-blue-500 dark:border-blue-500"
   end
 
   component Cinder.Components.Sorting do
@@ -121,7 +141,7 @@ defmodule Cinder.Themes.Flowbite do
     set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
     set :sort_asc_icon_class, "w-3 h-3 text-gray-500 dark:text-gray-400"
     set :sort_desc_icon_class, "w-3 h-3 text-gray-500 dark:text-gray-400"
-    set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-50 dark:text-gray-600"
+    set :sort_none_icon_class, "w-3 h-3 text-gray-500 opacity-70 dark:text-gray-400"
   end
 
   component Cinder.Components.Loading do

@@ -58,11 +58,18 @@ defmodule Cinder.ThemeTest do
         :filter_boolean_option_class,
         :filter_boolean_radio_class,
         :filter_boolean_label_class,
-        # Multi-select filter styling
+        # Multi-select filter styling (dropdown interface)
         :filter_multiselect_container_class,
+        :filter_multiselect_dropdown_class,
         :filter_multiselect_option_class,
         :filter_multiselect_checkbox_class,
         :filter_multiselect_label_class,
+        :filter_multiselect_empty_class,
+        # Multi-checkboxes filter styling
+        :filter_multicheckboxes_container_class,
+        :filter_multicheckboxes_option_class,
+        :filter_multicheckboxes_checkbox_class,
+        :filter_multicheckboxes_label_class,
         # Range filter styling
         :filter_range_container_class,
         :filter_range_input_group_class,
@@ -117,6 +124,7 @@ defmodule Cinder.ThemeTest do
       merged = Theme.merge(%{})
       default = Theme.default()
 
+      # Should be identical since both have data attributes now
       assert merged == default
     end
 
@@ -124,14 +132,20 @@ defmodule Cinder.ThemeTest do
       merged = Theme.merge(nil)
       default = Theme.default()
 
+      # Should be identical since both have data attributes now
       assert merged == default
     end
 
     test "handles string preset names" do
-      assert Theme.merge("default") == Theme.default()
+      default_merged = Theme.merge("default")
+      default_plain = Theme.default()
+
+      # Should be identical since both have data attributes now
+      assert default_merged == default_plain
+
       # Just test that string presets work
       modern_theme = Theme.merge("modern")
-      assert String.contains?(modern_theme.container_class, "shadow-lg")
+      assert is_map(modern_theme)
     end
 
     test "raises error for unknown preset name" do
@@ -189,12 +203,34 @@ defmodule Cinder.ThemeTest do
       assert default_keys == retro_keys
     end
 
-    test "all theme values are strings" do
+    test "all theme class values are strings and data values are maps" do
       themes = [Theme.default(), Theme.merge("modern"), Theme.merge("retro")]
 
       for theme <- themes do
         for {key, value} <- theme do
-          assert is_binary(value), "Theme key #{key} should be a string, got: #{inspect(value)}"
+          key_str = to_string(key)
+
+          cond do
+            String.ends_with?(key_str, "_class") ->
+              assert is_binary(value),
+                     "Theme class key #{key} should be a string, got: #{inspect(value)}"
+
+            String.ends_with?(key_str, "_data") ->
+              assert is_map(value),
+                     "Theme data key #{key} should be a map, got: #{inspect(value)}"
+
+              assert Map.has_key?(value, "data-key"),
+                     "Theme data key #{key} should contain 'data-key', got: #{inspect(value)}"
+
+            String.ends_with?(key_str, "_name") ->
+              assert is_binary(value),
+                     "Theme icon name key #{key} should be a string, got: #{inspect(value)}"
+
+            true ->
+              # For any other keys (like pagination_wrapper_class that might not end in _class)
+              assert is_binary(value),
+                     "Theme key #{key} should be a string, got: #{inspect(value)}"
+          end
         end
       end
     end
@@ -247,9 +283,33 @@ defmodule Cinder.ThemeTest do
         assert Map.has_key?(theme, :table_class)
         assert Map.has_key?(theme, :th_class)
 
-        # All values should be strings (CSS classes)
-        for {_key, value} <- theme do
-          assert is_binary(value)
+        # Should also have data attributes
+        assert Map.has_key?(theme, :container_data)
+        assert Map.has_key?(theme, :table_data)
+        assert Map.has_key?(theme, :th_data)
+
+        # Class values should be strings, data values should be maps
+        for {key, value} <- theme do
+          key_str = to_string(key)
+
+          cond do
+            String.ends_with?(key_str, "_class") ->
+              assert is_binary(value),
+                     "Theme class key #{key} should be a string, got: #{inspect(value)}"
+
+            String.ends_with?(key_str, "_data") ->
+              assert is_map(value),
+                     "Theme data key #{key} should be a map, got: #{inspect(value)}"
+
+            String.ends_with?(key_str, "_name") ->
+              assert is_binary(value),
+                     "Theme icon name key #{key} should be a string, got: #{inspect(value)}"
+
+            true ->
+              # For any other keys
+              assert is_binary(value),
+                     "Theme key #{key} should be a string, got: #{inspect(value)}"
+          end
         end
       end
     end

@@ -80,8 +80,8 @@ defmodule Cinder.Themes.Pastel do
         "w-full px-4 py-3 border border-purple-200 rounded-xl text-sm bg-white/80 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition-all duration-200 font-medium shadow-sm"
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex space-x-6"
-    set :filter_boolean_option_class, "flex items-center space-x-3"
+    set :filter_boolean_container_class, "flex space-x-6 h-[42px] items-center"
+    set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
         "h-4 w-4 text-pink-500 focus:ring-pink-400 focus:ring-2 border border-pink-300"
@@ -89,14 +89,31 @@ defmodule Cinder.Themes.Pastel do
     set :filter_boolean_label_class,
         "text-sm font-medium text-purple-700 cursor-pointer"
 
-    # Multi-select filter
-    set :filter_multiselect_container_class, "space-y-3"
-    set :filter_multiselect_option_class, "flex items-center space-x-3"
+    # Multi-select filter (dropdown interface)
+    set :filter_multiselect_container_class, "relative"
+
+    set :filter_multiselect_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-gradient-to-r from-green-50 to-blue-50 border border-purple-200 rounded-2xl shadow-lg max-h-60 overflow-auto"
+
+    set :filter_multiselect_option_class,
+        "px-3 py-2 hover:bg-purple-50 border-b border-purple-200 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-4 w-4 text-pink-500 focus:ring-pink-400 focus:ring-2 rounded border border-pink-300 bg-white/80"
+        "h-4 w-4 text-purple-600 focus:ring-purple-500 focus:ring-2 rounded mr-2"
 
     set :filter_multiselect_label_class,
+        "text-sm font-medium text-purple-700 cursor-pointer select-none flex-1"
+
+    set :filter_multiselect_empty_class, "px-3 py-2 text-green-600 italic text-sm"
+
+    # Multi-checkboxes filter
+    set :filter_multicheckboxes_container_class, "space-y-3"
+    set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
+
+    set :filter_multicheckboxes_checkbox_class,
+        "h-4 w-4 text-pink-500 focus:ring-pink-400 focus:ring-2 rounded border border-pink-300 bg-white/80"
+
+    set :filter_multicheckboxes_label_class,
         "text-sm font-medium text-purple-700 cursor-pointer"
 
     # Range filters
@@ -105,16 +122,19 @@ defmodule Cinder.Themes.Pastel do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class,
-        "bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-2xl p-6 mt-6 shadow-lg"
-
+    set :pagination_wrapper_class, "p-6 mt-4"
     set :pagination_container_class, "flex items-center justify-between"
-
-    set :pagination_button_class,
-        "px-4 py-2 text-sm font-medium text-purple-700 bg-white/80 border border-purple-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
 
     set :pagination_info_class, "text-sm text-blue-700 font-medium"
     set :pagination_count_class, "text-xs text-green-600 ml-2"
+
+    set :pagination_nav_class, "flex items-center space-x-1"
+
+    set :pagination_button_class,
+        "px-3 py-1 text-sm font-medium text-purple-700 bg-white/80 border border-purple-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+
+    set :pagination_current_class,
+        "px-3 py-1 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 border border-purple-500 rounded-xl shadow-sm"
   end
 
   component Cinder.Components.Sorting do
@@ -122,7 +142,7 @@ defmodule Cinder.Themes.Pastel do
     set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
     set :sort_asc_icon_class, "w-4 h-4 text-purple-500"
     set :sort_desc_icon_class, "w-4 h-4 text-pink-500"
-    set :sort_none_icon_class, "w-4 h-4 text-gray-400 opacity-50"
+    set :sort_none_icon_class, "w-4 h-4 text-gray-500 opacity-75"
   end
 
   component Cinder.Components.Loading do

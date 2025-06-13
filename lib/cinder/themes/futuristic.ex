@@ -21,7 +21,7 @@ defmodule Cinder.Themes.Futuristic do
 
     set :table_wrapper_class, "overflow-x-auto bg-slate-900/50"
     set :table_class, "w-full border-collapse"
-    set :thead_class, "bg-gradient-to-r from-blue-900/40 to-green-900/40 backdrop-blur-sm"
+    set :thead_class, "bg-gradient-to-r from-blue-900/60 to-green-900/60"
     set :tbody_class, "divide-y divide-blue-500/20"
     set :header_row_class, ""
 
@@ -80,8 +80,8 @@ defmodule Cinder.Themes.Futuristic do
         "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex space-x-8"
-    set :filter_boolean_option_class, "flex items-center space-x-3"
+    set :filter_boolean_container_class, "flex space-x-8 h-[48px] items-center"
+    set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
         "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60"
@@ -89,14 +89,32 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_boolean_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
 
-    # Multi-select filter
-    set :filter_multiselect_container_class, "space-y-3"
-    set :filter_multiselect_option_class, "flex items-center space-x-3"
+    # Multi-select filter (dropdown interface)
+    set :filter_multiselect_container_class, "relative"
+
+    set :filter_multiselect_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-slate-900/95 border border-blue-500/40 shadow-2xl shadow-blue-500/20 backdrop-blur-sm max-h-60 overflow-auto"
+
+    set :filter_multiselect_option_class,
+        "px-3 py-2 hover:bg-blue-950/60 border-b border-blue-500/20 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60"
+        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60 mr-2"
 
     set :filter_multiselect_label_class,
+        "text-sm font-light text-blue-100 cursor-pointer tracking-wide select-none flex-1"
+
+    set :filter_multiselect_empty_class,
+        "px-3 py-2 text-blue-300/70 italic font-light tracking-wide text-sm"
+
+    # Multi-checkboxes filter
+    set :filter_multicheckboxes_container_class, "space-y-3"
+    set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
+
+    set :filter_multicheckboxes_checkbox_class,
+        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60"
+
+    set :filter_multicheckboxes_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
 
     # Range filters
@@ -105,16 +123,19 @@ defmodule Cinder.Themes.Futuristic do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class,
-        "bg-slate-950/80 border border-blue-500/30 p-6 mt-6 shadow-2xl shadow-blue-500/10 backdrop-blur-sm bg-gradient-to-r from-slate-950/80 to-blue-950/20"
-
+    set :pagination_wrapper_class, "p-6 mt-4"
     set :pagination_container_class, "flex items-center justify-between"
-
-    set :pagination_button_class,
-        "px-4 py-2 text-sm font-light text-blue-100 bg-slate-900/60 border border-blue-500/40 hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:border-green-400/60 hover:shadow-lg hover:shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed tracking-wide backdrop-blur-sm"
 
     set :pagination_info_class, "text-sm text-blue-100 font-light tracking-wide"
     set :pagination_count_class, "text-xs text-green-400 ml-2 font-light tracking-wider"
+
+    set :pagination_nav_class, "flex items-center space-x-1"
+
+    set :pagination_button_class,
+        "px-3 py-1 text-sm font-light text-blue-100 bg-slate-900/60 border border-blue-500/40 rounded hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:border-green-400/60 hover:shadow-lg hover:shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed tracking-wide backdrop-blur-sm"
+
+    set :pagination_current_class,
+        "px-3 py-1 text-sm font-light text-black bg-gradient-to-r from-green-400 to-blue-400 border border-green-400 rounded shadow-lg shadow-green-400/20 tracking-wide"
   end
 
   component Cinder.Components.Sorting do
@@ -122,7 +143,7 @@ defmodule Cinder.Themes.Futuristic do
     set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
     set :sort_asc_icon_class, "w-4 h-4 text-green-400 drop-shadow-sm drop-shadow-green-400/50"
     set :sort_desc_icon_class, "w-4 h-4 text-blue-400 drop-shadow-sm drop-shadow-blue-400/50"
-    set :sort_none_icon_class, "w-4 h-4 text-slate-500 opacity-40"
+    set :sort_none_icon_class, "w-4 h-4 text-slate-400 opacity-65"
   end
 
   component Cinder.Components.Loading do

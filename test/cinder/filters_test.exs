@@ -66,6 +66,7 @@ defmodule Cinder.FiltersTest do
       assert filters[:text] == Text
       assert filters[:select] == Select
       assert filters[:multi_select] == MultiSelect
+      assert filters[:multi_checkboxes] == Cinder.Filters.MultiCheckboxes
       assert filters[:date_range] == DateRange
       assert filters[:number_range] == NumberRange
       assert filters[:boolean] == Boolean
@@ -89,6 +90,7 @@ defmodule Cinder.FiltersTest do
       assert :text in types
       assert :select in types
       assert :multi_select in types
+      assert :multi_checkboxes in types
       assert :date_range in types
       assert :number_range in types
       assert :boolean in types
@@ -121,6 +123,10 @@ defmodule Cinder.FiltersTest do
 
       # Nil attribute should default to text
       assert Registry.infer_filter_type(nil) == :text
+
+      # Array type should infer to multi_select (tag-based interface)
+      array_attr = %{type: {:array, :string}}
+      assert Registry.infer_filter_type(array_attr) == :multi_select
     end
 
     test "default_options/2 returns correct defaults for each filter type" do
@@ -255,6 +261,51 @@ defmodule Cinder.FiltersTest do
 
       assert MultiSelect.empty?(["option1"]) == false
       assert MultiSelect.empty?(%{value: ["option1"]}) == false
+    end
+  end
+
+  describe "Cinder.Filters.MultiCheckboxes" do
+    alias Cinder.Filters.MultiCheckboxes
+
+    test "process/2 handles multi-checkbox input correctly" do
+      column = %{field: "tags"}
+
+      result = MultiCheckboxes.process(["option1", "option2"], column)
+
+      assert result == %{
+               type: :multi_checkboxes,
+               value: ["option1", "option2"],
+               operator: :in
+             }
+
+      result = MultiCheckboxes.process(["option1"], column)
+
+      assert result == %{
+               type: :multi_checkboxes,
+               value: ["option1"],
+               operator: :in
+             }
+
+      assert MultiCheckboxes.process([], column) == nil
+      assert MultiCheckboxes.process([""], column) == nil
+    end
+
+    test "validate/1 validates multi-checkbox filter values" do
+      valid_filter = %{type: :multi_checkboxes, value: ["option1", "option2"], operator: :in}
+      assert MultiCheckboxes.validate(valid_filter) == true
+
+      invalid_filter = %{type: :multi_checkboxes, value: [], operator: :in}
+      assert MultiCheckboxes.validate(invalid_filter) == false
+    end
+
+    test "empty?/1 correctly identifies empty multi-checkbox values" do
+      assert MultiCheckboxes.empty?(nil) == true
+      assert MultiCheckboxes.empty?([]) == true
+      assert MultiCheckboxes.empty?(%{value: []}) == true
+      assert MultiCheckboxes.empty?(%{value: nil}) == true
+
+      assert MultiCheckboxes.empty?(["option1"]) == false
+      assert MultiCheckboxes.empty?(%{value: ["option1"]}) == false
     end
   end
 
@@ -487,6 +538,7 @@ defmodule Cinder.FiltersTest do
         "title" => "search term",
         "status" => "active",
         "tags" => ["tag1", "tag2"],
+        "categories" => ["cat1", "cat2"],
         "price" => "100,200",
         "created_at" => "2024-01-01,2024-12-31",
         "featured" => "true"
@@ -496,6 +548,12 @@ defmodule Cinder.FiltersTest do
         %{field: "title", filterable: true, filter_type: :text, filter_options: []},
         %{field: "status", filterable: true, filter_type: :select, filter_options: []},
         %{field: "tags", filterable: true, filter_type: :multi_select, filter_options: []},
+        %{
+          field: "categories",
+          filterable: true,
+          filter_type: :multi_checkboxes,
+          filter_options: []
+        },
         %{field: "price", filterable: true, filter_type: :number_range, filter_options: []},
         %{field: "created_at", filterable: true, filter_type: :date_range, filter_options: []},
         %{field: "featured", filterable: true, filter_type: :boolean, filter_options: []}
@@ -522,6 +580,12 @@ defmodule Cinder.FiltersTest do
       assert result["tags"] == %{
                type: :multi_select,
                value: ["tag1", "tag2"],
+               operator: :in
+             }
+
+      assert result["categories"] == %{
+               type: :multi_checkboxes,
+               value: ["cat1", "cat2"],
                operator: :in
              }
 
@@ -553,6 +617,7 @@ defmodule Cinder.FiltersTest do
         "price" => %{type: :number_range, value: %{min: "100", max: "200"}},
         "created_at" => %{type: :date_range, value: %{from: "2024-01-01", to: "2024-12-31"}},
         "tags" => %{type: :multi_select, value: ["tag1", "tag2"]},
+        "categories" => %{type: :multi_checkboxes, value: ["cat1", "cat2"]},
         "featured" => %{type: :boolean, value: true}
       }
 
@@ -561,6 +626,7 @@ defmodule Cinder.FiltersTest do
         %{field: "price", filterable: true, filter_type: :number_range},
         %{field: "created_at", filterable: true, filter_type: :date_range},
         %{field: "tags", filterable: true, filter_type: :multi_select},
+        %{field: "categories", filterable: true, filter_type: :multi_checkboxes},
         %{field: "featured", filterable: true, filter_type: :boolean},
         %{field: "empty_field", filterable: true, filter_type: :text}
       ]
@@ -695,6 +761,8 @@ defmodule Cinder.FiltersTest do
         "type" => "sword",
         # multi-select
         "rarity" => ["rare", "epic"],
+        # multi-checkboxes
+        "tags" => ["weapon", "melee"],
         # number range
         "damage_min" => "50",
         "damage_max" => "100",
@@ -709,6 +777,7 @@ defmodule Cinder.FiltersTest do
         %{field: "name", filterable: true, filter_type: :text, filter_options: []},
         %{field: "type", filterable: true, filter_type: :select, filter_options: []},
         %{field: "rarity", filterable: true, filter_type: :multi_select, filter_options: []},
+        %{field: "tags", filterable: true, filter_type: :multi_checkboxes, filter_options: []},
         %{field: "damage", filterable: true, filter_type: :number_range, filter_options: []},
         %{field: "crafted", filterable: true, filter_type: :date_range, filter_options: []},
         %{field: "magical", filterable: true, filter_type: :boolean, filter_options: []}
@@ -720,6 +789,7 @@ defmodule Cinder.FiltersTest do
       assert result["name"][:type] == :text
       assert result["type"][:type] == :select
       assert result["rarity"][:type] == :multi_select
+      assert result["tags"][:type] == :multi_checkboxes
       assert result["damage"][:type] == :number_range
       assert result["crafted"][:type] == :date_range
       assert result["magical"][:type] == :boolean

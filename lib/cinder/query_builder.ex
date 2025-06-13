@@ -180,7 +180,7 @@ defmodule Cinder.QueryBuilder do
       {:text, :contains} ->
         if String.contains?(key, ".") do
           # Handle relationship fields using Ash path syntax
-          search_value = "%#{value}%"
+          search_value = Ash.CiString.new(value)
 
           # Build the path as a list of atoms for Ash filtering
           path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
@@ -199,14 +199,14 @@ defmodule Cinder.QueryBuilder do
           end
         else
           field_ref = Ash.Expr.ref(String.to_atom(key))
-          search_value = "%#{value}%"
+          search_value = Ash.CiString.new(value)
           Ash.Query.filter(query, contains(^field_ref, ^search_value))
         end
 
       {:text, :starts_with} ->
         if String.contains?(key, ".") do
           # Handle relationship fields using Ash path syntax
-          search_value = "#{value}%"
+          search_value = Ash.CiString.new(value)
 
           # Build the path as a list of atoms for Ash filtering
           path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
@@ -223,7 +223,7 @@ defmodule Cinder.QueryBuilder do
         else
           # Use contains filter that matches from the beginning
           field_ref = Ash.Expr.ref(String.to_atom(key))
-          search_value = "#{value}%"
+          search_value = Ash.CiString.new(value)
           Ash.Query.filter(query, contains(^field_ref, ^search_value))
         end
 
@@ -266,6 +266,25 @@ defmodule Cinder.QueryBuilder do
         end
 
       {:multi_select, :in} ->
+        if String.contains?(key, ".") do
+          # Handle relationship fields using Ash path syntax
+          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
+
+          # Use Ash.Query.filter with path syntax directly
+          case path_atoms do
+            [rel_atom, field_atom] ->
+              Ash.Query.filter(query, exists(^rel_atom, ^field_atom in ^value))
+
+            _ ->
+              # Fallback for complex paths - just return unmodified query
+              query
+          end
+        else
+          field_ref = Ash.Expr.ref(String.to_atom(key))
+          Ash.Query.filter(query, ^field_ref in ^value)
+        end
+
+      {:multi_checkboxes, :in} ->
         if String.contains?(key, ".") do
           # Handle relationship fields using Ash path syntax
           path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
