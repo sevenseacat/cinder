@@ -21,7 +21,7 @@ defmodule Cinder do
       <Cinder.Table.table
         resource={MyApp.Album}
         current_user={@current_user}
-        url_sync
+        url_state={@url_state}
         page_size={50}
         theme="modern"
       >

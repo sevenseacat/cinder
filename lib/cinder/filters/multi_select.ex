@@ -12,7 +12,8 @@ defmodule Cinder.Filters.MultiSelect do
 
   @impl true
   def render(column, current_value, theme, _assigns) do
-    options = get_option(column.filter_options, :options, [])
+    filter_options = Map.get(column, :filter_options, [])
+    options = get_option(filter_options, :options, [])
     selected_values = current_value || []
 
     assigns = %{

@@ -171,9 +171,9 @@ defmodule Cinder.Column do
   Merges slot configuration with inferred defaults.
   """
   def merge_config(slot, inferred) do
-    # Slot configuration takes precedence over inferred values
-    Map.merge(
-      inferred,
+    # Slot configuration takes precedence over inferred values, but preserve
+    # inferred filter_options when slot options are empty
+    slot_config =
       Map.take(slot, [
         :label,
         :sortable,
@@ -187,7 +187,17 @@ defmodule Cinder.Column do
         :searchable,
         :options
       ])
-    )
+
+    # Handle filter_options specially - only override if slot has non-empty options
+    slot_config =
+      case Map.get(slot_config, :filter_options, []) do
+        # Let inferred options take precedence
+        [] -> Map.delete(slot_config, :filter_options)
+        # Use slot options
+        _non_empty -> slot_config
+      end
+
+    Map.merge(inferred, slot_config)
   end
 
   # Private helper functions

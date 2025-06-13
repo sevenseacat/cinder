@@ -13,7 +13,8 @@ defmodule Cinder.Filters.Boolean do
   @impl true
   def render(column, current_value, theme, _assigns) do
     current_boolean_value = current_value || ""
-    options = get_option(column.filter_options, :labels, %{})
+    filter_options = Map.get(column, :filter_options, [])
+    options = get_option(filter_options, :labels, %{})
 
     all_label = Map.get(options, :all, "All")
     true_label = Map.get(options, true, "True")

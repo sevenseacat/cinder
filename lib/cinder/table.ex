@@ -132,6 +132,10 @@ defmodule Cinder.Table do
 
     attr(:filter, :any, doc: "Enable filtering (true, false, or filter type atom)")
 
+    attr(:filter_options, :list,
+      doc: "Custom filter options (e.g., [options: [{\"Label\", \"value\"}]])"
+    )
+
     attr(:sort, :boolean, doc: "Enable sorting")
     attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
     attr(:class, :string, doc: "CSS classes for this column")
@@ -199,7 +203,8 @@ defmodule Cinder.Table do
         key: field,
         sortable: sort_attr,
         filterable: filter_attr != false,
-        class: Map.get(slot, :class, "")
+        class: Map.get(slot, :class, ""),
+        filter_options: Map.get(slot, :filter_options, [])
       }
 
       # Let Column module infer filter type if needed, otherwise use explicit type

@@ -12,8 +12,9 @@ defmodule Cinder.Filters.Select do
 
   @impl true
   def render(column, current_value, theme, _assigns) do
-    options = get_option(column.filter_options, :options, [])
-    prompt = get_option(column.filter_options, :prompt, "All #{column.label}")
+    filter_options = Map.get(column, :filter_options, [])
+    options = get_option(filter_options, :options, [])
+    prompt = get_option(filter_options, :prompt, "All #{column.label}")
 
     assigns = %{
       column: column,

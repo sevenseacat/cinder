@@ -13,7 +13,8 @@ defmodule Cinder.Filters.Text do
 
   @impl true
   def render(column, current_value, theme, _assigns) do
-    placeholder = get_option(column.filter_options, :placeholder, "Filter #{column.label}...")
+    filter_options = Map.get(column, :filter_options, [])
+    placeholder = get_option(filter_options, :placeholder, "Filter #{column.label}...")
 
     assigns = %{
       column: column,
@@ -41,8 +42,9 @@ defmodule Cinder.Filters.Text do
     if trimmed == "" do
       nil
     else
-      operator = get_option(column.filter_options, :operator, :contains)
-      case_sensitive = get_option(column.filter_options, :case_sensitive, false)
+      filter_options = Map.get(column, :filter_options, [])
+      operator = get_option(filter_options, :operator, :contains)
+      case_sensitive = get_option(filter_options, :case_sensitive, false)
 
       %{
         type: :text,

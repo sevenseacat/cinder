@@ -253,20 +253,24 @@ defmodule Cinder.FilterManager do
   Infers filter configuration from Ash resource attribute definitions.
   """
   def infer_filter_config(key, resource, slot) do
-    # Skip inference if filterable is false or if both filter_type and filter_options are explicitly set
+    # Skip inference if filterable is false or if both filter_type and filter_options are explicitly set with content
+    has_custom_options = Map.get(slot, :filter_options, []) != []
+
     if not Map.get(slot, :filterable, false) or
-         (Map.has_key?(slot, :filter_type) and Map.has_key?(slot, :filter_options)) do
+         (Map.has_key?(slot, :filter_type) and has_custom_options) do
       %{filter_type: :text, filter_options: []}
     else
       attribute = get_ash_attribute(resource, key)
 
-      filter_type = Registry.infer_filter_type(attribute, key)
+      # Use explicit filter_type if provided, otherwise infer it
+      filter_type = Map.get(slot, :filter_type) || Registry.infer_filter_type(attribute, key)
       default_options = Registry.default_options(filter_type, key)
 
       # Enhance options with Ash-specific data for select/multi_select filters
       enhanced_options =
         case filter_type do
           :select -> enhance_select_options(default_options, attribute, key)
+          :multi_select -> enhance_select_options(default_options, attribute, key)
           _ -> default_options
         end
 
@@ -324,8 +328,41 @@ defmodule Cinder.FilterManager do
 
       # Check if this is actually an Ash resource using Ash.Resource.Info.resource?/1
       if Ash.Resource.Info.resource?(resource) do
+        # First check regular attributes
         attributes = Ash.Resource.Info.attributes(resource)
-        Enum.find(attributes, &(&1.name == key_atom))
+        attribute = Enum.find(attributes, &(&1.name == key_atom))
+
+        if attribute do
+          attribute
+        else
+          # Check aggregates - they should be treated as their type for filtering
+          aggregates = Ash.Resource.Info.aggregates(resource)
+          aggregate = Enum.find(aggregates, &(&1.name == key_atom))
+
+          if aggregate do
+            # Convert aggregate to attribute-like structure for type inference
+            # Count aggregates should be treated as integers
+            case aggregate.kind do
+              :count -> %{name: key_atom, type: :integer}
+              :sum -> %{name: key_atom, type: aggregate.field_type || :integer}
+              :avg -> %{name: key_atom, type: :decimal}
+              :max -> %{name: key_atom, type: aggregate.field_type || :integer}
+              :min -> %{name: key_atom, type: aggregate.field_type || :integer}
+              _ -> %{name: key_atom, type: :integer}
+            end
+          else
+            # Check calculations as well
+            calculations = Ash.Resource.Info.calculations(resource)
+            calculation = Enum.find(calculations, &(&1.name == key_atom))
+
+            if calculation do
+              # Convert calculation to attribute-like structure
+              %{name: key_atom, type: calculation.type}
+            else
+              nil
+            end
+          end
+        end
       else
         nil
       end
@@ -354,9 +391,14 @@ defmodule Cinder.FilterManager do
 
   defp extract_enum_options(%{type: type, constraints: constraints}) do
     cond do
-      # Handle constraint-based enums (new Ash format)
-      is_map(constraints) and Map.has_key?(constraints, :one_of) ->
-        values = Map.get(constraints, :one_of)
+      # Handle constraint-based enums (new Ash format) - constraints can be a map or keyword list
+      (is_map(constraints) and Map.has_key?(constraints, :one_of)) or
+          (is_list(constraints) and Keyword.has_key?(constraints, :one_of)) ->
+        values =
+          if is_map(constraints),
+            do: Map.get(constraints, :one_of),
+            else: Keyword.get(constraints, :one_of)
+
         enum_to_options(values, type)
 
       # Handle Ash.Type.Enum and custom enum types
