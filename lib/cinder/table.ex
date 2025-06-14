@@ -7,7 +7,7 @@ defmodule Cinder.Table do
 
   ## Basic Usage
 
-      <Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+      <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
         <:col field="name" filter sort>Name</:col>
         <:col field="email" filter>Email</:col>
         <:col field="created_at" sort>Created</:col>
@@ -17,7 +17,7 @@ defmodule Cinder.Table do
 
       <Cinder.Table.table
         resource={MyApp.Album}
-        current_user={@current_user}
+        actor={@current_user}
         url_state={@url_state}
         page_size={50}
         theme="modern"
@@ -57,7 +57,7 @@ defmodule Cinder.Table do
   ## Attributes
 
   - `resource` (required) - Ash resource module to query
-  - `current_user` (required) - Current user for authorization
+  - `actor` (required) - Actor for authorization
   - `id` - Component ID (defaults to "cinder-table")
   - `page_size` - Number of items per page (default: 25)
   - `theme` - Theme preset or custom theme map (default: "default")
@@ -100,7 +100,7 @@ defmodule Cinder.Table do
   use Phoenix.Component
 
   attr(:resource, :atom, required: true, doc: "The Ash resource to query")
-  attr(:current_user, :any, default: nil, doc: "Current user for authorization")
+  attr(:actor, :any, default: nil, doc: "Actor for authorization")
   attr(:id, :string, default: "cinder-table", doc: "Unique identifier for the table")
   attr(:page_size, :integer, default: 25, doc: "Number of items per page")
   attr(:theme, :any, default: "default", doc: "Theme name or theme map")
@@ -175,7 +175,7 @@ defmodule Cinder.Table do
         module={Cinder.Table.LiveComponent}
         id={@id}
         query={@resource}
-        current_user={@current_user}
+        actor={@actor}
         page_size={@page_size}
         theme={resolve_theme(@theme)}
         url_filters={get_url_filters(@url_state)}
@@ -359,7 +359,7 @@ defmodule Cinder.Table do
 
   ## Examples
 
-      <Cinder.Table.table resource={User} current_user={@user} class={responsive_classes()}>
+      <Cinder.Table.table resource={User} actor={@user} class={responsive_classes()}>
         <:col field="name" filter sort class={responsive_col_classes(:name)}>Name</:col>
       </Cinder.Table.table>
   """

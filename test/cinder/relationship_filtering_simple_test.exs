@@ -363,7 +363,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
     test "renders table with relationship filter inputs" do
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "title", filter: :text, __slot__: :col},
           %{field: "artist.name", filter: :text, __slot__: :col},
@@ -385,7 +385,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
     test "renders table with nested relationship fields" do
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "title", __slot__: :col},
           %{field: "artist.name", __slot__: :col}
@@ -404,7 +404,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
     test "handles relationship filter form with correct input names" do
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "title", filter: :text, __slot__: :col},
           %{field: "artist.name", filter: :text, __slot__: :col}
@@ -421,7 +421,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
     test "handles different relationship filter types" do
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "title", filter: :text, __slot__: :col},
           %{

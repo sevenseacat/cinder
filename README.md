@@ -7,7 +7,7 @@ A powerful, intelligent data table component for Phoenix LiveView applications w
 Cinder transforms complex data table requirements into simple, declarative markup. With automatic type inference and intelligent defaults, you can build feature-rich tables with minimal configuration.
 
 ```elixir
-<Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let="user" field="name" filter sort>{user.name}</:col>
   <:col :let="user" field="email" filter>{user.email}</:col>
   <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
@@ -52,7 +52,7 @@ end
 ### Basic Table
 
 ```elixir
-<Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let="user" field="name" filter sort>{user.name}</:col>
   <:col :let="user" field="email" filter>{user.email}</:col>
   <:col :let="user" field="skills" filter={:multi_select}>{Enum.join(user.skills, ", ")}</:col>
@@ -82,7 +82,7 @@ defmodule MyAppWeb.UsersLive do
     ~H"""
     <Cinder.Table.table
       resource={MyApp.User}
-      current_user={@current_user}
+      actor={@current_user}
       url_state={@url_state}
     >
       <:col :let="user" field="name" filter sort>{user.name}</:col>

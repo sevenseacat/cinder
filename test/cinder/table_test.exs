@@ -78,7 +78,7 @@ defmodule Cinder.TableTest do
     test "renders basic table with minimal configuration" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "name", __slot__: :col},
           %{field: "email", __slot__: :col}
@@ -106,7 +106,7 @@ defmodule Cinder.TableTest do
     test "accepts custom configuration" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         id: "custom-table",
         page_size: 50,
         theme: "modern",
@@ -128,7 +128,7 @@ defmodule Cinder.TableTest do
       # Test that columns are processed with the expected structure
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "name", filter: true, sort: true, label: "Full Name", __slot__: :col}
         ]
@@ -144,7 +144,7 @@ defmodule Cinder.TableTest do
     test "handles relationship fields" do
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "artist.name", filter: true, sort: true, __slot__: :col}
         ]
@@ -160,7 +160,7 @@ defmodule Cinder.TableTest do
     test "handles various filter types" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "name", filter: :text, __slot__: :col},
           %{field: "age", filter: :number_range, __slot__: :col},
@@ -182,7 +182,7 @@ defmodule Cinder.TableTest do
     test "auto-detects filters when columns are filterable" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "name", filter: true, __slot__: :col}
         ]
@@ -198,7 +198,7 @@ defmodule Cinder.TableTest do
     test "respects explicit show_filters setting" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         show_filters: false,
         col: [
           %{field: "name", filter: true, __slot__: :col}
@@ -219,7 +219,7 @@ defmodule Cinder.TableTest do
     test "applies theme presets correctly" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         theme: "modern",
         col: [%{field: "name", __slot__: :col}]
       }
@@ -233,7 +233,7 @@ defmodule Cinder.TableTest do
     test "handles custom theme maps" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         theme: %{container_class: "custom-container"},
         col: [%{field: "name", __slot__: :col}]
       }
@@ -250,7 +250,7 @@ defmodule Cinder.TableTest do
     test "enables URL sync correctly" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         url_sync: true,
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
@@ -293,7 +293,7 @@ defmodule Cinder.TableTest do
     test "infers number range filter for integer fields" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "age", filter: true, __slot__: :col}
         ]
@@ -311,7 +311,7 @@ defmodule Cinder.TableTest do
     test "uses explicit filter type when specified" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: [
           %{field: "age", filter: :text, __slot__: :col}
         ]
@@ -330,7 +330,7 @@ defmodule Cinder.TableTest do
     test "sets up correct callback when url_sync is enabled" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         url_sync: true,
         id: "test-table",
         col: [%{field: "name", filter: true, __slot__: :col}]
@@ -350,7 +350,7 @@ defmodule Cinder.TableTest do
     test "works without url_sync enabled" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         url_sync: false,
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
@@ -366,7 +366,7 @@ defmodule Cinder.TableTest do
     test "passes query_opts to underlying component" do
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         query_opts: [load: [:artist]],
         col: [
           %{field: "title", __slot__: :col},
@@ -385,7 +385,7 @@ defmodule Cinder.TableTest do
     test "works without query_opts" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: [%{field: "name", __slot__: :col}]
       }
 
@@ -399,7 +399,7 @@ defmodule Cinder.TableTest do
     test "supports relationship fields when query_opts loads them" do
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         query_opts: [load: [:artist, :publisher]],
         col: [
           %{field: "title", filter: true, sort: true, __slot__: :col},
@@ -422,7 +422,7 @@ defmodule Cinder.TableTest do
     test "handles empty column list" do
       assigns = %{
         resource: TestUser,
-        current_user: nil,
+        actor: nil,
         col: []
       }
 
@@ -436,7 +436,7 @@ defmodule Cinder.TableTest do
       # This would normally cause issues but should be handled by the underlying component
       assigns = %{
         resource: nil,
-        current_user: nil,
+        actor: nil,
         col: [%{field: "name", __slot__: :col}]
       }
 

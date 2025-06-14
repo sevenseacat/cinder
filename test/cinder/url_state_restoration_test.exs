@@ -192,7 +192,7 @@ defmodule Cinder.UrlStateRestorationTest do
       # Test assigns that would come from a parent LiveView using UrlSync
       assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         # These would be empty because extract_table_state uses empty columns
         url_filters: %{},
         url_page: 2,
@@ -428,7 +428,7 @@ defmodule Cinder.UrlStateRestorationTest do
       # 4. Parent passes these broken assigns to table component
       table_component_assigns = %{
         resource: TestAlbum,
-        current_user: nil,
+        actor: nil,
         url_sync: true,
         # Empty {}
         url_filters: parent_assigns.table_url_filters,

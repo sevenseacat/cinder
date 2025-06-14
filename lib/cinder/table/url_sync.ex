@@ -31,7 +31,7 @@ defmodule Cinder.Table.UrlSync do
           ~H\"\"\"
           <Cinder.Table.table
             resource={MyApp.User}
-            current_user={@current_user}
+            actor={@current_user}
             url_state={@url_state}
           >
             <:col field="name" filter sort>Name</:col>
@@ -231,7 +231,7 @@ defmodule Cinder.Table.UrlSync do
         ~H\"\"\"
         <Cinder.Table.table
           resource={MyApp.User}
-          current_user={@current_user}
+          actor={@current_user}
           url_state={@url_state}
         >
           <:col field="name" filter sort>Name</:col>
@@ -266,7 +266,7 @@ defmodule Cinder.Table.UrlSync do
         ~H\"\"\"
         <Cinder.Table.table
           resource={Album}
-          current_user={@current_user}
+          actor={@current_user}
           url_state={@url_state}
           theme="minimal"
         >
