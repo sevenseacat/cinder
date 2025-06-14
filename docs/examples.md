@@ -1,10 +1,19 @@
 # Cinder Examples
 
-This document provides comprehensive examples of using the Cinder table component with all available features and options.
+This document provides comprehensive examples and detailed reference for all Cinder table features. For a quick start, see the [README](../README.md).
+
+## Overview
+
+Cinder supports two parameter styles:
+- **`resource`** - Simple usage with Ash resource modules
+- **`query`** - Advanced usage with pre-configured Ash queries
+
+Choose `resource` for most cases, `query` for complex requirements like custom read actions, base filters, or admin interfaces.
 
 ## Table of Contents
 
 - [Basic Usage](#basic-usage)
+- [Resource vs Query](#resource-vs-query)
 - [Column Configuration](#column-configuration)
 - [Filter Types](#filter-types)
 - [Sorting](#sorting)
@@ -19,21 +28,81 @@ This document provides comprehensive examples of using the Cinder table componen
 
 ### Minimal Table
 
-The simplest possible table - just specify resource and current user:
+The simplest possible table:
 
 ```elixir
-<Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let="user" field="name">{user.name}</:col>
   <:col :let="user" field="email">{user.email}</:col>
 </Cinder.Table.table>
 ```
+
+## Resource vs Query
+
+Cinder supports two ways to specify what data to query: `resource` parameter (simple) or `query` parameter (advanced).
+
+### When to Use Resource
+
+Use the `resource` parameter for straightforward tables:
+
+```elixir
+<!-- Simple table with default read action -->
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let="user" field="email" filter>{user.email}</:col>
+</Cinder.Table.table>
+```
+
+**Best for:**
+- Getting started quickly
+- Standard use cases without custom requirements
+- Default read actions
+- Simple authorization scenarios
+
+### When to Use Query
+
+Use the `query` parameter for advanced scenarios:
+
+```elixir
+<!-- Custom read action -->
+<Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
+  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let="user" field="email" filter>{user.email}</:col>
+</Cinder.Table.table>
+
+<!-- Pre-filtered data -->
+<Cinder.Table.table query={MyApp.User |> Ash.Query.filter(department: "Engineering")} actor={@current_user}>
+  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let="user" field="department.name" filter>{user.department.name}</:col>
+</Cinder.Table.table>
+
+<!-- Admin interface with complex authorization -->
+<Cinder.Table.table 
+  query={MyApp.User 
+    |> Ash.Query.for_read(:admin_read, %{}, actor: @actor, authorize?: @authorizing)
+    |> Ash.Query.set_tenant(@tenant)
+    |> Ash.Query.filter(active: true)} 
+  actor={@actor}>
+  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let="user" field="email" filter>{user.email}</:col>
+  <:col :let="user" field="last_login" sort>{user.last_login}</:col>
+</Cinder.Table.table>
+```
+
+**Best for:**
+- Custom read actions (e.g., `:active_users`, `:admin_only`)
+- Pre-filtering data with base filters
+- Custom authorization settings
+- Tenant-specific queries
+- Admin interfaces with complex requirements
+- Integration with existing Ash query pipelines
 
 ### Automatic Label Generation
 
 Cinder automatically generates human-readable labels from field names:
 
 ```elixir
-<Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let="user" field="first_name">{user.first_name}</:col>      <!-- "First Name" -->
   <:col :let="user" field="email_address">{user.email_address}</:col>   <!-- "Email Address" -->
   <:col :let="user" field="created_at">{user.created_at}</:col>      <!-- "Created At" -->
@@ -47,7 +116,7 @@ Cinder automatically generates human-readable labels from field names:
 Override auto-generated labels when needed:
 
 ```elixir
-<Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let="user" field="name" label="Full Name">{user.name}</:col>
   <:col :let="user" field="email" label="Email Address">{user.email}</:col>
   <:col :let="user" field="created_at" label="Joined">{user.created_at}</:col>
@@ -62,7 +131,7 @@ Override auto-generated labels when needed:
 Demonstration of every available column attribute:
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Product} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
   <!-- Basic column with all common attributes -->
   <:col
     :let="product"
@@ -125,10 +194,28 @@ Demonstration of every available column attribute:
 
 ## Filter Types
 
+Cinder automatically detects the right filter type based on your Ash resource attributes:
+
+- **String fields** → Text search
+- **Enum fields** → Select dropdown  
+- **Boolean fields** → True/false/any radio buttons
+- **Date/DateTime fields** → Date range picker
+- **Integer/Decimal fields** → Number range inputs
+- **Array fields** → Multi-select tag interface
+
+You can also explicitly specify filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:date_range`, `:number_range`
+
+### Multi-Select Options
+
+For multiple selection filtering, choose between:
+
+- **`:multi_select`** - Modern tag-based interface with dropdown (default for arrays)
+- **`:multi_checkboxes`** - Traditional checkbox interface
+
 ### Text Filter
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Article} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Article} actor={@current_user}>
   <!-- Basic text filter -->
   <:col :let="article" field="title" filter>{article.title}</:col>
 
@@ -160,7 +247,7 @@ Demonstration of every available column attribute:
 ### Select Filter
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Order} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
   <!-- Basic select filter (auto-detects enum options) -->
   <:col :let="order" field="status" filter>{String.capitalize(order.status)}</:col>
 
@@ -208,7 +295,7 @@ Demonstration of every available column attribute:
 ### Multi-Select Filter
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Book} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Book} actor={@current_user}>
   <!-- Multi-select for tags -->
   <:col
     field="tags"
@@ -255,7 +342,7 @@ Demonstration of every available column attribute:
 ### Boolean Filter
 
 ```elixir
-<Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <!-- Basic boolean filter -->
   <:col :let="user" field="is_active" filter>
     {if user.is_active, do: "Active", else: "Inactive"}
@@ -304,7 +391,7 @@ Demonstration of every available column attribute:
 ### Date Range Filter
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Event} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Event} actor={@current_user}>
   <!-- Basic date range filter -->
   <:col :let="event" field="created_at" filter={:date_range}>
     {Calendar.strftime(event.created_at, "%B %d, %Y")}
@@ -341,7 +428,7 @@ Demonstration of every available column attribute:
 ### Number Range Filter
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Property} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Property} actor={@current_user}>
   <!-- Basic number range -->
   <:col :let="property" field="price" filter={:number_range}>
     ${Number.Currency.number_to_currency(property.price)}
@@ -395,7 +482,7 @@ Demonstration of every available column attribute:
 ### Basic Sorting
 
 ```elixir
-<Cinder.Table.table resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <!-- Sortable columns -->
   <:col :let="user" field="name" sort>{user.name}</:col>
   <:col :let="user" field="email" sort>{user.email}</:col>
@@ -409,7 +496,7 @@ Demonstration of every available column attribute:
 ### Combined Filter and Sort
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Product} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
   <:col :let="product" field="name" filter sort>{product.name}</:col>
   <:col :let="product" field="price" filter={:number_range} sort>${product.price}</:col>
   <:col :let="product" field="category" filter={:select} sort>{product.category}</:col>
@@ -425,7 +512,7 @@ Demonstration of every available column attribute:
 <!-- Default theme -->
 <Cinder.Table.table
   resource={MyApp.User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="default"
 >
   <:col :let="user" field="name" filter sort>{user.name}</:col>
@@ -434,7 +521,7 @@ Demonstration of every available column attribute:
 <!-- Modern theme -->
 <Cinder.Table.table
   resource={MyApp.User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="modern"
 >
   <:col :let="user" field="name" filter sort>{user.name}</:col>
@@ -443,7 +530,7 @@ Demonstration of every available column attribute:
 <!-- Minimal theme -->
 <Cinder.Table.table
   resource={MyApp.User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="minimal"
 >
   <:col :let="user" field="name" filter sort>{user.name}</:col>
@@ -455,7 +542,7 @@ Demonstration of every available column attribute:
 ```elixir
 <Cinder.Table.table
   resource={MyApp.User}
-  current_user={@current_user}
+  actor={@current_user}
   theme={%{
     # Container styling
     container_class: "bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-200",
@@ -530,7 +617,7 @@ defmodule MyAppWeb.UsersLive do
 
       <Cinder.Table.table
         resource={MyApp.User}
-        current_user={@current_user}
+        actor={@current_user}
         url_state={@url_state}
         id="users-table"
         page_size={25}
@@ -541,6 +628,46 @@ defmodule MyAppWeb.UsersLive do
         <:col :let="user" field="is_active" filter={:boolean}>
           {if user.is_active, do: "Active", else: "Inactive"}
         </:col>
+      </Cinder.Table.table>
+    </div>
+    """
+  end
+end
+```
+
+### URL State Management with Query Parameter
+
+You can also use pre-configured queries with URL sync:
+
+```elixir
+defmodule MyAppWeb.ActiveUsersLive do
+  use MyAppWeb, :live_view
+  use Cinder.Table.UrlSync
+
+  def mount(_params, _session, socket) do
+    current_user = get_current_user(socket)
+    {:ok, assign(socket, :current_user, current_user)}
+  end
+
+  def handle_params(params, uri, socket) do
+    socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
+    {:noreply, socket}
+  end
+
+  def render(assigns) do
+    ~H"""
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-8">Active Users</h1>
+
+      <Cinder.Table.table
+        query={MyApp.User |> Ash.Query.filter(active: true)}
+        actor={@current_user}
+        url_state={@url_state}
+        id="active-users-table"
+      >
+        <:col :let="user" field="name" filter sort>{user.name}</:col>
+        <:col :let="user" field="email" filter>{user.email}</:col>
+        <:col :let="user" field="last_login" sort>{user.last_login}</:col>
       </Cinder.Table.table>
     </div>
     """
@@ -571,7 +698,7 @@ With URL sync enabled, your table state is preserved in the URL:
 ### Basic Relationships
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Album} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
   <:col :let="album" field="title" filter sort>{album.title}</:col>
   <:col :let="album" field="artist.name" filter sort>{album.artist.name}</:col>
   <:col :let="album" field="artist.country" filter>{album.artist.country}</:col>
@@ -582,7 +709,7 @@ With URL sync enabled, your table state is preserved in the URL:
 ### Deep Relationships
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Employee} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Employee} actor={@current_user}>
   <:col :let="employee" field="name" filter sort>{employee.name}</:col>
   <:col :let="employee" field="department.name" filter sort>{employee.department.name}</:col>
   <:col :let="employee" field="department.manager.name" filter>{employee.department.manager.name}</:col>
@@ -593,7 +720,7 @@ With URL sync enabled, your table state is preserved in the URL:
 ### Relationship Filters with Custom Options
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Order} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
   <:col :let="order" field="number" filter sort>#{order.number}</:col>
   <:col :let="order" field="customer.name" filter sort>{order.customer.name}</:col>
 
@@ -634,7 +761,7 @@ With URL sync enabled, your table state is preserved in the URL:
 #### Progress Bars and Indicators
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Project} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Project} actor={@current_user}>
   <:col :let="project" field="name" filter sort>
     {project.name}
   </:col>
@@ -676,7 +803,7 @@ With URL sync enabled, your table state is preserved in the URL:
 #### Image Thumbnails and Rich Content
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Product} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
   <!-- Product with thumbnail -->
   <:col :let="product" field="name" filter sort class="w-1/3">
     <div class="flex items-center space-x-3">
@@ -744,7 +871,7 @@ Every available option demonstrated:
 <Cinder.Table.table
   # Required attributes
   resource={MyApp.User}
-  current_user={@current_user}
+  actor={@current_user}
 
   # Component configuration
   id="advanced-users-table"
@@ -907,7 +1034,7 @@ Every available option demonstrated:
 ```elixir
 <Cinder.Table.table
   resource={MyApp.Order}
-  current_user={@current_user}
+  actor={@current_user}
   # Preload only what you need
   query_opts={[
     load: [
@@ -936,7 +1063,7 @@ Every available option demonstrated:
 Only enable filters where users actually need them:
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Product} current_user={@current_user}>
+<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
   <!-- Internal ID - no filter needed -->
   <:col :let="product" field="id" sort>{product.id}</:col>
 
@@ -955,7 +1082,7 @@ Only enable filters where users actually need them:
 ```elixir
 <Cinder.Table.table
   resource={MyApp.User}
-  current_user={@current_user}
+  actor={@current_user}
   query_opts={[
     # Efficient loading of relationships
     load: [:department, :profile],

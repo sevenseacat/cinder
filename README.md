@@ -11,7 +11,6 @@ Cinder transforms complex data table requirements into simple, declarative marku
   <:col :let="user" field="name" filter sort>{user.name}</:col>
   <:col :let="user" field="email" filter>{user.email}</:col>
   <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
-  <:col :let="user" field="tags" filter={:multi_select}>{Enum.join(user.tags, ", ")}</:col>
 </Cinder.Table.table>
 ```
 
@@ -55,23 +54,29 @@ end
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let="user" field="name" filter sort>{user.name}</:col>
   <:col :let="user" field="email" filter>{user.email}</:col>
-  <:col :let="user" field="skills" filter={:multi_select}>{Enum.join(user.skills, ", ")}</:col>
   <:col :let="user" field="created_at" sort>{user.created_at}</:col>
 </Cinder.Table.table>
 ```
 
-### With URL State Management
+### Advanced Query Usage
 
-First, add the URL sync helper to your LiveView:
+For complex requirements, use the `query` parameter:
+
+```elixir
+<Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
+  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let="user" field="email" filter>{user.email}</:col>
+</Cinder.Table.table>
+```
+
+### URL State Management
+
+Add URL sync for bookmarkable table states:
 
 ```elixir
 defmodule MyAppWeb.UsersLive do
   use MyAppWeb, :live_view
   use Cinder.Table.UrlSync
-
-  def mount(_params, _session, socket) do
-    {:ok, assign(socket, :current_user, get_current_user())}
-  end
 
   def handle_params(params, uri, socket) do
     socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
@@ -80,64 +85,22 @@ defmodule MyAppWeb.UsersLive do
 
   def render(assigns) do
     ~H"""
-    <Cinder.Table.table
-      resource={MyApp.User}
-      actor={@current_user}
-      url_state={@url_state}
-    >
+    <Cinder.Table.table resource={MyApp.User} actor={@current_user} url_state={@url_state}>
       <:col :let="user" field="name" filter sort>{user.name}</:col>
-      <:col :let="user" field="email" filter>{user.email}</:col>
-      <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
-      <:col :let="user" field="roles" filter={:multi_checkboxes}>{Enum.join(user.roles, ", ")}</:col>
     </Cinder.Table.table>
     """
   end
 end
 ```
 
-This enables bookmarkable URLs like:
-```
-/users?name=john&department.name=engineering&roles=admin,user&page=2&sort=-created_at
-```
-
-## Filter Types
-
-Cinder automatically detects the right filter type:
-
-- **String fields** → Text search
-- **Enum fields** → Select dropdown
-- **Boolean fields** → True/false/any radio buttons
-- **Date/DateTime fields** → Date range picker
-- **Integer/Decimal fields** → Number range inputs
-- **Array fields** → Multi-select tag interface
-
-### Multi-Select Options
-
-For multiple selection filtering, choose between two interfaces:
-
-- **`:multi_select`** - Modern tag-based interface with dropdown (default for arrays)
-  - Selected items displayed as removable tags
-  - Dropdown shows available options to add
-  - Better for long option lists
-  
-- **`:multi_checkboxes`** - Traditional checkbox interface
-  - All options displayed as checkboxes
-  - Better for short, familiar option lists
-
-```elixir
-<!-- Use tag interface (default for array fields) -->
-<:col field="tags" filter={:multi_select} />
-
-<!-- Use checkbox interface -->
-<:col field="categories" filter={:multi_checkboxes} />
-```
-
 ## Documentation
 
-- **[Complete Examples](docs/examples.md)** - Comprehensive usage examples
+- **[Complete Examples](docs/examples.md)** - Comprehensive usage examples for all features
 - **[Theming Guide](docs/theming.md)** - How to develop and use table themes
 - **[Module Documentation](https://hexdocs.pm/cinder)** - Full API reference
 - **[Hex Package](https://hex.pm/packages/cinder)** - Package information
+
+For detailed examples of filters, sorting, theming, relationships, and advanced query usage, see the [examples documentation](docs/examples.md).
 
 ## Requirements
 

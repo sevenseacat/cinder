@@ -39,6 +39,20 @@ defmodule Cinder.Table.UrlSync do
           </Cinder.Table.table>
           \"\"\"
         end
+
+        # Or with a pre-configured query:
+        def render_with_query(assigns) do
+          ~H\"\"\"
+          <Cinder.Table.table
+            query={MyApp.User |> Ash.Query.filter(active: true)}
+            actor={@current_user}
+            url_state={@url_state}
+          >
+            <:col field="name" filter sort>Name</:col>
+            <:col field="email" filter>Email</:col>
+          </Cinder.Table.table>
+          \"\"\"
+        end
       end
 
   The helper automatically:

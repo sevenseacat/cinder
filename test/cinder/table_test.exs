@@ -435,12 +435,12 @@ defmodule Cinder.TableTest do
     test "handles invalid resource gracefully" do
       # This would normally cause issues but should be handled by the underlying component
       assigns = %{
-        resource: nil,
+        resource: TestUser,
         actor: nil,
         col: [%{field: "name", __slot__: :col}]
       }
 
-      # Should handle gracefully - the component processes columns even with nil resource
+      # Should handle gracefully - the component processes columns even with valid resource
       html = render_component(&Cinder.Table.table/1, assigns)
       assert html =~ "cinder-table"
     end

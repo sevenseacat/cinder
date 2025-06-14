@@ -1,4 +1,4 @@
-# Cinder Theming System
+# Theming
 
 Cinder provides a comprehensive theming system that allows complete visual customization of your tables. With 10 built-in themes and a powerful DSL for creating custom themes, you can match any design system or create unique visual experiences.
 

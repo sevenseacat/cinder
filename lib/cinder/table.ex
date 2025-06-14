@@ -7,13 +7,38 @@ defmodule Cinder.Table do
 
   ## Basic Usage
 
+  ### With Resource Parameter (Simple)
+
       <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
         <:col field="name" filter sort>Name</:col>
         <:col field="email" filter>Email</:col>
         <:col field="created_at" sort>Created</:col>
       </Cinder.Table.table>
 
-  ## Advanced Usage
+  ### With Query Parameter (Advanced)
+
+      <!-- Using resource as query -->
+      <Cinder.Table.table query={MyApp.User} actor={@current_user}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+        <:col field="created_at" sort>Created</:col>
+      </Cinder.Table.table>
+
+      <!-- Pre-configured query with custom read action -->
+      <Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+        <:col field="created_at" sort>Created</:col>
+      </Cinder.Table.table>
+
+      <!-- Query with base filters -->
+      <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(department: "Engineering")} actor={@current_user}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+        <:col field="department.name" filter>Department</:col>
+      </Cinder.Table.table>
+
+  ## Advanced Configuration
 
       <Cinder.Table.table
         resource={MyApp.Album}
@@ -28,15 +53,24 @@ defmodule Cinder.Table do
         <:col field="artist.name" filter sort>
           Artist
         </:col>
-        <:col field="release_date" filter={:date_range} sort>
-          Released
+        <:col field="genre" filter={:select}>
+          Genre
         </:col>
-        <:col field="status" filter={:select} sort>
-          Status
-        </:col>
-        <:col field="actions" class="text-center">
-          <.link navigate={~p"/albums/\#{album.id}"}>View</.link>
-        </:col>
+      </Cinder.Table.table>
+
+  ## Complex Query Examples
+
+      <!-- Admin interface with authorization and tenant -->
+      <Cinder.Table.table
+        query={MyApp.User
+          |> Ash.Query.for_read(:admin_read, %{}, actor: @actor, authorize?: @authorizing)
+          |> Ash.Query.set_tenant(@tenant)
+          |> Ash.Query.filter(active: true)}
+        actor={@actor}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+        <:col field="last_login" sort>Last Login</:col>
+        <:col field="role" filter={:select}>Role</:col>
       </Cinder.Table.table>
 
   ## Features
@@ -56,19 +90,40 @@ defmodule Cinder.Table do
 
   ## Attributes
 
-  - `resource` (required) - Ash resource module to query
-  - `actor` (required) - Actor for authorization
+  ### Resource/Query (Choose One)
+  - `resource` - Ash resource module to query (use either resource or query, not both)
+  - `query` - Ash query to execute (use either resource or query, not both)
+
+  ### Required
+  - `actor` - Actor for authorization (can be nil)
+
+  ### Optional Configuration
   - `id` - Component ID (defaults to "cinder-table")
   - `page_size` - Number of items per page (default: 25)
   - `theme` - Theme preset or custom theme map (default: "default")
-  - `url_state` - URL state object from UrlSync.handle_params, or false to disable URL synchronization - requires parent LiveView to handle `:table_state_change` messages
+  - `url_state` - URL state object from UrlSync.handle_params, or false to disable URL synchronization
   - `query_opts` - Additional query options for Ash (default: [])
   - `on_state_change` - Callback for state changes
   - `show_filters` - Show filter controls (default: auto-detect from columns)
   - `show_pagination` - Show pagination controls (default: true)
   - `loading_message` - Custom loading message
   - `empty_message` - Custom empty state message
-  - `class` - Additional CSS classes for container
+  - `class` - Additional CSS classes
+
+  ## When to Use Resource vs Query
+
+  **Use `resource` for:**
+  - Simple tables with default read actions
+  - Getting started quickly
+  - Standard use cases without custom requirements
+
+  **Use `query` for:**
+  - Custom read actions (e.g., `:active_users`, `:admin_only`)
+  - Pre-filtering data with base filters
+  - Custom authorization settings
+  - Tenant-specific queries
+  - Admin interfaces with complex requirements
+  - Integration with existing Ash query pipelines
 
   ## Column Slot
 
@@ -99,7 +154,16 @@ defmodule Cinder.Table do
 
   use Phoenix.Component
 
-  attr(:resource, :atom, required: true, doc: "The Ash resource to query")
+  attr(:resource, :atom,
+    default: nil,
+    doc: "The Ash resource to query (use either resource or query, not both)"
+  )
+
+  attr(:query, :any,
+    default: nil,
+    doc: "The Ash query to execute (use either resource or query, not both)"
+  )
+
   attr(:actor, :any, default: nil, doc: "Actor for authorization")
   attr(:id, :string, default: "cinder-table", doc: "Unique identifier for the table")
   attr(:page_size, :integer, default: 25, doc: "Number of items per page")
@@ -160,12 +224,17 @@ defmodule Cinder.Table do
       |> assign_new(:empty_message, fn -> "No results found" end)
       |> assign_new(:class, fn -> "" end)
 
+    # Validate and normalize query/resource parameters
+    normalized_query = normalize_query_params(assigns.resource, assigns.query)
+    resource = extract_resource_from_query(normalized_query)
+
     # Process columns and determine if filters should be shown
-    processed_columns = process_columns(assigns.col, assigns.resource)
+    processed_columns = process_columns(assigns.col, resource)
     show_filters = determine_show_filters(assigns, processed_columns)
 
     assigns =
       assigns
+      |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
       |> assign_new(:show_filters, fn -> show_filters end)
 
@@ -174,7 +243,7 @@ defmodule Cinder.Table do
       <.live_component
         module={Cinder.Table.LiveComponent}
         id={@id}
-        query={@resource}
+        query={@normalized_query}
         actor={@actor}
         page_size={@page_size}
         theme={resolve_theme(@theme)}
@@ -353,6 +422,30 @@ defmodule Cinder.Table do
   defp get_state_change_handler(_url_state, custom_handler, _table_id) do
     custom_handler
   end
+
+  # Query normalization and validation helpers
+  defp normalize_query_params(resource, query) do
+    case {resource, query} do
+      {nil, nil} ->
+        raise ArgumentError, "Either :resource or :query must be provided to Cinder.Table.table"
+
+      {resource, nil} when not is_nil(resource) ->
+        # Convert resource to query
+        Ash.Query.new(resource)
+
+      {nil, query} when not is_nil(query) ->
+        # Use provided query directly
+        query
+
+      {resource, query} when not is_nil(resource) and not is_nil(query) ->
+        raise ArgumentError,
+              "Cannot provide both :resource and :query to Cinder.Table.table. Use one or the other."
+    end
+  end
+
+  defp extract_resource_from_query(%Ash.Query{resource: resource}), do: resource
+  defp extract_resource_from_query(resource) when is_atom(resource), do: resource
+  defp extract_resource_from_query(_), do: nil
 
   @doc """
   Helper function to add CSS classes for responsive design.

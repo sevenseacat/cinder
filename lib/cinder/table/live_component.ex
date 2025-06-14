@@ -323,7 +323,7 @@ defmodule Cinder.Table.LiveComponent do
           {@theme.pagination_button_data}
           title="Previous page"
         >
-          &lt;
+          &lsaquo;
         </button>
 
         <!-- Page numbers -->
@@ -353,7 +353,7 @@ defmodule Cinder.Table.LiveComponent do
           {@theme.pagination_button_data}
           title="Next page"
         >
-          &gt;
+        &rsaquo;
         </button>
 
         <button
