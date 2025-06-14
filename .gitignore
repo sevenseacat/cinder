@@ -24,3 +24,6 @@ cinder-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Claude notes
+notes/
