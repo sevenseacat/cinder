@@ -5,10 +5,12 @@ defmodule Cinder.Filters.NumberRange do
   Provides numeric range filtering with min/max number inputs.
   """
 
-  @behaviour Cinder.Filters.Base
+  @behaviour Cinder.Filter
   use Phoenix.Component
 
-  import Cinder.Filters.Base
+  require Ash.Query
+  import Ash.Expr
+  import Cinder.Filter
 
   @impl true
   def render(column, current_value, theme, _assigns) do
@@ -147,4 +149,79 @@ defmodule Cinder.Filters.NumberRange do
   end
 
   defp valid_number?(_), do: false
+
+  @impl true
+  def build_query(query, field, filter_value) do
+    %{type: :number_range, value: %{min: min, max: max}} = filter_value
+
+    # Handle relationship fields using dot notation
+    if String.contains?(field, ".") do
+      # Build the path as a list of atoms for Ash filtering
+      path_atoms = field |> String.split(".") |> Enum.map(&String.to_atom/1)
+
+      # Handle any relationship path length: user.name, user.department.name, etc.
+      {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
+
+      case {min, max} do
+        {min_val, max_val} when min_val != "" and max_val != "" ->
+          min_num = parse_number(min_val)
+          max_num = parse_number(max_val)
+
+          Ash.Query.filter(
+            query,
+            exists(^rel_path, ^ref(field_atom) >= ^min_num and ^ref(field_atom) <= ^max_num)
+          )
+
+        {min_val, ""} when min_val != "" ->
+          min_num = parse_number(min_val)
+          Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) >= ^min_num))
+
+        {"", max_val} when max_val != "" ->
+          max_num = parse_number(max_val)
+          Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) <= ^max_num))
+
+        _ ->
+          query
+      end
+    else
+      # Direct field filtering
+      field_atom = String.to_atom(field)
+
+      case {min, max} do
+        {min_val, max_val} when min_val != "" and max_val != "" ->
+          min_num = parse_number(min_val)
+          max_num = parse_number(max_val)
+          Ash.Query.filter(query, ^ref(field_atom) >= ^min_num and ^ref(field_atom) <= ^max_num)
+
+        {min_val, ""} when min_val != "" ->
+          min_num = parse_number(min_val)
+          Ash.Query.filter(query, ^ref(field_atom) >= ^min_num)
+
+        {"", max_val} when max_val != "" ->
+          max_num = parse_number(max_val)
+          Ash.Query.filter(query, ^ref(field_atom) <= ^max_num)
+
+        _ ->
+          query
+      end
+    end
+  rescue
+    ArgumentError ->
+      # Invalid number format, skip filter
+      query
+  end
+
+  # Helper function to parse numbers, trying integer first, then float
+  defp parse_number(str) when is_binary(str) do
+    case Integer.parse(str) do
+      {int_val, ""} ->
+        int_val
+
+      _ ->
+        case Float.parse(str) do
+          {float_val, ""} -> float_val
+          _ -> raise ArgumentError, "Invalid number format"
+        end
+    end
+  end
 end

@@ -97,6 +97,7 @@ defmodule Cinder.FilterManager do
   Renders an individual filter input by delegating to the appropriate filter module.
   """
   def filter_input(assigns) do
+    # Use enhanced registry that includes custom filters
     filter_module = Registry.get_filter(assigns.column.filter_type)
 
     filter_content =
@@ -107,9 +108,45 @@ defmodule Cinder.FilterManager do
           filter_values: assigns.filter_values
         }
 
-        # Delegate to the specific filter module
-        filter_module.render(assigns.column, assigns.current_value, assigns.theme, filter_assigns)
+        # Delegate to the specific filter module with error handling
+        try do
+          filter_module.render(
+            assigns.column,
+            assigns.current_value,
+            assigns.theme,
+            filter_assigns
+          )
+        rescue
+          error ->
+            require Logger
+
+            Logger.warning(
+              "Error rendering custom filter :#{assigns.column.filter_type} for column '#{assigns.column.field}': #{inspect(error)}. " <>
+                "Falling back to text filter."
+            )
+
+            # Fallback to text filter if rendering fails
+            fallback_column = Map.put(assigns.column, :filter_type, :text)
+            text_module = Registry.get_filter(:text)
+
+            text_module.render(
+              fallback_column,
+              assigns.current_value,
+              assigns.theme,
+              filter_assigns
+            )
+        end
       else
+        # Log warning for missing custom filter
+        if Registry.custom_filter?(assigns.column.filter_type) do
+          require Logger
+
+          Logger.warning(
+            "Custom filter :#{assigns.column.filter_type} is registered but module is not available. " <>
+              "Falling back to text filter for column '#{assigns.column.field}'"
+          )
+        end
+
         # Fallback to text filter if type not found
         fallback_column = Map.put(assigns.column, :filter_type, :text)
         text_module = Registry.get_filter(:text)
@@ -253,33 +290,92 @@ defmodule Cinder.FilterManager do
   Checks if a filter has a meaningful value using modular system.
   """
   def has_filter_value?(value) do
-    Cinder.Filters.Base.has_filter_value?(value)
+    Cinder.Filter.has_filter_value?(value)
+  end
+
+  @doc """
+  Validates all registered custom filters at application startup.
+
+  This function should be called during application initialization to ensure
+  all custom filters are properly implemented and available.
+
+  ## Returns
+  :ok if all filters are valid, logs warnings for any issues
+
+  ## Examples
+
+      # In your application.ex start/2 function
+      case Cinder.FilterManager.validate_runtime_filters() do
+        :ok -> :ok
+        {:error, _} -> :ok  # Continue startup but log issues
+      end
+  """
+  def validate_runtime_filters do
+    case Registry.validate_custom_filters() do
+      :ok ->
+        :ok
+
+      {:error, errors} ->
+        require Logger
+
+        Logger.warning(
+          "Custom filter validation failed during application startup:\n" <>
+            Enum.map_join(errors, "\n", &"  - #{&1}")
+        )
+
+        {:error, errors}
+    end
   end
 
   @doc """
   Infers filter configuration from Ash resource attribute definitions.
   """
   def infer_filter_config(key, resource, slot) do
-    # Skip inference if filterable is false or if both filter_type and filter_options are explicitly set with content
-    has_custom_options = Map.get(slot, :filter_options, []) != []
-
-    if not Map.get(slot, :filterable, false) or
-         (Map.has_key?(slot, :filter_type) and has_custom_options) do
+    # Skip inference if filterable is false
+    if not Map.get(slot, :filterable, false) do
       %{filter_type: :text, filter_options: []}
     else
       attribute = get_ash_attribute(resource, key)
 
       # Use explicit filter_type if provided, otherwise infer it
       filter_type = Map.get(slot, :filter_type) || Registry.infer_filter_type(attribute, key)
+
+      # Validate custom filter exists at runtime
+      filter_type =
+        if Registry.custom_filter?(filter_type) do
+          # Check if the module actually exists and is loadable
+          custom_filters = Application.get_env(:cinder, :custom_filters, %{})
+          module = Map.get(custom_filters, filter_type)
+
+          if module && Code.ensure_loaded?(module) do
+            filter_type
+          else
+            require Logger
+
+            Logger.warning(
+              "Custom filter :#{filter_type} is registered but module is not available " <>
+                "for column '#{key}'. Falling back to text filter."
+            )
+
+            :text
+          end
+        else
+          filter_type
+        end
+
       default_options = Registry.default_options(filter_type, key)
+      slot_options = Map.get(slot, :filter_options, [])
+
+      # Merge slot options with defaults (slot options take precedence)
+      merged_options = Keyword.merge(default_options, slot_options)
 
       # Enhance options with Ash-specific data for select/multi_select filters
       enhanced_options =
         case filter_type do
-          :select -> enhance_select_options(default_options, attribute, key)
-          :multi_select -> enhance_select_options(default_options, attribute, key)
-          :multi_checkboxes -> enhance_select_options(default_options, attribute, key)
-          _ -> default_options
+          :select -> enhance_select_options(merged_options, attribute, key)
+          :multi_select -> enhance_select_options(merged_options, attribute, key)
+          :multi_checkboxes -> enhance_select_options(merged_options, attribute, key)
+          _ -> merged_options
         end
 
       %{filter_type: filter_type, filter_options: enhanced_options}
@@ -288,12 +384,42 @@ defmodule Cinder.FilterManager do
 
   # Private helper functions
 
-  defp process_filter_value(raw_value, column) do
+  @doc """
+  Processes raw filter value using the appropriate filter module.
+
+  This function is public to enable comprehensive testing of custom filter processing.
+  """
+  def process_filter_value(raw_value, column) do
+    # Use enhanced registry that includes custom filters
     filter_module = Registry.get_filter(column.filter_type)
 
     if filter_module do
-      filter_module.process(raw_value, column)
+      try do
+        filter_module.process(raw_value, column)
+      rescue
+        error ->
+          require Logger
+
+          Logger.error(
+            "Error processing filter value for custom filter :#{column.filter_type} " <>
+              "on column '#{column.field}': #{inspect(error)}. Falling back to text processing."
+          )
+
+          # Fallback to text processing
+          text_module = Registry.get_filter(:text)
+          text_module.process(raw_value, column)
+      end
     else
+      # Log warning for missing custom filter
+      if Registry.custom_filter?(column.filter_type) do
+        require Logger
+
+        Logger.warning(
+          "Custom filter :#{column.filter_type} is registered but module is not available. " <>
+            "Falling back to text processing for column '#{column.field}'"
+        )
+      end
+
       # Fallback to text processing
       text_module = Registry.get_filter(:text)
       text_module.process(raw_value, column)
@@ -389,13 +515,13 @@ defmodule Cinder.FilterManager do
     case extract_enum_options(attribute) do
       [] ->
         # No enum options found, return defaults
-        Keyword.merge(default_options, prompt: "All #{Cinder.Filters.Base.humanize_key(key)}")
+        Keyword.merge(default_options, prompt: "All #{Cinder.Filter.humanize_key(key)}")
 
       options ->
         # Add enum options and prompt
         default_options
         |> Keyword.put(:options, options)
-        |> Keyword.put(:prompt, "All #{Cinder.Filters.Base.humanize_key(key)}")
+        |> Keyword.put(:prompt, "All #{Cinder.Filter.humanize_key(key)}")
     end
   end
 
@@ -443,7 +569,7 @@ defmodule Cinder.FilterManager do
             if enum_module && function_exported?(enum_module, :description, 1) do
               apply(enum_module, :description, [atom])
             else
-              Cinder.Filters.Base.humanize_atom(atom)
+              Cinder.Filter.humanize_atom(atom)
             end
 
           {label, atom}

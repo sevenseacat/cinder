@@ -373,11 +373,14 @@ defmodule Cinder.QueryBuilderTest do
       filters = %{"title" => %{type: :text, value: "test", operator: :contains}}
       columns = [%{field: "title", filter_fn: nil}]
 
-      # This will fail with mock query but that's expected since it tries to use Ash.Query
-      # In real usage, this would work with actual Ash queries
-      assert_raise ArgumentError, fn ->
-        QueryBuilder.apply_filters(query, filters, columns)
-      end
+      # This will now gracefully handle errors and return the original query
+      # instead of raising an exception. We use with_log to get both result and suppress logs.
+      {result, _logs} =
+        ExUnit.CaptureLog.with_log(fn ->
+          QueryBuilder.apply_filters(query, filters, columns)
+        end)
+
+      assert result == query
     end
   end
 

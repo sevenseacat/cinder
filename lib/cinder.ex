@@ -27,12 +27,60 @@ defmodule Cinder do
         <:col :let={user} field="created_at" sort>{user.created_at}</:col>
       </Cinder.Table.table>
 
+  ## Custom Filters
+
+  Cinder supports custom filter types through a simple configuration-based approach:
+
+      # 1. Configure your filters in config.exs
+      config :cinder, :filters, %{
+        slider: MyApp.Filters.Slider,
+        color_picker: MyApp.Filters.ColorPicker
+      }
+
+      # 2. Set up Cinder in your application.ex
+      def start(_type, _args) do
+        Cinder.setup()  # Automatically registers all configured filters
+        # ... rest of application startup
+      end
+
+      # 3. Create custom filters with minimal boilerplate
+      defmodule MyApp.Filters.Slider do
+        use Cinder.Filter  # Includes everything you need
+
+        @impl true
+        def render(column, current_value, theme, assigns) do
+          # Your filter implementation with HEEx templates
+        end
+
+        @impl true
+        def process(raw_value, column) do
+          # Transform form input to filter value
+        end
+
+        @impl true
+        def validate(filter_value), do: # Validate filter value
+
+        @impl true
+        def default_options, do: [min: 0, max: 100, step: 1]
+
+        @impl true
+        def empty?(value), do: # Check if filter is empty
+      end
+
+      # 4. Use in your tables
+      <:col field="price" filter={:slider} filter_options={[min: 0, max: 1000]}>
+        ${product.price}
+      </:col>
+
+  That's it! No manual registration, no complex setup - just configure and use.
+
   ## Key Features
 
   - **Intelligent Defaults**: Automatic filter type detection from Ash resource attributes
   - **Minimal Configuration**: 70% fewer attributes required compared to traditional table components
   - **URL State Management**: Filters, pagination, and sorting synchronized with browser URL
   - **Relationship Support**: Dot notation for related fields (e.g., `user.department.name`)
+  - **Custom Filters**: Pluggable filter system with configuration-based registration
   - **Flexible Theming**: Built-in presets and full customization
   - **Ash Integration**: Native support for Ash Framework resources and authorization
 
@@ -40,7 +88,101 @@ defmodule Cinder do
 
   - `Cinder.Table` - The main table component
   - `Cinder.Table.UrlSync` - URL state management helper
+  - `Cinder.Filter` - Base behavior for custom filters
+  - `Cinder.setup/0` - One-time setup for custom filters
 
   For comprehensive examples and documentation, see the [README](readme.html) and [Examples](examples.html).
   """
+
+  @doc """
+  Sets up Cinder with configured custom filters.
+
+  This is the recommended way to use custom filters in Cinder. Call this
+  function once during application startup to automatically register all
+  custom filters defined in your configuration.
+
+  ## Configuration
+
+  Define your custom filters in your application configuration:
+
+      config :cinder, :filters, %{
+        slider: MyApp.Filters.Slider,
+        color_picker: MyApp.Filters.ColorPicker,
+        date_picker: MyApp.Filters.DatePicker
+      }
+
+  ## Usage
+
+  Call `setup/0` once in your application startup:
+
+      # In your application.ex
+      def start(_type, _args) do
+        Cinder.setup()  # Registers all configured filters automatically
+
+        children = [
+          # ... your application's children
+        ]
+
+        opts = [strategy: :one_for_one, name: MyApp.Supervisor]
+        Supervisor.start_link(children, opts)
+      end
+
+  ## What it does
+
+  - Registers all custom filters from configuration
+  - Validates that all filter modules implement the required behavior
+  - Provides helpful logging for successful registrations and errors
+  - Gracefully handles configuration issues without breaking startup
+
+  ## Returns
+
+  Always returns `:ok`. Any registration issues are logged as warnings
+  but don't prevent application startup.
+
+  ## Examples
+
+      # Successful setup with filters
+      Cinder.setup()
+      # => :ok
+      # Logs: "Cinder: Registered 3 custom filters: slider, color_picker, date_picker"
+
+      # Setup with configuration errors
+      Cinder.setup()
+      # => :ok
+      # Logs: "Cinder: Some custom filters failed to register: ..."
+  """
+  def setup do
+    case Cinder.Filters.Registry.register_config_filters() do
+      :ok ->
+        configured_filters = Application.get_env(:cinder, :filters, %{})
+
+        if map_size(configured_filters) > 0 do
+          filter_names = configured_filters |> Map.keys() |> Enum.join(", ")
+          require Logger
+
+          Logger.info(
+            "Cinder: Registered #{map_size(configured_filters)} custom filters: #{filter_names}"
+          )
+        end
+
+        :ok
+
+      {:error, errors} ->
+        require Logger
+
+        Logger.warning(
+          "Cinder: Some custom filters failed to register:\n" <>
+            Enum.map_join(errors, "\n", &"  - #{&1}")
+        )
+
+        :ok
+    end
+
+    # Validate all filters (both config and runtime registered)
+    case Cinder.FilterManager.validate_runtime_filters() do
+      :ok -> :ok
+      # Errors are already logged by validate_runtime_filters
+      {:error, _} -> :ok
+    end
+  end
 end

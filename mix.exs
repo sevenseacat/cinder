@@ -90,7 +90,7 @@ defmodule Cinder.MixProject do
           Cinder.FilterManager
         ],
         "Filter Types": [
-          Cinder.Filters.Base,
+          Cinder.Filter,
           Cinder.Filters.Registry,
           Cinder.Filters.Text,
           Cinder.Filters.Select,

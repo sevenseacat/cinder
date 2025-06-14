@@ -1,10 +1,72 @@
-defmodule Cinder.Filters.Base do
+defmodule Cinder.Filter do
   @moduledoc """
   Base behavior for Cinder filter implementations.
 
   Defines the common interface that all filter types must implement,
   along with shared types and utility functions.
+
+  ## Usage
+
+  The most convenient way to create a custom filter is to use this module:
+
+      defmodule MyApp.Filters.Slider do
+        use Cinder.Filter
+
+        @impl true
+        def render(column, current_value, theme, assigns) do
+          # Your filter rendering logic
+        end
+
+        # ... implement other required callbacks
+      end
+
+  This automatically:
+  - Adds the `@behaviour Cinder.Filter` declaration
+  - Imports Phoenix.Component for HEEx templates
+  - Imports helper functions from this module
+  - Registers the filter automatically if configured
   """
+
+  @doc false
+  defmacro __using__(opts) do
+    filter_name = Keyword.get(opts, :name)
+
+    quote do
+      @behaviour Cinder.Filter
+      use Phoenix.Component
+
+      require Ash.Query
+      import Ash.Expr
+      import Cinder.Filter
+
+      # Auto-register filter if name is provided and config exists
+      if unquote(filter_name) do
+        @after_compile {Cinder.Filter, :maybe_auto_register}
+        @filter_name unquote(filter_name)
+      end
+    end
+  end
+
+  @doc false
+  def maybe_auto_register(env, _bytecode) do
+    if Module.get_attribute(env.module, :filter_name) do
+      filter_name = Module.get_attribute(env.module, :filter_name)
+
+      # Check if this filter is configured for auto-registration
+      config_filters = Application.get_env(:cinder, :filters, %{})
+
+      if Map.get(config_filters, filter_name) == env.module do
+        case Cinder.Filters.Registry.register_filter(filter_name, env.module) do
+          :ok ->
+            :ok
+
+          {:error, _reason} ->
+            # Registration will be handled by register_config_filters/0
+            :ok
+        end
+      end
+    end
+  end
 
   @type filter_value ::
           String.t()
@@ -93,6 +155,19 @@ defmodule Cinder.Filters.Base do
   Boolean indicating if the filter should be considered inactive
   """
   @callback empty?(filter_value()) :: boolean()
+
+  @doc """
+  Builds query filters for this filter type.
+
+  ## Parameters
+  - `query` - The Ash query to modify
+  - `field` - The field name being filtered
+  - `filter_value` - The processed filter value
+
+  ## Returns
+  Modified Ash query with the filter applied
+  """
+  @callback build_query(Ash.Query.t(), String.t(), filter_value()) :: Ash.Query.t()
 
   # Shared utility functions
 

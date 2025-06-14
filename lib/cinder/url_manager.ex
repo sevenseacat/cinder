@@ -127,52 +127,34 @@ defmodule Cinder.UrlManager do
       if column && column.filterable && value != "" do
         filter_type = column.filter_type
 
-        decoded_value =
-          case filter_type do
-            :multi_select ->
-              String.split(value, ",")
+        # Use filter module's process/2 function to properly decode the value
+        filter_module = Cinder.Filters.Registry.get_filter(filter_type)
 
-            :multi_checkboxes ->
-              String.split(value, ",")
+        if filter_module do
+          try do
+            decoded_filter = filter_module.process(value, column)
 
-            :date_range ->
-              case String.split(value, ",") do
-                [from, to] -> %{from: from, to: to}
-                [from] -> %{from: from, to: ""}
-                _ -> %{from: "", to: ""}
-              end
+            if decoded_filter do
+              Map.put(acc, string_key, decoded_filter)
+            else
+              acc
+            end
+          rescue
+            error ->
+              require Logger
 
-            :number_range ->
-              case String.split(value, ",") do
-                [min, max] -> %{min: min, max: max}
-                [min] -> %{min: min, max: ""}
-                _ -> %{min: "", max: ""}
-              end
+              Logger.error(
+                "Error processing URL filter value for #{filter_type}: #{inspect(error)}. " <>
+                  "Skipping invalid filter."
+              )
 
-            :boolean ->
-              value
-
-            _ ->
-              value
+              acc
           end
-
-        operator =
-          case filter_type do
-            :text -> :contains
-            :select -> :equals
-            :multi_select -> :in
-            :multi_checkboxes -> :in
-            :boolean -> :equals
-            :date_range -> :between
-            :number_range -> :between
-            _ -> :equals
-          end
-
-        Map.put(acc, string_key, %{
-          type: filter_type,
-          value: decoded_value,
-          operator: operator
-        })
+        else
+          require Logger
+          Logger.warning("Unknown filter type: #{filter_type}. Skipping filter.")
+          acc
+        end
       else
         acc
       end

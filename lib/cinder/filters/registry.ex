@@ -24,31 +24,41 @@ defmodule Cinder.Filters.Registry do
   @doc """
   Gets the implementing module for a filter type.
 
+  Checks both built-in and custom registered filters.
+
   ## Examples
 
       iex> Cinder.Filters.Registry.get_filter(:text)
       Cinder.Filters.Text
 
+      iex> Cinder.Filters.Registry.get_filter(:slider)
+      MyApp.Filters.Slider
+
       iex> Cinder.Filters.Registry.get_filter(:unknown)
       nil
   """
   def get_filter(filter_type) do
-    Map.get(all_filters(), filter_type)
+    Map.get(all_filters_with_custom(), filter_type)
   end
 
   @doc """
   Checks if a filter type is registered.
+
+  Checks both built-in and custom registered filters.
 
   ## Examples
 
       iex> Cinder.Filters.Registry.registered?(:text)
       true
 
+      iex> Cinder.Filters.Registry.registered?(:slider)
+      true
+
       iex> Cinder.Filters.Registry.registered?(:unknown)
       false
   """
   def registered?(filter_type) do
-    Map.has_key?(all_filters(), filter_type)
+    Map.has_key?(all_filters_with_custom(), filter_type)
   end
 
   @doc """
@@ -160,35 +170,226 @@ defmodule Cinder.Filters.Registry do
     end
   end
 
-  @doc """
-  Registers a custom filter type.
-
-  ## Parameters
-  - `filter_type` - Atom identifying the filter type
-  - `module` - Module implementing the Cinder.Filters.Base behavior
-
-  ## Returns
-  :ok if successful, {:error, reason} if failed
-  """
+  @doc false
+  # Internal function for manual filter registration.
+  #
+  # For new applications, use configuration-based registration instead:
+  #
+  #     config :cinder, :filters, %{
+  #       slider: MyApp.Filters.Slider
+  #     }
+  #
+  # Then call Cinder.setup() in your application startup.
+  #
+  # This function is kept for internal use and testing scenarios.
   def register_filter(filter_type, module) when is_atom(filter_type) and is_atom(module) do
-    # Verify the module implements the behavior
-    if behaviour_implemented?(module) do
-      # Store in application environment for runtime registration
-      existing = Application.get_env(:cinder, :custom_filters, %{})
-      updated = Map.put(existing, filter_type, module)
-      Application.put_env(:cinder, :custom_filters, updated)
+    cond do
+      # Prevent overriding built-in filter types
+      Map.has_key?(all_filters(), filter_type) ->
+        {:error, "Cannot override built-in filter type :#{filter_type}"}
+
+      # Check if module exists
+      not module_exists?(module) ->
+        {:error, "Module #{inspect(module)} does not exist"}
+
+      # Verify the module implements the behavior
+      not behaviour_implemented?(module) ->
+        {:error, "Module #{inspect(module)} does not implement Cinder.Filter behavior"}
+
+      true ->
+        # Store in application environment for runtime registration
+        existing = Application.get_env(:cinder, :custom_filters, %{})
+        updated = Map.put(existing, filter_type, module)
+        Application.put_env(:cinder, :custom_filters, updated)
+        :ok
+    end
+  end
+
+  # Internal function used by register_config_filters/0 to avoid
+  # overriding runtime-registered filters.
+  def register_config_filter(filter_type, module) when is_atom(filter_type) and is_atom(module) do
+    # Check if already registered at runtime
+    runtime_filters = Application.get_env(:cinder, :custom_filters, %{})
+
+    if Map.has_key?(runtime_filters, filter_type) do
+      # Runtime registration takes precedence
       :ok
     else
-      {:error, "Module #{module} does not implement Cinder.Filters.Base behavior"}
+      # Use normal registration process
+      register_filter(filter_type, module)
+    end
+  end
+
+  @doc false
+  # Internal function for unregistering custom filters.
+  # Mainly used for testing scenarios.
+  def unregister_filter(filter_type) when is_atom(filter_type) do
+    cond do
+      # Prevent unregistering built-in filter types
+      Map.has_key?(all_filters(), filter_type) ->
+        {:error, "Cannot unregister built-in filter type :#{filter_type}"}
+
+      true ->
+        existing = Application.get_env(:cinder, :custom_filters, %{})
+        updated = Map.delete(existing, filter_type)
+        Application.put_env(:cinder, :custom_filters, updated)
+        :ok
     end
   end
 
   @doc """
+  Lists all registered custom filter types.
+
+  ## Returns
+  Map of custom filter types to their implementing modules
+
+  ## Examples
+
+      iex> Cinder.Filters.Registry.list_custom_filters()
+      %{slider: MyApp.Filters.Slider, color_picker: MyApp.Filters.ColorPicker}
+  """
+  def list_custom_filters do
+    runtime_filters = Application.get_env(:cinder, :custom_filters, %{})
+    config_filters = get_config_filters()
+
+    Map.merge(config_filters, runtime_filters)
+  end
+
+  @doc """
+  Checks if a filter type is a custom (user-registered) filter.
+
+  ## Parameters
+  - `filter_type` - Filter type atom to check
+
+  ## Returns
+  Boolean indicating if the filter type is custom
+
+  ## Examples
+
+      iex> Cinder.Filters.Registry.custom_filter?(:slider)
+      true
+
+      iex> Cinder.Filters.Registry.custom_filter?(:text)
+      false
+  """
+  def custom_filter?(filter_type) do
+    Map.has_key?(list_custom_filters(), filter_type)
+  end
+
+  @doc """
   Gets all filters including custom registered ones.
+
+  Custom filters take precedence over built-in filters if there's a naming conflict
+  (though registration prevents this from happening).
+
+  ## Returns
+  Map of all filter types to their implementing modules
+
+  ## Examples
+
+      iex> Cinder.Filters.Registry.all_filters_with_custom()
+      %{
+        text: Cinder.Filters.Text,
+        select: Cinder.Filters.Select,
+        slider: MyApp.Filters.Slider
+      }
   """
   def all_filters_with_custom do
-    custom_filters = Application.get_env(:cinder, :custom_filters, %{})
-    Map.merge(all_filters(), custom_filters)
+    runtime_filters = Application.get_env(:cinder, :custom_filters, %{})
+    config_filters = get_config_filters()
+
+    all_filters()
+    |> Map.merge(config_filters)
+    |> Map.merge(runtime_filters)
+  end
+
+  @doc """
+  Validates that all registered custom filters are properly implemented.
+
+  This function can be called at application startup to ensure all custom filters
+  are valid and will work correctly.
+
+  ## Returns
+  :ok if all filters are valid, {:error, [reasons]} if any are invalid
+
+  ## Examples
+
+      iex> Cinder.Filters.Registry.validate_custom_filters()
+      :ok
+
+      iex> Cinder.Filters.Registry.validate_custom_filters()
+      {:error, ["Module MyApp.Filters.BrokenSlider does not implement required function render/4"]}
+  """
+  def validate_custom_filters do
+    custom_filters = list_custom_filters()
+
+    errors =
+      Enum.reduce(custom_filters, [], fn {filter_type, module}, acc ->
+        cond do
+          not module_exists?(module) ->
+            ["Custom filter :#{filter_type} - Module #{inspect(module)} does not exist" | acc]
+
+          not behaviour_implemented?(module) ->
+            [
+              "Custom filter :#{filter_type} - Module #{inspect(module)} does not implement Cinder.Filter behavior"
+              | acc
+            ]
+
+          not all_callbacks_implemented?(module) ->
+            missing = find_missing_callbacks(module)
+
+            [
+              "Custom filter :#{filter_type} - Module #{inspect(module)} is missing callbacks: #{Enum.join(missing, ", ")}"
+              | acc
+            ]
+
+          true ->
+            acc
+        end
+      end)
+
+    case errors do
+      [] -> :ok
+      errors -> {:error, Enum.reverse(errors)}
+    end
+  end
+
+  @doc """
+  Registers custom filters from application configuration.
+
+  This function should be called during application startup to register
+  filters defined in config files.
+
+  ## Configuration
+
+      config :cinder, :filters, %{
+        slider: MyApp.Filters.Slider,
+        color_picker: MyApp.Filters.ColorPicker
+      }
+
+  ## Returns
+  :ok if all filters registered successfully, {:error, [reasons]} if any failed
+  """
+  def register_config_filters do
+    config_filters = get_config_filters()
+
+    errors =
+      Enum.reduce(config_filters, [], fn {filter_type, module}, acc ->
+        case register_config_filter(filter_type, module) do
+          :ok -> acc
+          {:error, reason} -> ["#{filter_type}: #{reason}" | acc]
+        end
+      end)
+
+    case errors do
+      [] -> :ok
+      errors -> {:error, Enum.reverse(errors)}
+    end
+  end
+
+  # Private helper to get filters from configuration
+  defp get_config_filters do
+    Application.get_env(:cinder, :filters, %{})
   end
 
   # Private helper functions
@@ -206,15 +407,53 @@ defmodule Cinder.Filters.Registry do
     end
   end
 
-  defp behaviour_implemented?(module) do
+  defp module_exists?(module) do
     try do
-      module.module_info(:attributes)
-      |> Keyword.get(:behaviour, [])
-      |> Enum.member?(Cinder.Filters.Base)
+      Code.ensure_loaded?(module)
     rescue
       _ -> false
     catch
       _ -> false
     end
+  end
+
+  defp behaviour_implemented?(module) do
+    try do
+      module.module_info(:attributes)
+      |> Keyword.get(:behaviour, [])
+      |> Enum.member?(Cinder.Filter)
+    rescue
+      _ -> false
+    catch
+      _ -> false
+    end
+  end
+
+  defp all_callbacks_implemented?(module) do
+    required_callbacks = [
+      {:render, 4},
+      {:process, 2},
+      {:validate, 1},
+      {:default_options, 0},
+      {:empty?, 1}
+    ]
+
+    Enum.all?(required_callbacks, fn {func, arity} ->
+      function_exported?(module, func, arity)
+    end)
+  end
+
+  defp find_missing_callbacks(module) do
+    required_callbacks = [
+      {:render, 4},
+      {:process, 2},
+      {:validate, 1},
+      {:default_options, 0},
+      {:empty?, 1}
+    ]
+
+    required_callbacks
+    |> Enum.reject(fn {func, arity} -> function_exported?(module, func, arity) end)
+    |> Enum.map(fn {func, arity} -> "#{func}/#{arity}" end)
   end
 end

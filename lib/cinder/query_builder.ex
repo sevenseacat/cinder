@@ -48,48 +48,31 @@ defmodule Cinder.QueryBuilder do
     query_opts = Keyword.get(options, :query_opts, [])
 
     try do
-      # Build the query with pagination, sorting, and filtering
+      # Build the query with pagination, sorting, and filtering using Ash.Query.page
       query =
         resource
         |> Ash.Query.for_read(:read, %{}, actor: actor)
         |> apply_query_opts(query_opts)
         |> apply_filters(filters, columns)
         |> apply_sorting(sort_by, columns)
-        |> Ash.Query.limit(page_size)
-        |> Ash.Query.offset((current_page - 1) * page_size)
+        |> Ash.Query.page(
+          limit: page_size,
+          offset: (current_page - 1) * page_size,
+          count: true
+        )
 
-      # Execute the query to get paginated results
+      # Execute the query to get paginated results with count in a single query
       case Ash.read(query, actor: actor) do
+        {:ok, %{results: results, count: total_count}} ->
+          page_info =
+            build_page_info_with_total_count(results, current_page, page_size, total_count)
+
+          {:ok, {results, page_info}}
+
         {:ok, results} when is_list(results) ->
-          # Get total count for pagination info
-          count_query =
-            resource
-            |> Ash.Query.for_read(:read, %{}, actor: actor)
-            |> apply_query_opts(query_opts)
-            |> apply_filters(filters, columns)
-
-          case Ash.count(count_query, actor: actor) do
-            {:ok, total_count} ->
-              page_info =
-                build_page_info_with_total_count(results, current_page, page_size, total_count)
-
-              {:ok, {results, page_info}}
-
-            {:error, count_error} ->
-              # Log count query error but continue with basic pagination
-              Logger.warning(
-                "Cinder table count query failed: #{inspect(count_error)} - falling back to basic pagination for #{resource}",
-                %{
-                  resource: resource,
-                  filters: filters,
-                  sort_by: sort_by,
-                  error: inspect(count_error)
-                }
-              )
-
-              page_info = build_page_info_from_list(results, current_page, page_size)
-              {:ok, {results, page_info}}
-          end
+          # Fallback for when page query doesn't return count (shouldn't happen with count: true)
+          page_info = build_page_info_from_list(results, current_page, page_size)
+          {:ok, {results, page_info}}
 
         {:error, query_error} ->
           # Log query execution error with full context
@@ -171,267 +154,26 @@ defmodule Cinder.QueryBuilder do
   end
 
   @doc """
-  Applies standard filters based on filter type and operator.
+  Applies standard filters by delegating to the appropriate filter module.
   """
   def apply_standard_filter(query, key, filter_config, _column) do
-    %{type: type, value: value, operator: operator} = filter_config
+    %{type: type} = filter_config
 
-    case {type, operator} do
-      {:text, :contains} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          search_value = Ash.CiString.new(value)
-
-          # Build the path as a list of atoms for Ash filtering
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          # Use Ash.Query.filter with path syntax directly
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              Ash.Query.filter(
-                query,
-                exists(^[rel_atom], contains(^Ash.Expr.ref(field_atom), ^search_value))
-              )
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          search_value = Ash.CiString.new(value)
-          Ash.Query.filter(query, contains(^field_ref, ^search_value))
-        end
-
-      {:text, :starts_with} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          search_value = Ash.CiString.new(value)
-
-          # Build the path as a list of atoms for Ash filtering
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          # Use Ash.Query.filter with path syntax directly
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              Ash.Query.filter(query, exists(^rel_atom, contains(^field_atom, ^search_value)))
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          # Use contains filter that matches from the beginning
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          search_value = Ash.CiString.new(value)
-          Ash.Query.filter(query, contains(^field_ref, ^search_value))
-        end
-
-      {:select, :equals} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          # Use Ash.Query.filter with path syntax directly
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              Ash.Query.filter(query, exists(^[rel_atom], ^field_atom == ^value))
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          Ash.Query.filter(query, ^field_ref == ^value)
-        end
-
-      {:boolean, :equals} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          # Use Ash.Query.filter with path syntax directly
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              Ash.Query.filter(query, exists(^rel_atom, ^field_atom == ^value))
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          Ash.Query.filter(query, ^field_ref == ^value)
-        end
-
-      {:multi_select, :in} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          # Use Ash.Query.filter with path syntax directly
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              Ash.Query.filter(query, exists(^rel_atom, ^field_atom in ^value))
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          Ash.Query.filter(query, ^field_ref in ^value)
-        end
-
-      {:multi_checkboxes, :in} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          # Use Ash.Query.filter with path syntax directly
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              Ash.Query.filter(query, exists(^rel_atom, ^field_atom in ^value))
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-          Ash.Query.filter(query, ^field_ref in ^value)
-        end
-
-      {:date_range, :between} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              case value do
-                %{from: from, to: to} when from != "" and to != "" ->
-                  Ash.Query.filter(
-                    query,
-                    exists(^rel_atom, ^field_atom >= ^from and ^field_atom <= ^to)
-                  )
-
-                %{from: from, to: ""} when from != "" ->
-                  Ash.Query.filter(query, exists(^rel_atom, ^field_atom >= ^from))
-
-                %{from: "", to: to} when to != "" ->
-                  Ash.Query.filter(query, exists(^rel_atom, ^field_atom <= ^to))
-
-                _ ->
-                  query
-              end
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-
-          case value do
-            %{from: from, to: to} when from != "" and to != "" ->
-              Ash.Query.filter(query, ^field_ref >= ^from and ^field_ref <= ^to)
-
-            %{from: from, to: ""} when from != "" ->
-              Ash.Query.filter(query, ^field_ref >= ^from)
-
-            %{from: "", to: to} when to != "" ->
-              Ash.Query.filter(query, ^field_ref <= ^to)
-
-            _ ->
-              query
-          end
-        end
-
-      {:number_range, :between} ->
-        if String.contains?(key, ".") do
-          # Handle relationship fields using Ash path syntax
-          path_atoms = key |> String.split(".") |> Enum.map(&String.to_atom/1)
-
-          case path_atoms do
-            [rel_atom, field_atom] ->
-              try do
-                case value do
-                  %{min: min, max: max} when min != "" and max != "" ->
-                    min_val = parse_number(min)
-                    max_val = parse_number(max)
-
-                    Ash.Query.filter(
-                      query,
-                      exists(^rel_atom, ^field_atom >= ^min_val and ^field_atom <= ^max_val)
-                    )
-
-                  %{min: min, max: ""} when min != "" ->
-                    min_val = parse_number(min)
-                    Ash.Query.filter(query, exists(^rel_atom, ^field_atom >= ^min_val))
-
-                  %{min: "", max: max} when max != "" ->
-                    max_val = parse_number(max)
-                    Ash.Query.filter(query, exists(^rel_atom, ^field_atom <= ^max_val))
-
-                  _ ->
-                    query
-                end
-              rescue
-                ArgumentError ->
-                  # Invalid number format, skip filter
-                  query
-              end
-
-            _ ->
-              # Fallback for complex paths - just return unmodified query
-              query
-          end
-        else
-          field_ref = Ash.Expr.ref(String.to_atom(key))
-
-          try do
-            case value do
-              %{min: min, max: max} when min != "" and max != "" ->
-                min_val = parse_number(min)
-                max_val = parse_number(max)
-                Ash.Query.filter(query, ^field_ref >= ^min_val and ^field_ref <= ^max_val)
-
-              %{min: min, max: ""} when min != "" ->
-                min_val = parse_number(min)
-                Ash.Query.filter(query, ^field_ref >= ^min_val)
-
-              %{min: "", max: max} when max != "" ->
-                max_val = parse_number(max)
-                Ash.Query.filter(query, ^field_ref <= ^max_val)
-
-              _ ->
-                query
-            end
-          rescue
-            ArgumentError ->
-              # Invalid number format, skip filter
-              query
-          end
-        end
-
-      _ ->
-        # Unknown combination, skip filter
+    # Get the filter module from registry (includes both built-in and custom)
+    case Cinder.Filters.Registry.get_filter(type) do
+      nil ->
+        require Logger
+        Logger.warning("Unknown filter type: #{type}")
         query
-    end
-  end
 
-  # Helper function to parse numbers, trying integer first, then float
-  defp parse_number(str) when is_binary(str) do
-    case Integer.parse(str) do
-      {int_val, ""} ->
-        int_val
-
-      _ ->
-        case Float.parse(str) do
-          {float_val, ""} -> float_val
-          _ -> raise ArgumentError, "Invalid number format: #{str}"
+      filter_module ->
+        try do
+          filter_module.build_query(query, key, filter_config)
+        rescue
+          error ->
+            require Logger
+            Logger.error("Error building query for filter #{type}: #{inspect(error)}")
+            query
         end
     end
   end

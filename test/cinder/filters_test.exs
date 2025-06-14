@@ -2,7 +2,6 @@ defmodule Cinder.FiltersTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Filters.{
-    Base,
     Registry,
     Text,
     Select,
@@ -14,48 +13,48 @@ defmodule Cinder.FiltersTest do
 
   alias Cinder.FilterManager
 
-  describe "Cinder.Filters.Base utilities" do
+  describe "Cinder.Filter utilities" do
     test "has_filter_value?/1 correctly identifies empty values" do
-      assert Base.has_filter_value?("test") == true
-      assert Base.has_filter_value?(["option1"]) == true
-      assert Base.has_filter_value?(%{min: "10", max: "20"}) == true
+      assert Cinder.Filter.has_filter_value?("test") == true
+      assert Cinder.Filter.has_filter_value?(["option1"]) == true
+      assert Cinder.Filter.has_filter_value?(%{min: "10", max: "20"}) == true
 
-      assert Base.has_filter_value?("") == false
-      assert Base.has_filter_value?(nil) == false
-      assert Base.has_filter_value?("all") == false
-      assert Base.has_filter_value?([]) == false
-      assert Base.has_filter_value?(%{from: "", to: ""}) == false
-      assert Base.has_filter_value?(%{min: "", max: ""}) == false
-      assert Base.has_filter_value?(%{from: nil, to: nil}) == false
-      assert Base.has_filter_value?(%{min: nil, max: nil}) == false
+      assert Cinder.Filter.has_filter_value?("") == false
+      assert Cinder.Filter.has_filter_value?(nil) == false
+      assert Cinder.Filter.has_filter_value?("all") == false
+      assert Cinder.Filter.has_filter_value?([]) == false
+      assert Cinder.Filter.has_filter_value?(%{from: "", to: ""}) == false
+      assert Cinder.Filter.has_filter_value?(%{min: "", max: ""}) == false
+      assert Cinder.Filter.has_filter_value?(%{from: nil, to: nil}) == false
+      assert Cinder.Filter.has_filter_value?(%{min: nil, max: nil}) == false
     end
 
     test "humanize_key/1 converts keys to readable strings" do
-      assert Base.humanize_key("user_name") == "User Name"
-      assert Base.humanize_key("is_active") == "Is Active"
-      assert Base.humanize_key("simple") == "Simple"
-      assert Base.humanize_key(:atom_key) == "Atom Key"
+      assert Cinder.Filter.humanize_key("user_name") == "User Name"
+      assert Cinder.Filter.humanize_key("is_active") == "Is Active"
+      assert Cinder.Filter.humanize_key("simple") == "Simple"
+      assert Cinder.Filter.humanize_key(:atom_key) == "Atom Key"
     end
 
     test "humanize_atom/1 converts atoms to readable strings" do
-      assert Base.humanize_atom(:active) == "Active"
-      assert Base.humanize_atom(:super_admin) == "Super Admin"
-      assert Base.humanize_atom(:draft_status) == "Draft Status"
+      assert Cinder.Filter.humanize_atom(:active) == "Active"
+      assert Cinder.Filter.humanize_atom(:super_admin) == "Super Admin"
+      assert Cinder.Filter.humanize_atom(:draft_status) == "Draft Status"
     end
 
     test "get_option/3 retrieves nested values from filter options" do
       options = [operator: :contains, nested: [value: "test"]]
 
-      assert Base.get_option(options, :operator) == :contains
-      assert Base.get_option(options, [:nested, :value]) == "test"
-      assert Base.get_option(options, :missing, "default") == "default"
-      assert Base.get_option(options, :missing) == nil
+      assert Cinder.Filter.get_option(options, :operator) == :contains
+      assert Cinder.Filter.get_option(options, [:nested, :value]) == "test"
+      assert Cinder.Filter.get_option(options, :missing, "default") == "default"
+      assert Cinder.Filter.get_option(options, :missing) == nil
     end
 
     test "field_name/2 generates correct form field names" do
-      assert Base.field_name("title") == "filters[title]"
-      assert Base.field_name("price", "min") == "filters[price_min]"
-      assert Base.field_name("date", "from") == "filters[date_from]"
+      assert Cinder.Filter.field_name("title") == "filters[title]"
+      assert Cinder.Filter.field_name("price", "min") == "filters[price_min]"
+      assert Cinder.Filter.field_name("date", "from") == "filters[date_from]"
     end
   end
 

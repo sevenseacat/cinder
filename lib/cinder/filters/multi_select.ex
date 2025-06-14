@@ -7,10 +7,12 @@ defmodule Cinder.Filters.MultiSelect do
   Uses Phoenix LiveView patterns for interactivity.
   """
 
-  @behaviour Cinder.Filters.Base
+  @behaviour Cinder.Filter
   use Phoenix.Component
 
-  import Cinder.Filters.Base
+  require Ash.Query
+  import Ash.Expr
+  import Cinder.Filter
 
   @impl true
   def render(column, current_value, theme, assigns) do
@@ -145,6 +147,25 @@ defmodule Cinder.Filters.MultiSelect do
       %{value: []} -> true
       %{value: nil} -> true
       _ -> false
+    end
+  end
+
+  @impl true
+  def build_query(query, field, filter_value) do
+    %{type: :multi_select, value: values} = filter_value
+
+    # Handle relationship fields using dot notation
+    if String.contains?(field, ".") do
+      # Build the path as a list of atoms for Ash filtering
+      path_atoms = field |> String.split(".") |> Enum.map(&String.to_atom/1)
+
+      # Handle any relationship path length: user.name, user.department.name, etc.
+      {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
+      Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) in ^values))
+    else
+      # Direct field filtering
+      field_atom = String.to_atom(field)
+      Ash.Query.filter(query, ^ref(field_atom) in ^values)
     end
   end
 

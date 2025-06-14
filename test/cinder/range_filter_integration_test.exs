@@ -363,16 +363,15 @@ defmodule Cinder.RangeFilterIntegrationTest do
 
     test "field name generation works correctly for range filters" do
       # Test that field_name generates correct HTML names for range filters
-      alias Cinder.Filters.Base
 
       # Test basic field name
-      assert Base.field_name("value") == "filters[value]"
+      assert Cinder.Filter.field_name("value") == "filters[value]"
 
       # Test field name with suffix for range filters
-      assert Base.field_name("value", "min") == "filters[value_min]"
-      assert Base.field_name("value", "max") == "filters[value_max]"
-      assert Base.field_name("created_at", "from") == "filters[created_at_from]"
-      assert Base.field_name("created_at", "to") == "filters[created_at_to]"
+      assert Cinder.Filter.field_name("value", "min") == "filters[value_min]"
+      assert Cinder.Filter.field_name("value", "max") == "filters[value_max]"
+      assert Cinder.Filter.field_name("created_at", "from") == "filters[created_at_from]"
+      assert Cinder.Filter.field_name("created_at", "to") == "filters[created_at_to]"
     end
 
     test "range filter HTML contains correct field names" do
