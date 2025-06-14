@@ -10,7 +10,7 @@ The default theme provides only essential usability classes - no styling, perfec
 # No theme specified = minimal default
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
 >
   <:col field="name" />
   <:col field="email" />
@@ -27,7 +27,7 @@ Professional, clean design with subtle shadows and blue accents.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="modern"
 >
   <:col field="name" />
@@ -50,7 +50,7 @@ Bold 80s-inspired design with neon colors and cyberpunk aesthetics.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="retro"
 >
   <:col field="name" />
@@ -73,7 +73,7 @@ Sci-fi inspired with holographic effects and translucent elements.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="futuristic"
 >
   <:col field="name" />
@@ -96,7 +96,7 @@ Elegant dark mode with purple accents and smooth gradients.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="dark"
 >
   <:col field="name" />
@@ -119,7 +119,7 @@ Complete compatibility with daisyUI component library.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="daisy_ui"
 >
   <:col field="name" />
@@ -142,7 +142,7 @@ Matches Flowbite's advanced table design system.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="flowbite"
 >
   <:col field="name" />
@@ -182,7 +182,7 @@ end
 # Use in template
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme={MyApp.CustomTheme}
 >
   <:col field="name" />
@@ -213,7 +213,7 @@ Warm, classic design with sepia tones and traditional typography.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="vintage"
 >
   <:col field="name" />
@@ -236,7 +236,7 @@ High-density design with minimal spacing for maximum information display.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="compact"
 >
   <:col field="name" />
@@ -259,7 +259,7 @@ Soft, gentle design with pastel colors for a calming interface.
 ```elixir
 <Cinder.Table.table
   resource={User}
-  current_user={@current_user}
+  actor={@current_user}
   theme="pastel"
 >
   <:col field="name" />

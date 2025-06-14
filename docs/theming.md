@@ -18,7 +18,7 @@ Cinder provides a comprehensive theming system that allows complete visual custo
 The fastest way to style your table is with one of the 10 built-in themes:
 
 ```elixir
-<Cinder.Table.table theme="modern" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="modern" resource={MyApp.User} actor={@current_user}>
   <:col field="name" filter sort>Name</:col>
   <:col field="email" filter>Email</:col>
 </Cinder.Table.table>
@@ -40,7 +40,7 @@ defmodule MyApp.CustomTheme do
 end
 
 # Use in your template
-<Cinder.Table.table theme={MyApp.CustomTheme} resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme={MyApp.CustomTheme} resource={MyApp.User} actor={@current_user}>
   <:col field="name" filter sort>Name</:col>
 </Cinder.Table.table>
 ```
@@ -53,56 +53,56 @@ Cinder includes 10 carefully crafted themes covering a wide range of design styl
 
 **Default** - Clean, minimal styling for universal compatibility
 ```elixir
-<Cinder.Table.table theme="default" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="default" resource={MyApp.User} actor={@current_user}>
 ```
 
 **Modern** - Professional styling with shadows and improved spacing
 ```elixir
-<Cinder.Table.table theme="modern" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="modern" resource={MyApp.User} actor={@current_user}>
 ```
 
 **Dark** - Elegant dark theme with proper contrast
 ```elixir
-<Cinder.Table.table theme="dark" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="dark" resource={MyApp.User} actor={@current_user}>
 ```
 
 ### Framework Integration Themes
 
 **DaisyUI** - Optimized for DaisyUI component library
 ```elixir
-<Cinder.Table.table theme="daisy_ui" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="daisy_ui" resource={MyApp.User} actor={@current_user}>
 ```
 
 **Flowbite** - Designed for Flowbite design system
 ```elixir
-<Cinder.Table.table theme="flowbite" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="flowbite" resource={MyApp.User} actor={@current_user}>
 ```
 
 ### Specialty Themes
 
 **Retro** - Cyberpunk-inspired with bright accent colors
 ```elixir
-<Cinder.Table.table theme="retro" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="retro" resource={MyApp.User} actor={@current_user}>
 ```
 
 **Futuristic** - Sci-fi aesthetic with glowing effects
 ```elixir
-<Cinder.Table.table theme="futuristic" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="futuristic" resource={MyApp.User} actor={@current_user}>
 ```
 
 **Vintage** - Warm, classic styling with subtle textures
 ```elixir
-<Cinder.Table.table theme="vintage" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="vintage" resource={MyApp.User} actor={@current_user}>
 ```
 
 **Compact** - High-density layout for data-heavy applications
 ```elixir
-<Cinder.Table.table theme="compact" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="compact" resource={MyApp.User} actor={@current_user}>
 ```
 
 **Pastel** - Soft, friendly colors for approachable interfaces
 ```elixir
-<Cinder.Table.table theme="pastel" resource={MyApp.User} current_user={@current_user}>
+<Cinder.Table.table theme="pastel" resource={MyApp.User} actor={@current_user}>
 ```
 
 ## Custom Themes with DSL

@@ -8,9 +8,9 @@ Cinder transforms complex data table requirements into simple, declarative marku
 
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter>{user.email}</:col>
-  <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
 </Cinder.Table.table>
 ```
 
@@ -52,9 +52,9 @@ end
 
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter>{user.email}</:col>
-  <:col :let="user" field="created_at" sort>{user.created_at}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
 </Cinder.Table.table>
 ```
 
@@ -64,8 +64,8 @@ For complex requirements, use the `query` parameter:
 
 ```elixir
 <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter>{user.email}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
 </Cinder.Table.table>
 ```
 
@@ -86,7 +86,7 @@ defmodule MyAppWeb.UsersLive do
   def render(assigns) do
     ~H"""
     <Cinder.Table.table resource={MyApp.User} actor={@current_user} url_state={@url_state}>
-      <:col :let="user" field="name" filter sort>{user.name}</:col>
+      <:col :let={user} field="name" filter sort>{user.name}</:col>
     </Cinder.Table.table>
     """
   end

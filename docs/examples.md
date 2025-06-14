@@ -1,4 +1,4 @@
-# Cinder Examples
+# Examples
 
 This document provides comprehensive examples and detailed reference for all Cinder table features. For a quick start, see the [README](../README.md).
 
@@ -32,8 +32,8 @@ The simplest possible table:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let="user" field="name">{user.name}</:col>
-  <:col :let="user" field="email">{user.email}</:col>
+  <:col :let={user} field="name">{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
 </Cinder.Table.table>
 ```
 
@@ -48,8 +48,8 @@ Use the `resource` parameter for straightforward tables:
 ```elixir
 <!-- Simple table with default read action -->
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter>{user.email}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
 </Cinder.Table.table>
 ```
 
@@ -66,26 +66,26 @@ Use the `query` parameter for advanced scenarios:
 ```elixir
 <!-- Custom read action -->
 <Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter>{user.email}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
 </Cinder.Table.table>
 
 <!-- Pre-filtered data -->
 <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(department: "Engineering")} actor={@current_user}>
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="department.name" filter>{user.department.name}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="department.name" filter>{user.department.name}</:col>
 </Cinder.Table.table>
 
 <!-- Admin interface with complex authorization -->
-<Cinder.Table.table 
-  query={MyApp.User 
+<Cinder.Table.table
+  query={MyApp.User
     |> Ash.Query.for_read(:admin_read, %{}, actor: @actor, authorize?: @authorizing)
     |> Ash.Query.set_tenant(@tenant)
-    |> Ash.Query.filter(active: true)} 
-  actor={@actor}>
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter>{user.email}</:col>
-  <:col :let="user" field="last_login" sort>{user.last_login}</:col>
+    |> Ash.Query.filter(active: true)}
+  actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="last_login" sort>{user.last_login}</:col>
 </Cinder.Table.table>
 ```
 
@@ -103,11 +103,11 @@ Cinder automatically generates human-readable labels from field names:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let="user" field="first_name">{user.first_name}</:col>      <!-- "First Name" -->
-  <:col :let="user" field="email_address">{user.email_address}</:col>   <!-- "Email Address" -->
-  <:col :let="user" field="created_at">{user.created_at}</:col>      <!-- "Created At" -->
-  <:col :let="user" field="is_active">{user.is_active}</:col>       <!-- "Is Active" -->
-  <:col :let="user" field="phone_number">{user.phone_number}</:col>    <!-- "Phone Number" -->
+  <:col :let={user} field="first_name">{user.first_name}</:col>      <!-- "First Name" -->
+  <:col :let={user} field="email_address">{user.email_address}</:col>   <!-- "Email Address" -->
+  <:col :let={user} field="created_at">{user.created_at}</:col>      <!-- "Created At" -->
+  <:col :let={user} field="is_active">{user.is_active}</:col>       <!-- "Is Active" -->
+  <:col :let={user} field="phone_number">{user.phone_number}</:col>    <!-- "Phone Number" -->
 </Cinder.Table.table>
 ```
 
@@ -117,10 +117,10 @@ Override auto-generated labels when needed:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let="user" field="name" label="Full Name">{user.name}</:col>
-  <:col :let="user" field="email" label="Email Address">{user.email}</:col>
-  <:col :let="user" field="created_at" label="Joined">{user.created_at}</:col>
-  <:col :let="user" field="is_active" label="Status">{user.is_active}</:col>
+  <:col :let={user} field="name" label="Full Name">{user.name}</:col>
+  <:col :let={user} field="email" label="Email Address">{user.email}</:col>
+  <:col :let={user} field="created_at" label="Joined">{user.created_at}</:col>
+  <:col :let={user} field="is_active" label="Status">{user.is_active}</:col>
 </Cinder.Table.table>
 ```
 
@@ -134,7 +134,7 @@ Demonstration of every available column attribute:
 <Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
   <!-- Basic column with all common attributes -->
   <:col
-    :let="product"
+    :let={product}
     field="name"
     label="Product Name"
     filter={:text}
@@ -146,7 +146,7 @@ Demonstration of every available column attribute:
 
   <!-- Column with custom filter options -->
   <:col
-    :let="product"
+    :let={product}
     field="category"
     filter={:select}
     filter_options={[
@@ -160,7 +160,7 @@ Demonstration of every available column attribute:
 
   <!-- Number column with range filter -->
   <:col
-    :let="product"
+    :let={product}
     field="price"
     filter={:number_range}
     filter_options={[
@@ -176,7 +176,7 @@ Demonstration of every available column attribute:
 
   <!-- Boolean column with custom labels -->
   <:col
-    :let="product"
+    :let={product}
     field="in_stock"
     filter={:boolean}
     filter_options={[
@@ -197,7 +197,7 @@ Demonstration of every available column attribute:
 Cinder automatically detects the right filter type based on your Ash resource attributes:
 
 - **String fields** → Text search
-- **Enum fields** → Select dropdown  
+- **Enum fields** → Select dropdown
 - **Boolean fields** → True/false/any radio buttons
 - **Date/DateTime fields** → Date range picker
 - **Integer/Decimal fields** → Number range inputs
@@ -217,11 +217,11 @@ For multiple selection filtering, choose between:
 ```elixir
 <Cinder.Table.table resource={MyApp.Article} actor={@current_user}>
   <!-- Basic text filter -->
-  <:col :let="article" field="title" filter>{article.title}</:col>
+  <:col :let={article} field="title" filter>{article.title}</:col>
 
   <!-- Text filter with custom placeholder -->
   <:col
-    :let="article"
+    :let={article}
     field="content"
     filter={:text}
     filter_options={[placeholder: "Search article content..."]}
@@ -231,7 +231,7 @@ For multiple selection filtering, choose between:
 
   <!-- Case-sensitive text filter -->
   <:col
-    :let="article"
+    :let={article}
     field="author_name"
     filter={:text}
     filter_options={[
@@ -249,11 +249,11 @@ For multiple selection filtering, choose between:
 ```elixir
 <Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
   <!-- Basic select filter (auto-detects enum options) -->
-  <:col :let="order" field="status" filter>{String.capitalize(order.status)}</:col>
+  <:col :let={order} field="status" filter>{String.capitalize(order.status)}</:col>
 
   <!-- Select filter with custom options -->
   <:col
-    :let="order"
+    :let={order}
     field="priority"
     filter={:select}
     filter_options={[
@@ -279,7 +279,7 @@ For multiple selection filtering, choose between:
 
   <!-- Select with boolean options -->
   <:col
-    :let="order"
+    :let={order}
     field="is_paid"
     filter={:select}
     filter_options={[
@@ -316,7 +316,7 @@ For multiple selection filtering, choose between:
 
   <!-- Multi-select for categories -->
   <:col
-    :let="book"
+    :let={book}
     field="categories"
     filter={:multi_select}
     filter_options={[
@@ -344,13 +344,13 @@ For multiple selection filtering, choose between:
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <!-- Basic boolean filter -->
-  <:col :let="user" field="is_active" filter>
+  <:col :let={user} field="is_active" filter>
     {if user.is_active, do: "Active", else: "Inactive"}
   </:col>
 
   <!-- Boolean filter with custom labels -->
   <:col
-    :let="user"
+    :let={user}
     field="email_verified"
     filter={:boolean}
     filter_options={[
@@ -372,7 +372,7 @@ For multiple selection filtering, choose between:
 
   <!-- Boolean filter for subscription -->
   <:col
-    :let="user"
+    :let={user}
     field="has_subscription"
     filter={:boolean}
     filter_options={[
@@ -393,13 +393,13 @@ For multiple selection filtering, choose between:
 ```elixir
 <Cinder.Table.table resource={MyApp.Event} actor={@current_user}>
   <!-- Basic date range filter -->
-  <:col :let="event" field="created_at" filter={:date_range}>
+  <:col :let={event} field="created_at" filter={:date_range}>
     {Calendar.strftime(event.created_at, "%B %d, %Y")}
   </:col>
 
   <!-- Date range with custom format -->
   <:col
-    :let="event"
+    :let={event}
     field="event_date"
     filter={:date_range}
     filter_options={[
@@ -413,7 +413,7 @@ For multiple selection filtering, choose between:
 
   <!-- DateTime range filter -->
   <:col
-    :let="event"
+    :let={event}
     field="updated_at"
     filter={:date_range}
     filter_options={[
@@ -430,13 +430,13 @@ For multiple selection filtering, choose between:
 ```elixir
 <Cinder.Table.table resource={MyApp.Property} actor={@current_user}>
   <!-- Basic number range -->
-  <:col :let="property" field="price" filter={:number_range}>
+  <:col :let={property} field="price" filter={:number_range}>
     ${Number.Currency.number_to_currency(property.price)}
   </:col>
 
   <!-- Number range with min/max limits -->
   <:col
-    :let="property"
+    :let={property}
     field="square_feet"
     filter={:number_range}
     filter_options={[
@@ -452,7 +452,7 @@ For multiple selection filtering, choose between:
 
   <!-- Decimal number range -->
   <:col
-    :let="property"
+    :let={property}
     field="rating"
     filter={:number_range}
     filter_options={[
@@ -484,12 +484,12 @@ For multiple selection filtering, choose between:
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <!-- Sortable columns -->
-  <:col :let="user" field="name" sort>{user.name}</:col>
-  <:col :let="user" field="email" sort>{user.email}</:col>
-  <:col :let="user" field="created_at" sort>{user.created_at}</:col>
+  <:col :let={user} field="name" sort>{user.name}</:col>
+  <:col :let={user} field="email" sort>{user.email}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
 
   <!-- Non-sortable column -->
-  <:col :let="user" field="bio">{user.bio}</:col>
+  <:col :let={user} field="bio">{user.bio}</:col>
 </Cinder.Table.table>
 ```
 
@@ -497,10 +497,10 @@ For multiple selection filtering, choose between:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <:col :let="product" field="name" filter sort>{product.name}</:col>
-  <:col :let="product" field="price" filter={:number_range} sort>${product.price}</:col>
-  <:col :let="product" field="category" filter={:select} sort>{product.category}</:col>
-  <:col :let="product" field="created_at" filter={:date_range} sort>{product.created_at}</:col>
+  <:col :let={product} field="name" filter sort>{product.name}</:col>
+  <:col :let={product} field="price" filter={:number_range} sort>${product.price}</:col>
+  <:col :let={product} field="category" filter={:select} sort>{product.category}</:col>
+  <:col :let={product} field="created_at" filter={:date_range} sort>{product.created_at}</:col>
 </Cinder.Table.table>
 ```
 
@@ -515,7 +515,7 @@ For multiple selection filtering, choose between:
   actor={@current_user}
   theme="default"
 >
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
 </Cinder.Table.table>
 
 <!-- Modern theme -->
@@ -524,7 +524,7 @@ For multiple selection filtering, choose between:
   actor={@current_user}
   theme="modern"
 >
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
 </Cinder.Table.table>
 
 <!-- Minimal theme -->
@@ -533,7 +533,7 @@ For multiple selection filtering, choose between:
   actor={@current_user}
   theme="minimal"
 >
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
 </Cinder.Table.table>
 ```
 
@@ -586,8 +586,8 @@ For multiple selection filtering, choose between:
     sort_desc_class: "inline-block w-4 h-4 ml-1 text-white"
   }}
 >
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter sort>{user.email}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter sort>{user.email}</:col>
 </Cinder.Table.table>
 ```
 
@@ -622,10 +622,10 @@ defmodule MyAppWeb.UsersLive do
         id="users-table"
         page_size={25}
       >
-        <:col :let="user" field="name" filter sort>{user.name}</:col>
-        <:col :let="user" field="email" filter>{user.email}</:col>
-        <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
-        <:col :let="user" field="is_active" filter={:boolean}>
+        <:col :let={user} field="name" filter sort>{user.name}</:col>
+        <:col :let={user} field="email" filter>{user.email}</:col>
+        <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
+        <:col :let={user} field="is_active" filter={:boolean}>
           {if user.is_active, do: "Active", else: "Inactive"}
         </:col>
       </Cinder.Table.table>
@@ -665,9 +665,9 @@ defmodule MyAppWeb.ActiveUsersLive do
         url_state={@url_state}
         id="active-users-table"
       >
-        <:col :let="user" field="name" filter sort>{user.name}</:col>
-        <:col :let="user" field="email" filter>{user.email}</:col>
-        <:col :let="user" field="last_login" sort>{user.last_login}</:col>
+        <:col :let={user} field="name" filter sort>{user.name}</:col>
+        <:col :let={user} field="email" filter>{user.email}</:col>
+        <:col :let={user} field="last_login" sort>{user.last_login}</:col>
       </Cinder.Table.table>
     </div>
     """
@@ -699,10 +699,10 @@ With URL sync enabled, your table state is preserved in the URL:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
-  <:col :let="album" field="title" filter sort>{album.title}</:col>
-  <:col :let="album" field="artist.name" filter sort>{album.artist.name}</:col>
-  <:col :let="album" field="artist.country" filter>{album.artist.country}</:col>
-  <:col :let="album" field="record_label.name" filter>{album.record_label.name}</:col>
+  <:col :let={album} field="title" filter sort>{album.title}</:col>
+  <:col :let={album} field="artist.name" filter sort>{album.artist.name}</:col>
+  <:col :let={album} field="artist.country" filter>{album.artist.country}</:col>
+  <:col :let={album} field="record_label.name" filter>{album.record_label.name}</:col>
 </Cinder.Table.table>
 ```
 
@@ -710,10 +710,10 @@ With URL sync enabled, your table state is preserved in the URL:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.Employee} actor={@current_user}>
-  <:col :let="employee" field="name" filter sort>{employee.name}</:col>
-  <:col :let="employee" field="department.name" filter sort>{employee.department.name}</:col>
-  <:col :let="employee" field="department.manager.name" filter>{employee.department.manager.name}</:col>
-  <:col :let="employee" field="office.building.address" filter>{employee.office.building.address}</:col>
+  <:col :let={employee} field="name" filter sort>{employee.name}</:col>
+  <:col :let={employee} field="department.name" filter sort>{employee.department.name}</:col>
+  <:col :let={employee} field="department.manager.name" filter>{employee.department.manager.name}</:col>
+  <:col :let={employee} field="office.building.address" filter>{employee.office.building.address}</:col>
 </Cinder.Table.table>
 ```
 
@@ -721,12 +721,12 @@ With URL sync enabled, your table state is preserved in the URL:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <:col :let="order" field="number" filter sort>#{order.number}</:col>
-  <:col :let="order" field="customer.name" filter sort>{order.customer.name}</:col>
+  <:col :let={order} field="number" filter sort>#{order.number}</:col>
+  <:col :let={order} field="customer.name" filter sort>{order.customer.name}</:col>
 
   <!-- Select filter on relationship enum -->
   <:col
-    :let="order"
+    :let={order}
     field="customer.tier"
     filter={:select}
     filter_options={[
@@ -746,7 +746,7 @@ With URL sync enabled, your table state is preserved in the URL:
 
   <!-- Date range on relationship -->
   <:col
-    :let="order"
+    :let={order}
     field="customer.created_at"
     filter={:date_range}
     sort
@@ -762,12 +762,12 @@ With URL sync enabled, your table state is preserved in the URL:
 
 ```elixir
 <Cinder.Table.table resource={MyApp.Project} actor={@current_user}>
-  <:col :let="project" field="name" filter sort>
+  <:col :let={project} field="name" filter sort>
     {project.name}
   </:col>
 
   <!-- Progress bar -->
-  <:col :let="project" field="completion_percentage" filter={:number_range} sort>
+  <:col :let={project} field="completion_percentage" filter={:number_range} sort>
     <div class="flex items-center space-x-2">
       <div class="flex-1 bg-gray-200 rounded-full h-2">
         <div
@@ -783,7 +783,7 @@ With URL sync enabled, your table state is preserved in the URL:
   </:col>
 
   <!-- Health indicator -->
-  <:col :let="project" field="health_status" filter={:select}>
+  <:col :let={project} field="health_status" filter={:select}>
     <div class="flex items-center space-x-2">
       <div class={[
         "w-3 h-3 rounded-full",
@@ -805,7 +805,7 @@ With URL sync enabled, your table state is preserved in the URL:
 ```elixir
 <Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
   <!-- Product with thumbnail -->
-  <:col :let="product" field="name" filter sort class="w-1/3">
+  <:col :let={product} field="name" filter sort class="w-1/3">
     <div class="flex items-center space-x-3">
       {if product.image_url do}
         <img
@@ -832,7 +832,7 @@ With URL sync enabled, your table state is preserved in the URL:
   </:col>
 
   <!-- Price with currency formatting -->
-  <:col :let="product" field="price" filter={:number_range} sort class="text-right">
+  <:col :let={product} field="price" filter={:number_range} sort class="text-right">
     <div class="text-right">
       <div class="text-lg font-semibold text-gray-900">
         {Money.to_string(product.price)}
@@ -846,7 +846,7 @@ With URL sync enabled, your table state is preserved in the URL:
   </:col>
 
   <!-- Stock status with inventory count -->
-  <:col :let="product" field="inventory_count" filter={:number_range} sort>
+  <:col :let={product} field="inventory_count" filter={:number_range} sort>
     <div class="text-center">
       <div class={[
         "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
@@ -901,7 +901,7 @@ Every available option demonstrated:
 >
   <!-- Text column with all options using :let -->
   <:col
-    :let="user"
+    :let={user}
     field="name"
     label="Full Name"
     filter={:text}
@@ -924,7 +924,7 @@ Every available option demonstrated:
 
   <!-- Email with mailto link using :let -->
   <:col
-    :let="user"
+    :let={user}
     field="email"
     filter={:text}
     filter_options={[placeholder: "Email address..."]}
@@ -938,7 +938,7 @@ Every available option demonstrated:
 
   <!-- Relationship with select filter -->
   <:col
-    :let="user"
+    :let={user}
     field="department.name"
     filter={:select}
     filter_options={[
@@ -957,7 +957,7 @@ Every available option demonstrated:
 
   <!-- Date with range filter using :let -->
   <:col
-    :let="user"
+    :let={user}
     field="created_at"
     label="Member Since"
     filter={:date_range}
@@ -980,7 +980,7 @@ Every available option demonstrated:
 
   <!-- Boolean with custom labels using :let -->
   <:col
-    :let="user"
+    :let={user}
     field="is_active"
     filter={:boolean}
     filter_options={[
@@ -1001,7 +1001,7 @@ Every available option demonstrated:
   </:col>
 
   <!-- Actions column using :let -->
-  <:col :let="user" field="actions" class="text-right w-32">
+  <:col :let={user} field="actions" class="text-right w-32">
     <div class="flex gap-1 justify-end">
       <.link
         navigate={~p"/users/#{user.id}"}
@@ -1065,15 +1065,15 @@ Only enable filters where users actually need them:
 ```elixir
 <Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
   <!-- Internal ID - no filter needed -->
-  <:col :let="product" field="id" sort>{product.id}</:col>
+  <:col :let={product} field="id" sort>{product.id}</:col>
 
   <!-- User-searchable fields -->
-  <:col :let="product" field="name" filter sort>{product.name}</:col>
-  <:col :let="product" field="category" filter sort>{product.category}</:col>
-  <:col :let="product" field="price" filter={:number_range} sort>${product.price}</:col>
+  <:col :let={product} field="name" filter sort>{product.name}</:col>
+  <:col :let={product} field="category" filter sort>{product.category}</:col>
+  <:col :let={product} field="price" filter={:number_range} sort>${product.price}</:col>
 
   <!-- Display-only field -->
-  <:col :let="product" field="sku">{product.sku}</:col>
+  <:col :let={product} field="sku">{product.sku}</:col>
 </Cinder.Table.table>
 ```
 
@@ -1097,9 +1097,9 @@ Only enable filters where users actually need them:
     sort: [:name]
   ]}
 >
-  <:col :let="user" field="name" filter sort>{user.name}</:col>
-  <:col :let="user" field="email" filter>{user.email}</:col>
-  <:col :let="user" field="department.name" filter sort>{user.department.name}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
 </Cinder.Table.table>
 ```
 

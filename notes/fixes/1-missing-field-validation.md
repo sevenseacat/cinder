@@ -13,7 +13,7 @@ Users can define table columns without a `field` attribute, which causes confusi
 
 **Current API Documentation** shows:
 ```elixir
-<:col :let="user" field="name" filter sort>{user.name}</:col>
+<:col :let={user} field="name" filter sort>{user.name}</:col>
 ```
 
 **But Implementation** looks for:
