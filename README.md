@@ -22,13 +22,20 @@ That's it! Cinder automatically provides:
 - ✅ URL state management for bookmarkable views
 - ✅ Responsive design with flexible theming
 
+<video controls width="100%">
+  <source src="./docs/screenshots/demo.mp4" type="video/mp4">
+  <source src="./screenshots/demo.mp4" type="video/mp4">
+</video>
+
+*Sort and filter by calculations, aggregates, attributes, or even relationship data!*
+
 ## Key Features
 
 - **🧠 Intelligent Defaults**: Automatic filter type detection from Ash resource attributes
 - **⚡ Minimal Configuration**: 70% fewer attributes required compared to traditional table components
 - **🔗 Complete URL State Management**: Filters, pagination, and sorting synchronized with browser URL
 - **🌐 Relationship Support**: Dot notation for related fields (e.g., `user.department.name`)
-- **🎨 Advanced Theming**: 10 built-in themes (default, modern, retro, futuristic, dark, daisy_ui, flowbite, vintage, compact, pastel) plus powerful DSL for custom themes
+- **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, vintage, compact, pastel) plus powerful DSL for custom themes
 - **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
 - **⚡ Real-time Filtering**: Six filter types with debounced updates
 - **📱 Responsive Design**: Mobile-friendly with loading states
