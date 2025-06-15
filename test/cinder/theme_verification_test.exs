@@ -9,8 +9,7 @@ defmodule Cinder.ThemeVerificationTest do
     Cinder.Themes.Flowbite,
     Cinder.Themes.Futuristic,
     Cinder.Themes.Pastel,
-    Cinder.Themes.Retro,
-    Cinder.Themes.Vintage
+    Cinder.Themes.Retro
   ]
 
   @required_multiselect_properties [

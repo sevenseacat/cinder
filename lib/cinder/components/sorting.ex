@@ -32,14 +32,14 @@ defmodule Cinder.Components.Sorting do
   """
   def default_theme do
     %{
-      sort_indicator_class: "",
-      sort_arrow_wrapper_class: "",
+      sort_indicator_class: "ml-1 inline-flex items-center align-baseline",
+      sort_arrow_wrapper_class: "inline-flex items-center",
       sort_asc_icon_name: "hero-chevron-up",
-      sort_asc_icon_class: "",
+      sort_asc_icon_class: "w-3 h-3",
       sort_desc_icon_name: "hero-chevron-down",
-      sort_desc_icon_class: "",
+      sort_desc_icon_class: "w-3 h-3",
       sort_none_icon_name: "hero-chevron-up-down",
-      sort_none_icon_class: ""
+      sort_none_icon_class: "w-3 h-3 opacity-50"
     }
   end
 

@@ -152,9 +152,6 @@ defmodule Cinder.Theme.DslModule do
       :flowbite ->
         Cinder.Themes.Flowbite.resolve_theme()
 
-      :vintage ->
-        Cinder.Themes.Vintage.resolve_theme()
-
       :compact ->
         Cinder.Themes.Compact.resolve_theme()
 

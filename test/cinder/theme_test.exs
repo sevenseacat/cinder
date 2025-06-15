@@ -177,10 +177,10 @@ defmodule Cinder.ThemeTest do
       assert "dark" in presets
       assert "daisy_ui" in presets
       assert "flowbite" in presets
-      assert "vintage" in presets
+
       assert "compact" in presets
       assert "pastel" in presets
-      assert length(presets) == 10
+      assert length(presets) == 9
     end
 
     test "all presets can be loaded" do

@@ -72,7 +72,7 @@ defmodule Cinder.Themes.Dark do
         "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
 
     set :filter_number_input_class,
-        "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+        "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
@@ -112,6 +112,7 @@ defmodule Cinder.Themes.Dark do
     # Range filters
     set :filter_range_container_class, "flex space-x-3"
     set :filter_range_input_group_class, "flex-1"
+    set :filter_range_separator_class, "flex items-center px-2 text-sm font-medium text-gray-400"
   end
 
   component Cinder.Components.Pagination do
@@ -131,11 +132,11 @@ defmodule Cinder.Themes.Dark do
   end
 
   component Cinder.Components.Sorting do
-    set :sort_indicator_class, "ml-2 inline-flex items-center"
-    set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
-    set :sort_asc_icon_class, "w-4 h-4 text-purple-400"
-    set :sort_desc_icon_class, "w-4 h-4 text-purple-400"
-    set :sort_none_icon_class, "w-4 h-4 text-gray-400 opacity-75"
+    set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
+    set :sort_arrow_wrapper_class, "inline-flex items-center"
+    set :sort_asc_icon_class, "w-3 h-3 text-purple-400"
+    set :sort_desc_icon_class, "w-3 h-3 text-purple-400"
+    set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-75"
   end
 
   component Cinder.Components.Loading do

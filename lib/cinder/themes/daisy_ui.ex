@@ -47,7 +47,10 @@ defmodule Cinder.Themes.DaisyUI do
     # Input styling
     set :filter_text_input_class, "input input-bordered w-full"
     set :filter_date_input_class, "input input-bordered w-full"
-    set :filter_number_input_class, "input input-bordered w-full"
+
+    set :filter_number_input_class,
+        "input input-bordered w-full [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+
     set :filter_select_input_class, "select select-bordered w-full"
 
     # Boolean filter
@@ -78,6 +81,9 @@ defmodule Cinder.Themes.DaisyUI do
     # Range filters
     set :filter_range_container_class, "flex gap-2"
     set :filter_range_input_group_class, "flex-1"
+
+    set :filter_range_separator_class,
+        "flex items-center px-2 text-sm font-medium text-base-content/60"
   end
 
   component Cinder.Components.Pagination do
@@ -95,11 +101,11 @@ defmodule Cinder.Themes.DaisyUI do
   end
 
   component Cinder.Components.Sorting do
-    set :sort_indicator_class, "ml-2 inline-flex items-center"
-    set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
-    set :sort_asc_icon_class, "w-4 h-4 text-primary"
-    set :sort_desc_icon_class, "w-4 h-4 text-primary"
-    set :sort_none_icon_class, "w-4 h-4 text-base-content/60"
+    set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
+    set :sort_arrow_wrapper_class, "inline-flex items-center"
+    set :sort_asc_icon_class, "w-3 h-3 text-primary"
+    set :sort_desc_icon_class, "w-3 h-3 text-primary"
+    set :sort_none_icon_class, "w-3 h-3 text-base-content/60"
   end
 
   component Cinder.Components.Loading do

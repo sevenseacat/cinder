@@ -110,12 +110,6 @@ defmodule Cinder.Theme do
       |> apply_theme_property_mapping()
       |> apply_theme_data_attributes()
 
-  def merge("vintage"),
-    do:
-      Cinder.Themes.Vintage.resolve_theme()
-      |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
-
   def merge("compact"),
     do:
       Cinder.Themes.Compact.resolve_theme()
@@ -165,7 +159,6 @@ defmodule Cinder.Theme do
       "dark",
       "daisy_ui",
       "flowbite",
-      "vintage",
       "compact",
       "pastel"
     ]

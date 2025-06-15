@@ -35,7 +35,9 @@ defmodule Cinder.Filters.DateRange do
           class={@theme.filter_date_input_class}
         />
       </div>
-      to
+      <div class={@theme.filter_range_separator_class}>
+        to
+      </div>
       <div class={@theme.filter_range_input_group_class}>
         <input
           type="date"

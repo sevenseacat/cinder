@@ -54,7 +54,8 @@ defmodule Cinder.Components.Filters do
 
     # Range filters (date and number)
     :filter_range_container_class,
-    :filter_range_input_group_class
+    :filter_range_input_group_class,
+    :filter_range_separator_class
   ]
 
   @doc """
@@ -87,7 +88,8 @@ defmodule Cinder.Components.Filters do
       filter_date_input_class: "",
 
       # Number filter
-      filter_number_input_class: "",
+      filter_number_input_class:
+        "[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]",
 
       # Select filter
       filter_select_input_class: "",
@@ -114,7 +116,8 @@ defmodule Cinder.Components.Filters do
 
       # Range filters (date and number)
       filter_range_container_class: "",
-      filter_range_input_group_class: ""
+      filter_range_input_group_class: "",
+      filter_range_separator_class: "flex items-center px-2 text-sm text-gray-500"
     }
   end
 

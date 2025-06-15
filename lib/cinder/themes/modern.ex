@@ -62,7 +62,7 @@ defmodule Cinder.Themes.Modern do
         "w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
 
     set :filter_number_input_class,
-        "w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
+        "w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 bg-white"
@@ -102,6 +102,7 @@ defmodule Cinder.Themes.Modern do
     # Range filters
     set :filter_range_container_class, "flex space-x-3"
     set :filter_range_input_group_class, "flex-1"
+    set :filter_range_separator_class, "flex items-center px-2 text-sm font-medium text-gray-500"
   end
 
   component Cinder.Components.Pagination do
@@ -121,11 +122,11 @@ defmodule Cinder.Themes.Modern do
   end
 
   component Cinder.Components.Sorting do
-    set :sort_indicator_class, "ml-2 inline-flex items-center"
-    set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
-    set :sort_asc_icon_class, "w-4 h-4 text-blue-600"
-    set :sort_desc_icon_class, "w-4 h-4 text-blue-600"
-    set :sort_none_icon_class, "w-4 h-4 text-gray-500 opacity-75"
+    set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
+    set :sort_arrow_wrapper_class, "inline-flex items-center"
+    set :sort_asc_icon_class, "w-3 h-3 text-blue-600"
+    set :sort_desc_icon_class, "w-3 h-3 text-blue-600"
+    set :sort_none_icon_class, "w-3 h-3 text-gray-500 opacity-75"
   end
 
   component Cinder.Components.Loading do

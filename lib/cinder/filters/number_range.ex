@@ -36,7 +36,9 @@ defmodule Cinder.Filters.NumberRange do
           class={@theme.filter_number_input_class}
         />
       </div>
-      to
+      <div class={@theme.filter_range_separator_class}>
+        to
+      </div>
       <div class={@theme.filter_range_input_group_class}>
         <input
           type="number"

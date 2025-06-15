@@ -74,7 +74,7 @@ defmodule Cinder.Themes.Futuristic do
         "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
 
     set :filter_number_input_class,
-        "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
+        "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
@@ -118,8 +118,11 @@ defmodule Cinder.Themes.Futuristic do
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
 
     # Range filters
-    set :filter_range_container_class, "flex space-x-3"
+    set :filter_range_container_class, "flex space-x-4"
     set :filter_range_input_group_class, "flex-1"
+
+    set :filter_range_separator_class,
+        "flex items-center px-2 text-sm font-light text-blue-300/70"
   end
 
   component Cinder.Components.Pagination do
@@ -139,11 +142,11 @@ defmodule Cinder.Themes.Futuristic do
   end
 
   component Cinder.Components.Sorting do
-    set :sort_indicator_class, "ml-2 inline-flex items-center"
-    set :sort_arrow_wrapper_class, "inline-flex items-center ml-1"
-    set :sort_asc_icon_class, "w-4 h-4 text-green-400 drop-shadow-sm drop-shadow-green-400/50"
-    set :sort_desc_icon_class, "w-4 h-4 text-blue-400 drop-shadow-sm drop-shadow-blue-400/50"
-    set :sort_none_icon_class, "w-4 h-4 text-slate-400 opacity-65"
+    set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
+    set :sort_arrow_wrapper_class, "inline-flex items-center"
+    set :sort_asc_icon_class, "w-3 h-3 text-green-400 drop-shadow-sm drop-shadow-green-400/50"
+    set :sort_desc_icon_class, "w-3 h-3 text-blue-400 drop-shadow-sm drop-shadow-blue-400/50"
+    set :sort_none_icon_class, "w-3 h-3 text-slate-400 opacity-65"
   end
 
   component Cinder.Components.Loading do
