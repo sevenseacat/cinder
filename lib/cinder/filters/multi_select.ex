@@ -54,7 +54,7 @@ defmodule Cinder.Filters.MultiSelect do
     }
 
     ~H"""
-    <div class={@theme.filter_multiselect_container_class} phx-hook="MultiSelectDropdown" id={@dropdown_id}>
+    <div class={@theme.filter_multiselect_container_class} id={@dropdown_id}>
       <!-- Main dropdown button that looks like a select input -->
       <button
         type="button"
