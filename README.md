@@ -1,10 +1,10 @@
 # Cinder
 
-A powerful, intelligent data table component for Phoenix LiveView applications with seamless Ash Framework integration.
+A powerful, intelligent data table component for Ash Framework resources, in your Phoenix LiveView applications.
 
 ## What is Cinder?
 
-Cinder transforms complex data table requirements into simple, declarative markup. With automatic type inference and intelligent defaults, you can build feature-rich tables with minimal configuration.
+Cinder transforms complex data table requirements into simple, declarative markup. With automatic type inference and intelligent defaults, you can build feature-rich tables for Ash resources and queries, with minimal configuration.
 
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
@@ -95,7 +95,9 @@ For complex requirements, use the `query` parameter:
 
 ### URL State Management
 
-Add URL sync for bookmarkable table states:
+Use `Cinder.Table.UrlSync` for bookmarkable table states.
+
+Add `UrlSync.handle_params` to your `handle_params` function, which adds a `url_state` assign to pass through to the table. Everything else is handled for you!
 
 ```elixir
 defmodule MyAppWeb.UsersLive do
