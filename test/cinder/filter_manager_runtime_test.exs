@@ -118,10 +118,11 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_options: []
       }
 
-      theme = %{
-        filter_slider_input_class: "custom-slider",
-        filter_clear_button_class: "clear-btn"
-      }
+      theme =
+        Cinder.Theme.merge(%{
+          filter_slider_input_class: "custom-slider",
+          filter_clear_button_class: "clear-btn"
+        })
 
       assigns = %{
         column: column,
@@ -155,10 +156,11 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_options: []
       }
 
-      theme = %{
-        filter_text_input_class: "text-input",
-        filter_clear_button_class: "clear-btn"
-      }
+      theme =
+        Cinder.Theme.merge(%{
+          filter_text_input_class: "text-input",
+          filter_clear_button_class: "clear-btn"
+        })
 
       assigns = %{
         column: column,
@@ -190,10 +192,11 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_options: []
       }
 
-      theme = %{
-        filter_text_input_class: "text-input",
-        filter_clear_button_class: "clear-btn"
-      }
+      theme =
+        Cinder.Theme.merge(%{
+          filter_text_input_class: "text-input",
+          filter_clear_button_class: "clear-btn"
+        })
 
       assigns = %{
         column: column,

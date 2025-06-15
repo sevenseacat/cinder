@@ -25,26 +25,28 @@ defmodule Cinder.Filters.DateRange do
     }
 
     ~H"""
-    <div class={@theme.filter_range_container_class}>
-      <div class={@theme.filter_range_input_group_class}>
+    <div class={@theme.filter_range_container_class} {@theme.filter_range_container_data}>
+      <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
           type="date"
           name={field_name(@column.field, "from")}
           value={@from_value}
           placeholder="From"
           class={@theme.filter_date_input_class}
+          {@theme.filter_date_input_data}
         />
       </div>
-      <div class={@theme.filter_range_separator_class}>
+      <div class={@theme.filter_range_separator_class} {@theme.filter_range_separator_data}>
         to
       </div>
-      <div class={@theme.filter_range_input_group_class}>
+      <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
           type="date"
           name={field_name(@column.field, "to")}
           value={@to_value}
           placeholder="To"
           class={@theme.filter_date_input_class}
+          {@theme.filter_date_input_data}
         />
       </div>
     </div>

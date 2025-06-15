@@ -1,4 +1,4 @@
-# Custom Filters Guide
+# Custom Filters
 
 This guide covers how to create custom filters for Cinder tables. Custom filters allow you to extend Cinder's filtering capabilities with domain-specific UI components and logic.
 
@@ -27,6 +27,7 @@ This creates:
 - `text` - Based on `Cinder.Filters.Text` (text input with operators)
 - `select` - Based on `Cinder.Filters.Select` (dropdown selection)
 - `multi_select` - Based on `Cinder.Filters.MultiSelect` (multiple selection)
+- `multi_checkboxes` - Based on `Cinder.Filters.MultiCheckboxes` (multiple selection)
 - `boolean` - Based on `Cinder.Filters.Boolean` (true/false/any selection)
 - `date_range` - Based on `Cinder.Filters.DateRange` (from/to date picker)
 - `number_range` - Based on `Cinder.Filters.NumberRange` (from/to number input)
@@ -47,7 +48,7 @@ defmodule MyApp.Filters.CaseInsensitiveText do
   @impl true
   def process(raw_value, column) do
     case Cinder.Filters.Text.process(raw_value, column) do
-      %{type: _old_type, value: value} = filter -> 
+      %{type: _old_type, value: value} = filter ->
         %{filter | type: :case_insensitive_text, value: String.downcase(value)}
       result -> result
     end

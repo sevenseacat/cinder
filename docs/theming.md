@@ -2,6 +2,8 @@
 
 Cinder provides a comprehensive theming system that allows complete visual customization of your tables. With 10 built-in themes and a powerful DSL for creating custom themes, you can match any design system or create unique visual experiences.
 
+> **See Also**: [Theme Showcase](theme-showcase.md) - Visual examples and comparisons of all built-in themes
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
@@ -47,62 +49,31 @@ end
 
 ## Built-in Theme Presets
 
-Cinder includes 10 carefully crafted themes covering a wide range of design styles:
+Cinder includes 10 carefully crafted themes covering a wide range of design styles. Each theme provides complete coverage for all table components while maintaining a consistent visual identity.
 
-### Core Themes
+> **Visual Reference**: See the [Theme Showcase](theme-showcase.md) for detailed visual examples and feature descriptions of each theme.
 
-**Default** - Clean, minimal styling for universal compatibility
+Available themes:
+
+- **`"default"`** - Clean, minimal styling for universal compatibility
+- **`"modern"`** - Professional styling with shadows and improved spacing  
+- **`"dark"`** - Elegant dark theme with proper contrast
+- **`"daisy_ui"`** - Optimized for DaisyUI component library
+- **`"flowbite"`** - Designed for Flowbite design system
+- **`"retro"`** - Cyberpunk-inspired with bright accent colors
+- **`"futuristic"`** - Sci-fi aesthetic with glowing effects
+- **`"vintage"`** - Warm, classic styling with subtle textures
+- **`"compact"`** - High-density layout for data-heavy applications
+- **`"pastel"`** - Soft, friendly colors for approachable interfaces
+
+### Usage
+
 ```elixir
-<Cinder.Table.table theme="default" resource={MyApp.User} actor={@current_user}>
-```
-
-**Modern** - Professional styling with shadows and improved spacing
-```elixir
+<!-- Use any theme by name -->
 <Cinder.Table.table theme="modern" resource={MyApp.User} actor={@current_user}>
-```
-
-**Dark** - Elegant dark theme with proper contrast
-```elixir
-<Cinder.Table.table theme="dark" resource={MyApp.User} actor={@current_user}>
-```
-
-### Framework Integration Themes
-
-**DaisyUI** - Optimized for DaisyUI component library
-```elixir
-<Cinder.Table.table theme="daisy_ui" resource={MyApp.User} actor={@current_user}>
-```
-
-**Flowbite** - Designed for Flowbite design system
-```elixir
-<Cinder.Table.table theme="flowbite" resource={MyApp.User} actor={@current_user}>
-```
-
-### Specialty Themes
-
-**Retro** - Cyberpunk-inspired with bright accent colors
-```elixir
-<Cinder.Table.table theme="retro" resource={MyApp.User} actor={@current_user}>
-```
-
-**Futuristic** - Sci-fi aesthetic with glowing effects
-```elixir
-<Cinder.Table.table theme="futuristic" resource={MyApp.User} actor={@current_user}>
-```
-
-**Vintage** - Warm, classic styling with subtle textures
-```elixir
-<Cinder.Table.table theme="vintage" resource={MyApp.User} actor={@current_user}>
-```
-
-**Compact** - High-density layout for data-heavy applications
-```elixir
-<Cinder.Table.table theme="compact" resource={MyApp.User} actor={@current_user}>
-```
-
-**Pastel** - Soft, friendly colors for approachable interfaces
-```elixir
-<Cinder.Table.table theme="pastel" resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+</Cinder.Table.table>
 ```
 
 ## Custom Themes with DSL
@@ -123,14 +94,14 @@ defmodule MyApp.Theme.Corporate do
   end
 
   component Cinder.Components.Filters do
-    set :container_class, "bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6"
-    set :title_class, "text-lg font-semibold text-blue-900 mb-4"
-    set :text_input_class, "w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+    set :filter_container_class, "bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6"
+    set :filter_title_class, "text-lg font-semibold text-blue-900 mb-4"
+    set :filter_text_input_class, "w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
   end
 
   component Cinder.Components.Pagination do
-    set :button_class, "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-    set :info_class, "text-blue-700 font-medium"
+    set :pagination_button_class, "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+    set :pagination_info_class, "text-blue-700 font-medium"
   end
 end
 ```
@@ -145,9 +116,9 @@ defmodule MyApp.Theme.FilterFocused do
 
   # Only customize filters, leave table and pagination with defaults
   component Cinder.Components.Filters do
-    set :container_class, "bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-8 mb-8"
-    set :title_class, "text-xl font-bold text-purple-900 mb-6"
-    set :text_input_class, "w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-4 focus:ring-purple-200"
+    set :filter_container_class, "bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-8 mb-8"
+    set :filter_title_class, "text-xl font-bold text-purple-900 mb-6"
+    set :filter_text_input_class, "w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-4 focus:ring-purple-200"
     set :filter_boolean_container_class, "flex space-x-6 bg-white p-4 rounded-lg shadow-sm"
     set :filter_boolean_radio_class, "h-5 w-5 text-purple-600 focus:ring-purple-500"
   end
@@ -173,8 +144,8 @@ defmodule MyApp.Theme.DarkModern do
   end
 
   component Cinder.Components.Filters do
-    set :container_class, "bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6"
-    set :title_class, "text-sm font-medium text-gray-200"
+    set :filter_container_class, "bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6"
+    set :filter_title_class, "text-sm font-medium text-gray-200"
     set :filter_text_input_class, "w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 focus:ring-2 focus:ring-blue-500"
   end
 end
@@ -194,7 +165,7 @@ defmodule MyApp.Theme.CorporateCompact do
   end
 
   component Cinder.Components.Filters do
-    set :container_class, "bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"
+    set :filter_container_class, "bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"
   end
 end
 ```
@@ -311,6 +282,7 @@ component Cinder.Components.Filters do
   # Range filters
   set :filter_range_container_class, "..."
   set :filter_range_input_group_class, "..."
+  set :filter_range_separator_class, "..."
 end
 ```
 

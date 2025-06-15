@@ -1,6 +1,8 @@
-# Cinder Theme Showcase
+# Theme Showcase
 
 This document showcases the dramatic visual variety possible with Cinder's theming system. Each theme completely transforms the appearance while maintaining full functionality.
+
+> **Getting Started**: For technical documentation on creating and customizing themes, see the [Theming Guide](theming.md).
 
 ## Default Theme (Minimal)
 
@@ -43,6 +45,8 @@ Professional, clean design with subtle shadows and blue accents.
 - Modern form inputs with focus states
 - Clean pagination with border styling
 
+![Screenshot of modern theme](./screenshots/modern.png)
+
 ## Retro Theme
 
 Bold 80s-inspired design with neon colors and cyberpunk aesthetics.
@@ -65,6 +69,8 @@ Bold 80s-inspired design with neon colors and cyberpunk aesthetics.
 - Bold uppercase typography with wide letter spacing
 - Glowing effects on interactive elements
 - High contrast design for dramatic impact
+
+![Screenshot of retro theme](./screenshots/retro.png)
 
 ## Futuristic Theme
 
@@ -89,6 +95,8 @@ Sci-fi inspired with holographic effects and translucent elements.
 - Translucent overlays and borders
 - Light typography with wide tracking
 
+![Screenshot of futuristic theme](./screenshots/futuristic.png)
+
 ## Dark Theme
 
 Elegant dark mode with purple accents and smooth gradients.
@@ -111,6 +119,8 @@ Elegant dark mode with purple accents and smooth gradients.
 - High contrast for excellent readability
 - Smooth color transitions
 - Professional dark mode aesthetic
+
+![Screenshot of dark theme](./screenshots/dark.png)
 
 ## DaisyUI Theme
 
@@ -135,6 +145,8 @@ Complete compatibility with daisyUI component library.
 - Pagination with daisyUI button styling
 - Automatic theme switching support
 
+![Screenshot of DaisyUI theme](./screenshots/daisy_ui.png)
+
 ## Flowbite Theme
 
 Matches Flowbite's advanced table design system.
@@ -157,6 +169,58 @@ Matches Flowbite's advanced table design system.
 - Professional table borders and spacing
 - Flowbite form input styling
 - Advanced pagination matching Flowbite docs
+
+![Screenshot of Flowbite theme](./screenshots/flowbite.png)
+
+## Compact Theme
+
+High-density design with minimal spacing for maximum information display.
+
+```elixir
+<Cinder.Table.table
+  resource={User}
+  actor={@current_user}
+  theme="compact"
+>
+  <:col field="name" />
+  <:col field="email" />
+  <:col field="role" />
+</Cinder.Table.table>
+```
+
+**Visual Features**:
+- Minimal padding and margins
+- Smaller text sizes for information density
+- Efficient use of space
+- Clean lines and subtle borders
+- Perfect for dashboards and data-heavy interfaces
+
+![Screenshot of compact theme](./screenshots/compact.png)
+
+## Pastel Theme
+
+Soft, gentle design with pastel colors for a calming interface.
+
+```elixir
+<Cinder.Table.table
+  resource={User}
+  actor={@current_user}
+  theme="pastel"
+>
+  <:col field="name" />
+  <:col field="email" />
+  <:col field="role" />
+</Cinder.Table.table>
+```
+
+**Visual Features**:
+- Soft pastel color palette (pinks, blues, purples, greens)
+- Gentle gradients and rounded corners
+- Light, airy feeling with whitespace
+- Smooth transitions and subtle shadows
+- Soothing design for comfortable viewing
+
+![Screenshot of pastel theme](./screenshots/pastel.png)
 
 ## Custom Themes with DSL
 
@@ -206,75 +270,6 @@ defmodule MyApp.DarkRetro do
 end
 ```
 
-## Vintage Theme
-
-Warm, classic design with sepia tones and traditional typography.
-
-```elixir
-<Cinder.Table.table
-  resource={User}
-  actor={@current_user}
-  theme="vintage"
->
-  <:col field="name" />
-  <:col field="email" />
-  <:col field="role" />
-</Cinder.Table.table>
-```
-
-**Visual Features**:
-- Warm amber and brown color palette
-- Vintage paper-like backgrounds
-- Bold serif-inspired typography
-- Classic borders with traditional spacing
-- Nostalgic, timeless aesthetic
-
-## Compact Theme
-
-High-density design with minimal spacing for maximum information display.
-
-```elixir
-<Cinder.Table.table
-  resource={User}
-  actor={@current_user}
-  theme="compact"
->
-  <:col field="name" />
-  <:col field="email" />
-  <:col field="role" />
-</Cinder.Table.table>
-```
-
-**Visual Features**:
-- Minimal padding and margins
-- Smaller text sizes for information density
-- Efficient use of space
-- Clean lines and subtle borders
-- Perfect for dashboards and data-heavy interfaces
-
-## Pastel Theme
-
-Soft, gentle design with pastel colors for a calming interface.
-
-```elixir
-<Cinder.Table.table
-  resource={User}
-  actor={@current_user}
-  theme="pastel"
->
-  <:col field="name" />
-  <:col field="email" />
-  <:col field="role" />
-</Cinder.Table.table>
-```
-
-**Visual Features**:
-- Soft pastel color palette (pinks, blues, purples, greens)
-- Gentle gradients and rounded corners
-- Light, airy feeling with whitespace
-- Smooth transitions and subtle shadows
-- Soothing design for comfortable viewing
-
 ## Available Theme Presets
 
 All built-in themes can be used with string names:
@@ -288,7 +283,6 @@ theme="futuristic"  # Sci-fi holographic
 theme="dark"        # Elegant dark mode
 theme="daisy_ui"    # daisyUI compatibility
 theme="flowbite"    # Flowbite compatibility
-theme="vintage"     # Warm classic design
 theme="compact"     # High-density minimal
 theme="pastel"      # Soft gentle colors
 
@@ -302,7 +296,7 @@ theme={MyApp.CustomTheme}
 Every theme covers all components consistently:
 
 - **Table**: Container, headers, rows, cells
-- **Filters**: Container, inputs, labels, buttons  
+- **Filters**: Container, inputs, labels, buttons
 - **Pagination**: Wrapper, buttons, info text
 - **Sorting**: Icons, indicators, hover states
 - **Loading**: Spinners, overlays, containers

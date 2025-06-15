@@ -17,6 +17,7 @@ defmodule Cinder.MixProject do
       package: package(),
       description: description(),
       name: "Cinder",
+      aliases: aliases(),
       source_url: @source_url
     ]
   end
@@ -26,6 +27,14 @@ defmodule Cinder.MixProject do
     [
       extra_applications: [:logger]
     ]
+  end
+
+  defp aliases do
+    [docs: ["docs", &copy_theme_images/1]]
+  end
+
+  defp copy_theme_images(_) do
+    File.cp_r!("./docs/screenshots", "./doc/screenshots")
   end
 
   # Specifies which paths to compile per environment.
@@ -60,44 +69,59 @@ defmodule Cinder.MixProject do
         "GitHub" => @source_url,
         "Documentation" => "https://hexdocs.pm/cinder"
       },
-      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE)
     ]
   end
 
   defp docs do
     [
-      main: "Cinder",
+      main: "readme",
       source_ref: "v#{@version}",
       source_url: @source_url,
       extras: [
         "README.md",
         "docs/examples.md",
-        "docs/theming.md"
+        "docs/theming.md",
+        "docs/theme-showcase.md",
+        "docs/custom-filters.md"
       ],
       groups_for_modules: [
         "Core Components": [
           Cinder,
-          Cinder.Table
+          Cinder.Table,
+          Cinder.Table.LiveComponent
+        ],
+        "Filter Types": [
+          Cinder.Filter,
+          Cinder.Filter.Helpers,
+          Cinder.Filter.Debug,
+          Cinder.Filters.Registry,
+          Cinder.Filters.Text,
+          Cinder.Filters.Select,
+          Cinder.Filters.MultiSelect,
+          Cinder.Filters.MultiCheckboxes,
+          Cinder.Filters.Boolean,
+          Cinder.Filters.DateRange,
+          Cinder.Filters.NumberRange
+        ],
+        "Theming System": [
+          Cinder.Theme,
+          ~r/Cinder.Theme/,
+          ~r/Cinder.Themes/,
+          Cinder.Components.Table,
+          Cinder.Components.Filters,
+          Cinder.Components.Pagination,
+          Cinder.Components.Sorting,
+          Cinder.Components.Loading
         ],
         "URL Management": [
           Cinder.Table.UrlSync,
           Cinder.UrlManager
         ],
         "Internal Systems": [
-          Cinder.Theme,
           Cinder.QueryBuilder,
           Cinder.Column,
           Cinder.FilterManager
-        ],
-        "Filter Types": [
-          Cinder.Filter,
-          Cinder.Filters.Registry,
-          Cinder.Filters.Text,
-          Cinder.Filters.Select,
-          Cinder.Filters.MultiSelect,
-          Cinder.Filters.Boolean,
-          Cinder.Filters.DateRange,
-          Cinder.Filters.NumberRange
         ]
       ]
     ]

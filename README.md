@@ -36,6 +36,21 @@ That's it! Cinder automatically provides:
 
 ## Installation
 
+### Using Igniter (Recommended)
+
+If you're using [Igniter](https://hexdocs.pm/igniter) in your project:
+
+```bash
+mix igniter.install cinder
+```
+
+This will automatically:
+- Add Cinder to your dependencies
+- Configure Tailwind CSS to include Cinder's styles
+- Provide setup instructions and examples
+
+### Manual Installation
+
 Add `cinder` to your list of dependencies in `mix.exs`:
 
 ```elixir
@@ -45,6 +60,15 @@ def deps do
   ]
 end
 ```
+
+Then run:
+
+```bash
+mix deps.get
+mix cinder.install  # Configure Tailwind CSS
+```
+
+The installer will automatically update your Tailwind configuration to include Cinder's CSS classes. If automatic configuration fails, it will provide manual setup instructions.
 
 ## Quick Start
 
@@ -110,7 +134,7 @@ For detailed examples of filters, sorting, theming, relationships, and advanced 
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to our GitHub repository.
+Contributions are welcome! Please submit pull requests to our GitHub repository.
 
 ## License
 

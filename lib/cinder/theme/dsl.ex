@@ -11,12 +11,12 @@ defmodule Cinder.Theme.Dsl do
       defmodule MyApp.CustomTheme do
         use Cinder.Theme
 
-        override Cinder.Components.Table do
+        component Cinder.Components.Table do
           set :container_class, "my-custom-table-container"
           set :row_class, "my-custom-row hover:bg-blue-50"
         end
 
-        override Cinder.Components.Filters do
+        component Cinder.Components.Filters do
           set :container_class, "my-filter-container"
           set :text_input_class, "my-text-input"
         end
@@ -51,7 +51,7 @@ defmodule Cinder.Theme.Dsl do
             describe: "Override theme properties for a specific component",
             examples: [
               """
-              override Cinder.Components.Table do
+              component Cinder.Components.Table do
                 set :container_class, "custom-table-container"
                 set :row_class, "custom-row"
               end

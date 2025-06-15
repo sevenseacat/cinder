@@ -27,3 +27,5 @@ cinder-*.tar
 
 # Claude notes
 notes/
+
+.DS_Store

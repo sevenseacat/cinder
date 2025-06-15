@@ -17,7 +17,7 @@ defmodule Cinder.Themes.Flowbite do
         "relative overflow-hidden bg-white shadow-md dark:bg-gray-800 sm:rounded-lg"
 
     set :controls_class,
-        "flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4 p-4"
+        "flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4"
 
     set :table_wrapper_class, "overflow-x-auto"
     set :table_class, "w-full text-sm text-left text-gray-500 dark:text-gray-400"

@@ -30,6 +30,7 @@ defmodule Cinder.Filters.Select do
     <select
       name={field_name(@column.field)}
       class={@theme.filter_select_input_class}
+      {@theme.filter_select_input_data}
     >
       <option value="">{@prompt}</option>
       <option

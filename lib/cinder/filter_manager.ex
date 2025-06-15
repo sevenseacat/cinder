@@ -57,11 +57,11 @@ defmodule Cinder.FilterManager do
       |> assign(:filter_values, filter_values)
 
     ~H"""
-    <div :if={@filterable_columns != []} class={@theme.filter_container_class}>
-      <div class={@theme.filter_header_class}>
-        <span class={@theme.filter_title_class}>
+    <div :if={@filterable_columns != []} class={@theme.filter_container_class} {@theme.filter_container_data}>
+      <div class={@theme.filter_header_class} {@theme.filter_header_data}>
+        <span class={@theme.filter_title_class} {@theme.filter_title_data}>
           🔍 Filters
-          <span :if={@active_filters > 0} class={@theme.filter_count_class}>
+          <span :if={@active_filters > 0} class={@theme.filter_count_class} {@theme.filter_count_data}>
             ({@active_filters} active)
           </span>
         </span>
@@ -70,15 +70,16 @@ defmodule Cinder.FilterManager do
           phx-click="clear_all_filters"
           phx-target={@target}
           class={@theme.filter_clear_all_class}
+          {@theme.filter_clear_all_data}
         >
           Clear All
         </button>
       </div>
 
       <form phx-change="filter_change" phx-target={@target}>
-        <div class={@theme.filter_inputs_class}>
-          <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class}>
-            <label class={@theme.filter_label_class}>{column.label}:</label>
+        <div class={@theme.filter_inputs_class} {@theme.filter_inputs_data}>
+          <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
+            <label class={@theme.filter_label_class} {@theme.filter_label_data}>{column.label}:</label>
             <.filter_input
               column={column}
               current_value={Map.get(@filter_values, column.field, "")}
@@ -171,6 +172,7 @@ defmodule Cinder.FilterManager do
         phx-value-key={@column.field}
         phx-target={@target}
         class={@theme.filter_clear_button_class}
+        {@theme.filter_clear_button_data}
         title="Clear filter"
       >
         ×
