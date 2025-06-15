@@ -182,7 +182,7 @@ defmodule Cinder.UrlStateRestorationTest do
 
       # Relationship boolean filter
       assert Map.has_key?(decoded_state.filters, "artist.active")
-      assert decoded_state.filters["artist.active"].value == "true"
+      assert decoded_state.filters["artist.active"].value == true
       assert decoded_state.filters["artist.active"].type == :boolean
     end
   end

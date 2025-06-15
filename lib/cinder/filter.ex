@@ -5,7 +5,7 @@ defmodule Cinder.Filter do
   Defines the common interface that all filter types must implement,
   along with shared types and utility functions.
 
-  ## Usage
+  ## Quick Start
 
   The most convenient way to create a custom filter is to use this module:
 
@@ -14,23 +14,192 @@ defmodule Cinder.Filter do
 
         @impl true
         def render(column, current_value, theme, assigns) do
-          # Your filter rendering logic
+          filter_options = Map.get(column, :filter_options, [])
+          min_value = get_option(filter_options, :min, 0)
+          max_value = get_option(filter_options, :max, 100)
+          current = current_value || min_value
+
+          assigns = %{
+            column: column,
+            current_value: current,
+            min_value: min_value,
+            max_value: max_value,
+            theme: theme
+          }
+
+          ~H\"\"\"
+          <div class="flex flex-col space-y-2">
+            <input
+              type="range"
+              name={field_name(@column.field)}
+              value={@current_value}
+              min={@min_value}
+              max={@max_value}
+              phx-debounce="100"
+              class={Map.get(@theme, :filter_slider_input_class, "w-full")}
+            />
+            <output>{@current_value}</output>
+          </div>
+          \"\"\"
         end
 
-        # ... implement other required callbacks
+        @impl true
+        def process(raw_value, column) when is_binary(raw_value) do
+          case Integer.parse(raw_value) do
+            {value, ""} ->
+              %{
+                type: :slider,
+                value: value,
+                operator: :less_than_or_equal
+              }
+            _ -> nil
+          end
+        end
+
+        def process(_raw_value, _column), do: nil
+
+        @impl true
+        def validate(%{type: :slider, value: value, operator: operator})
+            when is_integer(value) and is_atom(operator), do: true
+        def validate(_), do: false
+
+        @impl true
+        def default_options, do: [min: 0, max: 100, step: 1]
+
+        @impl true
+        def empty?(value) do
+          case value do
+            nil -> true
+            %{value: nil} -> true
+            _ -> false
+          end
+        end
+
+        @impl true
+        def build_query(query, field, filter_value) do
+          %{value: value} = filter_value
+          field_atom = String.to_atom(field)
+          Ash.Query.filter(query, ^ref(field_atom) <= ^value)
+        end
       end
+
+  Then register it in your configuration:
+
+      config :cinder, :filters, %{
+        slider: MyApp.Filters.Slider
+      }
+
+  And call `Cinder.setup()` in your application start function to register
+  all configured filters.
 
   This automatically:
   - Adds the `@behaviour Cinder.Filter` declaration
   - Imports Phoenix.Component for HEEx templates
   - Imports helper functions from this module
-  - Registers the filter automatically if configured
+
+  ## Required Callbacks
+
+  All custom filters must implement these callbacks:
+
+  ### render/4
+
+  Renders the filter UI component.
+
+      @callback render(column :: map(), current_value :: any(), theme :: map(), assigns :: map()) :: Phoenix.LiveView.Rendered.t()
+
+  - `column`: Column configuration with `field`, `label`, `filter_options`
+  - `current_value`: Current filter value (nil if no filter applied)
+  - `theme`: Theme configuration with CSS classes
+  - `assigns`: Additional assigns from the parent component
+
+  ### process/2
+
+  Processes raw form/URL input into structured filter data.
+
+      @callback process(raw_value :: any(), column :: map()) :: map() | nil
+
+  Must return a map with `:type`, `:value`, `:operator` keys, or `nil`.
+
+  ### validate/1
+
+  Validates a processed filter value.
+
+      @callback validate(value :: any()) :: boolean()
+
+  ### default_options/0
+
+  Returns default configuration options.
+
+      @callback default_options() :: keyword()
+
+  ### empty?/1
+
+  Determines if a filter value is "empty" (no filtering applied).
+
+      @callback empty?(value :: any()) :: boolean()
+
+  ### build_query/3
+
+  **Critical for functionality!** Builds the Ash query for this filter.
+
+      @callback build_query(query :: Ash.Query.t(), field :: String.t(), filter_value :: map()) :: Ash.Query.t()
+
+  ## Helper Functions
+
+  ### field_name/1
+
+  Generates proper form field names for filter inputs:
+
+      ~H\"\"\"
+      <input name={field_name(@column.field)} ... />
+      \"\"\"
+
+  ### get_option/3
+
+  Safely extracts options from filter configuration with defaults:
+
+      filter_options = Map.get(column, :filter_options, [])
+      placeholder = get_option(filter_options, :placeholder, "Enter text...")
+
+  ## Query Building Patterns
+
+  ### Basic Field Filtering
+
+      def build_query(query, field, filter_value) do
+        %{value: value} = filter_value
+        field_atom = String.to_atom(field)
+        Ash.Query.filter(query, ^ref(field_atom) == ^value)
+      end
+
+  ### Relationship Filtering
+
+  Handle dot notation fields like "user.name":
+
+      def build_query(query, field, filter_value) do
+        %{value: value} = filter_value
+
+        if String.contains?(field, ".") do
+          path_atoms = field |> String.split(".") |> Enum.map(&String.to_atom/1)
+          {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
+
+          Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) == ^value))
+        else
+          field_atom = String.to_atom(field)
+          Ash.Query.filter(query, ^ref(field_atom) == ^value)
+        end
+      end
+
+  ## Best Practices
+
+  1. **Always implement build_query/3** - This is what actually filters data
+  2. **Handle edge cases in process/2** - Return nil for invalid input
+  3. **Validate filter values** - Check structure and data types
+  4. **Document your filters** - Include usage examples and options
+
   """
 
   @doc false
-  defmacro __using__(opts) do
-    filter_name = Keyword.get(opts, :name)
-
+  defmacro __using__(_opts) do
     quote do
       @behaviour Cinder.Filter
       use Phoenix.Component
@@ -38,33 +207,6 @@ defmodule Cinder.Filter do
       require Ash.Query
       import Ash.Expr
       import Cinder.Filter
-
-      # Auto-register filter if name is provided and config exists
-      if unquote(filter_name) do
-        @after_compile {Cinder.Filter, :maybe_auto_register}
-        @filter_name unquote(filter_name)
-      end
-    end
-  end
-
-  @doc false
-  def maybe_auto_register(env, _bytecode) do
-    if Module.get_attribute(env.module, :filter_name) do
-      filter_name = Module.get_attribute(env.module, :filter_name)
-
-      # Check if this filter is configured for auto-registration
-      config_filters = Application.get_env(:cinder, :filters, %{})
-
-      if Map.get(config_filters, filter_name) == env.module do
-        case Cinder.Filters.Registry.register_filter(filter_name, env.module) do
-          :ok ->
-            :ok
-
-          {:error, _reason} ->
-            # Registration will be handled by register_config_filters/0
-            :ok
-        end
-      end
     end
   end
 

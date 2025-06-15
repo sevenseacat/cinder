@@ -101,14 +101,15 @@ defmodule Cinder.FilterManagerRuntimeTest do
   end
 
   setup do
-    # Clear any existing custom filters before each test
-    Application.put_env(:cinder, :custom_filters, %{})
+    # Clear any existing filters before each test
+    Application.put_env(:cinder, :filters, [])
     :ok
   end
 
   describe "filter_input/1 with custom filters" do
     test "renders custom filter when module is available" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+      Registry.register_config_filters()
 
       column = %{
         field: "price",
@@ -141,7 +142,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
     test "falls back to text filter when custom filter module missing" do
       # Test the graceful fallback by checking the Registry directly
       # Manually add invalid module to simulate missing module at runtime
-      Application.put_env(:cinder, :custom_filters, %{missing: NonExistentModule})
+      Application.put_env(:cinder, :filters, missing: NonExistentModule)
 
       # Check that the filter is considered custom but module is not available
       assert Registry.custom_filter?(:missing) == true
@@ -212,7 +213,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
   describe "process_filter_value/2 with custom filters" do
     test "processes custom filter values successfully" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+      Registry.register_config_filters()
 
       column = %{
         field: "price",
@@ -226,7 +228,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
 
     test "handles custom filter processing errors gracefully" do
-      Registry.register_filter(:broken, BrokenFilter)
+      Application.put_env(:cinder, :filters, broken: BrokenFilter)
+      Registry.register_config_filters()
 
       column = %{
         field: "price",
@@ -253,7 +256,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
     test "falls back to text processing when custom filter module missing" do
       # Manually add invalid module to simulate missing module at runtime
-      Application.put_env(:cinder, :custom_filters, %{missing: NonExistentModule})
+      Application.put_env(:cinder, :filters, missing: NonExistentModule)
 
       column = %{
         field: "price",
@@ -298,7 +301,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
   describe "infer_filter_config/3 with custom filters" do
     test "allows explicit custom filter types when module exists" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+      Registry.register_config_filters()
 
       slot = %{
         filterable: true,
@@ -316,7 +320,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
     test "falls back to text filter when custom filter module missing" do
       # Manually add invalid module to simulate missing module at runtime
-      Application.put_env(:cinder, :custom_filters, %{missing: NonExistentModule})
+      Application.put_env(:cinder, :filters, missing: NonExistentModule)
 
       slot = %{
         filterable: true,
@@ -354,7 +358,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
   describe "validate_runtime_filters/0" do
     test "returns :ok when all custom filters are valid" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+      Registry.register_config_filters()
 
       assert FilterManager.validate_runtime_filters() == :ok
     end
@@ -365,10 +370,10 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
     test "logs warnings and returns error when custom filters are invalid" do
       # Manually add invalid filters to bypass registration validation
-      Application.put_env(:cinder, :custom_filters, %{
+      Application.put_env(:cinder, :filters,
         broken: NonExistentModule,
         missing: AnotherMissingModule
-      })
+      )
 
       log_output =
         capture_log(fn ->
@@ -385,7 +390,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
     test "continues execution even when validation fails" do
       # This test ensures that failed validation doesn't crash the application
-      Application.put_env(:cinder, :custom_filters, %{broken: NonExistentModule})
+      Application.put_env(:cinder, :filters, broken: NonExistentModule)
 
       log_output =
         capture_log(fn ->
@@ -403,7 +408,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
   describe "integration with built-in filter system" do
     test "custom filters work alongside built-in filters" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+      Registry.register_config_filters()
 
       # Test both custom and built-in filters
       custom_column = %{
@@ -433,7 +439,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
 
     test "default_options works for both custom and built-in filters" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+      Registry.register_config_filters()
 
       # Custom filter options
       custom_options = Registry.default_options(:slider)
@@ -445,7 +452,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
 
     test "filter discovery works for both types" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+      Registry.register_config_filters()
 
       # Both should be discoverable
       assert Registry.get_filter(:slider) == TestSliderFilter

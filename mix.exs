@@ -41,9 +41,9 @@ defmodule Cinder.MixProject do
       {:phoenix_live_view, "~> 1.0"},
       {:spark, "~> 2.0"},
       {:stream_data, "~> 1.1"},
+      {:igniter, "~> 0.5", optional: true},
       {:usage_rules, "~> 0.1", only: [:dev]},
-      {:sourceror, "~> 1.8", only: [:dev, :test]},
-      {:igniter, "~> 0.5", only: [:dev, :test]}
+      {:sourceror, "~> 1.8"}
     ]
   end
 

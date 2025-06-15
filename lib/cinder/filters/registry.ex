@@ -197,10 +197,7 @@ defmodule Cinder.Filters.Registry do
         {:error, "Module #{inspect(module)} does not implement Cinder.Filter behavior"}
 
       true ->
-        # Store in application environment for runtime registration
-        existing = Application.get_env(:cinder, :custom_filters, %{})
-        updated = Map.put(existing, filter_type, module)
-        Application.put_env(:cinder, :custom_filters, updated)
+        # Just validate - no storage needed for config-only approach
         :ok
     end
   end
@@ -208,16 +205,7 @@ defmodule Cinder.Filters.Registry do
   # Internal function used by register_config_filters/0 to avoid
   # overriding runtime-registered filters.
   def register_config_filter(filter_type, module) when is_atom(filter_type) and is_atom(module) do
-    # Check if already registered at runtime
-    runtime_filters = Application.get_env(:cinder, :custom_filters, %{})
-
-    if Map.has_key?(runtime_filters, filter_type) do
-      # Runtime registration takes precedence
-      :ok
-    else
-      # Use normal registration process
-      register_filter(filter_type, module)
-    end
+    register_filter(filter_type, module)
   end
 
   @doc false
@@ -225,14 +213,10 @@ defmodule Cinder.Filters.Registry do
   # Mainly used for testing scenarios.
   def unregister_filter(filter_type) when is_atom(filter_type) do
     cond do
-      # Prevent unregistering built-in filter types
-      Map.has_key?(all_filters(), filter_type) ->
-        {:error, "Cannot unregister built-in filter type :#{filter_type}"}
+      builtin_filter?(filter_type) ->
+        {:error, "Cannot unregister built-in filter :#{filter_type}"}
 
       true ->
-        existing = Application.get_env(:cinder, :custom_filters, %{})
-        updated = Map.delete(existing, filter_type)
-        Application.put_env(:cinder, :custom_filters, updated)
         :ok
     end
   end
@@ -249,10 +233,7 @@ defmodule Cinder.Filters.Registry do
       %{slider: MyApp.Filters.Slider, color_picker: MyApp.Filters.ColorPicker}
   """
   def list_custom_filters do
-    runtime_filters = Application.get_env(:cinder, :custom_filters, %{})
-    config_filters = get_config_filters()
-
-    Map.merge(config_filters, runtime_filters)
+    get_config_filters()
   end
 
   @doc """
@@ -295,12 +276,10 @@ defmodule Cinder.Filters.Registry do
       }
   """
   def all_filters_with_custom do
-    runtime_filters = Application.get_env(:cinder, :custom_filters, %{})
     config_filters = get_config_filters()
 
     all_filters()
     |> Map.merge(config_filters)
-    |> Map.merge(runtime_filters)
   end
 
   @doc """
@@ -389,7 +368,8 @@ defmodule Cinder.Filters.Registry do
 
   # Private helper to get filters from configuration
   defp get_config_filters do
-    Application.get_env(:cinder, :filters, %{})
+    Application.get_env(:cinder, :filters, [])
+    |> Enum.into(%{})
   end
 
   # Private helper functions
@@ -455,5 +435,9 @@ defmodule Cinder.Filters.Registry do
     required_callbacks
     |> Enum.reject(fn {func, arity} -> function_exported?(module, func, arity) end)
     |> Enum.map(fn {func, arity} -> "#{func}/#{arity}" end)
+  end
+
+  defp builtin_filter?(filter_type) do
+    Map.has_key?(all_filters(), filter_type)
   end
 end

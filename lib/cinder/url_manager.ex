@@ -127,12 +127,15 @@ defmodule Cinder.UrlManager do
       if column && column.filterable && value != "" do
         filter_type = column.filter_type
 
+        # Preprocess URL values for specific filter types
+        processed_value = preprocess_url_value(value, filter_type)
+
         # Use filter module's process/2 function to properly decode the value
         filter_module = Cinder.Filters.Registry.get_filter(filter_type)
 
         if filter_module do
           try do
-            decoded_filter = filter_module.process(value, column)
+            decoded_filter = filter_module.process(processed_value, column)
 
             if decoded_filter do
               Map.put(acc, string_key, decoded_filter)
@@ -159,6 +162,19 @@ defmodule Cinder.UrlManager do
         acc
       end
     end)
+  end
+
+  # Preprocesses URL values based on filter type before passing to filter modules
+  defp preprocess_url_value(value, filter_type) do
+    case filter_type do
+      type when type in [:multi_select, :multi_checkboxes] ->
+        # Split comma-separated values for multi-select filters
+        String.split(value, ",")
+
+      _ ->
+        # For other types, use the value as-is
+        value
+    end
   end
 
   @doc """

@@ -46,14 +46,7 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   # Test module that does NOT implement the behavior correctly
-  defmodule IncompleteFilter do
-    @behaviour Cinder.Filter
-
-    @impl true
-    def render(_column, _current_value, _theme, _assigns), do: nil
-
-    # Missing other required callbacks
-  end
+  # (This will be defined dynamically in tests to avoid global warnings)
 
   # Test module that doesn't implement the behavior at all
   defmodule NonBehaviorModule do
@@ -62,7 +55,7 @@ defmodule Cinder.Filters.RegistryTest do
 
   setup do
     # Clear any existing custom filters before each test
-    Application.put_env(:cinder, :custom_filters, %{})
+    Application.put_env(:cinder, :filters, [])
     :ok
   end
 
@@ -119,10 +112,15 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   describe "custom filter registration" do
-    test "register_filter/2 successfully registers valid custom filter" do
-      assert Registry.register_filter(:slider, TestSliderFilter) == :ok
+    test "register_filter/2 successfully validates custom filter" do
+      result = Registry.register_filter(:slider, TestSliderFilter)
 
-      # Verify registration
+      assert result == :ok
+    end
+
+    test "custom filters work with configuration" do
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+
       assert Registry.get_filter(:slider) == TestSliderFilter
       assert Registry.registered?(:slider) == true
       assert Registry.custom_filter?(:slider) == true
@@ -158,34 +156,32 @@ defmodule Cinder.Filters.RegistryTest do
       assert Registry.register_filter(:slider, TestSliderFilter) == :ok
       assert Registry.register_filter(:slider, TestSliderFilter) == :ok
 
+      # Set config to test filter availability
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
       assert Registry.get_filter(:slider) == TestSliderFilter
     end
   end
 
   describe "custom filter unregistration" do
-    test "unregister_filter/1 successfully removes custom filter" do
-      # First register a filter
-      Registry.register_filter(:slider, TestSliderFilter)
-      assert Registry.registered?(:slider) == true
-
-      # Then unregister it
-      assert Registry.unregister_filter(:slider) == :ok
-      assert Registry.registered?(:slider) == false
-      assert Registry.get_filter(:slider) == nil
+    test "unregister_filter/1 validates unregistration of custom filter" do
+      result = Registry.unregister_filter(:slider)
+      assert result == :ok
     end
 
     test "unregister_filter/1 prevents unregistering built-in filters" do
       result = Registry.unregister_filter(:text)
 
       assert {:error, message} = result
-      assert message == "Cannot unregister built-in filter type :text"
+      assert message == "Cannot unregister built-in filter :text"
 
       # Verify built-in filter is still available
       assert Registry.get_filter(:text) == Cinder.Filters.Text
     end
 
-    test "unregister_filter/1 handles non-existent custom filters gracefully" do
-      assert Registry.unregister_filter(:nonexistent) == :ok
+    test "unregister_filter/1 handles unknown filters gracefully" do
+      result = Registry.unregister_filter(:unknown)
+
+      assert result == :ok
     end
   end
 
@@ -194,9 +190,11 @@ defmodule Cinder.Filters.RegistryTest do
       assert Registry.list_custom_filters() == %{}
     end
 
-    test "list_custom_filters/0 returns registered custom filters" do
-      Registry.register_filter(:slider, TestSliderFilter)
-      Registry.register_filter(:color_picker, TestSliderFilter)
+    test "list_custom_filters/0 returns configured custom filters" do
+      Application.put_env(:cinder, :filters,
+        slider: TestSliderFilter,
+        color_picker: TestSliderFilter
+      )
 
       custom_filters = Registry.list_custom_filters()
 
@@ -206,43 +204,39 @@ defmodule Cinder.Filters.RegistryTest do
     end
 
     test "custom_filter?/1 correctly identifies custom filters" do
-      assert Registry.custom_filter?(:slider) == false
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
-      Registry.register_filter(:slider, TestSliderFilter)
       assert Registry.custom_filter?(:slider) == true
-
       assert Registry.custom_filter?(:text) == false
     end
   end
 
   describe "combined filter management" do
     test "all_filters_with_custom/0 merges built-in and custom filters" do
-      Registry.register_filter(:slider, TestSliderFilter)
-      Registry.register_filter(:color_picker, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
       all_filters = Registry.all_filters_with_custom()
 
-      # Should include built-in filters
+      # Should include all built-in filters
       assert all_filters[:text] == Cinder.Filters.Text
       assert all_filters[:select] == Cinder.Filters.Select
 
       # Should include custom filters
       assert all_filters[:slider] == TestSliderFilter
-      assert all_filters[:color_picker] == TestSliderFilter
+
+      # Should have proper count
+      assert map_size(all_filters) == map_size(Registry.all_filters()) + 1
     end
 
-    test "get_filter/1 works with custom filters after registration" do
+    test "get_filter/1 works with custom filters from configuration" do
       assert Registry.get_filter(:slider) == nil
 
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
       assert Registry.get_filter(:slider) == TestSliderFilter
-
-      Registry.unregister_filter(:slider)
-      assert Registry.get_filter(:slider) == nil
     end
 
     test "default_options/2 works with custom filters" do
-      Registry.register_filter(:slider, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
       options = Registry.default_options(:slider)
       assert options == [min: 0, max: 100, step: 1]
@@ -262,7 +256,7 @@ defmodule Cinder.Filters.RegistryTest do
 
     test "validate_custom_filters/0 detects non-existent modules" do
       # Manually add invalid filter to avoid registration validation
-      Application.put_env(:cinder, :custom_filters, %{broken: NonExistentModule})
+      Application.put_env(:cinder, :filters, broken: NonExistentModule)
 
       result = Registry.validate_custom_filters()
 
@@ -272,7 +266,7 @@ defmodule Cinder.Filters.RegistryTest do
 
     test "validate_custom_filters/0 detects modules without behavior" do
       # Manually add module that doesn't implement behavior
-      Application.put_env(:cinder, :custom_filters, %{invalid: NonBehaviorModule})
+      Application.put_env(:cinder, :filters, invalid: NonBehaviorModule)
 
       result = Registry.validate_custom_filters()
 
@@ -281,11 +275,21 @@ defmodule Cinder.Filters.RegistryTest do
     end
 
     test "validate_custom_filters/0 detects modules with missing callbacks" do
+      # Define incomplete filter within test to avoid global warnings
+      defmodule TestIncompleteFilter do
+        @behaviour Cinder.Filter
+
+        @impl true
+        def render(_column, _current_value, _theme, _assigns), do: nil
+
+        # Missing other required callbacks intentionally for testing
+      end
+
       # Manually add module with incomplete implementation
-      Application.put_env(:cinder, :custom_filters, %{incomplete: IncompleteFilter})
+      Application.put_env(:cinder, :filters, incomplete: TestIncompleteFilter)
 
       {result, _logs} =
-        ExUnit.CaptureLog.with_log(fn ->
+        with_log(fn ->
           Registry.validate_custom_filters()
         end)
 
@@ -296,14 +300,24 @@ defmodule Cinder.Filters.RegistryTest do
     end
 
     test "validate_custom_filters/0 reports multiple validation errors" do
-      Application.put_env(:cinder, :custom_filters, %{
+      # Define incomplete filter within test to avoid global warnings
+      defmodule TestIncompleteFilter2 do
+        @behaviour Cinder.Filter
+
+        @impl true
+        def render(_column, _current_value, _theme, _assigns), do: nil
+
+        # Missing other required callbacks intentionally for testing
+      end
+
+      Application.put_env(:cinder, :filters,
         broken: NonExistentModule,
         invalid: NonBehaviorModule,
-        incomplete: IncompleteFilter
-      })
+        incomplete: TestIncompleteFilter2
+      )
 
       {result, _logs} =
-        ExUnit.CaptureLog.with_log(fn ->
+        with_log(fn ->
           Registry.validate_custom_filters()
         end)
 
@@ -311,7 +325,7 @@ defmodule Cinder.Filters.RegistryTest do
       assert length(errors) == 3
       assert Enum.any?(errors, &(&1 =~ "NonExistentModule does not exist"))
       assert Enum.any?(errors, &(&1 =~ "NonBehaviorModule does not implement"))
-      assert Enum.any?(errors, &(&1 =~ "IncompleteFilter is missing callbacks"))
+      assert Enum.any?(errors, &(&1 =~ "TestIncompleteFilter2 is missing callbacks"))
     end
   end
 
@@ -337,18 +351,18 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   describe "error handling and edge cases" do
-    test "registration handles atom and string filter type names" do
-      assert Registry.register_filter(:slider, TestSliderFilter) == :ok
-      assert Registry.get_filter(:slider) == TestSliderFilter
+    test "registration handles atom filter type names" do
+      result = Registry.register_filter(:slider, TestSliderFilter)
+      assert result == :ok
     end
 
-    test "unregistration maintains application environment consistency" do
-      Registry.register_filter(:filter1, TestSliderFilter)
-      Registry.register_filter(:filter2, TestSliderFilter)
+    test "configuration maintains consistency" do
+      Application.put_env(:cinder, :filters, filter1: TestSliderFilter, filter2: TestSliderFilter)
 
       assert map_size(Registry.list_custom_filters()) == 2
 
-      Registry.unregister_filter(:filter1)
+      # Simulate removal of one filter from config
+      Application.put_env(:cinder, :filters, filter2: TestSliderFilter)
       custom_filters = Registry.list_custom_filters()
 
       assert map_size(custom_filters) == 1
@@ -356,25 +370,26 @@ defmodule Cinder.Filters.RegistryTest do
       assert not Map.has_key?(custom_filters, :filter1)
     end
 
-    test "multiple registrations and unregistrations work correctly" do
-      # Register multiple filters
-      Registry.register_filter(:slider, TestSliderFilter)
-      Registry.register_filter(:color_picker, TestSliderFilter)
+    test "configuration changes are reflected immediately" do
+      Application.put_env(:cinder, :filters,
+        slider: TestSliderFilter,
+        color_picker: TestSliderFilter
+      )
 
       assert Registry.custom_filter?(:slider) == true
       assert Registry.custom_filter?(:color_picker) == true
 
-      # Unregister one
-      Registry.unregister_filter(:slider)
+      # Remove one filter from config
+      Application.put_env(:cinder, :filters, color_picker: TestSliderFilter)
 
       assert Registry.custom_filter?(:slider) == false
       assert Registry.custom_filter?(:color_picker) == true
 
-      # Register again
-      Registry.register_filter(:slider, TestSliderFilter)
+      # Clear all custom filters
+      Application.put_env(:cinder, :filters, [])
 
-      assert Registry.custom_filter?(:slider) == true
-      assert Registry.custom_filter?(:color_picker) == true
+      assert Registry.custom_filter?(:slider) == false
+      assert Registry.custom_filter?(:color_picker) == false
     end
   end
 end

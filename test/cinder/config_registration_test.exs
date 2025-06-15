@@ -62,9 +62,9 @@ defmodule Cinder.ConfigRegistrationTest do
     def empty?(_), do: false
   end
 
-  # Test filter with auto-registration using name option
-  defmodule TestAutoRegisterFilter do
-    use Cinder.Filter, name: :auto_slider
+  # Test filter with different options
+  defmodule TestAnotherFilter do
+    use Cinder.Filter
 
     @impl true
     def render(column, current_value, theme, _assigns) do
@@ -82,7 +82,7 @@ defmodule Cinder.ConfigRegistrationTest do
     @impl true
     def process(raw_value, _column) when is_binary(raw_value) do
       case Integer.parse(raw_value) do
-        {value, ""} -> %{type: :auto_slider, value: value, operator: :equals}
+        {value, ""} -> %{type: :another_slider, value: value, operator: :equals}
         _ -> nil
       end
     end
@@ -90,7 +90,7 @@ defmodule Cinder.ConfigRegistrationTest do
     def process(_raw_value, _column), do: nil
 
     @impl true
-    def validate(%{type: :auto_slider, value: value}) when is_integer(value), do: true
+    def validate(%{type: :another_slider, value: value}) when is_integer(value), do: true
     def validate(_), do: false
 
     @impl true
@@ -123,16 +123,13 @@ defmodule Cinder.ConfigRegistrationTest do
   end
 
   setup do
-    # Clear any existing configuration and runtime filters
-    original_config = Application.get_env(:cinder, :filters, %{})
-    original_runtime = Application.get_env(:cinder, :custom_filters, %{})
+    # Clear any existing configuration
+    original_config = Application.get_env(:cinder, :filters, [])
 
-    Application.put_env(:cinder, :filters, %{})
-    Application.put_env(:cinder, :custom_filters, %{})
+    Application.put_env(:cinder, :filters, [])
 
     on_exit(fn ->
       Application.put_env(:cinder, :filters, original_config)
-      Application.put_env(:cinder, :custom_filters, original_runtime)
     end)
 
     :ok
@@ -141,36 +138,31 @@ defmodule Cinder.ConfigRegistrationTest do
   describe "configuration-based registration" do
     test "registers filters from configuration" do
       # Set up configuration
-      Application.put_env(:cinder, :filters, %{
+      Application.put_env(:cinder, :filters,
         slider: TestSliderFilter,
-        auto_slider: TestAutoRegisterFilter
-      })
+        another_slider: TestAnotherFilter
+      )
 
       assert Registry.register_config_filters() == :ok
 
       # Verify filters are registered
       assert Registry.get_filter(:slider) == TestSliderFilter
-      assert Registry.get_filter(:auto_slider) == TestAutoRegisterFilter
+      assert Registry.get_filter(:another_slider) == TestAnotherFilter
       assert Registry.custom_filter?(:slider) == true
-      assert Registry.custom_filter?(:auto_slider) == true
+      assert Registry.custom_filter?(:another_slider) == true
     end
 
     test "handles invalid modules in configuration gracefully" do
       # Set up configuration with invalid module
-      Application.put_env(:cinder, :filters, %{
+      Application.put_env(:cinder, :filters,
         slider: TestSliderFilter,
-        broken: NonExistentModule,
         invalid: InvalidFilter
-      })
+      )
 
       result = Registry.register_config_filters()
 
       assert {:error, errors} = result
-      assert length(errors) == 2
-
-      # Should have error for non-existent module
-      assert Enum.any?(errors, &String.contains?(&1, "broken:"))
-      assert Enum.any?(errors, &String.contains?(&1, "NonExistentModule does not exist"))
+      assert length(errors) == 1
 
       # Should have error for module without behavior
       assert Enum.any?(errors, &String.contains?(&1, "invalid:"))
@@ -186,41 +178,27 @@ defmodule Cinder.ConfigRegistrationTest do
     end
 
     test "list_custom_filters includes configuration filters" do
-      Application.put_env(:cinder, :filters, %{
-        slider: TestSliderFilter
-      })
-
-      # Also add a runtime filter
-      Registry.register_filter(:runtime_filter, TestSliderFilter)
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
       custom_filters = Registry.list_custom_filters()
 
       assert custom_filters[:slider] == TestSliderFilter
-      assert custom_filters[:runtime_filter] == TestSliderFilter
-      assert map_size(custom_filters) == 2
+      assert map_size(custom_filters) == 1
     end
 
-    test "runtime filters take precedence over config filters" do
+    test "config filters are available after registration" do
       # Set up config filter
-      Application.put_env(:cinder, :filters, %{
-        slider: TestSliderFilter
-      })
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
-      # Register different module at runtime with same name
-      Registry.register_filter(:slider, TestAutoRegisterFilter)
+      Registry.register_config_filters()
 
-      # Runtime registration should win
-      assert Registry.get_filter(:slider) == TestAutoRegisterFilter
-
-      # all_filters_with_custom should also respect precedence
-      all_filters = Registry.all_filters_with_custom()
-      assert all_filters[:slider] == TestAutoRegisterFilter
+      # Config filter should be available
+      assert Registry.get_filter(:slider) == TestSliderFilter
+      assert Registry.custom_filter?(:slider) == true
     end
 
     test "config filters work with all registry functions" do
-      Application.put_env(:cinder, :filters, %{
-        slider: TestSliderFilter
-      })
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
       # Test all registry functions work with config filters
       assert Registry.get_filter(:slider) == TestSliderFilter
@@ -250,6 +228,41 @@ defmodule Cinder.ConfigRegistrationTest do
       # and Cinder.Filter functions are imported
       # These would be compile-time errors if not available
       assert TestSliderFilter.default_options() == [min: 0, max: 100, step: 1]
+    end
+
+    test "basic usage pattern without configuration options" do
+      # Test that using Cinder.Filter without any options works correctly
+      defmodule BasicFilter do
+        use Cinder.Filter
+
+        @impl true
+        def render(_column, _current_value, _theme, assigns) do
+          ~H"<div>basic</div>"
+        end
+
+        @impl true
+        def process(raw_value, _column), do: raw_value
+
+        @impl true
+        def validate(_value), do: true
+
+        @impl true
+        def default_options, do: []
+
+        @impl true
+        def empty?(value), do: is_nil(value) or value == ""
+
+        @impl true
+        def build_query(query, _field, _value), do: query
+      end
+
+      # Should compile without errors and have all required functions
+      assert function_exported?(BasicFilter, :render, 4)
+      assert function_exported?(BasicFilter, :process, 2)
+      assert function_exported?(BasicFilter, :validate, 1)
+      assert function_exported?(BasicFilter, :default_options, 0)
+      assert function_exported?(BasicFilter, :empty?, 1)
+      assert function_exported?(BasicFilter, :build_query, 3)
     end
 
     test "filter with __using__ macro works correctly" do
@@ -282,29 +295,25 @@ defmodule Cinder.ConfigRegistrationTest do
       assert TestSliderFilter.empty?(50) == false
     end
 
-    test "named filter registration works with __using__ macro" do
-      # This tests the auto-registration feature when name is provided
-      Application.put_env(:cinder, :filters, %{
-        auto_slider: TestAutoRegisterFilter
-      })
+    test "multiple filters work with __using__ macro" do
+      # Test that multiple filters can be registered via config
+      Application.put_env(:cinder, :filters, another_slider: TestAnotherFilter)
 
-      # The module should auto-register when configured
+      # The module should register when configured
       Registry.register_config_filters()
 
-      assert Registry.get_filter(:auto_slider) == TestAutoRegisterFilter
-      assert Registry.custom_filter?(:auto_slider) == true
+      assert Registry.get_filter(:another_slider) == TestAnotherFilter
+      assert Registry.custom_filter?(:another_slider) == true
 
       # Test that it has different default options
-      options = Registry.default_options(:auto_slider)
+      options = Registry.default_options(:another_slider)
       assert options == [min: 0, max: 200, step: 2]
     end
   end
 
   describe "Cinder.setup/0 integration" do
     test "Cinder.setup registers config filters and validates" do
-      Application.put_env(:cinder, :filters, %{
-        slider: TestSliderFilter
-      })
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
       # setup should return :ok and register filters
       assert Cinder.setup() == :ok
@@ -317,10 +326,10 @@ defmodule Cinder.ConfigRegistrationTest do
     test "Cinder.setup handles registration errors gracefully" do
       import ExUnit.CaptureLog
 
-      Application.put_env(:cinder, :filters, %{
+      Application.put_env(:cinder, :filters,
         slider: TestSliderFilter,
         broken: NonExistentModule
-      })
+      )
 
       log_output =
         capture_log(fn ->
@@ -340,10 +349,10 @@ defmodule Cinder.ConfigRegistrationTest do
     test "Cinder.setup logs successful registrations" do
       import ExUnit.CaptureLog
 
-      Application.put_env(:cinder, :filters, %{
+      Application.put_env(:cinder, :filters,
         slider: TestSliderFilter,
-        auto_slider: TestAutoRegisterFilter
-      })
+        another_slider: TestAnotherFilter
+      )
 
       log_output =
         capture_log(fn ->
@@ -353,14 +362,14 @@ defmodule Cinder.ConfigRegistrationTest do
       # Should log successful registration
       assert log_output =~ "Registered 2 custom filters"
       assert log_output =~ "slider"
-      assert log_output =~ "auto_slider"
+      assert log_output =~ "another_slider"
     end
 
     test "Cinder.setup with no configured filters" do
       import ExUnit.CaptureLog
 
       # No filters configured
-      Application.put_env(:cinder, :filters, %{})
+      Application.put_env(:cinder, :filters, [])
 
       log_output =
         capture_log(fn ->
@@ -373,24 +382,22 @@ defmodule Cinder.ConfigRegistrationTest do
   end
 
   describe "edge cases and error handling" do
-    test "duplicate registration between config and runtime" do
+    test "config registration provides filters through configuration" do
       # Set up config
-      Application.put_env(:cinder, :filters, %{
-        slider: TestSliderFilter
-      })
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
-      # Register at runtime first
-      Registry.register_filter(:slider, TestAutoRegisterFilter)
+      # Runtime registration only validates, doesn't store
+      assert Registry.register_filter(:slider, TestSliderFilter) == :ok
 
-      # Config registration should not override runtime
+      # Config registration makes filters available
       Registry.register_config_filters()
 
-      # Runtime should win
-      assert Registry.get_filter(:slider) == TestAutoRegisterFilter
+      # Config filter should be available
+      assert Registry.get_filter(:slider) == TestSliderFilter
     end
 
     test "empty configuration handling" do
-      Application.put_env(:cinder, :filters, %{})
+      Application.put_env(:cinder, :filters, [])
 
       assert Registry.register_config_filters() == :ok
       assert Registry.list_custom_filters() == %{}
@@ -399,10 +406,10 @@ defmodule Cinder.ConfigRegistrationTest do
     test "configuration with nil values" do
       import ExUnit.CaptureLog
 
-      Application.put_env(:cinder, :filters, %{
+      Application.put_env(:cinder, :filters,
         slider: nil,
         valid: TestSliderFilter
-      })
+      )
 
       _log_output =
         capture_log(fn ->
@@ -415,26 +422,20 @@ defmodule Cinder.ConfigRegistrationTest do
       assert Registry.get_filter(:slider) == nil
     end
 
-    test "mixed config and runtime filters work together" do
+    test "config filters work correctly" do
       # Config filters
-      Application.put_env(:cinder, :filters, %{
-        config_slider: TestSliderFilter
-      })
+      Application.put_env(:cinder, :filters, config_slider: TestSliderFilter)
 
       Registry.register_config_filters()
 
-      # Runtime filters
-      Registry.register_filter(:runtime_slider, TestAutoRegisterFilter)
-
-      # Both should be available
+      # Should be available
       assert Registry.get_filter(:config_slider) == TestSliderFilter
-      assert Registry.get_filter(:runtime_slider) == TestAutoRegisterFilter
 
+      # Should be marked as custom
       assert Registry.custom_filter?(:config_slider) == true
-      assert Registry.custom_filter?(:runtime_slider) == true
 
       custom_filters = Registry.list_custom_filters()
-      assert map_size(custom_filters) == 2
+      assert map_size(custom_filters) == 1
     end
   end
 end

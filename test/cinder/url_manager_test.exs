@@ -85,7 +85,13 @@ defmodule Cinder.UrlManagerTest do
 
       result = UrlManager.decode_state(url_params, columns)
 
-      assert result.filters["title"] == %{type: :text, value: "test", operator: :contains}
+      assert result.filters["title"] == %{
+               type: :text,
+               value: "test",
+               operator: :contains,
+               case_sensitive: false
+             }
+
       assert result.filters["status"] == %{type: :select, value: "active", operator: :equals}
       assert result.current_page == 3
       assert result.sort_by == [{"title", :desc}, {"created_at", :asc}]
@@ -96,7 +102,13 @@ defmodule Cinder.UrlManagerTest do
 
       result = UrlManager.decode_state(url_params, columns)
 
-      assert result.filters["title"] == %{type: :text, value: "test", operator: :contains}
+      assert result.filters["title"] == %{
+               type: :text,
+               value: "test",
+               operator: :contains,
+               case_sensitive: false
+             }
+
       assert result.current_page == 1
       assert result.sort_by == []
     end
@@ -195,7 +207,12 @@ defmodule Cinder.UrlManagerTest do
 
       result = UrlManager.decode_filters(url_params, columns)
 
-      assert result["title"] == %{type: :text, value: "hello world", operator: :contains}
+      assert result["title"] == %{
+               type: :text,
+               value: "hello world",
+               operator: :contains,
+               case_sensitive: false
+             }
     end
 
     test "decodes select filters", %{columns: columns} do
@@ -259,7 +276,7 @@ defmodule Cinder.UrlManagerTest do
 
       result = UrlManager.decode_filters(url_params, columns)
 
-      assert result["active"] == %{type: :boolean, value: "true", operator: :equals}
+      assert result["active"] == %{type: :boolean, value: true, operator: :equals}
     end
 
     test "ignores empty filter values", %{columns: columns} do
@@ -283,7 +300,12 @@ defmodule Cinder.UrlManagerTest do
 
       result = UrlManager.decode_filters(url_params, columns)
 
-      assert result["title"] == %{type: :text, value: "test", operator: :contains}
+      assert result["title"] == %{
+               type: :text,
+               value: "test",
+               operator: :contains,
+               case_sensitive: false
+             }
     end
   end
 
@@ -505,7 +527,7 @@ defmodule Cinder.UrlManagerTest do
 
       original_state = %{
         filters: %{
-          "title" => %{type: :text, value: "test", operator: :contains},
+          "title" => %{type: :text, value: "test", operator: :contains, case_sensitive: false},
           "tags" => %{type: :multi_select, value: ["tag1", "tag2"], operator: :in},
           "created_at" => %{
             type: :date_range,
@@ -566,7 +588,7 @@ defmodule Cinder.UrlManagerTest do
                to: "2023-06-30"
              }
 
-      assert decoded.filters["active"].value == "true"
+      assert decoded.filters["active"].value == true
       assert decoded.current_page == 2
       assert decoded.sort_by == [{"created_at", :desc}, {"name", :asc}]
     end

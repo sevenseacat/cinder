@@ -344,8 +344,7 @@ defmodule Cinder.FilterManager do
       filter_type =
         if Registry.custom_filter?(filter_type) do
           # Check if the module actually exists and is loadable
-          custom_filters = Application.get_env(:cinder, :custom_filters, %{})
-          module = Map.get(custom_filters, filter_type)
+          module = Registry.get_filter(filter_type)
 
           if module && Code.ensure_loaded?(module) do
             filter_type

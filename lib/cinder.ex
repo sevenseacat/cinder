@@ -32,10 +32,10 @@ defmodule Cinder do
   Cinder supports custom filter types through a simple configuration-based approach:
 
       # 1. Configure your filters in config.exs
-      config :cinder, :filters, %{
+      config :cinder, :filters, [
         slider: MyApp.Filters.Slider,
         color_picker: MyApp.Filters.ColorPicker
-      }
+      ]
 
       # 2. Set up Cinder in your application.ex
       def start(_type, _args) do
@@ -105,11 +105,10 @@ defmodule Cinder do
 
   Define your custom filters in your application configuration:
 
-      config :cinder, :filters, %{
+      config :cinder, :filters, [
         slider: MyApp.Filters.Slider,
-        color_picker: MyApp.Filters.ColorPicker,
-        date_picker: MyApp.Filters.DatePicker
-      }
+        color_picker: MyApp.Filters.ColorPicker
+      ]
 
   ## Usage
 
@@ -154,14 +153,14 @@ defmodule Cinder do
   def setup do
     case Cinder.Filters.Registry.register_config_filters() do
       :ok ->
-        configured_filters = Application.get_env(:cinder, :filters, %{})
+        configured_filters = Application.get_env(:cinder, :filters, [])
 
-        if map_size(configured_filters) > 0 do
-          filter_names = configured_filters |> Map.keys() |> Enum.join(", ")
+        if length(configured_filters) > 0 do
+          filter_names = configured_filters |> Keyword.keys() |> Enum.join(", ")
           require Logger
 
           Logger.info(
-            "Cinder: Registered #{map_size(configured_filters)} custom filters: #{filter_names}"
+            "Cinder: Registered #{length(configured_filters)} custom filters: #{filter_names}"
           )
         end
 
