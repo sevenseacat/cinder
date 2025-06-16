@@ -1,7 +1,7 @@
 defmodule Cinder.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/sevenseacat/cinder"
 
   def project do
@@ -65,11 +65,8 @@ defmodule Cinder.MixProject do
       name: "cinder",
       maintainers: ["Rebecca Le"],
       licenses: ["MIT"],
-      links: %{
-        "GitHub" => @source_url,
-        "Documentation" => "https://hexdocs.pm/cinder"
-      },
-      files: ~w(lib .formatter.exs mix.exs README.md LICENSE)
+      links: %{"GitHub" => @source_url},
+      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
     ]
   end
 
