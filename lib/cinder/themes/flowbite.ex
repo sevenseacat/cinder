@@ -27,7 +27,10 @@ defmodule Cinder.Themes.Flowbite do
 
     set :tbody_class, ""
     set :header_row_class, ""
-    set :row_class, "border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+
+    set :row_class,
+        "border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+
     set :th_class, "px-4 py-3 whitespace-nowrap"
     set :td_class, "px-4 py-3"
     set :loading_class, "text-center py-8 text-gray-500 dark:text-gray-400"
