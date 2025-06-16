@@ -339,6 +339,25 @@ defmodule Cinder.UrlManagerTest do
 
       assert result == ""
     end
+
+    test "handles invalid sort input gracefully" do
+      import ExUnit.CaptureLog
+
+      # Test with invalid tuple format (missing direction)
+      invalid_sort_by = [{"field"}]
+      {result, _logs} = with_log(fn -> UrlManager.encode_sort(invalid_sort_by) end)
+      assert result == ""
+
+      # Test with non-tuple elements
+      invalid_sort_by2 = ["not_a_tuple"]
+      {result2, _logs} = with_log(fn -> UrlManager.encode_sort(invalid_sort_by2) end)
+      assert result2 == ""
+
+      # Test with invalid direction
+      invalid_sort_by3 = [{"field", :invalid}]
+      {result3, _logs} = with_log(fn -> UrlManager.encode_sort(invalid_sort_by3) end)
+      assert result3 == ""
+    end
   end
 
   describe "decode_sort/1" do

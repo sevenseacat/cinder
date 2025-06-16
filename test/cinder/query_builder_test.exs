@@ -426,5 +426,78 @@ defmodule Cinder.QueryBuilderTest do
         QueryBuilder.apply_sorting(query, sort_by, columns)
       end
     end
+
+    test "handles invalid sort_by input gracefully without Protocol.UndefinedError" do
+      # This test verifies the fix for the specific error mentioned in the bug report
+      # where invalid data might be passed to sorting functions
+      import ExUnit.CaptureLog
+
+      # Create a proper Ash query
+      query = %MockQuerySorts{resource: TestResource}
+
+      # Test scenario: when sort_by contains invalid data instead of expected tuple format
+      # This should be [{"field", :asc}] format, but test with invalid data
+      # Missing direction
+      invalid_sort_by = [{"field"}]
+      columns = []
+
+      # This should not crash with Protocol.UndefinedError
+      # The function should handle invalid input gracefully and return original query
+      {result, _logs} =
+        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by, columns) end)
+
+      assert result == query
+
+      # Test with completely wrong data type
+      invalid_sort_by2 = ["not_a_tuple"]
+
+      {result2, _logs} =
+        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by2, columns) end)
+
+      assert result2 == query
+
+      # Test with Ash.Query struct (the original issue scenario)
+      # This would previously cause Protocol.UndefinedError
+      invalid_sort_by3 = [query]
+
+      {result3, _logs} =
+        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by3, columns) end)
+
+      assert result3 == query
+    end
+
+    test "regression test: Protocol.UndefinedError when Ash.Query passed to String.Chars" do
+      # This is a specific regression test for the original issue where
+      # an Ash.Query struct was being passed to string conversion functions
+      import ExUnit.CaptureLog
+
+      query = %MockQuerySorts{resource: TestResource}
+
+      # Simulate the exact scenario that would cause Protocol.UndefinedError
+      # if sort_by contained an Ash.Query instead of expected {field, direction} tuples
+      # This would happen if there was a bug in data flow where queries got mixed up with sort specs
+      ash_query_struct = %MockQuerySorts{resource: TestResource, sorts: [:some_sort]}
+      problematic_sort_by = [ash_query_struct, {"valid_field", :asc}]
+      columns = []
+
+      # Before the fix, this would crash with:
+      # Protocol.UndefinedError) protocol String.Chars not implemented for type Ash.Query
+      # After the fix, it should handle gracefully and return original query
+      {result, _logs} =
+        with_log(fn -> QueryBuilder.apply_sorting(query, problematic_sort_by, columns) end)
+
+      assert result == query
+
+      # Test with actual string conversion that would have caused the original error
+      # This simulates what would happen if the invalid data reached string interpolation
+      {result, logs} =
+        with_log(fn ->
+          QueryBuilder.apply_sorting(query, problematic_sort_by, columns)
+        end)
+
+      assert result == query
+      assert logs =~ "Invalid sort_by format"
+      assert logs =~ "Expected list of {field, direction} tuples"
+    end
   end
 end

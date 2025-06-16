@@ -190,14 +190,25 @@ defmodule Cinder.UrlManager do
 
   """
   def encode_sort(sort_by) when is_list(sort_by) do
-    sort_by
-    |> Enum.map(fn {key, direction} ->
-      case direction do
-        :desc -> "-#{key}"
-        _ -> key
-      end
-    end)
-    |> Enum.join(",")
+    # Validate sort_by input to prevent Protocol.UndefinedError
+    unless Enum.all?(sort_by, &valid_sort_tuple?/1) do
+      require Logger
+
+      Logger.warning(
+        "Invalid sort_by format in encode_sort: #{inspect(sort_by)}. Expected list of {field, direction} tuples."
+      )
+
+      ""
+    else
+      sort_by
+      |> Enum.map(fn {key, direction} ->
+        case direction do
+          :desc -> "-#{key}"
+          _ -> key
+        end
+      end)
+      |> Enum.join(",")
+    end
   end
 
   @doc """
@@ -318,4 +329,10 @@ defmodule Cinder.UrlManager do
   end
 
   def validate_url_params(_), do: {:error, "Invalid URL parameters format"}
+
+  # Validates that a sort tuple has the correct format for URL encoding.
+  defp valid_sort_tuple?({field, direction}) when is_binary(field) and direction in [:asc, :desc],
+    do: true
+
+  defp valid_sort_tuple?(_), do: false
 end

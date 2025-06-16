@@ -184,45 +184,65 @@ defmodule Cinder.QueryBuilder do
   def apply_sorting(query, sort_by, _columns) when sort_by == [], do: query
 
   def apply_sorting(query, sort_by, columns) do
-    # Check if any sorts have custom sort functions
-    has_custom_sorts =
-      sort_by
-      |> Enum.any?(fn {field, _direction} ->
-        column = Enum.find(columns, &(&1.field == field))
-        column && column.sort_fn
-      end)
+    # Validate sort_by input to prevent Protocol.UndefinedError
+    unless is_list(sort_by) and Enum.all?(sort_by, &valid_sort_tuple?/1) do
+      require Logger
 
-    if has_custom_sorts do
-      # Use custom logic when custom sort functions are present
-      Enum.reduce(sort_by, query, fn {field, direction}, query ->
-        column = Enum.find(columns, &(&1.field == field))
+      Logger.warning(
+        "Invalid sort_by format: #{inspect(sort_by)}. Expected list of {field, direction} tuples."
+      )
 
-        cond do
-          column && column.sort_fn ->
-            # Use custom sort function
-            column.sort_fn.(query, direction)
-
-          String.contains?(field, ".") ->
-            # Handle dot notation for relationship sorting
-            sort_expr = build_expression_sort(field)
-            Ash.Query.sort(query, [{sort_expr, direction}])
-
-          true ->
-            # Standard attribute sorting
-            Ash.Query.sort(query, [{String.to_atom(field), direction}])
-        end
-      end)
+      query
     else
-      # Use Ash sort input for standard sorting (more efficient)
-      sort_string = Cinder.UrlManager.encode_sort(sort_by)
+      # Check if any sorts have custom sort functions
+      has_custom_sorts =
+        sort_by
+        |> Enum.any?(fn {field, _direction} ->
+          column = Enum.find(columns, &(&1.field == field))
+          column && column.sort_fn
+        end)
 
-      if sort_string != "" do
-        Ash.Query.sort(query, sort_string)
+      if has_custom_sorts do
+        # Use custom logic when custom sort functions are present
+        Enum.reduce(sort_by, query, fn {field, direction}, query ->
+          column = Enum.find(columns, &(&1.field == field))
+
+          cond do
+            column && column.sort_fn ->
+              # Use custom sort function
+              column.sort_fn.(query, direction)
+
+            String.contains?(field, ".") ->
+              # Handle dot notation for relationship sorting
+              sort_expr = build_expression_sort(field)
+              Ash.Query.sort(query, [{sort_expr, direction}])
+
+            true ->
+              # Standard attribute sorting
+              Ash.Query.sort(query, [{String.to_atom(field), direction}])
+          end
+        end)
       else
-        query
+        # Use Ash sort input for standard sorting (more efficient)
+        sort_list =
+          Enum.map(sort_by, fn {field, direction} ->
+            {String.to_atom(field), direction}
+          end)
+
+        if not Enum.empty?(sort_list) do
+          Ash.Query.sort(query, sort_list)
+        else
+          query
+        end
       end
     end
   end
+
+  # Validates that a sort tuple has the correct format.
+  defp valid_sort_tuple?({field, direction}) when is_binary(field) and direction in [:asc, :desc],
+    do: true
+
+  defp valid_sort_tuple?(_), do: false
 
   @doc """
   Builds expression sort for relationship fields using dot notation.
