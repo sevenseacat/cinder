@@ -44,15 +44,15 @@ defmodule Cinder.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:ash, "~> 3.0"},
       {:ash_phoenix, "~> 2.3"},
       {:phoenix_live_view, "~> 1.0"},
       {:spark, "~> 2.0"},
       {:stream_data, "~> 1.1"},
-      {:igniter, "~> 0.5", optional: true},
       {:usage_rules, "~> 0.1", only: [:dev]},
-      {:sourceror, "~> 1.8"}
+      {:ex_doc, "~> 0.38", only: :dev, runtime: false},
+      {:igniter, "~> 0.5", only: [:dev, :test]},
+      {:sourceror, "~> 1.8", only: [:dev, :test]}
     ]
   end
 
