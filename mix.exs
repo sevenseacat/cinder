@@ -80,7 +80,8 @@ defmodule Cinder.MixProject do
         "docs/examples.md",
         "docs/theming.md",
         "docs/theme-showcase.md",
-        "docs/custom-filters.md"
+        "docs/custom-filters.md",
+        "CHANGELOG.md"
       ],
       groups_for_modules: [
         "Core Components": [
