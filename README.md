@@ -102,9 +102,15 @@ For complex requirements, use the `query` parameter:
 
 ### URL State Management
 
-Use `Cinder.Table.UrlSync` for bookmarkable table states.
+Cinder can automatically update the URL as you filter and sort your tables, for bookmarkable and shareable URLs.
 
-Add `UrlSync.handle_params` to your `handle_params` function, which adds a `url_state` assign to pass through to the table. Everything else is handled for you!
+1. Add `use Cinder.Table.UrlSync` to your LiveView modules
+
+2. Add an `handle_params` callback function (or update your existing one) to add a call to `Cinder.Table.UrlSync.handle_params`. This will read the current table state from the URL, and store it in a new `url_state` assign.
+
+3. Use the `url_state` option when defining your table, eg. `Cinder.Table.table url_state={@url_state}`.
+
+And that's it! Everything else is handled for you.
 
 ```elixir
 defmodule MyAppWeb.UsersLive do
@@ -128,6 +134,7 @@ end
 
 ## Documentation
 
+- **`Cinder.Table`** - All the configuration options for `table` components and `col` slots.
 - **[Complete Examples](docs/examples.md)** - Comprehensive usage examples for all features
 - **[Theming Guide](docs/theming.md)** - How to develop and use table themes
 - **[Module Documentation](https://hexdocs.pm/cinder)** - Full API reference
