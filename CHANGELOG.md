@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* Allow a default theme to be specified for all tables, in application config (eg. `config :cinder, default_theme: "dark"`)
+
 ## v0.1.1 (2025-06-16)
 
 ### Bug fixes

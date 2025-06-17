@@ -429,7 +429,7 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:sort_by, [])
     |> assign(:filters, assigns[:filters] || %{})
     |> assign(:search_term, "")
-    |> assign(:theme, Cinder.Theme.merge(assigns[:theme] || %{}))
+    |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
     |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
   end

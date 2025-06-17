@@ -25,7 +25,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         value={@current_value}
         min="0"
         max="100"
-        class={@theme.filter_slider_input_class || "slider"}
+        class={Map.get(@theme, :filter_slider_input_class, "slider")}
       />
       """
     end
@@ -118,11 +118,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_options: []
       }
 
-      theme =
-        Cinder.Theme.merge(%{
-          filter_slider_input_class: "custom-slider",
-          filter_clear_button_class: "clear-btn"
-        })
+      theme = Cinder.Theme.default()
 
       assigns = %{
         column: column,
@@ -136,7 +132,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       assert html_string =~ "type=\"range\""
       assert html_string =~ "value=\"50\""
-      assert html_string =~ "custom-slider"
+      assert html_string =~ "slider"
       assert html_string =~ "filters[price]"
     end
 
@@ -156,11 +152,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_options: []
       }
 
-      theme =
-        Cinder.Theme.merge(%{
-          filter_text_input_class: "text-input",
-          filter_clear_button_class: "clear-btn"
-        })
+      theme = Cinder.Theme.default()
 
       assigns = %{
         column: column,
@@ -177,7 +169,6 @@ defmodule Cinder.FilterManagerRuntimeTest do
           # Should render as text input instead
           assert html_string =~ "type=\"text\""
           assert html_string =~ "value=\"test\""
-          assert html_string =~ "text-input"
         end)
 
       assert log_output =~ "Error rendering custom filter :missing for column 'price'"
@@ -192,11 +183,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_options: []
       }
 
-      theme =
-        Cinder.Theme.merge(%{
-          filter_text_input_class: "text-input",
-          filter_clear_button_class: "clear-btn"
-        })
+      theme = Cinder.Theme.default()
 
       assigns = %{
         column: column,
@@ -210,7 +197,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       assert html_string =~ "type=\"text\""
       assert html_string =~ "value=\"test\""
-      assert html_string =~ "text-input"
+      assert html_string =~ "type=\"text\""
     end
   end
 

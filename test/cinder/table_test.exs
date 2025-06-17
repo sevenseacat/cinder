@@ -230,19 +230,85 @@ defmodule Cinder.TableTest do
       assert html =~ "cinder-table"
     end
 
-    test "handles custom theme maps" do
+    test "uses configured default theme when no theme specified" do
+      # Set up default theme configuration
+      Application.put_env(:cinder, :default_theme, "modern")
+
       assigns = %{
         resource: TestUser,
         actor: nil,
-        theme: %{container_class: "custom-container"},
         col: [%{field: "name", __slot__: :col}]
       }
 
       html = render_component(&Cinder.Table.table/1, assigns)
 
-      # Should handle custom theme maps
+      # Should use modern theme (has shadow-lg class)
       assert html =~ "cinder-table"
-      assert html =~ "custom-container"
+      assert html =~ "shadow-lg"
+
+      # Cleanup
+      Application.delete_env(:cinder, :default_theme)
+    end
+
+    test "explicit theme overrides configured default theme" do
+      # Set up default theme configuration
+      Application.put_env(:cinder, :default_theme, "modern")
+
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        theme: "dark",
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should use dark theme (has gray-800 class), not modern theme
+      assert html =~ "cinder-table"
+      assert html =~ "gray-800"
+      refute html =~ "shadow-lg"
+
+      # Cleanup
+      Application.delete_env(:cinder, :default_theme)
+    end
+
+    test "uses system default when no config and no explicit theme" do
+      # Ensure no config is set
+      Application.delete_env(:cinder, :default_theme)
+
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should use system default theme
+      assert html =~ "cinder-table"
+      # Default theme has minimal styling
+      refute html =~ "shadow-lg"
+      refute html =~ "gray-800"
+    end
+
+    test "handles theme modules in configuration" do
+      # Set up theme module configuration
+      Application.put_env(:cinder, :default_theme, Cinder.Themes.Retro)
+
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should use retro theme
+      assert html =~ "cinder-table"
+      assert html =~ "bg-gray-900" || html =~ "border-cyan-400"
+
+      # Cleanup
+      Application.delete_env(:cinder, :default_theme)
     end
   end
 

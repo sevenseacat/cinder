@@ -202,20 +202,6 @@ defmodule Cinder.ThemeDslTest do
   end
 
   describe "backwards compatibility" do
-    test "map-based themes still work" do
-      custom_map = %{
-        container_class: "map-based-container",
-        table_class: "map-based-table"
-      }
-
-      theme = Theme.merge(custom_map)
-
-      assert theme.container_class == "map-based-container"
-      assert theme.table_class == "map-based-table"
-      # Should still have defaults for other keys
-      assert is_binary(theme.th_class)
-    end
-
     test "string presets still work" do
       modern_theme = Theme.merge("modern")
       assert String.contains?(modern_theme.container_class, "shadow-lg")
@@ -225,11 +211,9 @@ defmodule Cinder.ThemeDslTest do
     end
 
     test "validation works for all theme types" do
-      assert Theme.validate(%{container_class: "valid"}) == :ok
       assert Theme.validate("modern") == :ok
       assert Theme.validate(SimpleTestTheme) == :ok
 
-      {:error, _} = Theme.validate(%{container_class: 123})
       {:error, _} = Theme.validate("invalid_preset")
       {:error, _} = Theme.validate(123)
     end

@@ -369,12 +369,24 @@ defmodule Cinder.Table do
   end
 
   # Resolve theme configuration
+  defp resolve_theme("default") do
+    # Use configured default theme when theme is "default"
+    default_theme = Cinder.Theme.get_default_theme()
+    Cinder.Theme.merge(default_theme)
+  end
+
   defp resolve_theme(theme) when is_binary(theme) do
     Cinder.Theme.merge(theme)
   end
 
-  defp resolve_theme(theme) when is_map(theme) do
+  defp resolve_theme(theme) when is_atom(theme) and not is_nil(theme) do
     Cinder.Theme.merge(theme)
+  end
+
+  defp resolve_theme(nil) do
+    # Use configured default theme when no explicit theme provided
+    default_theme = Cinder.Theme.get_default_theme()
+    Cinder.Theme.merge(default_theme)
   end
 
   defp resolve_theme(_), do: Cinder.Theme.merge("default")

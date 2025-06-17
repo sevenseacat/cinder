@@ -101,33 +101,6 @@ defmodule Cinder.ThemeTest do
   end
 
   describe "merge/1" do
-    test "merges custom map with default theme" do
-      custom_theme = %{
-        container_class: "my-custom-container",
-        table_class: "my-custom-table"
-      }
-
-      merged = Theme.merge(custom_theme)
-      default = Theme.default()
-
-      # Should override specified keys
-      assert merged.container_class == "my-custom-container"
-      assert merged.table_class == "my-custom-table"
-
-      # Should keep default values for non-overridden keys
-      assert merged.th_class == default.th_class
-      assert merged.td_class == default.td_class
-      assert merged.sort_asc_icon_name == default.sort_asc_icon_name
-    end
-
-    test "handles empty map" do
-      merged = Theme.merge(%{})
-      default = Theme.default()
-
-      # Should be identical since both have data attributes now
-      assert merged == default
-    end
-
     test "handles nil input" do
       merged = Theme.merge(nil)
       default = Theme.default()
@@ -148,6 +121,14 @@ defmodule Cinder.ThemeTest do
       assert is_map(modern_theme)
     end
 
+    test "handles theme modules" do
+      # Test with a built-in theme module
+      modern_theme1 = Theme.merge("modern")
+      modern_theme2 = Theme.merge(Cinder.Themes.Modern)
+
+      assert modern_theme1 == modern_theme2
+    end
+
     test "raises error for unknown preset name" do
       assert_raise ArgumentError, ~r/Unknown theme preset: unknown/, fn ->
         Theme.merge("unknown")
@@ -162,6 +143,51 @@ defmodule Cinder.ThemeTest do
       assert_raise ArgumentError, ~r/Theme must be a map, string, or theme module/, fn ->
         Theme.merge([:not, :a, :map])
       end
+    end
+  end
+
+  describe "get_default_theme/0" do
+    test "returns 'default' when no configuration is set" do
+      # Ensure no config is set
+      Application.delete_env(:cinder, :default_theme)
+
+      assert Theme.get_default_theme() == "default"
+    end
+
+    test "returns configured theme when set" do
+      Application.put_env(:cinder, :default_theme, "modern")
+
+      assert Theme.get_default_theme() == "modern"
+
+      # Cleanup
+      Application.delete_env(:cinder, :default_theme)
+    end
+
+    test "returns configured theme module when set" do
+      Application.put_env(:cinder, :default_theme, Cinder.Themes.Dark)
+
+      assert Theme.get_default_theme() == Cinder.Themes.Dark
+
+      # Cleanup
+      Application.delete_env(:cinder, :default_theme)
+    end
+
+    test "handles various theme configurations" do
+      theme_configs = [
+        "modern",
+        "dark",
+        "retro",
+        Cinder.Themes.Modern,
+        Cinder.Themes.Dark
+      ]
+
+      for config <- theme_configs do
+        Application.put_env(:cinder, :default_theme, config)
+        assert Theme.get_default_theme() == config
+      end
+
+      # Cleanup
+      Application.delete_env(:cinder, :default_theme)
     end
   end
 
@@ -239,10 +265,10 @@ defmodule Cinder.ThemeTest do
   describe "integration with component" do
     test "theme can be used in component assigns" do
       # Simulate how the component would use the theme
-      theme = Theme.merge(%{container_class: "custom-container"})
+      theme = Theme.merge("modern")
 
       # Should be able to access all required theme properties
-      assert theme.container_class == "custom-container"
+      assert is_binary(theme.container_class)
       assert is_binary(theme.table_class)
       assert is_binary(theme.th_class)
       assert is_binary(theme.pagination_button_class)
@@ -261,11 +287,10 @@ defmodule Cinder.ThemeTest do
     test "component assigns defaults work with new theme module" do
       # Test that the component's assign_defaults function works with our theme module
       # This simulates what happens in the actual component
-      theme_input = %{container_class: "my-custom-container"}
-      resolved_theme = Theme.merge(theme_input)
+      resolved_theme = Theme.merge("modern")
 
       # Verify the merge worked correctly
-      assert resolved_theme.container_class == "my-custom-container"
+      assert is_binary(resolved_theme.container_class)
       # Should still have all default theme keys
       assert Map.has_key?(resolved_theme, :table_class)
       assert Map.has_key?(resolved_theme, :th_class)

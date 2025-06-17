@@ -100,6 +100,38 @@ For complex requirements, use the `query` parameter:
 </Cinder.Table.table>
 ```
 
+### Default Theme Configuration
+
+You can configure a default theme for all Cinder tables in your application:
+
+```elixir
+# config/config.exs
+config :cinder, default_theme: "modern"
+```
+
+This theme will be used by all tables unless explicitly overridden:
+
+```elixir
+<!-- Uses configured default theme -->
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col field="name" filter sort>Name</:col>
+</Cinder.Table.table>
+
+<!-- Overrides default with specific theme -->
+<Cinder.Table.table resource={MyApp.User} actor={@current_user} theme="dark">
+  <:col field="name" filter sort>Name</:col>
+</Cinder.Table.table>
+```
+
+You can also use custom theme modules:
+
+```elixir
+# config/config.exs
+config :cinder, default_theme: MyApp.CustomTheme
+```
+
+Available built-in themes: `"default"`, `"modern"`, `"retro"`, `"futuristic"`, `"dark"`, `"daisy_ui"`, `"flowbite"`, `"compact"`, `"pastel"`
+
 ### URL State Management
 
 Cinder can automatically update the URL as you filter and sort your tables, for bookmarkable and shareable URLs.

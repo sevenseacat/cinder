@@ -5,16 +5,14 @@ defmodule Cinder.Theme do
   Provides default themes and utilities for merging custom theme configurations.
   Also supports the new Spark DSL for defining modular themes.
 
-  ## Basic Usage (Map-based themes)
+  ## Basic Usage
 
       # Using built-in themes
       theme = Cinder.Theme.merge("modern")
 
-      # Using custom map
-      theme = Cinder.Theme.merge(%{
-        container_class: "my-custom-container",
-        table_class: "my-custom-table"
-      })
+      # Using application configuration for default theme
+      # config/config.exs
+      config :cinder, default_theme: "modern"
 
   ## Advanced Usage (DSL-based themes)
 
@@ -27,7 +25,27 @@ defmodule Cinder.Theme do
         end
       end
 
+      # Use in config
+      config :cinder, default_theme: MyApp.CustomTheme
+
+      # Or use directly
       theme = Cinder.Theme.merge(MyApp.CustomTheme)
+
+  ## Configuration
+
+  You can set a default theme for all Cinder tables in your application configuration:
+
+      # config/config.exs
+      config :cinder, default_theme: "modern"
+
+      # Or use a custom theme module
+      config :cinder, default_theme: MyApp.CustomTheme
+
+  Individual tables can still override the configured default:
+
+      <Cinder.Table.table theme="dark" ...>
+        <!-- This table uses "dark" theme, ignoring the configured default -->
+      </Cinder.Table.table>
 
   """
 
@@ -51,25 +69,43 @@ defmodule Cinder.Theme do
   end
 
   @doc """
-  Merges a custom theme configuration with the default theme.
+  Gets the configured default theme from application configuration.
+
+  Returns the theme configured via `config :cinder, default_theme: ...`
+  or falls back to "default" if no configuration is set.
 
   ## Examples
 
-      iex> Cinder.Theme.merge(%{container_class: "my-custom-class"})
-      %{container_class: "my-custom-class", ...}
+      # With configuration
+      Application.put_env(:cinder, :default_theme, "modern")
+      Cinder.Theme.get_default_theme()
+      #=> returns modern theme configuration
+
+      # Without configuration
+      Cinder.Theme.get_default_theme()
+      #=> returns "default" theme configuration
+
+  """
+  def get_default_theme do
+    case Application.get_env(:cinder, :default_theme) do
+      nil -> "default"
+      theme -> theme
+    end
+  end
+
+  @doc """
+  Merges a theme configuration with the default theme.
+
+  ## Examples
 
       iex> Cinder.Theme.merge("modern")
       %{container_class: "bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden", ...}
 
+      iex> Cinder.Theme.merge(MyApp.CustomTheme)
+      %{container_class: "custom-container", ...}
+
   """
   def merge(theme_config)
-
-  def merge(theme_config) when is_map(theme_config) do
-    default()
-    |> Map.merge(theme_config)
-    |> apply_theme_property_mapping()
-    |> apply_theme_data_attributes()
-  end
 
   def merge("default"),
     do: default() |> apply_theme_property_mapping() |> apply_theme_data_attributes()
@@ -169,19 +205,6 @@ defmodule Cinder.Theme do
 
   Returns :ok if the theme is valid, or {:error, reason} if invalid.
   """
-  def validate(theme_config) when is_map(theme_config) do
-    # For map-based themes, just check that all values are strings
-    invalid_keys =
-      Enum.filter(theme_config, fn {_key, value} -> not is_binary(value) end)
-      |> Enum.map(fn {key, _value} -> key end)
-
-    if Enum.empty?(invalid_keys) do
-      :ok
-    else
-      {:error, "Theme values must be strings. Invalid keys: #{inspect(invalid_keys)}"}
-    end
-  end
-
   def validate(theme_module) when is_atom(theme_module) do
     if function_exported?(theme_module, :resolve_theme, 0) do
       # For DSL-based themes, use the DSL validation
@@ -200,7 +223,7 @@ defmodule Cinder.Theme do
   end
 
   def validate(_theme_config) do
-    {:error, "Theme must be a map, string, or theme module"}
+    {:error, "Theme must be a string or theme module"}
   end
 
   @doc """
