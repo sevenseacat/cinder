@@ -241,56 +241,6 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "build_page_info_from_list/3" do
-    test "builds pagination info from results list" do
-      results = Enum.map(1..25, &%{id: &1})
-      current_page = 1
-      page_size = 25
-
-      result = QueryBuilder.build_page_info_from_list(results, current_page, page_size)
-
-      assert result.current_page == 1
-      assert result.total_pages == 1
-      assert result.total_count == 25
-      assert result.has_next_page == false
-      assert result.has_previous_page == false
-      assert result.start_index == 1
-      assert result.end_index == 25
-    end
-
-    test "handles partial page" do
-      results = Enum.map(1..10, &%{id: &1})
-      current_page = 2
-      page_size = 25
-
-      result = QueryBuilder.build_page_info_from_list(results, current_page, page_size)
-
-      assert result.current_page == 2
-      assert result.total_pages == 1
-      assert result.total_count == 10
-      assert result.has_next_page == false
-      assert result.has_previous_page == true
-      assert result.start_index == 26
-      assert result.end_index == 10
-    end
-
-    test "handles empty results" do
-      results = []
-      current_page = 1
-      page_size = 25
-
-      result = QueryBuilder.build_page_info_from_list(results, current_page, page_size)
-
-      assert result.current_page == 1
-      assert result.total_pages == 1
-      assert result.total_count == 0
-      assert result.has_next_page == false
-      assert result.has_previous_page == false
-      assert result.start_index == 0
-      assert result.end_index == 0
-    end
-  end
-
   describe "build_error_page_info/0" do
     test "returns error pagination state" do
       result = QueryBuilder.build_error_page_info()

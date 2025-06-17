@@ -69,11 +69,6 @@ defmodule Cinder.QueryBuilder do
 
           {:ok, {results, page_info}}
 
-        {:ok, results} when is_list(results) ->
-          # Fallback for when page query doesn't return count (shouldn't happen with count: true)
-          page_info = build_page_info_from_list(results, current_page, page_size)
-          {:ok, {results, page_info}}
-
         {:error, query_error} ->
           # Log query execution error with full context
           Logger.error(
@@ -315,28 +310,6 @@ defmodule Cinder.QueryBuilder do
       has_previous_page: current_page > 1,
       start_index: if(total_count > 0, do: start_index, else: 0),
       end_index: if(total_count > 0, do: max(actual_end_index, 0), else: 0)
-    }
-  end
-
-  @doc """
-  Builds pagination info from query results without total count.
-
-  This is a fallback when total count query fails.
-  """
-  def build_page_info_from_list(results, current_page, page_size) do
-    total_count = length(results)
-    total_pages = max(1, ceil(total_count / page_size))
-    start_index = (current_page - 1) * page_size + 1
-    end_index = min(current_page * page_size, total_count)
-
-    %{
-      current_page: current_page,
-      total_pages: total_pages,
-      total_count: total_count,
-      has_next_page: current_page < total_pages,
-      has_previous_page: current_page > 1,
-      start_index: if(total_count > 0, do: start_index, else: 0),
-      end_index: if(total_count > 0, do: end_index, else: 0)
     }
   end
 
