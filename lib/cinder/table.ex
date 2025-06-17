@@ -80,7 +80,6 @@ defmodule Cinder.Table do
   - **URL state management** with browser back/forward support
   - **Relationship support** using dot notation (e.g., `artist.name`)
   - **Flexible theming** with built-in presets
-  - **Responsive design** with configurable CSS classes
   """
 
   use Phoenix.LiveComponent
@@ -458,22 +457,4 @@ defmodule Cinder.Table do
   defp extract_resource_from_query(%Ash.Query{resource: resource}), do: resource
   defp extract_resource_from_query(resource) when is_atom(resource), do: resource
   defp extract_resource_from_query(_), do: nil
-
-  @doc """
-  Helper function to add CSS classes for responsive design.
-
-  ## Examples
-
-      <Cinder.Table.table resource={User} actor={@user} class={responsive_classes()}>
-        <:col field="name" filter sort class={responsive_col_classes(:name)}>Name</:col>
-      </Cinder.Table.table>
-  """
-  def responsive_classes do
-    "overflow-x-auto"
-  end
-
-  def responsive_col_classes(:name), do: "min-w-[200px]"
-  def responsive_col_classes(:email), do: "min-w-[250px] hidden md:table-cell"
-  def responsive_col_classes(:created_at), do: "min-w-[150px] hidden lg:table-cell"
-  def responsive_col_classes(_), do: ""
 end

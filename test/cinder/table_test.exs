@@ -342,19 +342,6 @@ defmodule Cinder.TableTest do
     end
   end
 
-  describe "responsive classes helpers" do
-    test "provides responsive classes" do
-      assert is_binary(Cinder.Table.responsive_classes())
-    end
-
-    test "provides column-specific responsive classes" do
-      assert is_binary(Cinder.Table.responsive_col_classes(:name))
-      assert is_binary(Cinder.Table.responsive_col_classes(:email))
-      assert is_binary(Cinder.Table.responsive_col_classes(:created_at))
-      assert is_binary(Cinder.Table.responsive_col_classes(:unknown))
-    end
-  end
-
   describe "automatic filter type inference" do
     test "infers number range filter for integer fields" do
       assigns = %{

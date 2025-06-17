@@ -20,7 +20,6 @@ That's it! Cinder automatically provides:
 - ✅ Pagination with efficient queries
 - ✅ Relationship support via dot notation
 - ✅ URL state management for bookmarkable views
-- ✅ Responsive design with flexible theming
 
 <video controls width="100%">
   <source src="./docs/screenshots/demo.mp4" type="video/mp4">
@@ -38,7 +37,6 @@ That's it! Cinder automatically provides:
 - **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, vintage, compact, pastel) plus powerful DSL for custom themes
 - **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
 - **⚡ Real-time Filtering**: Six filter types with debounced updates
-- **📱 Responsive Design**: Mobile-friendly with loading states
 - **🔐 Ash Integration**: Native support for Ash Framework resources and authorization
 
 ## Installation
