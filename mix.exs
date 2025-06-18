@@ -48,7 +48,6 @@ defmodule Cinder.MixProject do
       {:ash_phoenix, "~> 2.3"},
       {:phoenix_live_view, "~> 1.0"},
       {:spark, "~> 2.0"},
-      {:stream_data, "~> 1.1"},
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:igniter, "~> 0.5", only: [:dev, :test]},
