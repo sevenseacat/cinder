@@ -88,78 +88,67 @@ defmodule Cinder.Filters.Registry do
   def infer_filter_type(nil, _column_key), do: :text
 
   def infer_filter_type(%{type: type, constraints: constraints}, _column_key) do
-    cond do
-      # Handle constraint-based enums (new Ash format)
-      is_map(constraints) and Map.has_key?(constraints, :one_of) ->
-        :select
-
-      # Handle Ash.Type.Enum types
-      is_atom(type) and enum_type?(type) ->
-        :select
-
-      # Handle specific Ash types
-      type == Ash.Type.Boolean ->
-        :boolean
-
-      type in [Ash.Type.Integer, Ash.Type.Decimal, Ash.Type.Float] ->
-        :number_range
-
-      type == Ash.Type.String ->
-        :text
-
-      true ->
-        :text
+    # Only check constraints for enum types
+    if (is_map(constraints) and Map.has_key?(constraints, :one_of)) or
+         (is_atom(type) and enum_type?(type)) do
+      :select
+    else
+      infer_by_type(type)
     end
   end
 
-  def infer_filter_type(%{type: {:array, _inner_type}}, _column_key) do
-    # Array types use the new tag-based multi_select interface
-    :multi_select
+  def infer_filter_type(%{type: type}, _column_key) do
+    infer_by_type(type)
   end
 
-  def infer_filter_type(%{type: {:one_of, _values}}, _column_key) do
-    # Legacy enum format
-    :select
-  end
+  # Private helper to infer filter type based on just the type
+  defp infer_by_type(type) do
+    cond do
+      # Array types
+      match?({:array, _}, type) ->
+        :multi_select
 
-  def infer_filter_type(%{type: type}, _column_key) when type in [:boolean, Ash.Type.Boolean] do
-    :boolean
-  end
+      # Date/time types
+      type in [
+        :date,
+        :datetime,
+        :utc_datetime,
+        :utc_datetime_usec,
+        :naive_datetime,
+        :time,
+        Ash.Type.Date,
+        Ash.Type.Datetime,
+        Ash.Type.DateTime,
+        Ash.Type.UtcDatetime,
+        Ash.Type.UtcDatetimeUsec,
+        Ash.Type.NaiveDatetime,
+        Ash.Type.Time
+      ] ->
+        :date_range
 
-  def infer_filter_type(%{type: type}, _column_key)
-      when type in [
-             :date,
-             :datetime,
-             :utc_datetime,
-             :utc_datetime_usec,
-             :naive_datetime,
-             Ash.Type.Date,
-             Ash.Type.DateTime,
-             Ash.Type.UtcDatetime,
-             Ash.Type.UtcDatetimeUsec,
-             Ash.Type.NaiveDatetime
-           ] do
-    :date_range
-  end
+      # Boolean types
+      type in [:boolean, Ash.Type.Boolean] ->
+        :boolean
 
-  def infer_filter_type(%{type: type}, _column_key)
-      when type in [
-             :integer,
-             :decimal,
-             :float,
-             Ash.Type.Integer,
-             Ash.Type.Decimal,
-             Ash.Type.Float
-           ] do
-    :number_range
-  end
+      # Numeric types
+      type in [
+        :integer,
+        :decimal,
+        :float,
+        Ash.Type.Integer,
+        Ash.Type.Decimal,
+        Ash.Type.Float
+      ] ->
+        :number_range
 
-  def infer_filter_type(%{type: type}, _column_key) when type in [:string, Ash.Type.String] do
-    :text
-  end
+      # String types
+      type in [:string, Ash.Type.String] ->
+        :text
 
-  def infer_filter_type(_attribute, _column_key) do
-    :text
+      # Default fallback
+      true ->
+        :text
+    end
   end
 
   @doc """
