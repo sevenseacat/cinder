@@ -61,7 +61,7 @@ Add `cinder` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:cinder, "~> 0.1.0"}
+    {:cinder, "~> 0.2"}
   ]
 end
 ```
