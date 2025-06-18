@@ -101,9 +101,6 @@ defmodule Cinder.Filters.Registry do
       type == Ash.Type.Boolean ->
         :boolean
 
-      type == Ash.Type.Date ->
-        :date_range
-
       type in [Ash.Type.Integer, Ash.Type.Decimal, Ash.Type.Float] ->
         :number_range
 
@@ -129,7 +126,19 @@ defmodule Cinder.Filters.Registry do
     :boolean
   end
 
-  def infer_filter_type(%{type: type}, _column_key) when type in [:date, Ash.Type.Date] do
+  def infer_filter_type(%{type: type}, _column_key)
+      when type in [
+             :date,
+             :datetime,
+             :utc_datetime,
+             :utc_datetime_usec,
+             :naive_datetime,
+             Ash.Type.Date,
+             Ash.Type.DateTime,
+             Ash.Type.UtcDatetime,
+             Ash.Type.UtcDatetimeUsec,
+             Ash.Type.NaiveDatetime
+           ] do
     :date_range
   end
 

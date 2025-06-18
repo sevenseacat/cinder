@@ -364,6 +364,96 @@ defmodule Cinder.FiltersTest do
       assert DateRange.validate(invalid_filter) == false
     end
 
+    test "validate/1 validates datetime filter values" do
+      # Valid datetime format
+      valid_datetime_filter = %{
+        type: :date_range,
+        value: %{from: "2024-01-01T10:30:00", to: "2024-12-31T15:45:00"},
+        operator: :between
+      }
+
+      assert DateRange.validate(valid_datetime_filter) == true
+
+      # Valid ISO datetime with timezone
+      valid_iso_filter = %{
+        type: :date_range,
+        value: %{from: "2024-01-01T10:30:00Z", to: "2024-12-31T15:45:00Z"},
+        operator: :between
+      }
+
+      assert DateRange.validate(valid_iso_filter) == true
+
+      # Invalid datetime format
+      invalid_datetime_filter = %{
+        type: :date_range,
+        value: %{from: "2024-01-01T25:00:00", to: "2024-12-31T15:45:00"},
+        operator: :between
+      }
+
+      assert DateRange.validate(invalid_datetime_filter) == false
+    end
+
+    test "render/4 uses datetime-local inputs when include_time is true" do
+      column = %{
+        field: "created_at",
+        filter_type: :date_range,
+        filter_options: [include_time: true]
+      }
+
+      current_value = %{from: "2024-01-01", to: "2024-12-31"}
+      theme = Cinder.Theme.default()
+
+      rendered = DateRange.render(column, current_value, theme, %{})
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+
+      # Should contain datetime-local input types
+      assert String.contains?(html, ~s(type="datetime-local"))
+      # Should format dates as datetime-local format (YYYY-MM-DDTHH:MM)
+      assert String.contains?(html, "2024-01-01T00:00")
+      assert String.contains?(html, "2024-12-31T00:00")
+    end
+
+    test "render/4 uses date inputs when include_time is false or not specified" do
+      column = %{
+        field: "created_at",
+        filter_type: :date_range,
+        filter_options: [include_time: false]
+      }
+
+      current_value = %{from: "2024-01-01T10:30:00", to: "2024-12-31T15:45:00"}
+      theme = Cinder.Theme.default()
+
+      rendered = DateRange.render(column, current_value, theme, %{})
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+
+      # Should contain date input types
+      assert String.contains?(html, ~s(type="date"))
+      # Should extract only date part from datetime values
+      assert String.contains?(html, ~s(value="2024-01-01"))
+      assert String.contains?(html, ~s(value="2024-12-31"))
+    end
+
+    test "render/4 handles missing filter_options gracefully" do
+      column = %{
+        field: "created_at",
+        filter_type: :date_range
+      }
+
+      current_value = %{from: "2024-01-01", to: "2024-12-31"}
+      theme = Cinder.Theme.default()
+
+      rendered = DateRange.render(column, current_value, theme, %{})
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+
+      # Should default to date input types
+      assert String.contains?(html, ~s(type="date"))
+    end
+
+    test "default_options/0 includes include_time option" do
+      options = DateRange.default_options()
+      assert Keyword.get(options, :include_time) == false
+    end
+
     test "empty?/1 correctly identifies empty date range values" do
       assert DateRange.empty?(nil) == true
       assert DateRange.empty?(%{value: %{from: "", to: ""}}) == true

@@ -3,6 +3,7 @@ defmodule Cinder.Filters.DateRange do
   Date range filter implementation for Cinder tables.
 
   Provides date range filtering with from/to date inputs.
+  Supports both date-only and datetime filtering via the `include_time` option.
   """
 
   @behaviour Cinder.Filter
@@ -17,10 +18,20 @@ defmodule Cinder.Filters.DateRange do
     from_value = get_in(current_value, [:from]) || ""
     to_value = get_in(current_value, [:to]) || ""
 
+    # Check for include_time option
+    filter_options = Map.get(column, :filter_options, [])
+    include_time = Keyword.get(filter_options, :include_time, false)
+    input_type = if include_time, do: "datetime-local", else: "date"
+
+    # Format values for the appropriate input type
+    from_display = format_value_for_input(from_value, include_time)
+    to_display = format_value_for_input(to_value, include_time)
+
     assigns = %{
       column: column,
-      from_value: from_value,
-      to_value: to_value,
+      from_value: from_display,
+      to_value: to_display,
+      input_type: input_type,
       theme: theme
     }
 
@@ -28,7 +39,7 @@ defmodule Cinder.Filters.DateRange do
     <div class={@theme.filter_range_container_class} {@theme.filter_range_container_data}>
       <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
-          type="date"
+          type={@input_type}
           name={field_name(@column.field, "from")}
           value={@from_value}
           placeholder="From"
@@ -41,7 +52,7 @@ defmodule Cinder.Filters.DateRange do
       </div>
       <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
-          type="date"
+          type={@input_type}
           name={field_name(@column.field, "to")}
           value={@to_value}
           placeholder="To"
@@ -110,7 +121,7 @@ defmodule Cinder.Filters.DateRange do
   def validate(value) do
     case value do
       %{type: :date_range, value: %{from: from, to: to}, operator: :between} ->
-        valid_date?(from) and valid_date?(to)
+        valid_date_or_datetime?(from) and valid_date_or_datetime?(to)
 
       _ ->
         false
@@ -120,7 +131,8 @@ defmodule Cinder.Filters.DateRange do
   @impl true
   def default_options do
     [
-      format: :date
+      format: :date,
+      include_time: false
     ]
   end
 
@@ -150,9 +162,143 @@ defmodule Cinder.Filters.DateRange do
 
   defp valid_date?(_), do: false
 
+  # Validate both date and datetime formats
+  defp valid_date_or_datetime?(""), do: true
+  defp valid_date_or_datetime?(nil), do: true
+
+  defp valid_date_or_datetime?(value) when is_binary(value) do
+    cond do
+      # Try datetime first (ISO8601 with T)
+      String.contains?(value, "T") ->
+        case DateTime.from_iso8601(value) do
+          {:ok, _, _} ->
+            true
+
+          {:error, _} ->
+            # Try NaiveDateTime if regular DateTime fails
+            case NaiveDateTime.from_iso8601(value) do
+              {:ok, _} -> true
+              {:error, _} -> false
+            end
+        end
+
+      # Try date format
+      true ->
+        valid_date?(value)
+    end
+  end
+
+  defp valid_date_or_datetime?(_), do: false
+
+  # Format value for HTML input display
+  defp format_value_for_input("", _include_time), do: ""
+  defp format_value_for_input(nil, _include_time), do: ""
+
+  defp format_value_for_input(value, true) when is_binary(value) do
+    # For datetime-local inputs, ensure we have the right format
+    cond do
+      # Already in datetime format (YYYY-MM-DDTHH:MM or YYYY-MM-DDTHH:MM:SS)
+      String.contains?(value, "T") ->
+        # datetime-local inputs expect YYYY-MM-DDTHH:MM format
+        case String.split(value, "T") do
+          [date, time] ->
+            # Trim seconds if present for datetime-local compatibility
+            time_part = time |> String.split(":") |> Enum.take(2) |> Enum.join(":")
+            "#{date}T#{time_part}"
+
+          _ ->
+            value
+        end
+
+      # Date only - convert to datetime for datetime-local input
+      String.match?(value, ~r/^\d{4}-\d{2}-\d{2}$/) ->
+        "#{value}T00:00"
+
+      # Unknown format, return as-is
+      true ->
+        value
+    end
+  end
+
+  defp format_value_for_input(value, false) when is_binary(value) do
+    # For date inputs, extract just the date part if datetime is provided
+    if String.contains?(value, "T") do
+      value |> String.split("T") |> List.first()
+    else
+      value
+    end
+  end
+
+  defp format_value_for_input(value, _), do: value
+
+  # Get the resource from the query to detect field types
+  defp get_resource(query) do
+    case query do
+      %Ash.Query{resource: resource} -> resource
+      _ -> nil
+    end
+  end
+
+  # Get field type from resource
+  defp get_field_type(resource, field) when is_atom(resource) and is_atom(field) do
+    case Ash.Resource.Info.attribute(resource, field) do
+      %{type: Ash.Type.Date} -> :date
+      %{type: Ash.Type.NaiveDatetime} -> :naive_datetime
+      %{type: Ash.Type.UtcDatetime} -> :utc_datetime
+      _ -> :unknown
+    end
+  end
+
+  defp get_field_type(_, _), do: :unknown
+
+  # Convert date string to datetime string for NaiveDatetime fields
+  defp convert_date_for_field(value, _field_type) when value in ["", nil], do: value
+
+  defp convert_date_for_field(value, :naive_datetime) when is_binary(value) do
+    cond do
+      # Already a datetime string
+      String.contains?(value, "T") ->
+        value
+
+      # Date string - convert to datetime
+      String.match?(value, ~r/^\d{4}-\d{2}-\d{2}$/) ->
+        "#{value}T00:00:00"
+
+      # Unknown format
+      true ->
+        value
+    end
+  end
+
+  defp convert_date_for_field(value, _field_type), do: value
+
+  # Convert date string to end-of-day datetime for range end values
+  defp convert_date_for_field_end(value, _field_type) when value in ["", nil], do: value
+
+  defp convert_date_for_field_end(value, :naive_datetime) when is_binary(value) do
+    cond do
+      # Already a datetime string
+      String.contains?(value, "T") ->
+        value
+
+      # Date string - convert to end of day datetime
+      String.match?(value, ~r/^\d{4}-\d{2}-\d{2}$/) ->
+        "#{value}T23:59:59"
+
+      # Unknown format
+      true ->
+        value
+    end
+  end
+
+  defp convert_date_for_field_end(value, _field_type), do: value
+
   @impl true
   def build_query(query, field, filter_value) do
     %{type: :date_range, value: %{from: from, to: to}} = filter_value
+
+    # Get resource and field type for proper conversion
+    resource = get_resource(query)
 
     # Handle relationship fields using dot notation
     if String.contains?(field, ".") do
@@ -162,7 +308,15 @@ defmodule Cinder.Filters.DateRange do
       # Handle any relationship path length: user.name, user.department.name, etc.
       {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
 
-      case {from, to} do
+      # For relationship fields, we can't easily detect the target field type
+      # so we'll apply the same logic as direct fields
+      field_type = get_field_type(resource, field_atom)
+
+      # Convert values based on field type
+      from_converted = convert_date_for_field(from, field_type)
+      to_converted = convert_date_for_field_end(to, field_type)
+
+      case {from_converted, to_converted} do
         {from_val, to_val} when from_val != "" and to_val != "" ->
           Ash.Query.filter(
             query,
@@ -181,8 +335,13 @@ defmodule Cinder.Filters.DateRange do
     else
       # Direct field filtering
       field_atom = String.to_atom(field)
+      field_type = get_field_type(resource, field_atom)
 
-      case {from, to} do
+      # Convert values based on field type
+      from_converted = convert_date_for_field(from, field_type)
+      to_converted = convert_date_for_field_end(to, field_type)
+
+      case {from_converted, to_converted} do
         {from_val, to_val} when from_val != "" and to_val != "" ->
           Ash.Query.filter(query, ^ref(field_atom) >= ^from_val and ^ref(field_atom) <= ^to_val)
 
