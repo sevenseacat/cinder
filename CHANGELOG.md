@@ -5,6 +5,8 @@
 ### Features
 
 * Allow a default theme to be specified for all tables, in application config (eg. `config :cinder, default_theme: "dark"`)
+* Reorder arguments to `UrlSync.handle_params` to be consistent with LiveView's `handle_params`
+  * Replace `Cinder.Table.UrlSync.handle_params(socket, params, url)` with `Cinder.Table.UrlSync.handle_params(params, uri, socket)`
 
 ## v0.1.1 (2025-06-16)
 

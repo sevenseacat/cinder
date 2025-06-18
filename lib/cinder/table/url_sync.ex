@@ -23,7 +23,7 @@ defmodule Cinder.Table.UrlSync do
         end
 
         def handle_params(params, uri, socket) do
-          socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
+          socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
           {:noreply, socket}
         end
 
@@ -222,9 +222,9 @@ defmodule Cinder.Table.UrlSync do
 
   ## Parameters
 
-  - `socket` - The LiveView socket
   - `params` - URL parameters from `handle_params/3`
   - `uri` - Current URI from `handle_params/3` (optional but recommended)
+  - `socket` - The LiveView socket
 
   ## Returns
 
@@ -237,7 +237,7 @@ defmodule Cinder.Table.UrlSync do
   ## Example
 
       def handle_params(params, uri, socket) do
-        socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
+        socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
         {:noreply, socket}
       end
 
@@ -255,7 +255,7 @@ defmodule Cinder.Table.UrlSync do
 
   The `@url_state` assign will be available for use with the Table component.
   """
-  def handle_params(socket, params, uri \\ nil) do
+  def handle_params(params, uri \\ nil, socket) do
     table_state = extract_table_state(params)
 
     url_state = %{

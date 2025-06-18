@@ -606,7 +606,7 @@ defmodule MyAppWeb.UsersLive do
   end
 
   def handle_params(params, uri, socket) do
-    socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
+    socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
     {:noreply, socket}
   end
 
@@ -650,7 +650,7 @@ defmodule MyAppWeb.ActiveUsersLive do
   end
 
   def handle_params(params, uri, socket) do
-    socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
+    socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
     {:noreply, socket}
   end
 

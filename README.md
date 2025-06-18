@@ -148,7 +148,7 @@ defmodule MyAppWeb.UsersLive do
   use Cinder.Table.UrlSync
 
   def handle_params(params, uri, socket) do
-    socket = Cinder.Table.UrlSync.handle_params(socket, params, uri)
+    socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
     {:noreply, socket}
   end
 
