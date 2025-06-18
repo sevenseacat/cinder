@@ -497,7 +497,7 @@ defmodule Cinder.Table.LiveComponent do
   def handle_async(:load_data, {:ok, {:error, error}}, socket) do
     # Log error for developer debugging
     Logger.error(
-      "Cinder table query failed for #{socket.assigns.query}: #{inspect(error)}",
+      "Cinder table query failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
       %{
         resource: socket.assigns.query,
         filters: socket.assigns.filters,
@@ -520,7 +520,7 @@ defmodule Cinder.Table.LiveComponent do
   def handle_async(:load_data, {:exit, reason}, socket) do
     # Log error for developer debugging
     Logger.error(
-      "Cinder table query crashed for #{socket.assigns.query}: #{inspect(reason)}",
+      "Cinder table query crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
       %{
         resource: socket.assigns.query,
         filters: socket.assigns.filters,

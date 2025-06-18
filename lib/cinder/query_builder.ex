@@ -72,7 +72,7 @@ defmodule Cinder.QueryBuilder do
         {:error, query_error} ->
           # Log query execution error with full context
           Logger.error(
-            "Cinder table query execution failed for #{resource}: #{inspect(query_error)}",
+            "Cinder table query execution failed for #{inspect(resource)}: #{inspect(query_error)}",
             %{
               resource: resource,
               filters: filters,
@@ -90,7 +90,7 @@ defmodule Cinder.QueryBuilder do
       error ->
         # Log exceptions (like calculation errors) with full context
         Logger.error(
-          "Cinder table query crashed with exception for #{resource}: #{inspect(error)}",
+          "Cinder table query crashed with exception for #{inspect(resource)}: #{inspect(error)}",
           %{
             resource: resource,
             filters: filters,

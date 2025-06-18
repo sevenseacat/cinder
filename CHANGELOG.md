@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Prevent crashing when an error occurs while loading table data - the error will be propely logged instead
+
 ## v0.2.0 (2025-06-18)
 
 ### Features
