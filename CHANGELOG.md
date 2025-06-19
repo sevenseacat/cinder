@@ -8,8 +8,8 @@
 
 ### Bug fixes
 
-* Prevent crashing when an error occurs while loading table data - the error will be propely logged instead
-* Fix errors when attempting to filter on `NaiveDatetime` attribuse
+* Prevent crashing when an error occurs while loading table data - the error will be properly logged instead
+* Fix errors when attempting to filter on `NaiveDatetime` attribute
 
 ## v0.2.0 (2025-06-18)
 
