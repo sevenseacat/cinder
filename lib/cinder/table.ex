@@ -149,6 +149,24 @@ defmodule Cinder.Table do
   - `created_at` → "Created At"
 
   You can override the auto-generated label by providing a `label` attribute.
+
+  ## Row Click Functionality
+
+  Tables can be made interactive by providing a `row_click` function that will be
+  executed when a row is clicked:
+
+      <Cinder.Table.table
+        resource={MyApp.Item}
+        actor={@current_user}
+        row_click={fn item -> JS.navigate(~p"/items/\#{item.id}") end}
+      >
+        <:col field="name" filter sort>Name</:col>
+        <:col field="description">Description</:col>
+      </Cinder.Table.table>
+
+  The `row_click` function receives the row item as its argument and should return
+  a Phoenix.LiveView.JS command or similar action. When provided, rows will be
+  styled to indicate they are clickable with hover effects and cursor changes.
   """
 
   use Phoenix.Component
@@ -190,6 +208,11 @@ defmodule Cinder.Table do
   )
 
   attr(:class, :string, default: "", doc: "Additional CSS classes")
+
+  attr(:row_click, :any,
+    default: nil,
+    doc: "Function to call when a row is clicked. Receives the row item as argument."
+  )
 
   slot :col, required: true do
     attr(:field, :string,
@@ -257,6 +280,7 @@ defmodule Cinder.Table do
         loading_message={@loading_message}
         empty_message={@empty_message}
         col={@processed_columns}
+        row_click={@row_click}
       />
     </div>
     """

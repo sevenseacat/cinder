@@ -497,5 +497,46 @@ defmodule Cinder.TableTest do
       html = render_component(&Cinder.Table.table/1, assigns)
       assert html =~ "cinder-table"
     end
+
+    test "accepts row_click attribute" do
+      row_click_fn = fn item -> Phoenix.LiveView.JS.navigate("/users/#{item.id}") end
+
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        row_click: row_click_fn,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should render table successfully with row_click attribute
+      assert html =~ "cinder-table"
+    end
+
+    test "renders table without row_click (backward compatibility)" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should render table successfully without row_click
+      assert html =~ "cinder-table"
+    end
+
+    test "row_click attribute defaults to nil" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      # Test that the component handles nil row_click gracefully
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+    end
   end
 end

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+* Add `row_click` option for `Cinder.Table.table`, to make entire rows clickable
+
 ### Bug fixes
 
 * Tweaked layout of filters to avoid overlapping input content

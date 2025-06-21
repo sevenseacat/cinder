@@ -69,7 +69,10 @@ defmodule Cinder.Table.LiveComponent do
             </tr>
           </thead>
           <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} {@theme.tbody_data}>
-            <tr :for={item <- @data} class={@theme.row_class} {@theme.row_data}>
+            <tr :for={item <- @data}
+                class={get_row_classes(@theme.row_class, @row_click)}
+                {@theme.row_data}
+                phx-click={@row_click && @row_click.(item)}>
               <td :for={column <- @columns} class={[@theme.td_class, column.class]} {@theme.td_data}>
                 {render_slot(column.slot, item)}
               </td>
@@ -557,5 +560,14 @@ defmodule Cinder.Table.LiveComponent do
       class: column.class,
       slot: column.slot
     }
+  end
+
+  # Helper functions for row click functionality
+  defp get_row_classes(base_classes, row_click) do
+    if row_click do
+      [base_classes, "cursor-pointer"]
+    else
+      base_classes
+    end
   end
 end
