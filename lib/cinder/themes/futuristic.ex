@@ -56,9 +56,13 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_clear_all_class,
         "text-sm text-green-400 hover:text-green-300 font-light tracking-wide transition-colors border border-green-500/50 hover:border-green-400/70 px-3 py-1 hover:shadow-md hover:shadow-green-500/20"
 
-    set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-    set :filter_input_wrapper_class, "space-y-3"
-    set :filter_label_class, "block text-sm font-light text-blue-100 tracking-wide"
+    set :filter_inputs_class,
+        "overflow-hidden -mb-6"
+
+    set :filter_input_wrapper_class, "space-y-3 float-left mr-6 mb-6"
+
+    set :filter_label_class,
+        "block text-sm font-light text-blue-100 tracking-wide whitespace-nowrap"
 
     set :filter_placeholder_class,
         "text-sm text-slate-400 italic p-3 border border-blue-500/30 bg-slate-900/50 font-light backdrop-blur-sm"
@@ -74,7 +78,7 @@ defmodule Cinder.Themes.Futuristic do
         "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
 
     set :filter_number_input_class,
-        "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "w-20 px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
@@ -118,11 +122,11 @@ defmodule Cinder.Themes.Futuristic do
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
 
     # Range filters
-    set :filter_range_container_class, "flex space-x-4"
-    set :filter_range_input_group_class, "flex-1"
+    set :filter_range_container_class, "flex items-center space-x-2"
+    set :filter_range_input_group_class, ""
 
     set :filter_range_separator_class,
-        "flex items-center px-2 text-sm font-light text-blue-300/70"
+        "flex items-center px-1 text-sm font-light text-blue-200 tracking-wide"
   end
 
   component Cinder.Components.Pagination do

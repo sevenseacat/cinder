@@ -56,13 +56,12 @@ Cinder includes 10 carefully crafted themes covering a wide range of design styl
 Available themes:
 
 - **`"default"`** - Clean, minimal styling for universal compatibility
-- **`"modern"`** - Professional styling with shadows and improved spacing  
+- **`"modern"`** - Professional styling with shadows and improved spacing
 - **`"dark"`** - Elegant dark theme with proper contrast
 - **`"daisy_ui"`** - Optimized for DaisyUI component library
 - **`"flowbite"`** - Designed for Flowbite design system
 - **`"retro"`** - Cyberpunk-inspired with bright accent colors
 - **`"futuristic"`** - Sci-fi aesthetic with glowing effects
-- **`"vintage"`** - Warm, classic styling with subtle textures
 - **`"compact"`** - High-density layout for data-heavy applications
 - **`"pastel"`** - Soft, friendly colors for approachable interfaces
 

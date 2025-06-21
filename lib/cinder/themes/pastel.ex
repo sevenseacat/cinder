@@ -56,9 +56,13 @@ defmodule Cinder.Themes.Pastel do
     set :filter_clear_all_class,
         "text-sm text-pink-600 hover:text-pink-700 font-medium transition-colors bg-pink-100 hover:bg-pink-200 px-3 py-2 rounded-full"
 
-    set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-    set :filter_input_wrapper_class, "space-y-2"
-    set :filter_label_class, "block text-sm font-medium text-purple-700"
+    set :filter_inputs_class,
+        "overflow-hidden -mb-6"
+
+    set :filter_input_wrapper_class, "space-y-2 float-left mr-6 mb-6"
+
+    set :filter_label_class,
+        "block text-sm font-medium text-purple-700 whitespace-nowrap"
 
     set :filter_placeholder_class,
         "text-sm text-gray-400 italic p-3 border border-pink-200 rounded-xl bg-pink-50/50 font-medium"
@@ -74,7 +78,7 @@ defmodule Cinder.Themes.Pastel do
         "w-full px-4 py-3 border border-purple-200 rounded-xl text-sm bg-white/80 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition-all duration-200 font-medium shadow-sm"
 
     set :filter_number_input_class,
-        "w-full px-4 py-3 border border-purple-200 rounded-xl text-sm bg-white/80 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition-all duration-200 font-medium shadow-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "w-20 px-4 py-3 border border-purple-200 rounded-xl text-sm bg-white/80 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition-all duration-200 font-medium shadow-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-purple-200 rounded-xl text-sm bg-white/80 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition-all duration-200 font-medium shadow-sm"
@@ -117,8 +121,8 @@ defmodule Cinder.Themes.Pastel do
         "text-sm font-medium text-purple-700 cursor-pointer"
 
     # Range filters
-    set :filter_range_container_class, "flex space-x-3"
-    set :filter_range_input_group_class, "flex-1"
+    set :filter_range_container_class, "flex items-center space-x-2"
+    set :filter_range_input_group_class, ""
 
     set :filter_range_separator_class,
         "flex items-center px-2 text-sm font-medium text-purple-400"

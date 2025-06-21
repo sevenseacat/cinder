@@ -35,9 +35,13 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_title_class, "card-title"
     set :filter_count_class, "badge badge-primary badge-sm"
     set :filter_clear_all_class, "btn btn-ghost btn-xs"
-    set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-6 pb-6"
-    set :filter_input_wrapper_class, "form-control w-full"
-    set :filter_label_class, "label"
+
+    set :filter_inputs_class,
+        "overflow-hidden px-6 pb-2"
+
+    set :filter_input_wrapper_class, "form-control float-left mr-4 mb-4"
+
+    set :filter_label_class, "label whitespace-nowrap"
 
     set :filter_placeholder_class,
         "text-base-content/40 italic p-3 border border-base-300 rounded bg-base-200"
@@ -49,7 +53,7 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_date_input_class, "input input-bordered w-full"
 
     set :filter_number_input_class,
-        "input input-bordered w-full [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "input input-bordered w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class, "select select-bordered w-full"
 
@@ -79,11 +83,11 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_multicheckboxes_label_class, "label-text cursor-pointer"
 
     # Range filters
-    set :filter_range_container_class, "flex gap-2"
-    set :filter_range_input_group_class, "flex-1"
+    set :filter_range_container_class, "flex items-center gap-2"
+    set :filter_range_input_group_class, ""
 
     set :filter_range_separator_class,
-        "flex items-center px-2 text-sm font-medium text-base-content/60"
+        "flex items-center px-1 text-sm font-medium text-base-content/60"
   end
 
   component Cinder.Components.Pagination do

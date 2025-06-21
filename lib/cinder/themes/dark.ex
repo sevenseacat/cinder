@@ -54,9 +54,13 @@ defmodule Cinder.Themes.Dark do
     set :filter_clear_all_class,
         "text-sm text-purple-400 hover:text-purple-300 font-medium transition-colors"
 
-    set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-    set :filter_input_wrapper_class, "space-y-2"
-    set :filter_label_class, "block text-sm font-medium text-gray-300"
+    set :filter_inputs_class,
+        "overflow-hidden -mb-6"
+
+    set :filter_input_wrapper_class, "space-y-2 float-left mr-6 mb-6"
+
+    set :filter_label_class,
+        "block text-sm font-medium text-gray-300 whitespace-nowrap"
 
     set :filter_placeholder_class,
         "text-sm text-gray-500 italic p-3 border border-gray-600 rounded-lg bg-gray-700"
@@ -72,7 +76,7 @@ defmodule Cinder.Themes.Dark do
         "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
 
     set :filter_number_input_class,
-        "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "w-20 px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
@@ -110,9 +114,9 @@ defmodule Cinder.Themes.Dark do
     set :filter_multicheckboxes_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
 
     # Range filters
-    set :filter_range_container_class, "flex space-x-3"
-    set :filter_range_input_group_class, "flex-1"
-    set :filter_range_separator_class, "flex items-center px-2 text-sm font-medium text-gray-400"
+    set :filter_range_container_class, "flex items-center space-x-2"
+    set :filter_range_input_group_class, ""
+    set :filter_range_separator_class, "flex items-center px-1 text-sm font-medium text-gray-400"
   end
 
   component Cinder.Components.Pagination do

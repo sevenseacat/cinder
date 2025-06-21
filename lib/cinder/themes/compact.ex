@@ -56,9 +56,13 @@ defmodule Cinder.Themes.Compact do
     set :filter_clear_all_class,
         "text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
 
-    set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3"
-    set :filter_input_wrapper_class, "space-y-1"
-    set :filter_label_class, "block text-xs font-medium text-gray-700"
+    set :filter_inputs_class,
+        "overflow-hidden -mb-3"
+
+    set :filter_input_wrapper_class, "space-y-1 float-left mr-3 mb-3"
+
+    set :filter_label_class,
+        "block text-xs font-medium text-gray-700 whitespace-nowrap"
 
     set :filter_placeholder_class,
         "text-xs text-gray-400 italic p-2 border border-gray-300 bg-gray-50"
@@ -74,7 +78,7 @@ defmodule Cinder.Themes.Compact do
         "w-full px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
 
     set :filter_number_input_class,
-        "w-full px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "w-16 px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 bg-white"
@@ -112,8 +116,8 @@ defmodule Cinder.Themes.Compact do
     set :filter_multicheckboxes_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 
     # Range filters
-    set :filter_range_container_class, "flex space-x-2"
-    set :filter_range_input_group_class, "flex-1"
+    set :filter_range_container_class, "flex items-center space-x-2"
+    set :filter_range_input_group_class, ""
     set :filter_range_separator_class, "flex items-center px-1 text-xs font-medium text-gray-500"
   end
 

@@ -57,9 +57,13 @@ defmodule Cinder.Themes.Flowbite do
     set :filter_clear_all_class,
         "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
 
-    set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4"
-    set :filter_input_wrapper_class, "space-y-2"
-    set :filter_label_class, "block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+    set :filter_inputs_class,
+        "p-4 overflow-hidden -mb-4"
+
+    set :filter_input_wrapper_class, "space-y-2 float-left mr-4 mb-4"
+
+    set :filter_label_class,
+        "block mb-2 text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap"
 
     set :filter_placeholder_class,
         "text-sm text-gray-500 dark:text-gray-400 italic p-3 border border-gray-300 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
@@ -75,7 +79,7 @@ defmodule Cinder.Themes.Flowbite do
         "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
 
     set :filter_number_input_class,
-        "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-24 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
@@ -119,11 +123,11 @@ defmodule Cinder.Themes.Flowbite do
         "ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer"
 
     # Range filters
-    set :filter_range_container_class, "flex items-center space-x-3"
-    set :filter_range_input_group_class, "flex-1"
+    set :filter_range_container_class, "flex items-center space-x-2"
+    set :filter_range_input_group_class, ""
 
     set :filter_range_separator_class,
-        "flex items-center px-2 text-sm font-medium text-gray-500 dark:text-gray-400"
+        "flex items-center px-1 text-sm font-medium text-gray-500 dark:text-gray-400"
   end
 
   component Cinder.Components.Pagination do

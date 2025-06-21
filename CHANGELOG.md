@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Tweaked layout of filters to avoid overlapping input content
+
 ## v0.2.1 (2025-06-19)
 
 ### Features

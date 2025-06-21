@@ -57,9 +57,13 @@ defmodule Cinder.Themes.Retro do
     set :filter_clear_all_class,
         "text-sm text-cyan-100 bg-magenta-600 hover:bg-magenta-500 font-bold uppercase tracking-wide transition-colors border-2 border-cyan-400 hover:border-yellow-400 px-4 py-2 shadow-lg shadow-magenta-400/30"
 
-    set :filter_inputs_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-    set :filter_input_wrapper_class, "space-y-3"
-    set :filter_label_class, "block text-sm font-bold text-cyan-100 uppercase tracking-wide"
+    set :filter_inputs_class,
+        "overflow-hidden -mb-6"
+
+    set :filter_input_wrapper_class, "space-y-3 float-left mr-6 mb-6"
+
+    set :filter_label_class,
+        "block text-sm font-bold text-cyan-100 uppercase tracking-wide whitespace-nowrap"
 
     set :filter_placeholder_class,
         "text-sm text-gray-400 italic p-3 border-2 border-purple-600 bg-gray-800 font-bold"
@@ -75,7 +79,7 @@ defmodule Cinder.Themes.Retro do
         "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
 
     set :filter_number_input_class,
-        "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "w-20 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
         "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
@@ -119,11 +123,11 @@ defmodule Cinder.Themes.Retro do
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
 
     # Range filters
-    set :filter_range_container_class, "flex space-x-3"
-    set :filter_range_input_group_class, "flex-1"
+    set :filter_range_container_class, "flex items-center space-x-2"
+    set :filter_range_input_group_class, ""
 
     set :filter_range_separator_class,
-        "flex items-center px-2 text-sm font-bold text-cyan-300"
+        "text-xs flex items-center px-1 text-sm font-bold text-cyan-300 uppercase tracking-wide"
   end
 
   component Cinder.Components.Pagination do
