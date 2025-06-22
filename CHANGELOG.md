@@ -7,6 +7,7 @@
 * Add `row_click` option for `Cinder.Table.table`, to make entire rows clickable
 * Support `scope` and `tenant` options to `Cinder.Table.table`
   * `tenant` can also be passed in as part of the `query_opts` option
+* Support `timeout`, `authorize?`, and `max_concurrency` options in `query_opts`
 
 ### Bug fixes
 

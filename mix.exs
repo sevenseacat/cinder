@@ -51,7 +51,8 @@ defmodule Cinder.MixProject do
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:igniter, "~> 0.5", only: [:dev, :test]},
-      {:sourceror, "~> 1.8", only: [:dev, :test]}
+      {:sourceror, "~> 1.8", only: [:dev, :test]},
+      {:mimic, "~> 1.7", only: :test}
     ]
   end
 

@@ -33,7 +33,37 @@ defmodule Cinder.QueryBuilder do
     - `:page_size` - Number of records per page
     - `:current_page` - Current page number
     - `:columns` - Column definitions
-    - `:query_opts` - Additional Ash query options
+    - `:query_opts` - Additional Ash query and execution options
+
+  ## Supported Query Options
+
+  The `:query_opts` parameter accepts both query building and execution options:
+
+  ### Query Building Options
+  - `:select` - Select specific attributes (handled by `Ash.Query.select/2`)
+  - `:load` - Load relationships and calculations (handled by `Ash.Query.load/2`)
+
+  ### Execution Options
+  These options are passed to both `Ash.Query.for_read/3` and `Ash.read/2`:
+  - `:timeout` - Query timeout in milliseconds or `:infinity` (e.g., `:timer.seconds(30)`)
+  - `:authorize?` - Whether to run authorization during query execution
+  - `:max_concurrency` - Maximum number of processes for parallel loading
+
+  ### Usage Examples
+
+      # Simple timeout for long-running queries
+      query_opts: [timeout: :timer.seconds(30)]
+
+      # Query building options
+      query_opts: [select: [:name, :email], load: [:posts]]
+
+      # Combined query building and execution options
+      query_opts: [
+        timeout: :timer.seconds(20),
+        authorize?: false,
+        select: [:title, :content],
+        load: [:author, :comments]
+      ]
 
   ## Returns
   A tuple `{:ok, {results, page_info}}` or `{:error, reason}`
@@ -52,7 +82,7 @@ defmodule Cinder.QueryBuilder do
       # Build the query with pagination, sorting, and filtering using Ash.Query.page
       query =
         resource
-        |> Ash.Query.for_read(:read, %{}, build_ash_options(actor, tenant))
+        |> Ash.Query.for_read(:read, %{}, build_ash_options(actor, tenant, query_opts))
         |> apply_query_opts(query_opts)
         |> apply_filters(filters, columns)
         |> apply_sorting(sort_by, columns)
@@ -63,7 +93,7 @@ defmodule Cinder.QueryBuilder do
         )
 
       # Execute the query to get paginated results with count in a single query
-      case Ash.read(query, build_ash_options(actor, tenant)) do
+      case Ash.read(query, build_ash_options(actor, tenant, query_opts)) do
         {:ok, %{results: results, count: total_count}} ->
           page_info =
             build_page_info_with_total_count(results, current_page, page_size, total_count)
@@ -123,10 +153,6 @@ defmodule Cinder.QueryBuilder do
 
       {:tenant, tenant}, query ->
         Ash.Query.set_tenant(query, tenant)
-
-      {:filter, _filter_opts}, query ->
-        # Filters now handled in apply_filters/3 function
-        query
 
       _other, query ->
         query
@@ -334,13 +360,36 @@ defmodule Cinder.QueryBuilder do
     }
   end
 
-  # Build options for Ash.Query.for_read/3
-  defp build_ash_options(actor, tenant) do
+  # Build options for Ash.Query.for_read/3 and Ash.read/2
+  defp build_ash_options(actor, tenant, query_opts) do
     [actor: actor]
     |> maybe_add_tenant(tenant)
+    |> maybe_add_ash_options(query_opts)
   end
 
   # Add tenant to options if provided
   defp maybe_add_tenant(options, nil), do: options
   defp maybe_add_tenant(options, tenant), do: Keyword.put(options, :tenant, tenant)
+
+  # Add execution Ash options from query_opts
+  defp maybe_add_ash_options(options, query_opts) do
+    # Extract execution options from query_opts and pass them to both query building and execution
+    # Options like :actor, :tenant are already handled separately
+    # Query building options like :select, :load are handled by apply_query_opts/2
+    execution_options = [
+      # How long to wait for query execution - needed for both phases
+      :timeout,
+      # Whether to run authorization during execution - needed for both phases
+      :authorize?,
+      # For parallel loading during execution
+      :max_concurrency
+    ]
+
+    Enum.reduce(execution_options, options, fn key, acc ->
+      case Keyword.get(query_opts, key) do
+        nil -> acc
+        value -> Keyword.put(acc, key, value)
+      end
+    end)
+  end
 end

@@ -1,5 +1,6 @@
 defmodule Cinder.QueryBuilderTest do
   use ExUnit.Case, async: true
+  use Mimic
   import ExUnit.CaptureLog
 
   alias Cinder.QueryBuilder
@@ -559,6 +560,157 @@ defmodule Cinder.QueryBuilderTest do
       assert result == query
       assert logs =~ "Invalid sort_by format"
       assert logs =~ "Expected list of {field, direction} tuples"
+    end
+  end
+
+  describe "build_ash_options/3 timeout handling" do
+    # Test the private function indirectly through build_and_execute
+    test "includes execution options in both query building and execution" do
+      # We'll test this by mocking Ash.read to capture the options
+      timeout_value = :timer.seconds(30)
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: [timeout: timeout_value]
+      ]
+
+      test_pid = self()
+
+      # Mock Ash.read to capture options
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        # Return a valid response structure
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      # Verify that Ash.read was called with timeout option
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :timeout) == timeout_value
+      assert Keyword.get(ash_opts, :actor) == nil
+    end
+
+    test "includes execution Ash options from query_opts" do
+      timeout_value = :timer.seconds(15)
+
+      options = [
+        actor: :test_actor,
+        tenant: "test_tenant",
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: [
+          timeout: timeout_value,
+          authorize?: false,
+          max_concurrency: 2,
+          # Query building option - handled by apply_query_opts
+          select: [:name]
+        ]
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :timeout) == timeout_value
+      assert Keyword.get(ash_opts, :authorize?) == false
+      assert Keyword.get(ash_opts, :max_concurrency) == 2
+      assert Keyword.get(ash_opts, :actor) == :test_actor
+      assert Keyword.get(ash_opts, :tenant) == "test_tenant"
+    end
+
+    test "ignores non-execution options from query_opts" do
+      options = [
+        actor: nil,
+        tenant: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: [
+          timeout: :timer.seconds(10),
+          authorize?: false,
+          # These should be ignored by build_ash_options - not execution options
+          context: %{test: true},
+          domain: SomeDomain,
+          action: :read,
+          # This is handled by apply_query_opts, not build_ash_options
+          select: [:name],
+          # These should be ignored by build_ash_options - unknown options
+          custom_option: "ignored",
+          another_option: 123
+        ]
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :timeout) == :timer.seconds(10)
+      assert Keyword.get(ash_opts, :authorize?) == false
+      # These should not be in the Ash.read options - not execution options
+      refute Keyword.has_key?(ash_opts, :context)
+      refute Keyword.has_key?(ash_opts, :domain)
+      refute Keyword.has_key?(ash_opts, :action)
+      # These should not be in the Ash.read options - unknown options
+      refute Keyword.has_key?(ash_opts, :custom_option)
+      refute Keyword.has_key?(ash_opts, :another_option)
+      # This should not be in Ash.read options - it's handled by apply_query_opts
+      refute Keyword.has_key?(ash_opts, :select)
+    end
+
+    test "works without any execution options in query_opts" do
+      options = [
+        actor: :test_actor,
+        tenant: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :actor) == :test_actor
+      refute Keyword.has_key?(ash_opts, :timeout)
+      refute Keyword.has_key?(ash_opts, :authorize?)
+      refute Keyword.has_key?(ash_opts, :max_concurrency)
     end
   end
 end
