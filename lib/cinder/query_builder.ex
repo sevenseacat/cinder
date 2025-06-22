@@ -40,6 +40,7 @@ defmodule Cinder.QueryBuilder do
   """
   def build_and_execute(resource, options) do
     actor = Keyword.fetch!(options, :actor)
+    tenant = Keyword.get(options, :tenant)
     filters = Keyword.get(options, :filters, %{})
     sort_by = Keyword.get(options, :sort_by, [])
     page_size = Keyword.get(options, :page_size, 25)
@@ -51,7 +52,7 @@ defmodule Cinder.QueryBuilder do
       # Build the query with pagination, sorting, and filtering using Ash.Query.page
       query =
         resource
-        |> Ash.Query.for_read(:read, %{}, actor: actor)
+        |> Ash.Query.for_read(:read, %{}, build_ash_options(actor, tenant))
         |> apply_query_opts(query_opts)
         |> apply_filters(filters, columns)
         |> apply_sorting(sort_by, columns)
@@ -62,7 +63,7 @@ defmodule Cinder.QueryBuilder do
         )
 
       # Execute the query to get paginated results with count in a single query
-      case Ash.read(query, actor: actor) do
+      case Ash.read(query, build_ash_options(actor, tenant)) do
         {:ok, %{results: results, count: total_count}} ->
           page_info =
             build_page_info_with_total_count(results, current_page, page_size, total_count)
@@ -80,6 +81,7 @@ defmodule Cinder.QueryBuilder do
               current_page: current_page,
               page_size: page_size,
               query_opts: query_opts,
+              tenant: tenant,
               error: inspect(query_error)
             }
           )
@@ -98,6 +100,7 @@ defmodule Cinder.QueryBuilder do
             current_page: current_page,
             page_size: page_size,
             query_opts: query_opts,
+            tenant: tenant,
             exception: inspect(error),
             stacktrace: Exception.format_stacktrace(__STACKTRACE__)
           }
@@ -117,6 +120,9 @@ defmodule Cinder.QueryBuilder do
 
       {:select, select_opts}, query ->
         Ash.Query.select(query, select_opts)
+
+      {:tenant, tenant}, query ->
+        Ash.Query.set_tenant(query, tenant)
 
       {:filter, _filter_opts}, query ->
         # Filters now handled in apply_filters/3 function
@@ -327,4 +333,14 @@ defmodule Cinder.QueryBuilder do
       end_index: 0
     }
   end
+
+  # Build options for Ash.Query.for_read/3
+  defp build_ash_options(actor, tenant) do
+    [actor: actor]
+    |> maybe_add_tenant(tenant)
+  end
+
+  # Add tenant to options if provided
+  defp maybe_add_tenant(options, nil), do: options
+  defp maybe_add_tenant(options, tenant), do: Keyword.put(options, :tenant, tenant)
 end

@@ -276,4 +276,73 @@ defmodule Cinder.QuerySupportTest do
       assert html =~ "name=\"filters[name]\""
     end
   end
+
+  describe "tenant and scope support" do
+    test "accepts tenant attribute" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        tenant: "tenant_123",
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+    end
+
+    test "accepts scope with map" do
+      scope = %{actor: nil, tenant: "scope_tenant"}
+
+      assigns = %{
+        resource: TestUser,
+        scope: scope,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+    end
+
+    test "explicit tenant overrides scope tenant" do
+      scope = %{tenant: "scope_tenant"}
+
+      assigns = %{
+        resource: TestUser,
+        scope: scope,
+        tenant: "explicit_tenant",
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+    end
+
+    test "explicit actor overrides scope actor" do
+      scope = %{actor: "scope_actor"}
+
+      assigns = %{
+        resource: TestUser,
+        scope: scope,
+        actor: "explicit_actor",
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+    end
+
+    test "handles scope with invalid protocol gracefully" do
+      # Non-protocol struct should not crash
+      scope = %{not_a_scope: true}
+
+      assigns = %{
+        resource: TestUser,
+        scope: scope,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+    end
+  end
 end

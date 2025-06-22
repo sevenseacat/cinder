@@ -458,6 +458,7 @@ defmodule Cinder.Table.LiveComponent do
       query: resource,
       query_opts: query_opts,
       actor: actor,
+      tenant: tenant,
       page_size: page_size,
       current_page: current_page,
       sort_by: sort_by,
@@ -470,6 +471,7 @@ defmodule Cinder.Table.LiveComponent do
 
     options = [
       actor: actor,
+      tenant: tenant,
       query_opts: query_opts,
       filters: filters,
       sort_by: sort_by,

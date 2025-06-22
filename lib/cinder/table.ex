@@ -73,6 +73,42 @@ defmodule Cinder.Table do
         <:col field="role" filter={:select}>Role</:col>
       </Cinder.Table.table>
 
+  ## Multi-Tenant Examples
+
+      <!-- Simple tenant support -->
+      <Cinder.Table.table
+        resource={MyApp.User}
+        actor={@current_user}
+        tenant={@tenant}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+      </Cinder.Table.table>
+
+      <!-- Using Ash scope (only actor and tenant are extracted) -->
+      <Cinder.Table.table
+        resource={MyApp.User}
+        scope={%{actor: @current_user, tenant: @tenant}}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+      </Cinder.Table.table>
+
+      <!-- Custom scope struct -->
+      <Cinder.Table.table
+        resource={MyApp.User}
+        scope={@my_scope}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+      </Cinder.Table.table>
+
+      <!-- Mixed usage (explicit overrides scope) -->
+      <Cinder.Table.table
+        resource={MyApp.User}
+        scope={@scope}
+        actor={@different_actor}>
+        <:col field="name" filter sort>Name</:col>
+        <:col field="email" filter>Email</:col>
+      </Cinder.Table.table>
+
   ## Features
 
   - **Automatic type inference** from Ash resources
@@ -95,6 +131,10 @@ defmodule Cinder.Table do
 
   ### Required
   - `actor` - Actor for authorization (can be nil)
+
+  ### Authorization & Tenancy
+  - `tenant` - Tenant for multi-tenant resources (default: nil)
+  - `scope` - Ash scope containing actor and tenant (default: nil)
 
   ### Optional Configuration
   - `id` - Component ID (defaults to "cinder-table")
@@ -182,6 +222,8 @@ defmodule Cinder.Table do
   )
 
   attr(:actor, :any, default: nil, doc: "Actor for authorization")
+  attr(:tenant, :any, default: nil, doc: "Tenant for multi-tenant resources")
+  attr(:scope, :any, default: nil, doc: "Ash scope containing actor and tenant")
   attr(:id, :string, default: "cinder-table", doc: "Unique identifier for the table")
   attr(:page_size, :integer, default: 25, doc: "Number of items per page")
   attr(:theme, :any, default: "default", doc: "Theme name or theme map")
@@ -245,6 +287,11 @@ defmodule Cinder.Table do
       |> assign_new(:loading_message, fn -> "Loading..." end)
       |> assign_new(:empty_message, fn -> "No results found" end)
       |> assign_new(:class, fn -> "" end)
+      |> assign_new(:tenant, fn -> nil end)
+      |> assign_new(:scope, fn -> nil end)
+
+    # Resolve actor and tenant from scope and explicit attributes
+    resolved_options = resolve_actor_and_tenant(assigns)
 
     # Validate and normalize query/resource parameters
     normalized_query = normalize_query_params(assigns.resource, assigns.query)
@@ -258,6 +305,7 @@ defmodule Cinder.Table do
       assigns
       |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
+      |> assign(:resolved_options, resolved_options)
       |> assign_new(:show_filters, fn -> show_filters end)
 
     ~H"""
@@ -266,7 +314,8 @@ defmodule Cinder.Table do
         module={Cinder.Table.LiveComponent}
         id={@id}
         query={@normalized_query}
-        actor={@actor}
+        actor={@resolved_options.actor}
+        tenant={@resolved_options.tenant}
         page_size={@page_size}
         theme={resolve_theme(@theme)}
         url_filters={get_url_filters(@url_state)}
@@ -481,4 +530,30 @@ defmodule Cinder.Table do
   defp extract_resource_from_query(%Ash.Query{resource: resource}), do: resource
   defp extract_resource_from_query(resource) when is_atom(resource), do: resource
   defp extract_resource_from_query(_), do: nil
+
+  # Resolve actor and tenant from scope and explicit attributes
+  # Following Ash's precedence: explicit attributes override scope values
+  defp resolve_actor_and_tenant(assigns) do
+    scope_options = extract_scope_options(assigns.scope)
+
+    %{
+      actor: assigns.actor || Map.get(scope_options, :actor),
+      tenant: assigns.tenant || Map.get(scope_options, :tenant)
+    }
+  end
+
+  # Extract options from scope using Ash.Scope.to_opts if scope is provided
+  defp extract_scope_options(nil), do: %{}
+
+  defp extract_scope_options(scope) do
+    try do
+      scope
+      |> Ash.Scope.to_opts()
+      |> Map.new()
+    rescue
+      _ ->
+        # If scope doesn't implement the protocol, treat as empty
+        %{}
+    end
+  end
 end

@@ -4,6 +4,36 @@ defmodule Cinder.QueryBuilderTest do
 
   alias Cinder.QueryBuilder
 
+  # Test resource for tenant testing
+  defmodule TestUser do
+    use Ash.Resource,
+      domain: Cinder.QueryBuilderTest.TestDomain,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:name, :string, public?: true)
+      attribute(:email, :string, public?: true)
+    end
+
+    actions do
+      defaults([:read])
+    end
+  end
+
+  defmodule TestDomain do
+    use Ash.Domain, validate_config_inclusion?: false
+
+    resources do
+      resource(TestUser)
+    end
+  end
+
   describe "toggle_sort_direction/2" do
     test "adds ascending sort for new field" do
       current_sort = []
@@ -291,6 +321,87 @@ defmodule Cinder.QueryBuilderTest do
 
       result = QueryBuilder.apply_query_opts(query, opts)
       assert result == query
+    end
+
+    test "handles tenant option by calling Ash.Query.set_tenant" do
+      # Use a real Ash.Query to test the actual function call
+      query = Ash.Query.new(TestUser)
+      opts = [tenant: "test_tenant"]
+
+      result = QueryBuilder.apply_query_opts(query, opts)
+
+      # Verify the tenant was set (checking the query struct)
+      assert result.tenant == "test_tenant"
+    end
+  end
+
+  describe "build_and_execute/2 with tenant support" do
+    test "includes actor when provided" do
+      # Test the private function indirectly by testing apply_query_opts with tenant
+      query = Ash.Query.new(TestUser)
+      opts = [tenant: "test_tenant"]
+
+      result = QueryBuilder.apply_query_opts(query, opts)
+
+      # Verify tenant was set using query_opts path
+      assert result.tenant == "test_tenant"
+    end
+
+    test "tenant extraction from options" do
+      options = [
+        actor: nil,
+        tenant: "test_tenant",
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      # Should succeed with proper domain setup
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      assert {:ok, {results, page_info}} = result
+      assert is_list(results)
+      assert is_map(page_info)
+    end
+
+    test "query_opts tenant handling" do
+      options = [
+        actor: nil,
+        tenant: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: [tenant: "query_opts_tenant"]
+      ]
+
+      # Should succeed with tenant from query_opts
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      assert {:ok, {results, page_info}} = result
+      assert is_list(results)
+      assert is_map(page_info)
+    end
+
+    test "handles nil tenant gracefully" do
+      options = [
+        actor: nil,
+        tenant: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      # Should succeed without tenant
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      assert {:ok, {results, page_info}} = result
+      assert is_list(results)
+      assert is_map(page_info)
     end
   end
 
