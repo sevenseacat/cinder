@@ -43,7 +43,7 @@ defmodule Cinder.Themes.Compact do
 
   component Cinder.Components.Filters do
     set :filter_container_class,
-        "bg-white border border-gray-300 p-4 mb-4 shadow-sm"
+        "bg-white border border-gray-300 p-4 shadow-sm"
 
     set :filter_header_class,
         "flex items-center justify-between mb-3 pb-2 border-b border-gray-200"

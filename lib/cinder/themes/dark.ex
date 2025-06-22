@@ -41,7 +41,7 @@ defmodule Cinder.Themes.Dark do
 
   component Cinder.Components.Filters do
     set :filter_container_class,
-        "bg-gray-800 border border-gray-600 rounded-lg p-6 mb-6 shadow-xl"
+        "bg-gray-800 border border-gray-600 rounded-lg p-6 shadow-xl"
 
     set :filter_header_class,
         "flex items-center justify-between mb-4 pb-3 border-b border-gray-600"

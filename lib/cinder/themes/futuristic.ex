@@ -43,7 +43,7 @@ defmodule Cinder.Themes.Futuristic do
 
   component Cinder.Components.Filters do
     set :filter_container_class,
-        "bg-slate-950/80 border border-green-500/30 p-6 mb-6 shadow-2xl shadow-green-500/10 backdrop-blur-sm"
+        "bg-slate-950/80 border border-green-500/30 p-6 shadow-2xl shadow-green-500/10 backdrop-blur-sm"
 
     set :filter_header_class,
         "flex items-center justify-between mb-4 pb-3 border-b border-green-500/30"

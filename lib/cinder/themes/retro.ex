@@ -44,7 +44,7 @@ defmodule Cinder.Themes.Retro do
 
   component Cinder.Components.Filters do
     set :filter_container_class,
-        "bg-gray-900 border-2 border-magenta-400 p-6 mb-6 shadow-2xl shadow-magenta-400/20"
+        "bg-gray-900 border-2 border-magenta-400 p-6 shadow-2xl shadow-magenta-400/20"
 
     set :filter_header_class,
         "flex items-center justify-between mb-4 pb-3 border-b-2 border-cyan-400"

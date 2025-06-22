@@ -43,7 +43,7 @@ defmodule Cinder.Themes.Pastel do
 
   component Cinder.Components.Filters do
     set :filter_container_class,
-        "bg-gradient-to-br from-blue-50 to-green-50 border border-blue-200 rounded-2xl p-6 mb-6 shadow-lg"
+        "bg-gradient-to-br from-blue-50 to-green-50 border border-blue-200 rounded-2xl p-6 shadow-lg"
 
     set :filter_header_class,
         "flex items-center justify-between mb-4 pb-3 border-b border-blue-200"
