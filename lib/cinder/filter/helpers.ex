@@ -290,30 +290,71 @@ defmodule Cinder.Filter.Helpers do
   def validate_operator(_, _), do: {:error, :invalid_operator}
 
   @doc """
-  Builds a relationship-aware Ash query filter.
+  Builds a relationship-aware Ash query filter with embedded field support.
 
-  Handles both direct fields and relationship fields using dot notation.
+  Handles direct fields, relationship fields using dot notation, and embedded fields using bracket notation.
 
   ## Examples
 
       build_ash_filter(query, "name", "John", :equals)
       build_ash_filter(query, "user.name", "John", :equals)
+      build_ash_filter(query, "profile[:first_name]", "John", :equals)
+      build_ash_filter(query, "settings[:address][:street]", "Main St", :contains)
 
   """
   def build_ash_filter(query, field, value, operator) when is_binary(field) do
     require Ash.Query
     import Ash.Expr
 
-    if String.contains?(field, ".") do
-      # Handle relationship fields
-      path_atoms = field |> String.split(".") |> Enum.map(&String.to_atom/1)
-      {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
+    case parse_field_notation(field) do
+      {:direct, field_name} ->
+        field_atom = String.to_atom(field_name)
+        apply_operator_to_field(query, field_atom, value, operator)
 
-      apply_operator_to_relationship(query, rel_path, field_atom, value, operator)
-    else
-      # Direct field
-      field_atom = String.to_atom(field)
-      apply_operator_to_field(query, field_atom, value, operator)
+      {:relationship, rel_path, field_name} ->
+        rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
+        field_atom = String.to_atom(field_name)
+        apply_operator_to_relationship(query, rel_path_atoms, field_atom, value, operator)
+
+      {:embedded, embed_field, field_name} ->
+        embed_atom = String.to_atom(embed_field)
+        field_atom = String.to_atom(field_name)
+        apply_operator_to_embedded(query, embed_atom, field_atom, value, operator)
+
+      {:nested_embedded, embed_field, field_path} ->
+        embed_atom = String.to_atom(embed_field)
+        apply_operator_to_nested_embedded(query, embed_atom, field_path, value, operator)
+
+      {:relationship_embedded, rel_path, embed_field, field_name} ->
+        rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
+        embed_atom = String.to_atom(embed_field)
+        field_atom = String.to_atom(field_name)
+
+        apply_operator_to_relationship_embedded(
+          query,
+          rel_path_atoms,
+          embed_atom,
+          field_atom,
+          value,
+          operator
+        )
+
+      {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
+        rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
+        embed_atom = String.to_atom(embed_field)
+
+        apply_operator_to_relationship_nested_embedded(
+          query,
+          rel_path_atoms,
+          embed_atom,
+          field_path,
+          value,
+          operator
+        )
+
+      {:invalid, _} ->
+        # Return query unchanged for invalid field notation
+        query
     end
   end
 
@@ -507,4 +548,527 @@ defmodule Cinder.Filter.Helpers do
   end
 
   def validate_filter_implementation(_), do: {:error, ["Invalid module"]}
+
+  @doc """
+  Parses field notation to determine field type and structure.
+
+  ## Examples
+
+      iex> parse_field_notation("username")
+      {:direct, "username"}
+
+      iex> parse_field_notation("user.name")
+      {:relationship, ["user"], "name"}
+
+      iex> parse_field_notation("profile[:first_name]")
+      {:embedded, "profile", "first_name"}
+
+      iex> parse_field_notation("settings[:address][:street]")
+      {:nested_embedded, "settings", ["address", "street"]}
+
+  """
+  def parse_field_notation(field) when is_binary(field) do
+    trimmed = String.trim(field)
+
+    cond do
+      trimmed == "" ->
+        {:invalid, field}
+
+      # Check for invalid bracket notation (missing colon)
+      String.contains?(trimmed, "[") and not String.contains?(trimmed, "[:") ->
+        {:invalid, field}
+
+      # Check for whitespace in field names
+      String.contains?(trimmed, " ") ->
+        {:invalid, field}
+
+      # Check for unclosed brackets
+      String.contains?(trimmed, "[:") and not String.ends_with?(trimmed, "]") ->
+        {:invalid, field}
+
+      String.contains?(trimmed, "[:") ->
+        parse_embedded_field_notation(trimmed)
+
+      String.contains?(trimmed, ".") ->
+        parse_relationship_field_notation(trimmed)
+
+      true ->
+        {:direct, trimmed}
+    end
+  end
+
+  # Parses embedded field notation like "profile[:first_name]" or "settings[:address][:street]"
+  defp parse_embedded_field_notation(field) do
+    cond do
+      # Check for mixed relationship + embedded: "user.profile[:first_name]"
+      String.contains?(field, ".") and String.contains?(field, "[:") ->
+        parse_mixed_relationship_embedded(field)
+
+      # Pure embedded field notation
+      true ->
+        parse_pure_embedded_field(field)
+    end
+  end
+
+  # Parses mixed relationship and embedded notation like "user.profile[:first_name]"
+  defp parse_mixed_relationship_embedded(field) do
+    case String.split(field, "[:") do
+      [relationship_part | embed_parts] ->
+        # Split relationship part by dots
+        rel_parts = String.split(relationship_part, ".")
+
+        case rel_parts do
+          rel_path when length(rel_path) >= 2 ->
+            # Extract the embedded field name (last part before [:)
+            {rel_path_init, [embed_field]} = Enum.split(rel_parts, -1)
+
+            case parse_embedded_field_from_parts(embed_parts) do
+              {field_name} when is_binary(field_name) ->
+                {:relationship_embedded, rel_path_init, embed_field, field_name}
+
+              {field_path} when is_list(field_path) ->
+                {:relationship_nested_embedded, rel_path_init, embed_field, field_path}
+
+              :invalid ->
+                {:invalid, field}
+            end
+
+          _ ->
+            {:invalid, field}
+        end
+
+      _ ->
+        {:invalid, field}
+    end
+  end
+
+  # Parses pure embedded field notation like "profile[:first_name]" or "settings[:address][:street]"
+  defp parse_pure_embedded_field(field) do
+    case String.split(field, "[:") do
+      [embed_field | field_parts] ->
+        case parse_embedded_field_from_parts(field_parts) do
+          {field_name} when is_binary(field_name) ->
+            {:embedded, embed_field, field_name}
+
+          {field_path} when is_list(field_path) ->
+            {:nested_embedded, embed_field, field_path}
+
+          :invalid ->
+            {:invalid, field}
+        end
+
+      _ ->
+        {:invalid, field}
+    end
+  end
+
+  # Helper to parse the embedded field parts from bracket notation
+  defp parse_embedded_field_from_parts(parts) do
+    field_names =
+      parts
+      |> Enum.map(&String.replace(&1, "]", ""))
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.map(&String.trim/1)
+
+    # Validate all field names
+    if Enum.all?(field_names, &valid_field_name?/1) do
+      case field_names do
+        [single_field] -> {single_field}
+        multiple_fields when length(multiple_fields) > 1 -> {multiple_fields}
+        _ -> :invalid
+      end
+    else
+      :invalid
+    end
+  end
+
+  # Parses relationship field notation like "user.name" or "user.company.name"
+  defp parse_relationship_field_notation(field) do
+    parts = String.split(field, ".")
+
+    case parts do
+      # No dots after split means it's direct
+      [_single] ->
+        {:direct, field}
+
+      parts when length(parts) > 1 ->
+        {rel_path, [field_name]} = Enum.split(parts, -1)
+        {:relationship, rel_path, field_name}
+
+      _ ->
+        {:invalid, field}
+    end
+  end
+
+  # Validates field names according to Elixir atom naming rules
+  defp valid_field_name?(name) do
+    String.match?(name, ~r/^[a-z][a-zA-Z0-9_]*$/)
+  end
+
+  # Apply operators to embedded fields
+  defp apply_operator_to_embedded(query, embed_atom, field_atom, value, operator) do
+    require Ash.Query
+    import Ash.Expr
+
+    case operator do
+      :equals ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), [^field_atom]) == ^value)
+
+      :contains ->
+        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+
+      :starts_with ->
+        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+
+      :ends_with ->
+        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+
+      :greater_than ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), [^field_atom]) > ^value)
+
+      :greater_than_or_equal ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), [^field_atom]) >= ^value)
+
+      :less_than ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), [^field_atom]) < ^value)
+
+      :less_than_or_equal ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), [^field_atom]) <= ^value)
+
+      :in when is_list(value) ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), [^field_atom]) in ^value)
+
+      _ ->
+        query
+    end
+  end
+
+  # Apply operators to nested embedded fields
+  defp apply_operator_to_nested_embedded(query, embed_atom, field_path, value, operator) do
+    require Ash.Query
+    import Ash.Expr
+
+    # Convert field path to atoms for get_path
+    field_atoms = Enum.map(field_path, &String.to_atom/1)
+
+    case operator do
+      :equals ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), ^field_atoms) == ^value)
+
+      :contains ->
+        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+
+      :starts_with ->
+        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+
+      :ends_with ->
+        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+
+      :greater_than ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), ^field_atoms) > ^value)
+
+      :greater_than_or_equal ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), ^field_atoms) >= ^value)
+
+      :less_than ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), ^field_atoms) < ^value)
+
+      :less_than_or_equal ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), ^field_atoms) <= ^value)
+
+      :in when is_list(value) ->
+        Ash.Query.filter(query, get_path(^ref(embed_atom), ^field_atoms) in ^value)
+
+      _ ->
+        query
+    end
+  end
+
+  # Apply operators to relationship + embedded fields
+  defp apply_operator_to_relationship_embedded(
+         query,
+         rel_path,
+         embed_atom,
+         field_atom,
+         value,
+         operator
+       ) do
+    require Ash.Query
+    import Ash.Expr
+
+    case operator do
+      :equals ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), [^field_atom]) == ^value)
+        )
+
+      :contains ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+        )
+
+      :starts_with ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+        )
+
+      :ends_with ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+        )
+
+      :greater_than ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), [^field_atom]) > ^value)
+        )
+
+      :greater_than_or_equal ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), [^field_atom]) >= ^value)
+        )
+
+      :less_than ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), [^field_atom]) < ^value)
+        )
+
+      :less_than_or_equal ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), [^field_atom]) <= ^value)
+        )
+
+      :in when is_list(value) ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), [^field_atom]) in ^value)
+        )
+
+      _ ->
+        query
+    end
+  end
+
+  # Apply operators to relationship + nested embedded fields
+  defp apply_operator_to_relationship_nested_embedded(
+         query,
+         rel_path,
+         embed_atom,
+         field_path,
+         value,
+         operator
+       ) do
+    require Ash.Query
+    import Ash.Expr
+
+    # Convert field path to atoms for get_path
+    field_atoms = Enum.map(field_path, &String.to_atom/1)
+
+    case operator do
+      :equals ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), ^field_atoms) == ^value)
+        )
+
+      :contains ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+        )
+
+      :starts_with ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+        )
+
+      :ends_with ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+        )
+
+      :greater_than ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), ^field_atoms) > ^value)
+        )
+
+      :greater_than_or_equal ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), ^field_atoms) >= ^value)
+        )
+
+      :less_than ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), ^field_atoms) < ^value)
+        )
+
+      :less_than_or_equal ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), ^field_atoms) <= ^value)
+        )
+
+      :in when is_list(value) ->
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, get_path(^ref(embed_atom), ^field_atoms) in ^value)
+        )
+
+      _ ->
+        query
+    end
+  end
+
+  @doc """
+  Converts embedded field notation to URL-safe format.
+
+  ## Examples
+
+      iex> url_safe_field_notation("profile[:first_name]")
+      "profile__first_name"
+
+      iex> url_safe_field_notation("settings[:address][:street]")
+      "settings__address__street"
+
+  """
+  def url_safe_field_notation(field) when is_binary(field) do
+    # Only convert embedded field parts, leave relationship dots unchanged
+    field
+    |> String.replace(~r/\[:([a-zA-Z0-9_]+)\]/, "__\\1")
+  end
+
+  @doc """
+  Converts URL-safe format back to embedded field notation.
+
+  ## Examples
+
+      iex> field_notation_from_url_safe("profile__first_name")
+      "profile[:first_name]"
+
+      iex> field_notation_from_url_safe("settings__address__street")
+      "settings[:address][:street]"
+
+  """
+  def field_notation_from_url_safe(field) when is_binary(field) do
+    # Convert double underscores back to bracket notation
+    # Handle mixed relationship.embedded__field patterns
+    if String.contains?(field, "__") do
+      # Split on dots first to handle relationship.embedded__field patterns
+      parts = String.split(field, ".")
+
+      converted_parts =
+        Enum.map(parts, fn part ->
+          if String.contains?(part, "__") do
+            # This part contains embedded field notation
+            [base | field_parts] = String.split(part, "__")
+            embedded_parts = Enum.map(field_parts, fn fp -> "[:#{fp}]" end)
+            base <> Enum.join(embedded_parts)
+          else
+            part
+          end
+        end)
+
+      Enum.join(converted_parts, ".")
+    else
+      field
+    end
+  end
+
+  @doc """
+  Converts field notation to human-readable labels.
+
+  ## Examples
+
+      iex> humanize_embedded_field("profile[:first_name]")
+      "Profile > First Name"
+
+      iex> humanize_embedded_field("user.profile[:first_name]")
+      "User > Profile > First Name"
+
+  """
+  def humanize_embedded_field(field) when is_binary(field) do
+    case parse_field_notation(field) do
+      {:direct, field_name} ->
+        Cinder.Filter.humanize_key(field_name)
+
+      {:relationship, rel_path, field_name} ->
+        rel_labels = Enum.map(rel_path, &Cinder.Filter.humanize_key/1)
+        field_label = Cinder.Filter.humanize_key(field_name)
+        Enum.join(rel_labels ++ [field_label], " > ")
+
+      {:embedded, embed_field, field_name} ->
+        embed_label = Cinder.Filter.humanize_key(embed_field)
+        field_label = Cinder.Filter.humanize_key(field_name)
+        "#{embed_label} > #{field_label}"
+
+      {:nested_embedded, embed_field, field_path} ->
+        embed_label = Cinder.Filter.humanize_key(embed_field)
+        field_labels = Enum.map(field_path, &Cinder.Filter.humanize_key/1)
+        Enum.join([embed_label | field_labels], " > ")
+
+      {:relationship_embedded, rel_path, embed_field, field_name} ->
+        rel_labels = Enum.map(rel_path, &Cinder.Filter.humanize_key/1)
+        embed_label = Cinder.Filter.humanize_key(embed_field)
+        field_label = Cinder.Filter.humanize_key(field_name)
+        Enum.join(rel_labels ++ [embed_label, field_label], " > ")
+
+      {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
+        rel_labels = Enum.map(rel_path, &Cinder.Filter.humanize_key/1)
+        embed_label = Cinder.Filter.humanize_key(embed_field)
+        field_labels = Enum.map(field_path, &Cinder.Filter.humanize_key/1)
+        Enum.join(rel_labels ++ [embed_label | field_labels], " > ")
+
+      {:invalid, _} ->
+        Cinder.Filter.humanize_key(field)
+    end
+  end
+
+  @doc """
+  Validates embedded field syntax.
+
+  ## Examples
+
+      iex> validate_embedded_field_syntax("profile[:first_name]")
+      :ok
+
+      iex> validate_embedded_field_syntax("profile[invalid]")
+      {:error, "Invalid embedded field syntax: missing colon"}
+
+  """
+  def validate_embedded_field_syntax(field) when is_binary(field) do
+    case parse_field_notation(field) do
+      {:invalid, _} ->
+        cond do
+          String.contains?(field, "[") and not String.contains?(field, "[:") ->
+            {:error, "Invalid embedded field syntax: missing colon"}
+
+          String.contains?(field, "[:") and not String.contains?(field, "]") ->
+            {:error, "Invalid embedded field syntax: unclosed bracket"}
+
+          String.contains?(field, "[:]") ->
+            {:error, "Invalid embedded field syntax: empty field name"}
+
+          String.contains?(field, "[:") and String.contains?(field, "-") ->
+            {:error, "Invalid embedded field syntax: invalid field name characters"}
+
+          true ->
+            {:error, "Invalid field syntax"}
+        end
+
+      _ ->
+        :ok
+    end
+  end
 end

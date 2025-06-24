@@ -36,7 +36,31 @@ defmodule Cinder.Table do
         <:col field="name" filter sort>Name</:col>
         <:col field="email" filter>Email</:col>
         <:col field="department.name" filter>Department</:col>
+        <:col field="profile__country" filter>Country</:col>
       </Cinder.Table.table>
+
+  ## Field Types
+
+  ### Relationship Fields
+
+  Use dot notation to access related resource fields:
+
+      <:col field="department.name" filter sort>Department</:col>
+      <:col field="manager.email" filter>Manager Email</:col>
+      <:col field="office.building.address" filter>Office Address</:col>
+
+  ### Embedded Resource Fields
+
+  Use double underscore notation for embedded resource fields:
+
+      <:col field="profile__bio" filter>Bio</:col>
+      <:col field="settings__country" filter>Country</:col>
+      <:col field="metadata__preferences__theme" filter>Theme</:col>
+
+  Embedded enum fields are automatically detected and rendered as select filters:
+
+      <!-- If profile.country is an Ash.Type.Enum, this becomes a select filter -->
+      <:col field="profile__country" filter>Country</:col>
 
   ## Advanced Configuration
 

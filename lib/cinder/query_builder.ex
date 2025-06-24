@@ -186,6 +186,9 @@ defmodule Cinder.QueryBuilder do
   def apply_standard_filter(query, key, filter_config, _column) do
     %{type: type} = filter_config
 
+    # Convert URL-safe field notation to bracket notation
+    field_name = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
+
     # Get the filter module from registry (includes both built-in and custom)
     case Cinder.Filters.Registry.get_filter(type) do
       nil ->
@@ -195,7 +198,7 @@ defmodule Cinder.QueryBuilder do
 
       filter_module ->
         try do
-          filter_module.build_query(query, key, filter_config)
+          filter_module.build_query(query, field_name, filter_config)
         rescue
           error ->
             require Logger

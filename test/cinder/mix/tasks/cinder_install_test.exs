@@ -111,13 +111,14 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
 
   describe "help content" do
     test "provides comprehensive setup instructions" do
-      # Test that the installer exists and can be introspected
-      assert function_exported?(Mix.Tasks.Cinder.Install, :run, 1)
-
-      # When Igniter is available, these functions should also exist
+      # Test that the installer exists and can be introspected, but only if Igniter is available
       if Code.ensure_loaded?(Igniter) do
+        assert function_exported?(Mix.Tasks.Cinder.Install, :run, 1)
         assert function_exported?(Mix.Tasks.Cinder.Install, :igniter, 1)
         assert function_exported?(Mix.Tasks.Cinder.Install, :info, 2)
+      else
+        # When Igniter is not available, the installer module won't be defined
+        refute Code.ensure_loaded?(Mix.Tasks.Cinder.Install)
       end
     end
 

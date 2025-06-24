@@ -163,6 +163,15 @@ defmodule Cinder.Filter do
 
   ## Query Building Patterns
 
+  ### Recommended Approach: Use the Centralized Helper
+
+      def build_query(query, field, filter_value) do
+        %{value: value, operator: operator} = filter_value
+
+        # Use the centralized helper which supports direct, relationship, and embedded fields
+        Cinder.Filter.Helpers.build_ash_filter(query, field, value, operator)
+      end
+
   ### Basic Field Filtering
 
       def build_query(query, field, filter_value) do
@@ -188,6 +197,23 @@ defmodule Cinder.Filter do
           Ash.Query.filter(query, ^ref(field_atom) == ^value)
         end
       end
+
+  ### Embedded Field Filtering
+
+  Handle bracket notation fields like "profile[:first_name]":
+
+      def build_query(query, field, filter_value) do
+        %{value: value} = filter_value
+
+        # The centralized helper automatically detects and handles embedded fields
+        Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
+      end
+
+  Supported embedded field notations:
+  - Basic embedded: `profile[:first_name]`
+  - Nested embedded: `settings[:address][:street]`
+  - Mixed relationship + embedded: `user.profile[:first_name]`
+  - Complex mixed: `company.settings[:address][:city]`
 
   ## Best Practices
 

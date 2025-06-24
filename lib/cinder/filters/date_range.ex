@@ -10,7 +10,6 @@ defmodule Cinder.Filters.DateRange do
   use Phoenix.Component
 
   require Ash.Query
-  import Ash.Expr
   import Cinder.Filter
 
   @impl true
@@ -295,65 +294,59 @@ defmodule Cinder.Filters.DateRange do
 
   @impl true
   def build_query(query, field, filter_value) do
-    %{type: :date_range, value: %{from: from, to: to}} = filter_value
+    %{value: %{from: from, to: to}} = filter_value
 
     # Get resource and field type for proper conversion
     resource = get_resource(query)
 
-    # Handle relationship fields using dot notation
-    if String.contains?(field, ".") do
-      # Build the path as a list of atoms for Ash filtering
-      path_atoms = field |> String.split(".") |> Enum.map(&String.to_atom/1)
+    # For embedded fields, we need to handle field type detection differently
+    field_type =
+      case Cinder.Filter.Helpers.parse_field_notation(field) do
+        {:direct, field_name} ->
+          field_atom = String.to_atom(field_name)
+          get_field_type(resource, field_atom)
 
-      # Handle any relationship path length: user.name, user.department.name, etc.
-      {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
+        {:relationship, _rel_path, field_name} ->
+          field_atom = String.to_atom(field_name)
+          get_field_type(resource, field_atom)
 
-      # For relationship fields, we can't easily detect the target field type
-      # so we'll apply the same logic as direct fields
-      field_type = get_field_type(resource, field_atom)
+        {:embedded, _embed_field, _field_name} ->
+          # For embedded fields, assume :naive_datetime for now
+          # This could be enhanced with embedded field type detection
+          :naive_datetime
 
-      # Convert values based on field type
-      from_converted = convert_date_for_field(from, field_type)
-      to_converted = convert_date_for_field_end(to, field_type)
+        {:nested_embedded, _embed_field, _field_path} ->
+          :naive_datetime
 
-      case {from_converted, to_converted} do
-        {from_val, to_val} when from_val != "" and to_val != "" ->
-          Ash.Query.filter(
-            query,
-            exists(^rel_path, ^ref(field_atom) >= ^from_val and ^ref(field_atom) <= ^to_val)
-          )
+        {:relationship_embedded, _rel_path, _embed_field, _field_name} ->
+          :naive_datetime
 
-        {from_val, ""} when from_val != "" ->
-          Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) >= ^from_val))
+        {:relationship_nested_embedded, _rel_path, _embed_field, _field_path} ->
+          :naive_datetime
 
-        {"", to_val} when to_val != "" ->
-          Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) <= ^to_val))
-
-        _ ->
-          query
+        {:invalid, _} ->
+          :date
       end
-    else
-      # Direct field filtering
-      field_atom = String.to_atom(field)
-      field_type = get_field_type(resource, field_atom)
 
-      # Convert values based on field type
-      from_converted = convert_date_for_field(from, field_type)
-      to_converted = convert_date_for_field_end(to, field_type)
+    # Convert values based on field type
+    from_converted = convert_date_for_field(from, field_type)
+    to_converted = convert_date_for_field_end(to, field_type)
 
-      case {from_converted, to_converted} do
-        {from_val, to_val} when from_val != "" and to_val != "" ->
-          Ash.Query.filter(query, ^ref(field_atom) >= ^from_val and ^ref(field_atom) <= ^to_val)
+    case {from_converted, to_converted} do
+      {from_val, to_val} when from_val != "" and to_val != "" ->
+        # Apply both from and to filters using the centralized helper
+        query
+        |> Cinder.Filter.Helpers.build_ash_filter(field, from_val, :greater_than_or_equal)
+        |> Cinder.Filter.Helpers.build_ash_filter(field, to_val, :less_than_or_equal)
 
-        {from_val, ""} when from_val != "" ->
-          Ash.Query.filter(query, ^ref(field_atom) >= ^from_val)
+      {from_val, ""} when from_val != "" ->
+        Cinder.Filter.Helpers.build_ash_filter(query, field, from_val, :greater_than_or_equal)
 
-        {"", to_val} when to_val != "" ->
-          Ash.Query.filter(query, ^ref(field_atom) <= ^to_val)
+      {"", to_val} when to_val != "" ->
+        Cinder.Filter.Helpers.build_ash_filter(query, field, to_val, :less_than_or_equal)
 
-        _ ->
-          query
-      end
+      _ ->
+        query
     end
   end
 end

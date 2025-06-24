@@ -20,6 +20,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Theming](#theming)
 - [URL State Management](#url-state-management)
 - [Relationship Fields](#relationship-fields)
+- [Embedded Resources](#embedded-resources)
 - [Custom Content](#custom-content)
 - [Advanced Configuration](#advanced-configuration)
 - [Performance Optimization](#performance-optimization)
@@ -752,6 +753,84 @@ With URL sync enabled, your table state is preserved in the URL:
     sort
   >
     {Calendar.strftime(order.customer.created_at, "%B %Y")}
+  </:col>
+</Cinder.Table.table>
+```
+
+## Embedded Resources
+
+Cinder provides full support for embedded resources using double underscore notation (`__`). Embedded fields are automatically detected and typed, including automatic enum detection for select filters.
+
+### Basic Embedded Fields
+
+```elixir
+<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
+  <:col :let={album} field="title" filter sort>{album.title}</:col>
+  
+  <!-- Embedded resource fields use __ notation -->
+  <:col :let={album} field="publisher__name" filter>{album.publisher.name}</:col>
+  <:col :let={album} field="publisher__country" filter>{album.publisher.country}</:col>
+  <:col :let={album} field="metadata__genre" filter>{album.metadata.genre}</:col>
+</Cinder.Table.table>
+```
+
+### Nested Embedded Fields
+
+```elixir
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  
+  <!-- Deep nested embedded fields -->
+  <:col :let={user} field="settings__notifications__email" filter>
+    {if user.settings.notifications.email, do: "✓", else: "✗"}
+  </:col>
+  <:col :let={user} field="profile__address__country" filter>{user.profile.address.country}</:col>
+  <:col :let={user} field="preferences__theme__color" filter>{user.preferences.theme.color}</:col>
+</Cinder.Table.table>
+```
+
+### Automatic Enum Detection
+
+When embedded fields use `Ash.Type.Enum`, Cinder automatically detects them and creates select filters:
+
+```elixir
+# In your embedded resource
+defmodule MyApp.Publisher do
+  use Ash.Resource, data_layer: :embedded
+
+  attributes do
+    attribute :name, :string
+    attribute :country, MyApp.Country  # Enum type
+  end
+end
+
+defmodule MyApp.Country do
+  use Ash.Type.Enum, values: ["Australia", "India", "Japan", "England", "Canada"]
+end
+```
+
+```elixir
+<!-- This automatically becomes a select filter with enum values -->
+<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
+  <:col :let={album} field="title" filter sort>{album.title}</:col>
+  <:col :let={album} field="publisher__country" filter>{album.publisher.country}</:col>
+</Cinder.Table.table>
+```
+
+### Mixed Relationships and Embedded Fields
+
+You can combine relationship navigation (dot notation) with embedded fields (double underscore):
+
+```elixir
+<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
+  <:col :let={order} field="number" filter sort>#{order.number}</:col>
+  
+  <!-- Relationship + embedded field -->
+  <:col :let={order} field="customer.profile__country" filter>
+    {order.customer.profile.country}
+  </:col>
+  <:col :let={order} field="shipping.address__postal_code" filter>
+    {order.shipping.address.postal_code}
   </:col>
 </Cinder.Table.table>
 ```

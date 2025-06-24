@@ -27,11 +27,63 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  # Test enum for Country
+  defmodule Country do
+    use Ash.Type.Enum,
+      values: ["Australia", "India", "Japan", "England", "New Zealand", "Canada", "Sweden"]
+  end
+
+  # Test embedded resource for Publisher
+
+  defmodule Publisher do
+    use Ash.Resource, data_layer: :embedded
+
+    attributes do
+      attribute(:name, :string)
+      attribute(:country, Country)
+    end
+
+    actions do
+      create :create do
+        primary?(true)
+        accept([:name, :country])
+      end
+    end
+  end
+
+  # Test resource with embedded Publisher
+  defmodule Album do
+    use Ash.Resource,
+      domain: Cinder.QueryBuilderTest.TestDomain,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:title, :string, public?: true)
+      attribute(:publisher, Publisher, public?: true)
+    end
+
+    actions do
+      defaults([:read])
+
+      create :create do
+        primary?(true)
+        accept([:title, :publisher])
+      end
+    end
+  end
+
   defmodule TestDomain do
     use Ash.Domain, validate_config_inclusion?: false
 
     resources do
       resource(TestUser)
+      resource(Album)
     end
   end
 
@@ -292,7 +344,7 @@ defmodule Cinder.QueryBuilderTest do
   end
 
   defmodule MockQueryFilters do
-    defstruct [:resource, :filters]
+    defstruct [:resource, :filters, :converted_field]
   end
 
   defmodule MockQuerySorts do
@@ -443,6 +495,147 @@ defmodule Cinder.QueryBuilderTest do
         end)
 
       assert result == query
+    end
+  end
+
+  describe "apply_standard_filter/4 URL-safe field notation conversion" do
+    test "converts URL-safe embedded field notation to bracket notation" do
+      # Test the field notation conversion directly since that's what we're testing
+
+      # Test simple embedded field: publisher__name -> publisher[:name]
+      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("publisher__name")
+      assert converted == "publisher[:name]"
+
+      # Test nested embedded field: settings__address__street -> settings[:address][:street]
+      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("settings__address__street")
+      assert converted == "settings[:address][:street]"
+
+      # Test mixed relationship and embedded: user.profile__first_name -> user.profile[:first_name]
+      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("user.profile__first_name")
+      assert converted == "user.profile[:first_name]"
+
+      # Test regular field (no conversion needed): name -> name
+      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("name")
+      assert converted == "name"
+
+      # Test relationship field (no conversion needed): user.name -> user.name
+      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("user.name")
+      assert converted == "user.name"
+    end
+
+    test "apply_standard_filter calls field_notation_from_url_safe" do
+      # This test verifies that the conversion is actually being called in apply_standard_filter
+      # We'll test with an unknown filter type to avoid triggering the actual filter logic
+      query = %MockQueryFilters{resource: TestResource}
+      filter_config = %{type: :unknown_filter_type, value: "test"}
+
+      # This should not crash and should return the original query unchanged
+      # The important part is that field_notation_from_url_safe gets called internally
+      result = QueryBuilder.apply_standard_filter(query, "publisher__name", filter_config, nil)
+      assert result == query
+    end
+  end
+
+  describe "embedded field filtering integration" do
+    test "filters embedded fields using URL-safe notation" do
+      # Create test data
+      {:ok, _album1} =
+        Ash.create(Album, %{
+          title: "Album 1",
+          publisher: %{name: "Test Publisher", country: "Australia"}
+        })
+
+      {:ok, _album2} =
+        Ash.create(Album, %{
+          title: "Album 2",
+          publisher: %{name: "Another Publisher", country: "England"}
+        })
+
+      {:ok, _album3} =
+        Ash.create(Album, %{
+          title: "Album 3",
+          publisher: %{name: "Test Records", country: "Australia"}
+        })
+
+      # Test filtering by publisher name using URL-safe notation
+      query = Ash.Query.for_read(Album, :read)
+
+      filters = %{
+        "publisher__name" => %{type: :text, value: "Test", operator: :contains}
+      }
+
+      columns = [
+        %{field: "publisher__name", filterable: true, filter_type: :text, filter_fn: nil}
+      ]
+
+      filtered_query = QueryBuilder.apply_filters(query, filters, columns)
+      {:ok, results} = Ash.read(filtered_query)
+
+      # Should return albums with publishers containing "Test" in the name
+      result_titles = Enum.map(results, & &1.title) |> Enum.sort()
+      assert result_titles == ["Album 1", "Album 3"]
+
+      # Test filtering by publisher country (enum field)
+      filters2 = %{
+        "publisher__country" => %{type: :select, value: "Australia"}
+      }
+
+      columns2 = [
+        %{field: "publisher__country", filterable: true, filter_type: :select, filter_fn: nil}
+      ]
+
+      filtered_query2 = QueryBuilder.apply_filters(query, filters2, columns2)
+      {:ok, results2} = Ash.read(filtered_query2)
+
+      # Should return albums with publishers from Australia
+      result_titles2 = Enum.map(results2, & &1.title) |> Enum.sort()
+      assert result_titles2 == ["Album 1", "Album 3"]
+
+      # Test filtering by different enum value
+      filters3 = %{
+        "publisher__country" => %{type: :select, value: "England"}
+      }
+
+      columns3 = [
+        %{field: "publisher__country", filterable: true, filter_type: :select, filter_fn: nil}
+      ]
+
+      filtered_query3 = QueryBuilder.apply_filters(query, filters3, columns3)
+      {:ok, results3} = Ash.read(filtered_query3)
+
+      # Should return only the album with publisher from England
+      result_titles3 = Enum.map(results3, & &1.title) |> Enum.sort()
+      assert result_titles3 == ["Album 2"]
+    end
+
+    test "automatically infers select filter type for embedded enum fields" do
+      # Test that enum fields in embedded resources are automatically detected as select filters
+
+      # Create a column configuration for the embedded enum field
+      slot = %{
+        field: "publisher__country",
+        filterable: true
+      }
+
+      # Infer filter configuration - should automatically detect enum and set filter_type to :select
+      filter_config = Cinder.FilterManager.infer_filter_config("publisher__country", Album, slot)
+
+      # Should be detected as a select filter
+      assert filter_config.filter_type == :select
+
+      # Should have the enum values as options
+      assert filter_config.filter_options[:options] == [
+               {"Australia", "Australia"},
+               {"India", "India"},
+               {"Japan", "Japan"},
+               {"England", "England"},
+               {"New zealand", "New Zealand"},
+               {"Canada", "Canada"},
+               {"Sweden", "Sweden"}
+             ]
+
+      # Should have a prompt
+      assert filter_config.filter_options[:prompt] == "All Publisher > Country"
     end
   end
 

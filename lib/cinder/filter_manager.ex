@@ -463,47 +463,31 @@ defmodule Cinder.FilterManager do
 
   defp get_ash_attribute(resource, key) do
     try do
-      key_atom = if is_binary(key), do: String.to_atom(key), else: key
+      # Handle embedded field notation by converting URL-safe format to bracket notation
+      converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
 
-      # Check if this is actually an Ash resource using Ash.Resource.Info.resource?/1
-      if Ash.Resource.Info.resource?(resource) do
-        # First check regular attributes
-        attributes = Ash.Resource.Info.attributes(resource)
-        attribute = Enum.find(attributes, &(&1.name == key_atom))
+      # Parse the field notation to check if it's an embedded field
+      case Cinder.Filter.Helpers.parse_field_notation(converted_key) do
+        {:embedded, embed_field, field_name} ->
+          # Look up the embedded field attribute and then the nested field within it
+          get_embedded_attribute(resource, embed_field, field_name)
 
-        if attribute do
-          attribute
-        else
-          # Check aggregates - they should be treated as their type for filtering
-          aggregates = Ash.Resource.Info.aggregates(resource)
-          aggregate = Enum.find(aggregates, &(&1.name == key_atom))
+        {:nested_embedded, embed_field, field_path} ->
+          # Handle nested embedded fields
+          get_nested_embedded_attribute(resource, embed_field, field_path)
 
-          if aggregate do
-            # Convert aggregate to attribute-like structure for type inference
-            # Count aggregates should be treated as integers
-            case aggregate.kind do
-              :count -> %{name: key_atom, type: :integer}
-              :sum -> %{name: key_atom, type: aggregate.field_type || :integer}
-              :avg -> %{name: key_atom, type: :decimal}
-              :max -> %{name: key_atom, type: aggregate.field_type || :integer}
-              :min -> %{name: key_atom, type: aggregate.field_type || :integer}
-              _ -> %{name: key_atom, type: :integer}
-            end
-          else
-            # Check calculations as well
-            calculations = Ash.Resource.Info.calculations(resource)
-            calculation = Enum.find(calculations, &(&1.name == key_atom))
+        {:relationship_embedded, rel_path, embed_field, field_name} ->
+          # Handle relationship + embedded fields
+          get_relationship_embedded_attribute(resource, rel_path, embed_field, field_name)
 
-            if calculation do
-              # Convert calculation to attribute-like structure
-              %{name: key_atom, type: calculation.type}
-            else
-              nil
-            end
-          end
-        end
-      else
-        nil
+        {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
+          # Handle relationship + nested embedded fields
+          get_relationship_nested_embedded_attribute(resource, rel_path, embed_field, field_path)
+
+        _ ->
+          # Regular field lookup
+          key_atom = if is_binary(key), do: String.to_atom(key), else: key
+          get_regular_attribute(resource, key_atom)
       end
     rescue
       _ -> nil
@@ -512,17 +496,200 @@ defmodule Cinder.FilterManager do
     end
   end
 
+  defp get_regular_attribute(resource, key_atom) do
+    # Check if this is actually an Ash resource using Ash.Resource.Info.resource?/1
+    if Ash.Resource.Info.resource?(resource) do
+      # First check regular attributes
+      attributes = Ash.Resource.Info.attributes(resource)
+      attribute = Enum.find(attributes, &(&1.name == key_atom))
+
+      if attribute do
+        attribute
+      else
+        # Check aggregates - they should be treated as their type for filtering
+        aggregates = Ash.Resource.Info.aggregates(resource)
+        aggregate = Enum.find(aggregates, &(&1.name == key_atom))
+
+        if aggregate do
+          # Convert aggregate to attribute-like structure for type inference
+          # Count aggregates should be treated as integers
+          case aggregate.kind do
+            :count -> %{name: key_atom, type: :integer}
+            :sum -> %{name: key_atom, type: aggregate.field_type || :integer}
+            :avg -> %{name: key_atom, type: :decimal}
+            :max -> %{name: key_atom, type: aggregate.field_type || :integer}
+            :min -> %{name: key_atom, type: aggregate.field_type || :integer}
+            _ -> %{name: key_atom, type: :integer}
+          end
+        else
+          # Check calculations as well
+          calculations = Ash.Resource.Info.calculations(resource)
+          calculation = Enum.find(calculations, &(&1.name == key_atom))
+
+          if calculation do
+            # Convert calculation to attribute-like structure
+            %{name: key_atom, type: calculation.type}
+          else
+            nil
+          end
+        end
+      end
+    else
+      nil
+    end
+  end
+
+  defp get_embedded_attribute(resource, embed_field, field_name) do
+    if Ash.Resource.Info.resource?(resource) do
+      embed_atom = String.to_atom(embed_field)
+      field_atom = String.to_atom(field_name)
+
+      # Get the embedded resource attribute
+      attributes = Ash.Resource.Info.attributes(resource)
+      embed_attribute = Enum.find(attributes, &(&1.name == embed_atom))
+
+      if embed_attribute && embed_attribute.type do
+        # Get the embedded resource module
+        embedded_resource = embed_attribute.type
+
+        # Check if the embedded resource has the field
+        if Ash.Resource.Info.resource?(embedded_resource) do
+          embedded_attributes = Ash.Resource.Info.attributes(embedded_resource)
+          nested_attribute = Enum.find(embedded_attributes, &(&1.name == field_atom))
+          nested_attribute
+        else
+          nil
+        end
+      else
+        nil
+      end
+    else
+      nil
+    end
+  end
+
+  defp get_nested_embedded_attribute(resource, embed_field, field_path) do
+    if Ash.Resource.Info.resource?(resource) do
+      embed_atom = String.to_atom(embed_field)
+
+      # Get the embedded resource attribute
+      attributes = Ash.Resource.Info.attributes(resource)
+      embed_attribute = Enum.find(attributes, &(&1.name == embed_atom))
+
+      if embed_attribute && embed_attribute.type do
+        # Navigate through the nested path
+        traverse_embedded_path(embed_attribute.type, field_path)
+      else
+        nil
+      end
+    else
+      nil
+    end
+  end
+
+  defp get_relationship_embedded_attribute(resource, rel_path, embed_field, field_name) do
+    # Navigate to the related resource first
+    related_resource = traverse_relationship_path(resource, rel_path)
+
+    if related_resource do
+      get_embedded_attribute(related_resource, embed_field, field_name)
+    else
+      nil
+    end
+  end
+
+  defp get_relationship_nested_embedded_attribute(resource, rel_path, embed_field, field_path) do
+    # Navigate to the related resource first
+    related_resource = traverse_relationship_path(resource, rel_path)
+
+    if related_resource do
+      get_nested_embedded_attribute(related_resource, embed_field, field_path)
+    else
+      nil
+    end
+  end
+
+  defp traverse_embedded_path(current_resource, [field_name]) do
+    # Final field in the path
+    if Ash.Resource.Info.resource?(current_resource) do
+      field_atom = String.to_atom(field_name)
+      attributes = Ash.Resource.Info.attributes(current_resource)
+      Enum.find(attributes, &(&1.name == field_atom))
+    else
+      nil
+    end
+  end
+
+  defp traverse_embedded_path(current_resource, [field_name | rest]) do
+    # Navigate to the next embedded resource
+    if Ash.Resource.Info.resource?(current_resource) do
+      field_atom = String.to_atom(field_name)
+      attributes = Ash.Resource.Info.attributes(current_resource)
+      attribute = Enum.find(attributes, &(&1.name == field_atom))
+
+      if attribute && attribute.type do
+        traverse_embedded_path(attribute.type, rest)
+      else
+        nil
+      end
+    else
+      nil
+    end
+  end
+
+  defp traverse_relationship_path(resource, [rel_name]) do
+    # Final relationship in the path
+    if Ash.Resource.Info.resource?(resource) do
+      rel_atom = String.to_atom(rel_name)
+      relationships = Ash.Resource.Info.relationships(resource)
+      relationship = Enum.find(relationships, &(&1.name == rel_atom))
+
+      if relationship do
+        relationship.destination
+      else
+        nil
+      end
+    else
+      nil
+    end
+  end
+
+  defp traverse_relationship_path(resource, [rel_name | rest]) do
+    # Navigate to the next related resource
+    if Ash.Resource.Info.resource?(resource) do
+      rel_atom = String.to_atom(rel_name)
+      relationships = Ash.Resource.Info.relationships(resource)
+      relationship = Enum.find(relationships, &(&1.name == rel_atom))
+
+      if relationship do
+        traverse_relationship_path(relationship.destination, rest)
+      else
+        nil
+      end
+    else
+      nil
+    end
+  end
+
   defp enhance_select_options(default_options, attribute, key) do
     case extract_enum_options(attribute) do
       [] ->
         # No enum options found, return defaults
-        Keyword.merge(default_options, prompt: "All #{Cinder.Filter.humanize_key(key)}")
+        # Convert URL-safe notation to bracket notation for proper humanization
+        converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
+        humanized_key = Cinder.Filter.Helpers.humanize_embedded_field(converted_key)
+
+        Keyword.merge(default_options, prompt: "All #{humanized_key}")
 
       options ->
         # Add enum options and prompt
+        # Convert URL-safe notation to bracket notation for proper humanization
+        converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
+        humanized_key = Cinder.Filter.Helpers.humanize_embedded_field(converted_key)
+
         default_options
         |> Keyword.put(:options, options)
-        |> Keyword.put(:prompt, "All #{Cinder.Filter.humanize_key(key)}")
+        |> Keyword.put(:prompt, "All #{humanized_key}")
     end
   end
 

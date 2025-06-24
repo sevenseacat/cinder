@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+* Support working with embedded attributes via a new `__` notation
+
 ### Bug fixes
 
 * Fix multiselect dropdowns not being visible outside the filter container

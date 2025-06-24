@@ -10,7 +10,6 @@ defmodule Cinder.Filters.Text do
   use Phoenix.Component
 
   require Ash.Query
-  import Ash.Expr
   import Cinder.Filter
 
   @impl true
@@ -96,52 +95,10 @@ defmodule Cinder.Filters.Text do
     %{type: :text, value: value, operator: operator} = filter_value
     case_sensitive = Map.get(filter_value, :case_sensitive, false)
 
-    # Handle relationship fields using dot notation
-    if String.contains?(field, ".") do
-      # Build the path as a list of atoms for Ash filtering
-      path_atoms = field |> String.split(".") |> Enum.map(&String.to_atom/1)
+    # Use case-insensitive search unless explicitly set to case-sensitive
+    search_value = if case_sensitive, do: value, else: Ash.CiString.new(value)
 
-      # Handle any relationship path length: user.name, user.department.name, etc.
-      {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
-      search_value = if case_sensitive, do: value, else: Ash.CiString.new(value)
-
-      case operator do
-        :contains ->
-          Ash.Query.filter(
-            query,
-            exists(^rel_path, contains(^ref(field_atom), ^search_value))
-          )
-
-        :equals ->
-          Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) == ^search_value))
-
-        :starts_with ->
-          Ash.Query.filter(
-            query,
-            exists(^rel_path, contains(^ref(field_atom), ^search_value))
-          )
-
-        _ ->
-          query
-      end
-    else
-      # Direct field filtering
-      field_atom = String.to_atom(field)
-      search_value = if case_sensitive, do: value, else: Ash.CiString.new(value)
-
-      case operator do
-        :contains ->
-          Ash.Query.filter(query, contains(^ref(field_atom), ^search_value))
-
-        :equals ->
-          Ash.Query.filter(query, ^ref(field_atom) == ^search_value)
-
-        :starts_with ->
-          Ash.Query.filter(query, contains(^ref(field_atom), ^search_value))
-
-        _ ->
-          query
-      end
-    end
+    # Use the centralized helper which supports direct, relationship, and embedded fields
+    Cinder.Filter.Helpers.build_ash_filter(query, field, search_value, operator)
   end
 end

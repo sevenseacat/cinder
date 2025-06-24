@@ -11,6 +11,7 @@ Cinder transforms complex data table requirements into simple, declarative marku
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
   <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
+  <:col :let={user} field="settings__country" filter>{user.settings.country}</:col>
 </Cinder.Table.table>
 ```
 
@@ -19,6 +20,7 @@ That's it! Cinder automatically provides:
 - ✅ Interactive sorting with visual indicators
 - ✅ Pagination with efficient queries
 - ✅ Relationship support via dot notation
+- ✅ Embedded resource support with automatic enum detection
 - ✅ URL state management for bookmarkable views
 
 <video controls width="100%">
@@ -34,6 +36,7 @@ That's it! Cinder automatically provides:
 - **⚡ Minimal Configuration**: 70% fewer attributes required compared to traditional table components
 - **🔗 Complete URL State Management**: Filters, pagination, and sorting synchronized with browser URL
 - **🌐 Relationship Support**: Dot notation for related fields (e.g., `user.department.name`)
+- **📦 Embedded Resource Support**: Double underscore notation for embedded fields (e.g., `user__profile__bio`) with automatic enum detection
 - **🖱️ Interactive Row Actions**: Click handlers with Phoenix LiveView JS commands for navigation, modals, and custom actions
 - **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel) plus powerful DSL for custom themes
 - **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
@@ -84,6 +87,7 @@ The installer will automatically update your Tailwind configuration to include C
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
   <:col :let={user} field="created_at" sort>{user.created_at}</:col>
 </Cinder.Table.table>
 ```
@@ -113,6 +117,7 @@ Make your tables interactive by adding click handlers to rows. The `row_click` a
 >
   <:col field="name" filter sort>Name</:col>
   <:col field="email" filter>Email</:col>
+  <:col field="profile__country" filter>Country</:col>
   <:col field="role" filter>Role</:col>
 </Cinder.Table.table>
 ```
@@ -121,30 +126,6 @@ When `row_click` is provided:
 - Rows become visually clickable with cursor pointer styling
 - Clicking anywhere on a row executes your function
 - Works with any Phoenix LiveView JS command (navigate, show modal, dispatch events, etc.)
-
-Example uses:
-- Navigate to detail pages
-- Open modals or slideovers
-- Trigger custom events
-- Show/hide content
-- Execute any client-side JavaScript
-
-```elixir
-# Navigate to user detail page
-row_click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
-
-# Show a modal
-row_click={fn user -> JS.show(to: "#user-modal-#{user.id}") end}
-
-# Dispatch a custom event
-row_click={fn user -> JS.dispatch("user:selected", detail: %{id: user.id}) end}
-
-# Chain multiple actions
-row_click={fn user -> 
-  JS.navigate(~p"/users/#{user.id}")
-  |> JS.push("track_click", value: %{user_id: user.id})
-end}
-```
 
 ### Default Theme Configuration
 
