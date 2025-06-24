@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Fix multiselect dropdowns not being visible outside the filter container
+
 ## v0.3.0 (2025-06-23)
 
 ### Features

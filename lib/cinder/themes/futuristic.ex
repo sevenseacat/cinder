@@ -57,7 +57,7 @@ defmodule Cinder.Themes.Futuristic do
         "text-sm text-green-400 hover:text-green-300 font-light tracking-wide transition-colors border border-green-500/50 hover:border-green-400/70 px-3 py-1 hover:shadow-md hover:shadow-green-500/20"
 
     set :filter_inputs_class,
-        "overflow-hidden -mb-6"
+        "flow-root -mb-6"
 
     set :filter_input_wrapper_class, "space-y-3 float-left mr-6 mb-6"
 

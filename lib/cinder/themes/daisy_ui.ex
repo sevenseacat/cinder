@@ -37,7 +37,7 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_clear_all_class, "btn btn-ghost btn-xs"
 
     set :filter_inputs_class,
-        "overflow-hidden px-6 pb-2"
+        "flow-root px-6 pb-2"
 
     set :filter_input_wrapper_class, "form-control float-left mr-4 mb-4"
 

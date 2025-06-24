@@ -57,7 +57,7 @@ defmodule Cinder.Themes.Pastel do
         "text-sm text-pink-600 hover:text-pink-700 font-medium transition-colors bg-pink-100 hover:bg-pink-200 px-3 py-2 rounded-full"
 
     set :filter_inputs_class,
-        "overflow-hidden -mb-6"
+        "flow-root -mb-6"
 
     set :filter_input_wrapper_class, "space-y-2 float-left mr-6 mb-6"
 

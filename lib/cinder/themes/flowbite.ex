@@ -58,7 +58,7 @@ defmodule Cinder.Themes.Flowbite do
         "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
 
     set :filter_inputs_class,
-        "p-4 overflow-hidden -mb-4"
+        "p-4 flow-root -mb-4"
 
     set :filter_input_wrapper_class, "space-y-2 float-left mr-4 mb-4"
 

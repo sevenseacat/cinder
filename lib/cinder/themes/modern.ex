@@ -45,7 +45,7 @@ defmodule Cinder.Themes.Modern do
         "text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
 
     set :filter_inputs_class,
-        "overflow-hidden -mb-6"
+        "flow-root -mb-6"
 
     set :filter_input_wrapper_class, "space-y-2 float-left mr-6 mb-6"
 
