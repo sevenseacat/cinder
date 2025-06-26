@@ -5,6 +5,7 @@
 ### Features
 
 * Support working with embedded attributes via a new `__` notation
+* Add action column support - columns can now omit the `field` attribute to create action columns with buttons, links, and other interactive elements
 
 ### Bug fixes
 

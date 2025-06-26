@@ -70,31 +70,40 @@ defmodule Cinder.ColumnTest do
       assert column.label == "User Name"
     end
 
-    test "raises error when field attribute is missing" do
-      slot = %{label: "Name"}
+    test "creates action column when field attribute is missing" do
+      slot = %{label: "Actions"}
       resource = nil
 
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(slot, resource)
-      end
+      column = Column.parse_column(slot, resource)
+
+      assert column.field == nil
+      assert column.label == "Actions"
+      assert column.sortable == false
+      assert column.filterable == false
     end
 
-    test "raises error when field attribute is empty" do
-      slot = %{field: "", label: "Name"}
+    test "creates action column when field attribute is empty" do
+      slot = %{field: "", label: "Actions"}
       resource = nil
 
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(slot, resource)
-      end
+      column = Column.parse_column(slot, resource)
+
+      assert column.field == nil
+      assert column.label == "Actions"
+      assert column.sortable == false
+      assert column.filterable == false
     end
 
-    test "raises error when field attribute is nil" do
-      slot = %{field: nil, label: "Name"}
+    test "creates action column when field attribute is nil" do
+      slot = %{field: nil, label: "Actions"}
       resource = nil
 
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(slot, resource)
-      end
+      column = Column.parse_column(slot, resource)
+
+      assert column.field == nil
+      assert column.label == "Actions"
+      assert column.sortable == false
+      assert column.filterable == false
     end
 
     test "handles relationship fields with dot notation" do
@@ -330,13 +339,16 @@ defmodule Cinder.ColumnTest do
       end)
     end
 
-    test "handles empty slot raises error" do
+    test "handles empty slot creates action column" do
       slot = %{}
       resource = nil
 
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(slot, resource)
-      end
+      column = Column.parse_column(slot, resource)
+
+      assert column.field == nil
+      assert column.label == ""
+      assert column.sortable == false
+      assert column.filterable == false
     end
 
     test "handles integer fields" do

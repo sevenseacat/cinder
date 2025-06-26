@@ -282,8 +282,9 @@ defmodule Cinder.Table do
 
   slot :col, required: true do
     attr(:field, :string,
-      required: true,
-      doc: "Field name (supports dot notation for relationships)"
+      required: false,
+      doc:
+        "Field name (supports dot notation for relationships or `__` for embedded attributes). Required when filter or sort is enabled."
     )
 
     attr(:filter, :any, doc: "Enable filtering (true, false, or filter type atom)")
@@ -360,12 +361,15 @@ defmodule Cinder.Table do
   end
 
   # Process column definitions into the format expected by the underlying component
-  defp process_columns(col_slots, resource) do
+  def process_columns(col_slots, resource) do
     Enum.map(col_slots, fn slot ->
       # Convert column slot to internal format using Column module
       field = Map.get(slot, :field)
       filter_attr = Map.get(slot, :filter, false)
       sort_attr = Map.get(slot, :sort, false)
+
+      # Validate field requirement for filtering/sorting
+      validate_field_requirement!(slot, field, filter_attr, sort_attr)
 
       # Use Column module to parse the column configuration
       column_config = %{
@@ -388,8 +392,20 @@ defmodule Cinder.Table do
             Map.put(column_config, :filter_type, explicit_type)
         end
 
-      # Parse through Column module for intelligent defaults
-      parsed_column = Cinder.Column.parse_column(column_config, resource)
+      # Parse through Column module for intelligent defaults (only if field exists)
+      parsed_column =
+        if field do
+          Cinder.Column.parse_column(column_config, resource)
+        else
+          # For action columns without fields, provide sensible defaults
+          %{
+            label: Map.get(slot, :label, ""),
+            filterable: false,
+            filter_type: :text,
+            filter_options: [],
+            sortable: false
+          }
+        end
 
       # Create slot in internal format with proper label handling
       %{
@@ -427,10 +443,33 @@ defmodule Cinder.Table do
     end
   end
 
+  # Validates that field is provided when filter or sort is enabled
+  defp validate_field_requirement!(_slot, field, filter_attr, sort_attr) do
+    field_required = filter_attr != false or sort_attr == true
+
+    if field_required and (is_nil(field) or field == "") do
+      filter_msg = if filter_attr != false, do: " filter", else: ""
+      sort_msg = if sort_attr == true, do: " sort", else: ""
+
+      raise ArgumentError, """
+      Cinder table column with#{filter_msg}#{sort_msg} attribute(s) requires a 'field' attribute.
+
+      Either:
+      - Add a field: <:col field="field_name"#{filter_msg}#{sort_msg}>
+      - Remove#{filter_msg}#{sort_msg} attribute(s) for action columns: <:col>
+      """
+    end
+  end
+
   # Default inner block that renders the field value
   defp default_inner_block(field) do
-    fn item ->
-      get_field_value(item, field)
+    if field do
+      fn item ->
+        get_field_value(item, field)
+      end
+    else
+      # For action columns without fields, return empty function
+      fn _item -> nil end
     end
   end
 

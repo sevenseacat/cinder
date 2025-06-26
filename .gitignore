@@ -26,6 +26,7 @@ cinder-*.tar
 /tmp/
 
 # Claude notes
+CLAUDE.md
 notes/
 
 .DS_Store

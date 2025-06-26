@@ -65,41 +65,55 @@ defmodule Cinder.Column do
   def parse_column(slot, resource) do
     field = Map.get(slot, :field)
 
-    # Validate that field attribute is present and non-empty
+    # Handle action columns without fields
     if is_nil(field) or field == "" do
-      raise ArgumentError, """
-      Cinder table column is missing required 'field' attribute.
-      Use: <:col field="column_name" ...>
-      """
+      # For action columns, provide minimal defaults
+      %__MODULE__{
+        field: nil,
+        label: Map.get(slot, :label, ""),
+        sortable: false,
+        filterable: false,
+        filter_type: :text,
+        filter_options: [],
+        class: Map.get(slot, :class, ""),
+        slot: slot,
+        relationship: nil,
+        display_field: nil,
+        sort_fn: nil,
+        filter_fn: nil,
+        search_fn: nil,
+        searchable: false,
+        options: []
+      }
+    else
+      # Parse relationship information if field contains dots
+      {base_field, relationship_info} = parse_relationship_key(field)
+
+      # Infer column configuration from Ash resource (only if slot allows filtering)
+      inferred = infer_from_resource(resource, base_field, relationship_info, slot)
+
+      # Merge slot configuration with inferred defaults
+      merged_config = merge_config(slot, inferred)
+
+      # Create column struct
+      %__MODULE__{
+        field: field,
+        label: Map.get(merged_config, :label, humanize_key(field)),
+        sortable: Map.get(merged_config, :sortable, true),
+        filterable: Map.get(merged_config, :filterable, false),
+        filter_type: Map.get(merged_config, :filter_type, :text),
+        filter_options: Map.get(merged_config, :filter_options, []),
+        class: Map.get(merged_config, :class, ""),
+        slot: slot,
+        relationship: Map.get(relationship_info, :relationship),
+        display_field: Map.get(relationship_info, :field),
+        sort_fn: Map.get(merged_config, :sort_fn),
+        filter_fn: Map.get(merged_config, :filter_fn),
+        search_fn: Map.get(merged_config, :search_fn),
+        searchable: Map.get(merged_config, :searchable, false),
+        options: Map.get(merged_config, :options, [])
+      }
     end
-
-    # Parse relationship information if field contains dots
-    {base_field, relationship_info} = parse_relationship_key(field)
-
-    # Infer column configuration from Ash resource (only if slot allows filtering)
-    inferred = infer_from_resource(resource, base_field, relationship_info, slot)
-
-    # Merge slot configuration with inferred defaults
-    merged_config = merge_config(slot, inferred)
-
-    # Create column struct
-    %__MODULE__{
-      field: field,
-      label: Map.get(merged_config, :label, humanize_key(field)),
-      sortable: Map.get(merged_config, :sortable, true),
-      filterable: Map.get(merged_config, :filterable, false),
-      filter_type: Map.get(merged_config, :filter_type, :text),
-      filter_options: Map.get(merged_config, :filter_options, []),
-      class: Map.get(merged_config, :class, ""),
-      slot: slot,
-      relationship: Map.get(relationship_info, :relationship),
-      display_field: Map.get(relationship_info, :field),
-      sort_fn: Map.get(merged_config, :sort_fn),
-      filter_fn: Map.get(merged_config, :filter_fn),
-      search_fn: Map.get(merged_config, :search_fn),
-      searchable: Map.get(merged_config, :searchable, false),
-      options: Map.get(merged_config, :options, [])
-    }
   end
 
   @doc """

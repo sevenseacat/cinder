@@ -11,15 +11,16 @@ defmodule Cinder.FieldValidationTest do
         # This is what the user had
         key: "scroll",
         label: "Type",
-        filterable: true,
-        filter_type: :boolean,
-        filter_options: [labels: %{all: "Any", true: "Scrolls", false: "Books"}]
+        # This requires a field
+        filter: true
       }
 
-      # Should raise helpful error instead of cryptic FunctionClauseError
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(user_column, nil)
-      end
+      # Should raise helpful error at table level when filter is used without field
+      assert_raise ArgumentError,
+                   ~r/column with filter attribute\(s\) requires a 'field' attribute/,
+                   fn ->
+                     Cinder.Table.process_columns([user_column], nil)
+                   end
     end
 
     test "correct usage with field attribute works" do
@@ -28,86 +29,114 @@ defmodule Cinder.FieldValidationTest do
         # Correct attribute name
         field: "scroll",
         label: "Type",
-        filterable: true,
-        filter_type: :boolean,
-        filter_options: [labels: %{all: "Any", true: "Scrolls", false: "Books"}]
+        filter: true
       }
 
       # Should work without error
-      column = Column.parse_column(correct_column, nil)
+      [column] = Cinder.Table.process_columns([correct_column], nil)
 
       assert column.field == "scroll"
       assert column.label == "Type"
       assert column.filterable == true
-      assert column.filter_type == :boolean
     end
 
-    test "validates error message is actionable" do
+    test "validates error message is actionable when filter is used without field" do
       missing_field_column = %{
-        label: "Name"
+        label: "Name",
+        # This requires a field
+        filter: true
         # missing field attribute entirely
       }
 
       assert_raise ArgumentError, fn ->
-        Column.parse_column(missing_field_column, nil)
+        Cinder.Table.process_columns([missing_field_column], nil)
       end
 
       # Verify the error message is helpful and actionable
       try do
-        Column.parse_column(missing_field_column, nil)
+        Cinder.Table.process_columns([missing_field_column], nil)
       rescue
         error in ArgumentError ->
           message = Exception.message(error)
-          assert String.contains?(message, "missing required 'field' attribute")
-          assert String.contains?(message, "<:col field=\"column_name\"")
-          assert String.contains?(message, "Use:")
+          assert String.contains?(message, "requires a 'field' attribute")
+          assert String.contains?(message, "Add a field: <:col field=\"field_name\" filter>")
+          assert String.contains?(message, "Remove filter attribute(s) for action columns")
       end
     end
 
-    test "empty field attribute raises validation error" do
+    test "empty field attribute works for action columns" do
       empty_field_column = %{
         field: "",
-        label: "Name"
+        label: "Actions"
       }
 
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(empty_field_column, nil)
-      end
+      # Should work for action columns (no filter/sort)
+      [column] = Cinder.Table.process_columns([empty_field_column], nil)
+      assert column.field == ""
+      assert column.label == "Actions"
+      assert column.filterable == false
+      assert column.sortable == false
     end
 
-    test "nil field attribute raises validation error" do
+    test "nil field attribute works for action columns" do
       nil_field_column = %{
         field: nil,
-        label: "Name"
+        label: "Actions"
       }
 
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(nil_field_column, nil)
-      end
+      # Should work for action columns (no filter/sort)
+      [column] = Cinder.Table.process_columns([nil_field_column], nil)
+      assert column.field == nil
+      assert column.label == "Actions"
+      assert column.filterable == false
+      assert column.sortable == false
     end
 
-    test "before fix would have caused FunctionClauseError in FilterManager" do
-      # This test documents what would have happened before our fix
-      # The user would have gotten a cryptic error in ensure_multiselect_fields/2
-      # instead of a clear validation error
-
-      # With our fix, this fails fast with clear message at column parsing
+    test "filter without field raises validation error at table level" do
+      # This test documents that filtering requires a field attribute
       invalid_column = %{
-        # Wrong attribute name
+        # Wrong attribute name - missing field
+        # This should be field: "tags"
         key: "tags",
-        filterable: true,
-        filter_type: :multi_select
+        filter: :multi_select
       }
 
-      # Now fails immediately with helpful message
-      assert_raise ArgumentError, ~r/missing required 'field' attribute/, fn ->
-        Column.parse_column(invalid_column, nil)
-      end
+      # Now fails immediately with helpful message at table level
+      assert_raise ArgumentError,
+                   ~r/column with filter attribute\(s\) requires a 'field' attribute/,
+                   fn ->
+                     Cinder.Table.process_columns([invalid_column], nil)
+                   end
+    end
 
-      # Before the fix, this would have gotten through column parsing
-      # and failed later in FilterManager with:
-      # (FunctionClauseError) no function clause matching in
-      # Cinder.UrlManager.ensure_multiselect_fields/2
+    test "sort without field raises validation error at table level" do
+      # This test documents that sorting requires a field attribute
+      invalid_column = %{
+        label: "Name",
+        # This requires a field
+        sort: true
+        # missing field attribute
+      }
+
+      assert_raise ArgumentError,
+                   ~r/column with sort attribute\(s\) requires a 'field' attribute/,
+                   fn ->
+                     Cinder.Table.process_columns([invalid_column], nil)
+                   end
+    end
+
+    test "action columns work without field attribute" do
+      # This documents the new action column functionality
+      action_column = %{
+        label: "Actions"
+        # No field, filter, or sort - this is an action column
+      }
+
+      [column] = Cinder.Table.process_columns([action_column], nil)
+      assert column.field == nil
+      assert column.label == "Actions"
+      assert column.filterable == false
+      assert column.sortable == false
     end
   end
 

@@ -21,7 +21,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [URL State Management](#url-state-management)
 - [Relationship Fields](#relationship-fields)
 - [Embedded Resources](#embedded-resources)
-- [Custom Content](#custom-content)
+- [Action Columns](#action-columns)
 - [Advanced Configuration](#advanced-configuration)
 - [Performance Optimization](#performance-optimization)
 
@@ -766,7 +766,7 @@ Cinder provides full support for embedded resources using double underscore nota
 ```elixir
 <Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
   <:col :let={album} field="title" filter sort>{album.title}</:col>
-  
+
   <!-- Embedded resource fields use __ notation -->
   <:col :let={album} field="publisher__name" filter>{album.publisher.name}</:col>
   <:col :let={album} field="publisher__country" filter>{album.publisher.country}</:col>
@@ -779,7 +779,7 @@ Cinder provides full support for embedded resources using double underscore nota
 ```elixir
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
-  
+
   <!-- Deep nested embedded fields -->
   <:col :let={user} field="settings__notifications__email" filter>
     {if user.settings.notifications.email, do: "✓", else: "✗"}
@@ -824,7 +824,7 @@ You can combine relationship navigation (dot notation) with embedded fields (dou
 ```elixir
 <Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
   <:col :let={order} field="number" filter sort>#{order.number}</:col>
-  
+
   <!-- Relationship + embedded field -->
   <:col :let={order} field="customer.profile__country" filter>
     {order.customer.profile.country}
@@ -879,66 +879,36 @@ You can combine relationship navigation (dot notation) with embedded fields (dou
 </Cinder.Table.table>
 ```
 
-#### Image Thumbnails and Rich Content
+## Action Columns
+
+Action columns allow you to add buttons, links, and other interactive elements to your tables without requiring a database field. Simply omit the `field` attribute to create an action column.
+
+### Basic Action Column
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <!-- Product with thumbnail -->
-  <:col :let={product} field="name" filter sort class="w-1/3">
-    <div class="flex items-center space-x-3">
-      {if product.image_url do}
-        <img
-          src={product.image_url}
-          alt={product.name}
-          class="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-        />
-      {else}
-        <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
-          </svg>
-        </div>
-      {/if}
-      <div class="min-w-0 flex-1">
-        <div class="text-sm font-medium text-gray-900 truncate">
-          {product.name}
-        </div>
-        <div class="text-sm text-gray-500 truncate">
-          SKU: {product.sku}
-        </div>
-      </div>
-    </div>
-  </:col>
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="role" filter={:select}>{user.role}</:col>
 
-  <!-- Price with currency formatting -->
-  <:col :let={product} field="price" filter={:number_range} sort class="text-right">
-    <div class="text-right">
-      <div class="text-lg font-semibold text-gray-900">
-        {Money.to_string(product.price)}
-      </div>
-      {if product.sale_price do}
-        <div class="text-sm text-red-600 line-through">
-          {Money.to_string(product.sale_price)}
-        </div>
-      {/if}
-    </div>
-  </:col>
-
-  <!-- Stock status with inventory count -->
-  <:col :let={product} field="inventory_count" filter={:number_range} sort>
-    <div class="text-center">
-      <div class={[
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-        product.inventory_count > 50 && "bg-green-100 text-green-800",
-        product.inventory_count > 10 && product.inventory_count <= 50 && "bg-yellow-100 text-yellow-800",
-        product.inventory_count <= 10 && "bg-red-100 text-red-800"
-      ]}>
-        {product.inventory_count} in stock
-      </div>
-    </div>
+  <!-- Action column - no field required -->
+  <:col :let={user} label="Actions" class="text-right">
+    <.link patch={~p"/users/#{user.id}"} class="text-blue-600 hover:text-blue-800 mr-3">
+      Edit
+    </.link>
+    <.link
+      href={~p"/users/#{user.id}"}
+      method="delete"
+      class="text-red-600 hover:text-red-800"
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
   </:col>
 </Cinder.Table.table>
 ```
+
+**Note:** Action columns cannot have `filter` or `sort` attributes since they don't correspond to database fields. If you try to add these attributes without a `field`, you'll get a validation error.
 
 ## Advanced Configuration
 
