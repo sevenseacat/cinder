@@ -105,9 +105,7 @@ For complex requirements, use the `query` parameter:
 
 ### Interactive Features
 
-#### Row Click Actions
-
-Make your tables interactive by adding click handlers to rows. The `row_click` attribute accepts a function that receives the row item and returns a Phoenix LiveView JS command:
+Add interactivity with row clicks or action columns:
 
 ```elixir
 <Cinder.Table.table 
@@ -117,59 +115,28 @@ Make your tables interactive by adding click handlers to rows. The `row_click` a
 >
   <:col field="name" filter sort>Name</:col>
   <:col field="email" filter>Email</:col>
-  <:col field="profile__country" filter>Country</:col>
-  <:col field="role" filter>Role</:col>
+  
+  <!-- Action column - no field required -->
+  <:col :let={user} label="Actions">
+    <.link patch={~p"/users/#{user.id}/edit"}>Edit</.link>
+  </:col>
 </Cinder.Table.table>
 ```
 
-When `row_click` is provided:
-- Rows become visually clickable with cursor pointer styling
-- Clicking anywhere on a row executes your function
-- Works with any Phoenix LiveView JS command (navigate, show modal, dispatch events, etc.)
+### Theming
 
-### Default Theme Configuration
-
-You can configure a default theme for all Cinder tables in your application:
+Configure a default theme:
 
 ```elixir
 # config/config.exs
 config :cinder, default_theme: "modern"
 ```
 
-This theme will be used by all tables unless explicitly overridden:
-
-```elixir
-<!-- Uses configured default theme -->
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col field="name" filter sort>Name</:col>
-</Cinder.Table.table>
-
-<!-- Overrides default with specific theme -->
-<Cinder.Table.table resource={MyApp.User} actor={@current_user} theme="dark">
-  <:col field="name" filter sort>Name</:col>
-</Cinder.Table.table>
-```
-
-You can also use custom theme modules:
-
-```elixir
-# config/config.exs
-config :cinder, default_theme: MyApp.CustomTheme
-```
-
-Available built-in themes: `"default"`, `"modern"`, `"retro"`, `"futuristic"`, `"dark"`, `"daisy_ui"`, `"flowbite"`, `"compact"`, `"pastel"`
+Available themes: `"default"`, `"modern"`, `"retro"`, `"futuristic"`, `"dark"`, `"daisy_ui"`, `"flowbite"`, `"compact"`, `"pastel"`
 
 ### URL State Management
 
-Cinder can automatically update the URL as you filter and sort your tables, for bookmarkable and shareable URLs.
-
-1. Add `use Cinder.Table.UrlSync` to your LiveView modules
-
-2. Add an `handle_params` callback function (or update your existing one) to add a call to `Cinder.Table.UrlSync.handle_params`. This will read the current table state from the URL, and store it in a new `url_state` assign.
-
-3. Use the `url_state` option when defining your table, eg. `Cinder.Table.table url_state={@url_state}`.
-
-And that's it! Everything else is handled for you.
+Enable bookmarkable URLs by adding URL sync to your LiveView:
 
 ```elixir
 defmodule MyAppWeb.UsersLive do
@@ -184,7 +151,7 @@ defmodule MyAppWeb.UsersLive do
   def render(assigns) do
     ~H"""
     <Cinder.Table.table resource={MyApp.User} actor={@current_user} url_state={@url_state}>
-      <:col :let={user} field="name" filter sort>{user.name}</:col>
+      <:col field="name" filter sort>Name</:col>
     </Cinder.Table.table>
     """
   end
