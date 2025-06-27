@@ -22,6 +22,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Relationship Fields](#relationship-fields)
 - [Embedded Resources](#embedded-resources)
 - [Action Columns](#action-columns)
+- [Table Refresh](#table-refresh)
 - [Advanced Configuration](#advanced-configuration)
 - [Performance Optimization](#performance-optimization)
 
@@ -909,6 +910,55 @@ Action columns allow you to add buttons, links, and other interactive elements t
 ```
 
 **Note:** Action columns cannot have `filter` or `sort` attributes since they don't correspond to database fields. If you try to add these attributes without a `field`, you'll get a validation error.
+
+## Table Refresh
+
+Refresh table data after CRUD operations while maintaining filters, sorting, and pagination state. This is essential when performing operations that modify the data displayed in your tables.
+
+### Basic Refresh
+
+After deleting, updating, or creating records, refresh the specific table:
+
+```elixir
+defmodule MyAppWeb.UsersLive do
+  use MyAppWeb, :live_view
+  import Cinder.Table.Refresh # <--
+
+  def render(assigns) do
+    ~H"""
+    <Cinder.Table.table id="users-table" resource={MyApp.User} actor={@current_user}>
+      <:col :let={user} field="name" filter sort>{user.name}</:col>
+      <:col :let={user} field="email" filter>{user.email}</:col>
+      <:col :let={user} field="active" filter>{if user.active, do: "Active", else: "Inactive"}</:col>
+
+      <!-- Action column with refresh functionality -->
+      <:col :let={user} label="Actions">
+        <button phx-click="delete_user" phx-value-id={user.id}>
+          Delete
+        </button>
+      </:col>
+    </Cinder.Table.table>
+    """
+  end
+
+  def handle_event("delete_user", %{"id" => id}, socket) do
+    MyApp.User
+    |> Ash.get!(id, actor: socket.assigns.current_user)
+    |> Ash.destroy!(actor: socket.assigns.current_user)
+
+    # Refresh the specific table - maintains filters, sorting, pagination
+    {:noreply, refresh_table(socket, "users-table")}
+  end
+end
+```
+
+### Multiple Table Refresh
+
+When operations affect multiple tables, refresh them all by providing a list of table IDs:
+
+```elixir
+refresh_tables(socket, ["users-table", "audit-logs-table"])
+```
 
 ## Advanced Configuration
 

@@ -6,10 +6,12 @@
 
 * Support working with embedded attributes via a new `__` notation
 * Add action column support - columns can now omit the `field` attribute to create action columns with buttons, links, and other interactive elements
+* Add `Cinder.Table.Refresh` to refresh table data while maintaining filters, sorting, and pagination state
 
 ### Bug fixes
 
 * Fix multiselect dropdowns not being visible outside the filter container
+* Allow table sorting to override predefined sorts on a provided query
 
 ## v0.3.0 (2025-06-23)
 

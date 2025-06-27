@@ -20,6 +20,16 @@ defmodule Cinder.Table.LiveComponent do
     {:ok, assign(socket, Map.take(assigns, [:loading]))}
   end
 
+  def update(%{refresh: true} = assigns, socket) do
+    # Force refresh of table data
+    socket =
+      socket
+      |> assign(Map.drop(assigns, [:refresh]))
+      |> load_data()
+
+    {:ok, socket}
+  end
+
   def update(assigns, socket) do
     socket =
       socket
@@ -152,6 +162,12 @@ defmodule Cinder.Table.LiveComponent do
 
     notify_state_change(socket)
 
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("refresh", _params, socket) do
+    socket = load_data(socket)
     {:noreply, socket}
   end
 

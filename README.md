@@ -108,14 +108,14 @@ For complex requirements, use the `query` parameter:
 Add interactivity with row clicks or action columns:
 
 ```elixir
-<Cinder.Table.table 
-  resource={MyApp.User} 
+<Cinder.Table.table
+  resource={MyApp.User}
   actor={@current_user}
   row_click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
 >
   <:col field="name" filter sort>Name</:col>
   <:col field="email" filter>Email</:col>
-  
+
   <!-- Action column - no field required -->
   <:col :let={user} label="Actions">
     <.link patch={~p"/users/#{user.id}/edit"}>Edit</.link>

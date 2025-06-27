@@ -88,11 +88,28 @@ defmodule Cinder do
 
   - `Cinder.Table` - The main table component
   - `Cinder.Table.UrlSync` - URL state management helper
+  - `Cinder.Table.Refresh` - Table refresh helpers
   - `Cinder.Filter` - Base behavior for custom filters
   - `Cinder.setup/0` - One-time setup for custom filters
 
+  ## Table Refresh Functions
+
+  For convenience, table refresh functions are available directly from the main module:
+
+      import Cinder.Table.Refresh
+
+      # Or use fully qualified names
+      def handle_event("delete", %{"id" => id}, socket) do
+        # ... delete logic ...
+        {:noreply, Cinder.Table.Refresh.refresh_table(socket, "my-table")}
+      end
+
   For comprehensive examples and documentation, see the [README](readme.html) and [Examples](examples.html).
   """
+
+  # Import refresh functions for convenience
+  defdelegate refresh_table(socket, table_id), to: Cinder.Table.Refresh
+  defdelegate refresh_tables(socket, table_ids), to: Cinder.Table.Refresh
 
   @doc """
   Sets up Cinder with configured custom filters.
