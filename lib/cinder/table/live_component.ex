@@ -146,10 +146,11 @@ defmodule Cinder.Table.LiveComponent do
     socket =
       socket
       |> assign(:sort_by, new_sort)
-      # Reset to first page when sorting changes
       |> assign(:current_page, 1)
-      |> notify_state_change()
+      |> assign(:user_has_interacted, true)
       |> load_data()
+
+    notify_state_change(socket)
 
     {:noreply, socket}
   end
@@ -252,17 +253,33 @@ defmodule Cinder.Table.LiveComponent do
 
   # Decode URL state from URL parameters
   defp decode_url_state(socket, assigns) do
-    # Check if we have raw URL params (preferred method for proper filter decoding)
-    raw_params = Map.get(assigns, :url_raw_params, %{})
+    if Map.has_key?(assigns, :url_state) do
+      raw_params = assigns.url_state.params
 
-    if not Enum.empty?(raw_params) do
       # Use raw params with actual columns for proper filter decoding
       decoded_state = Cinder.UrlManager.decode_state(raw_params, socket.assigns.columns)
+
+      # Only use extracted query sorts if this is the initial load (no previous user interaction)
+      # If URL params are empty after user interaction, preserve the user's choice (empty sort)
+      final_sort_by =
+        cond do
+          # URL has explicit sorts - use them
+          decoded_state.sort_by != [] and not is_nil(decoded_state.sort_by) ->
+            decoded_state.sort_by
+
+          # URL has no sorts AND this is likely after user interaction - preserve empty sort
+          Map.get(socket.assigns, :user_has_interacted, false) ->
+            []
+
+          # URL has no sorts AND this is initial load - use extracted query sorts
+          true ->
+            socket.assigns.sort_by
+        end
 
       socket
       |> assign(:filters, decoded_state.filters)
       |> assign(:current_page, decoded_state.current_page)
-      |> assign(:sort_by, decoded_state.sort_by)
+      |> assign(:sort_by, final_sort_by)
     else
       # Fallback to old method (for backward compatibility)
       url_params =
@@ -279,10 +296,25 @@ defmodule Cinder.Table.LiveComponent do
       else
         decoded_state = Cinder.UrlManager.decode_state(url_params, socket.assigns.columns)
 
+        final_sort_by =
+          cond do
+            # URL has explicit sorts - use them
+            decoded_state.sort_by != [] and not is_nil(decoded_state.sort_by) ->
+              decoded_state.sort_by
+
+            # URL has no sorts AND this is likely after user interaction - preserve empty sort
+            Map.get(socket.assigns, :user_has_interacted, false) ->
+              []
+
+            # URL has no sorts AND this is initial load - use extracted query sorts
+            true ->
+              socket.assigns.sort_by
+          end
+
         socket
         |> assign(:filters, decoded_state.filters)
         |> assign(:current_page, decoded_state.current_page)
-        |> assign(:sort_by, decoded_state.sort_by)
+        |> assign(:sort_by, final_sort_by)
       end
     end
   end
@@ -429,12 +461,13 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:current_page, assigns[:current_page] || 1)
     |> assign(:loading, false)
     |> assign(:data, [])
-    |> assign(:sort_by, [])
+    |> assign(:sort_by, extract_initial_sorts(assigns))
     |> assign(:filters, assigns[:filters] || %{})
     |> assign(:search_term, "")
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
     |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+    |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
   end
 
   defp assign_column_definitions(socket) do
@@ -446,6 +479,31 @@ defmodule Cinder.Table.LiveComponent do
       |> Enum.map(&convert_column_to_legacy_format/1)
 
     assign(socket, :columns, columns)
+  end
+
+  defp extract_initial_sorts(assigns) do
+    # Extract sorts from query if present, otherwise use empty list
+    # This allows table UI to show initial sort state from incoming queries
+    query = assigns[:query]
+    columns = assigns[:col] || []
+
+    # Convert column slots to simple column format for sort extraction
+    simple_columns =
+      Enum.map(columns, fn col ->
+        field_name =
+          case col.field do
+            field when is_atom(field) -> Atom.to_string(field)
+            field when is_binary(field) -> field
+            field -> inspect(field)
+          end
+
+        %{field: field_name}
+      end)
+
+    case query do
+      nil -> []
+      query -> Cinder.QueryBuilder.extract_query_sorts(query, simple_columns)
+    end
   end
 
   defp load_data_if_needed(socket) do

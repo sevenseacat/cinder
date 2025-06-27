@@ -754,6 +754,197 @@ defmodule Cinder.QueryBuilderTest do
       assert logs =~ "Invalid sort_by format"
       assert logs =~ "Expected list of {field, direction} tuples"
     end
+
+    test "table sorts should override existing query sorts" do
+      # Create a real Ash query that already has sorts applied
+      query_with_existing_sorts =
+        TestUser
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.sort([{:name, :desc}])
+
+      # Apply table sorting - this should override the existing sorts
+      sort_by = [{"email", :asc}]
+      columns = []
+
+      # Currently this test will fail because existing sorts take precedence
+      # The query will have both sorts: [{:name, :desc}, {:email, :asc}]
+      # But we want only the table sort: [{:email, :asc}]
+      result = QueryBuilder.apply_sorting(query_with_existing_sorts, sort_by, columns)
+
+      # This assertion will fail with current implementation
+      # because the existing sort is not cleared
+      expected_sorts = [{:email, :asc}]
+
+      assert result.sort == expected_sorts,
+             "Expected table sorts to override existing query sorts, but got: #{inspect(result.sort)}"
+    end
+  end
+
+  describe "extract_query_sorts/2" do
+    test "extracts sorts from Ash query" do
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.sort([{:name, :desc}, {:email, :asc}])
+
+      columns = [
+        %{field: "name"},
+        %{field: "email"},
+        %{field: "created_at"}
+      ]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :desc}, {"email", :asc}]
+    end
+
+    test "returns empty list for resource module" do
+      result = QueryBuilder.extract_query_sorts(TestUser, [])
+      assert result == []
+    end
+
+    test "returns empty list for query with no sorts" do
+      query = TestUser |> Ash.Query.for_read(:read)
+      result = QueryBuilder.extract_query_sorts(query, [])
+      assert result == []
+    end
+
+    test "filters out sorts not matching table columns" do
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.sort([{:name, :desc}, {:email, :asc}])
+
+      columns = [%{field: "name"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :desc}]
+    end
+
+    test "handles single field sorts without direction" do
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.sort([:name])
+
+      columns = [%{field: "name"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :asc}]
+    end
+
+    test "accepts all sorts when no columns provided" do
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.sort([{:name, :desc}, {:email, :asc}])
+
+      result = QueryBuilder.extract_query_sorts(query, [])
+      assert result == [{"name", :desc}, {"email", :asc}]
+    end
+
+    test "handles invalid sort formats gracefully" do
+      # Create a mock query with invalid sort data
+      query = %Ash.Query{
+        resource: TestUser,
+        sort: [nil, {:valid_field, :asc}, "invalid"]
+      }
+
+      columns = [%{field: "valid_field"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"valid_field", :asc}]
+    end
+
+    test "extracts sorts from default_sort" do
+      # Test with Ash.Query.default_sort which might use different format
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> Ash.Query.default_sort([{:name, :desc}])
+
+      columns = [%{field: "name"}, %{field: "email"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :desc}]
+    end
+
+    test "extracts sorts from default_sort with string format" do
+      # Test the "-name" string format that might be used
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> Ash.Query.default_sort(["-name"])
+
+      columns = [%{field: "name"}, %{field: "email"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :desc}]
+    end
+
+    test "extracts sorts from Ash.Query.sort with string format" do
+      # Test the exact format used in the user's code
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> Ash.Query.sort("-name")
+
+      columns = [%{field: :name}, %{field: :email}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :desc}]
+    end
+
+    test "handles atom field names in columns" do
+      # Test that columns with atom field names work correctly
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> Ash.Query.sort([{:name, :desc}, {:email, :asc}])
+
+      # Columns with atom field names (common in slot definitions)
+      columns = [%{field: :name}, %{field: :email}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :desc}, {"email", :asc}]
+    end
+
+    test "handles mixed atom and string field names in columns" do
+      # Test mixed field name types
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> Ash.Query.sort([{:name, :desc}, {:email, :asc}])
+
+      # Mixed column field types
+      columns = [%{field: :name}, %{field: "email"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"name", :desc}, {"email", :asc}]
+    end
+
+    test "toggle behavior starting from query-extracted desc sort" do
+      # This test documents the issue: when starting with desc from query,
+      # the toggle cycle is: desc -> none -> asc -> desc -> none
+      # User expects: desc -> asc -> desc -> none
+
+      # From query extraction
+      initial_sort = [{"name", :desc}]
+
+      # First click: desc -> none (current behavior)
+      sort_after_click_1 = QueryBuilder.toggle_sort_direction(initial_sort, "name")
+      assert sort_after_click_1 == []
+
+      # Second click: none -> asc
+      sort_after_click_2 = QueryBuilder.toggle_sort_direction(sort_after_click_1, "name")
+      assert sort_after_click_2 == [{"name", :asc}]
+
+      # Third click: asc -> desc
+      sort_after_click_3 = QueryBuilder.toggle_sort_direction(sort_after_click_2, "name")
+      assert sort_after_click_3 == [{"name", :desc}]
+
+      # This creates the confusing cycle: desc -> none -> asc -> desc -> none
+      # instead of the expected: desc -> asc -> desc -> none
+    end
   end
 
   describe "build_ash_options/3 timeout handling" do

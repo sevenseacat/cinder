@@ -224,6 +224,15 @@ defmodule Cinder.QueryBuilder do
 
       query
     else
+      # Clear any existing sorts to ensure table sorts take precedence
+      # Only call unset on actual Ash.Query structs, not on resources
+      query =
+        if is_struct(query, Ash.Query) do
+          Ash.Query.unset(query, :sort)
+        else
+          query
+        end
+
       # Check if any sorts have custom sort functions
       has_custom_sorts =
         sort_by
@@ -298,7 +307,11 @@ defmodule Cinder.QueryBuilder do
   @doc """
   Toggles sort direction for a given key in the sort specification.
 
-  Cycles through: none → ascending → descending → none
+  Provides a predictable three-step cycle:
+  - none → ascending → descending → none
+
+  When starting with extracted query sorts, use `toggle_sort_from_query/2`
+  for better UX that handles the transition from query state to user control.
   """
   def toggle_sort_direction(current_sort, key) do
     case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
@@ -320,8 +333,43 @@ defmodule Cinder.QueryBuilder do
   end
 
   @doc """
+  Toggles sort direction with special handling for query-extracted sorts.
+
+  When a column has a sort from query extraction, the first user click
+  provides intuitive behavior:
+  - desc (from query) → asc (user takes control)
+  - asc (from query) → desc (user takes control)
+  Then follows normal toggle cycle.
+
+  This provides better UX when tables start with pre-sorted queries.
+  """
+  def toggle_sort_from_query(current_sort, key) do
+    case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
+      {^key, :asc} ->
+        # Currently ascending, change to descending
+        Enum.map(current_sort, fn
+          {^key, :asc} -> {key, :desc}
+          other -> other
+        end)
+
+      {^key, :desc} ->
+        # Currently descending, flip to ascending (better UX than removing)
+        # This gives users the opposite direction first, then normal cycle
+        Enum.map(current_sort, fn
+          {^key, :desc} -> {key, :asc}
+          other -> other
+        end)
+
+      nil ->
+        # Not currently sorted, add ascending sort
+        [{key, :asc} | current_sort]
+    end
+  end
+
+  @doc """
   Gets the current sort direction for a given key.
   """
+
   def get_sort_direction(sort_by, key) do
     case Enum.find(sort_by, fn {sort_key, _direction} -> sort_key == key end) do
       {^key, direction} -> direction
@@ -368,6 +416,89 @@ defmodule Cinder.QueryBuilder do
     [actor: actor]
     |> maybe_add_tenant(tenant)
     |> maybe_add_ash_options(query_opts)
+  end
+
+  @doc """
+  Extracts sort information from an Ash query for table UI initialization.
+
+  Takes an Ash query and returns sort information in the format expected by
+  the table component: `[{field_name, direction}]`
+
+  ## Parameters
+  - `query` - An Ash.Query struct or resource module
+  - `columns` - Column definitions to map query sorts to table fields
+
+  ## Returns
+  A list of `{field_name, direction}` tuples where:
+  - `field_name` is a string matching table column field names
+  - `direction` is `:asc` or `:desc`
+
+  ## Examples
+
+      # Query with sorts
+      query = User |> Ash.Query.for_read(:read) |> Ash.Query.sort([{:name, :desc}, {:created_at, :asc}])
+      extract_query_sorts(query, columns)
+      # => [{"name", :desc}, {"created_at", :asc}]
+
+      # Resource module (no sorts)
+      extract_query_sorts(User, columns)
+      # => []
+  """
+  def extract_query_sorts(query, columns \\ [])
+
+  def extract_query_sorts(query, _columns) when is_atom(query) do
+    # Resource module has no sorts
+    []
+  end
+
+  def extract_query_sorts(%Ash.Query{sort: sorts}, columns) when is_list(sorts) do
+    sorts
+    |> Enum.map(&normalize_sort_tuple/1)
+    |> Enum.filter(&valid_table_sort?(&1, columns))
+    |> Enum.map(fn {field, direction} -> {Atom.to_string(field), direction} end)
+  end
+
+  def extract_query_sorts(_query, _columns) do
+    # Unknown query type or no sorts
+    []
+  end
+
+  # Normalize different sort tuple formats to {field, direction}
+  defp normalize_sort_tuple({field, direction})
+       when is_atom(field) and direction in [:asc, :desc] do
+    {field, direction}
+  end
+
+  defp normalize_sort_tuple(field) when is_atom(field) do
+    {field, :asc}
+  end
+
+  defp normalize_sort_tuple(_), do: nil
+
+  # Check if a sort tuple is valid for table display
+  defp valid_table_sort?(nil, _columns), do: false
+
+  defp valid_table_sort?({_field, direction}, _columns) when direction not in [:asc, :desc],
+    do: false
+
+  defp valid_table_sort?({field, _direction}, columns)
+       when is_list(columns) and length(columns) > 0 do
+    field_name = Atom.to_string(field)
+
+    Enum.any?(columns, fn column ->
+      column_field = Map.get(column, :field) || Map.get(column, "field")
+
+      case column_field do
+        atom_field when is_atom(atom_field) -> Atom.to_string(atom_field) == field_name
+        string_field when is_binary(string_field) -> string_field == field_name
+        _ -> false
+      end
+    end)
+  end
+
+  defp valid_table_sort?({_field, _direction}, _columns) do
+    # If no columns provided, assume all sorts are valid
+    true
   end
 
   # Add tenant to options if provided
