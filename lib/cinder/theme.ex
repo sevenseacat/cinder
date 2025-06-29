@@ -232,6 +232,7 @@ defmodule Cinder.Theme do
   def all_theme_properties do
     [
       Cinder.Components.Table,
+      Cinder.Components.Cards,
       Cinder.Components.Filters,
       Cinder.Components.Pagination,
       Cinder.Components.Sorting,
@@ -247,6 +248,7 @@ defmodule Cinder.Theme do
   """
   def complete_default do
     table_theme = Cinder.Components.Table.default_theme()
+    cards_theme = Cinder.Components.Cards.default_theme()
     filters_theme = Cinder.Components.Filters.default_theme()
     pagination_theme = Cinder.Components.Pagination.default_theme()
     sorting_theme = Cinder.Components.Sorting.default_theme()
@@ -254,6 +256,7 @@ defmodule Cinder.Theme do
 
     [
       table_theme,
+      cards_theme,
       filters_theme,
       pagination_theme,
       sorting_theme,
