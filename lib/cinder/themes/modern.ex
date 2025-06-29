@@ -109,6 +109,24 @@ defmodule Cinder.Themes.Modern do
     set :filter_range_separator_class, "flex items-center px-2 text-sm font-medium text-gray-500"
   end
 
+  component Cinder.Components.Cards do
+    set :container_class, "bg-white shadow-lg rounded-xl border border-gray-100"
+    set :controls_class, "p-6 bg-gradient-to-r from-gray-50 to-white"
+    set :cards_wrapper_class, "p-6"
+    set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    
+    set :card_class,
+        "bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 cursor-pointer"
+    
+    set :loading_class, "text-center py-12 text-gray-500"
+    set :loading_overlay_class, "absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-xl"
+    set :loading_spinner_class, "text-blue-600 text-lg font-medium"
+    set :empty_class, "text-center py-20 text-gray-500 italic col-span-full"
+    set :error_container_class, "bg-red-50 border border-red-200 rounded-lg p-4 text-red-700"
+    set :error_message_class, "text-sm"
+    set :pagination_wrapper_class, "px-6 pb-6"
+  end
+
   component Cinder.Components.Pagination do
     set :pagination_wrapper_class, "p-6 mt-4"
     set :pagination_container_class, "flex items-center justify-between"

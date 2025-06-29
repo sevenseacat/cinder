@@ -135,6 +135,24 @@ defmodule Cinder.Themes.Dark do
         "px-3 py-1 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded"
   end
 
+  component Cinder.Components.Cards do
+    set :container_class, "bg-gray-900 shadow-2xl rounded-xl border border-gray-700 overflow-hidden"
+    set :controls_class, "p-6 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700"
+    set :cards_wrapper_class, "p-6 bg-gray-900"
+    set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    
+    set :card_class,
+        "bg-gray-800 border border-gray-600 rounded-lg p-6 shadow-xl hover:shadow-2xl hover:border-purple-500/50 transition-all duration-200 cursor-pointer"
+    
+    set :loading_class, "text-center py-12 text-gray-400"
+    set :loading_overlay_class, "absolute inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center rounded-xl"
+    set :loading_spinner_class, "text-purple-400 text-lg font-medium"
+    set :empty_class, "text-center py-20 text-gray-400 italic col-span-full"
+    set :error_container_class, "bg-red-900/50 border border-red-600/50 rounded-lg p-4 text-red-200"
+    set :error_message_class, "text-sm"
+    set :pagination_wrapper_class, "px-6 pb-6"
+  end
+
   component Cinder.Components.Sorting do
     set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
