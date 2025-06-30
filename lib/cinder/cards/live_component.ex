@@ -108,15 +108,34 @@ defmodule Cinder.Cards.LiveComponent do
     {:noreply, socket}
   end
 
-  def handle_event("clear_filter", %{"field" => field}, socket) do
-    new_filters = Map.delete(socket.assigns.filters, field)
+  # Handle clear_filter event with "key" parameter (standard format)
+  def handle_event("clear_filter", %{"key" => key}, socket) do
+    new_filters = Cinder.FilterManager.clear_filter(socket.assigns.filters, key)
 
     socket =
       socket
       |> assign(:filters, new_filters)
       |> assign(:current_page, 1)
       |> load_data()
-      |> notify_state_change()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
+
+    {:noreply, socket}
+  end
+
+  # Handle clear_filter event with "field" parameter (alternative parameter format)
+  def handle_event("clear_filter", %{"field" => field}, socket) do
+    new_filters = Cinder.FilterManager.clear_filter(socket.assigns.filters, field)
+
+    socket =
+      socket
+      |> assign(:filters, new_filters)
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
 
     {:noreply, socket}
   end
@@ -129,20 +148,25 @@ defmodule Cinder.Cards.LiveComponent do
       |> assign(:filters, new_filters)
       |> assign(:current_page, 1)
       |> load_data()
-      |> notify_state_change()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket)
 
     {:noreply, socket}
   end
 
   def handle_event("toggle_sort", %{"key" => field}, socket) do
-    new_sort_by = Cinder.QueryBuilder.toggle_sort_direction(socket.assigns.sort_by, field)
+    current_sort = socket.assigns.sort_by
+    new_sort = Cinder.QueryBuilder.toggle_sort_direction(current_sort, field)
 
     socket =
       socket
-      |> assign(:sort_by, new_sort_by)
+      |> assign(:sort_by, new_sort)
       |> assign(:current_page, 1)
+      |> assign(:user_has_interacted, true)
       |> load_data()
-      |> notify_state_change()
+
+    notify_state_change(socket)
 
     {:noreply, socket}
   end
@@ -153,9 +177,14 @@ defmodule Cinder.Cards.LiveComponent do
     socket =
       socket
       |> assign(:current_page, page)
-      |> load_data()
       |> notify_state_change()
+      |> load_data()
 
+    {:noreply, socket}
+  end
+
+  def handle_event("refresh", _params, socket) do
+    socket = load_data(socket)
     {:noreply, socket}
   end
 
@@ -207,13 +236,20 @@ defmodule Cinder.Cards.LiveComponent do
   # Private functions
 
   defp assign_defaults(socket) do
+    assigns = socket.assigns
+
     socket
-    |> assign_new(:filters, fn -> %{} end)
-    |> assign_new(:sort_by, fn -> [] end)
-    |> assign_new(:current_page, fn -> 1 end)
-    |> assign_new(:loading, fn -> false end)
-    |> assign_new(:data, fn -> [] end)
-    |> assign_new(:page_info, fn -> Cinder.QueryBuilder.build_error_page_info() end)
+    |> assign(:page_size, assigns[:page_size] || 25)
+    |> assign(:current_page, assigns[:current_page] || 1)
+    |> assign(:loading, false)
+    |> assign(:data, [])
+    |> assign(:sort_by, extract_initial_sorts(assigns))
+    |> assign(:filters, assigns[:filters] || %{})
+    |> assign(:search_term, "")
+    |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
+    |> assign(:query_opts, assigns[:query_opts] || [])
+    |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+    |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
   end
 
   defp assign_column_definitions(socket) do
@@ -226,62 +262,202 @@ defmodule Cinder.Cards.LiveComponent do
         filter_type: prop.filter_type,
         filter_options: prop.filter_options,
         sortable: prop.sortable,
-        class: ""
+        class: "",
+        # Add filter_fn field that QueryBuilder expects
+        filter_fn: Map.get(prop, :filter_fn, nil)
       }
     end)
 
     assign(socket, :columns, columns)
   end
 
+  defp extract_initial_sorts(assigns) do
+    # Extract sorts from query if present, otherwise use empty list
+    # This allows cards UI to show initial sort state from incoming queries
+    query = assigns[:query]
+    props = assigns[:props] || []
+
+    # Convert prop slots to simple column format for sort extraction
+    simple_columns =
+      Enum.map(props, fn prop ->
+        field_name =
+          case prop.field do
+            field when is_atom(field) -> Atom.to_string(field)
+            field when is_binary(field) -> field
+            field -> inspect(field)
+          end
+
+        %{field: field_name}
+      end)
+
+    case query do
+      nil -> []
+      query -> Cinder.QueryBuilder.extract_query_sorts(query, simple_columns)
+    end
+  end
+
+  # Decode URL state from URL parameters
   defp decode_url_state(socket, assigns) do
-    socket
-    |> assign_new(:filters, fn -> assigns.url_filters || %{} end)
-    |> assign_new(:current_page, fn -> assigns.url_page || 1 end)
-    |> assign_new(:sort_by, fn -> assigns.url_sort || [] end)
+    if Map.has_key?(assigns, :url_state) do
+      raw_params = assigns.url_state.params
+
+      # Use raw params with actual columns for proper filter decoding
+      decoded_state = Cinder.UrlManager.decode_state(raw_params, socket.assigns.columns)
+
+      # Only use extracted query sorts if this is the initial load (no previous user interaction)
+      # If URL params are empty after user interaction, preserve the user's choice (empty sort)
+      final_sort_by =
+        cond do
+          # URL has explicit sorts - use them
+          decoded_state.sort_by != [] and not is_nil(decoded_state.sort_by) ->
+            decoded_state.sort_by
+
+          # URL has no sorts AND this is likely after user interaction - preserve empty sort
+          Map.get(socket.assigns, :user_has_interacted, false) ->
+            []
+
+          # URL has no sorts AND this is initial load - use extracted query sorts
+          true ->
+            socket.assigns.sort_by
+        end
+
+      socket
+      |> assign(:filters, decoded_state.filters)
+      |> assign(:current_page, decoded_state.current_page)
+      |> assign(:sort_by, final_sort_by)
+    else
+      # Fallback to old method (for backward compatibility)
+      url_params =
+        %{
+          "page" => Map.get(assigns, :url_page),
+          "sort" => Map.get(assigns, :url_sort)
+        }
+        |> Map.merge(Map.get(assigns, :url_filters, %{}))
+        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+        |> Enum.into(%{})
+
+      if Enum.empty?(url_params) do
+        socket
+      else
+        decoded_state = Cinder.UrlManager.decode_state(url_params, socket.assigns.columns)
+
+        final_sort_by =
+          cond do
+            # URL has explicit sorts - use them
+            decoded_state.sort_by != [] and not is_nil(decoded_state.sort_by) ->
+              decoded_state.sort_by
+
+            # URL has no sorts AND this is likely after user interaction - preserve empty sort
+            Map.get(socket.assigns, :user_has_interacted, false) ->
+              []
+
+            # URL has no sorts AND this is initial load - use extracted query sorts
+            true ->
+              socket.assigns.sort_by
+          end
+
+        socket
+        |> assign(:filters, decoded_state.filters)
+        |> assign(:current_page, decoded_state.current_page)
+        |> assign(:sort_by, final_sort_by)
+      end
+    end
   end
 
   defp load_data_if_needed(socket) do
-    if socket.assigns[:data] == [] do
-      load_data(socket)
-    else
-      socket
-    end
+    # Always load data on mount or update
+    load_data(socket)
   end
 
   defp load_data(socket) do
-    socket = assign(socket, :loading, true)
+    %{
+      query: resource,
+      query_opts: query_opts,
+      actor: actor,
+      tenant: tenant,
+      page_size: page_size,
+      current_page: current_page,
+      sort_by: sort_by,
+      filters: filters,
+      columns: columns
+    } = socket.assigns
 
-    case execute_query(socket) do
-      {:ok, {data, page_info}} ->
-        socket
-        |> assign(:data, data)
-        |> assign(:page_info, page_info)
-        |> assign(:loading, false)
+    # Extract variables to avoid socket copying in async function
+    resource_var = resource
 
-      {:error, error} ->
-        Logger.error("Cards query failed: #{inspect(error)}")
+    options = [
+      actor: actor,
+      tenant: tenant,
+      query_opts: query_opts,
+      filters: filters,
+      sort_by: sort_by,
+      page_size: page_size,
+      current_page: current_page,
+      columns: columns
+    ]
 
-        socket
-        |> assign(:data, [])
-        |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
-        |> assign(:loading, false)
-        |> assign(:error, error)
-    end
+    socket
+    |> assign(:loading, true)
+    |> start_async(:load_data, fn ->
+      Cinder.QueryBuilder.build_and_execute(resource_var, options)
+    end)
   end
 
-  defp execute_query(socket) do
-    assigns = socket.assigns
+  @impl true
+  def handle_async(:load_data, {:ok, {:ok, {results, page_info}}}, socket) do
+    socket =
+      socket
+      |> assign(:loading, false)
+      |> assign(:data, results)
+      |> assign(:page_info, page_info)
 
-    Cinder.QueryBuilder.build_and_execute(assigns.query, [
-      actor: assigns.actor,
-      tenant: assigns.tenant,
-      filters: assigns.filters,
-      sort_by: assigns.sort_by,
-      page_size: assigns.page_size,
-      current_page: assigns.current_page,
-      columns: assigns.columns,
-      query_opts: assigns.query_opts
-    ])
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async(:load_data, {:ok, {:error, error}}, socket) do
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder cards query failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        current_page: socket.assigns.current_page,
+        error: inspect(error)
+      }
+    )
+
+    socket =
+      socket
+      |> assign(:loading, false)
+      |> assign(:data, [])
+      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async(:load_data, {:exit, reason}, socket) do
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder cards query crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        current_page: socket.assigns.current_page,
+        reason: inspect(reason)
+      }
+    )
+
+    socket =
+      socket
+      |> assign(:loading, false)
+      |> assign(:data, [])
+      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+
+    {:noreply, socket}
   end
 
   defp pagination_controls(assigns) do
@@ -384,18 +560,19 @@ defmodule Cinder.Cards.LiveComponent do
   end
 
 
-  defp notify_state_change(socket) do
-    if socket.assigns.on_state_change do
-      state = %{
-        filters: socket.assigns.filters,
-        sort_by: socket.assigns.sort_by,
-        current_page: socket.assigns.current_page
-      }
+  # Notify parent LiveView about filter changes
+  defp notify_state_change(socket, filters \\ nil) do
+    filters = filters || socket.assigns.filters
+    current_page = socket.assigns.current_page
+    sort_by = socket.assigns.sort_by
 
-      send(self(), {socket.assigns.on_state_change, socket.assigns.id, state})
-    end
+    state = %{
+      filters: filters,
+      current_page: current_page,
+      sort_by: sort_by
+    }
 
-    socket
+    Cinder.UrlManager.notify_state_change(socket, state)
   end
 
   defp get_card_classes(base_classes, card_click) do
