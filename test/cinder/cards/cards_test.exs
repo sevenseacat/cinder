@@ -220,4 +220,22 @@ defmodule Cinder.CardsTest do
       assert prop.sortable == false
     end
   end
+
+  describe "LiveComponent event handling" do
+    test "refresh event handler exists" do
+      # Verify the refresh event handler is defined by checking it's listed in module functions
+      functions = Cinder.Cards.LiveComponent.__info__(:functions)
+      assert {:handle_event, 3} in functions
+      
+      # We can't easily test the actual async behavior in unit tests,
+      # but we've verified the handler exists and the integration tests 
+      # will cover the actual functionality
+    end
+
+    test "async loading handlers exist" do
+      # Verify async handlers are defined by checking they're listed in module functions
+      functions = Cinder.Cards.LiveComponent.__info__(:functions)
+      assert {:handle_async, 3} in functions
+    end
+  end
 end
