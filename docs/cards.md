@@ -185,6 +185,80 @@ Cards use `:prop` slots instead of `:col` slots to define filterable and sortabl
 </Cinder.Cards.cards>
 ```
 
+## Performance and Lifecycle
+
+### Asynchronous Loading
+
+Cards use asynchronous data loading to provide a responsive user experience. This means:
+
+- The UI remains interactive while data is being loaded
+- Loading states are automatically managed
+- Query errors are handled gracefully with proper logging
+- Large datasets don't block the interface
+
+```elixir
+<Cinder.Cards.cards resource={MyApp.User} actor={@current_user}>
+  <:prop field="name" filter sort />
+  <:card :let={user}>
+    <div class="user-card">
+      <!-- Card content renders immediately when data is available -->
+      <h3>{user.name}</h3>
+    </div>
+  </:card>
+</Cinder.Cards.cards>
+```
+
+### Refresh Functionality
+
+Cards can be refreshed programmatically to reload data while maintaining current filters, sorting, and pagination state:
+
+```elixir
+# In your LiveView, you can refresh cards data
+def handle_event("refresh_cards", _params, socket) do
+  # Send refresh event to the cards component
+  send_update(Cinder.Cards.LiveComponent, id: "my-cards", refresh: true)
+  {:noreply, socket}
+end
+```
+
+Or trigger refresh from within cards using JavaScript:
+
+```javascript
+// Trigger refresh from client-side
+document.getElementById("refresh-button").addEventListener("click", function() {
+  liveSocket.execJS("#my-cards", "[[\"refresh\"]]");
+});
+```
+
+### Loading States
+
+Cards automatically display loading indicators during data operations:
+
+```elixir
+<Cinder.Cards.cards 
+  resource={MyApp.User} 
+  actor={@current_user}
+  loading_message="Loading users..."
+  empty_message="No users found"
+>
+  <:prop field="name" filter sort />
+  <:card :let={user}>
+    <div class="user-card">
+      <h3>{user.name}</h3>
+    </div>
+  </:card>
+</Cinder.Cards.cards>
+```
+
+### Error Handling
+
+Failed queries are automatically handled:
+
+- Errors are logged with detailed context for debugging
+- Users see empty state instead of crashes
+- Filters and UI state are preserved
+- Retry functionality is available through refresh
+
 ## Theming
 
 Cards support all the same themes as tables. Additionally, cards have their own theme properties for customizing the card layout:
