@@ -1,6 +1,5 @@
 defmodule Cinder.Cards.IntegrationTest do
   use ExUnit.Case, async: true
-  import Phoenix.LiveViewTest
 
   # Mock Ash resource for testing
   defmodule TestPackage do
