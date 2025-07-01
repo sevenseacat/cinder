@@ -146,6 +146,42 @@ defmodule Cinder.Themes.Retro do
         "px-4 py-2 text-sm font-bold text-black bg-gradient-to-r from-cyan-400 to-magenta-400 border-2 border-yellow-400 rounded shadow-lg shadow-yellow-400/30 uppercase tracking-wide"
   end
 
+  component Cinder.Components.Cards do
+    set :container_class, "bg-gray-900 border-2 border-cyan-400 shadow-2xl shadow-cyan-400/20"
+    set :controls_class, "p-6 bg-gradient-to-r from-purple-900 to-pink-900 border-b-2 border-cyan-400"
+    set :cards_wrapper_class, "p-6 bg-black"
+    set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    
+    set :card_class,
+        "bg-gray-900 border-2 border-magenta-400 p-6 shadow-2xl shadow-magenta-400/20 hover:shadow-cyan-400/30 hover:border-cyan-400 transition-all duration-300 cursor-pointer"
+    
+    # Sort controls
+    set :sort_controls_class, "px-6 pb-4 border-b-2 border-cyan-400"
+    set :sort_controls_container_class, "flex items-center space-x-4"
+    set :sort_label_class, "text-sm font-bold text-cyan-100 tracking-widest uppercase"
+    set :sort_buttons_class, "flex flex-wrap gap-3"
+    set :sort_button_class, "px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 hover:bg-magenta-800 hover:border-magenta-400 hover:shadow-lg hover:shadow-magenta-400/30 transition-all duration-200 cursor-pointer select-none uppercase tracking-wide"
+    set :sort_button_active_class, "bg-gradient-to-r from-cyan-600 to-magenta-600 border-yellow-400 text-black shadow-lg shadow-yellow-400/30"
+    
+    # Sort indicators
+    set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
+    set :sort_arrow_wrapper_class, "inline-flex items-center"
+    set :sort_asc_icon_name, "hero-chevron-up"
+    set :sort_asc_icon_class, "w-3 h-3 text-cyan-400 drop-shadow-lg"
+    set :sort_desc_icon_name, "hero-chevron-down"
+    set :sort_desc_icon_class, "w-3 h-3 text-magenta-400 drop-shadow-lg"
+    set :sort_none_icon_name, "hero-chevron-up-down"
+    set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-75"
+    
+    set :loading_class, "text-center py-12 text-cyan-400 font-bold uppercase tracking-wide"
+    set :loading_overlay_class, "absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center"
+    set :loading_spinner_class, "text-cyan-400 text-lg font-bold uppercase tracking-wide"
+    set :empty_class, "text-center py-20 text-cyan-100 italic font-bold bg-gray-800/50 border border-cyan-400 col-span-full"
+    set :error_container_class, "bg-red-900 border-2 border-red-400 p-4 text-red-100 shadow-lg shadow-red-400/30"
+    set :error_message_class, "text-sm font-bold"
+    set :pagination_wrapper_class, "p-6"
+  end
+
   component Cinder.Components.Sorting do
     set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
