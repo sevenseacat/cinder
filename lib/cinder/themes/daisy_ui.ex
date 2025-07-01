@@ -109,10 +109,10 @@ defmodule Cinder.Themes.DaisyUI do
     set :controls_class, "card-body pb-4"
     set :cards_wrapper_class, "card-body pt-0"
     set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-    
+
     set :card_class,
         "card bg-base-100 shadow hover:shadow-lg transition-shadow cursor-pointer"
-    
+
     # Sort controls
     set :sort_controls_class, "pb-4 border-b border-base-300"
     set :sort_controls_container_class, "flex items-center gap-4"
@@ -120,7 +120,7 @@ defmodule Cinder.Themes.DaisyUI do
     set :sort_buttons_class, "flex flex-wrap gap-2"
     set :sort_button_class, "btn btn-outline btn-sm"
     set :sort_button_active_class, "btn btn-primary btn-sm"
-    
+
     # Sort indicators
     set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
@@ -130,9 +130,12 @@ defmodule Cinder.Themes.DaisyUI do
     set :sort_desc_icon_class, "w-3 h-3 text-primary"
     set :sort_none_icon_name, "hero-chevron-up-down"
     set :sort_none_icon_class, "w-3 h-3 text-base-content/60"
-    
+
     set :loading_class, "text-center py-8 loading loading-spinner loading-md"
-    set :loading_overlay_class, "absolute inset-0 bg-base-100 bg-opacity-75 flex items-center justify-center rounded-2xl"
+
+    set :loading_overlay_class,
+        "absolute inset-0 bg-base-100 bg-opacity-75 flex items-center justify-center rounded-2xl"
+
     set :loading_spinner_class, "loading loading-spinner loading-lg"
     set :empty_class, "text-center py-16 text-base-content/60 col-span-full"
     set :error_container_class, "alert alert-error"

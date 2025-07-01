@@ -145,22 +145,30 @@ defmodule Cinder.Themes.Pastel do
   end
 
   component Cinder.Components.Cards do
-    set :container_class, "bg-gradient-to-br from-blue-50 to-purple-50 shadow-xl rounded-3xl border border-purple-100"
-    set :controls_class, "p-6 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 rounded-t-3xl border-b border-purple-100"
+    set :container_class,
+        "bg-gradient-to-br from-blue-50 to-purple-50 shadow-xl rounded-3xl border border-purple-100"
+
+    set :controls_class,
+        "p-6 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 rounded-t-3xl border-b border-purple-100"
+
     set :cards_wrapper_class, "p-6"
     set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-    
+
     set :card_class,
         "bg-white/80 backdrop-blur-sm border border-purple-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:border-purple-300 hover:scale-105 transition-all duration-300 cursor-pointer"
-    
+
     # Sort controls
     set :sort_controls_class, "px-6 pb-4 border-b border-purple-100"
     set :sort_controls_container_class, "flex items-center space-x-4"
     set :sort_label_class, "text-sm font-semibold text-purple-700"
     set :sort_buttons_class, "flex flex-wrap gap-2"
-    set :sort_button_class, "px-4 py-2 text-sm font-medium text-purple-700 bg-white/80 border border-purple-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 cursor-pointer select-none shadow-sm"
-    set :sort_button_active_class, "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-500 shadow-md"
-    
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-medium text-purple-700 bg-white/80 border border-purple-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 cursor-pointer select-none shadow-sm"
+
+    set :sort_button_active_class,
+        "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-500 shadow-md"
+
     # Sort indicators
     set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
@@ -170,12 +178,20 @@ defmodule Cinder.Themes.Pastel do
     set :sort_desc_icon_class, "w-3 h-3 text-pink-500"
     set :sort_none_icon_name, "hero-chevron-up-down"
     set :sort_none_icon_class, "w-3 h-3 text-gray-500 opacity-75"
-    
+
     set :loading_class, "text-center py-16 text-purple-600 font-medium"
-    set :loading_overlay_class, "absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-3xl"
+
+    set :loading_overlay_class,
+        "absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-3xl"
+
     set :loading_spinner_class, "text-purple-500 text-lg font-medium"
-    set :empty_class, "text-center py-24 text-gray-500 italic col-span-full bg-white/50 rounded-2xl border-2 border-dashed border-purple-200"
-    set :error_container_class, "bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 shadow-sm"
+
+    set :empty_class,
+        "text-center py-24 text-gray-500 italic col-span-full bg-white/50 rounded-2xl border-2 border-dashed border-purple-200"
+
+    set :error_container_class,
+        "bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 shadow-sm"
+
     set :error_message_class, "text-sm"
     set :pagination_wrapper_class, "p-6"
   end

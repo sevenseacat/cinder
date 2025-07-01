@@ -92,7 +92,8 @@ defmodule Cinder.CardsTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
-        prop: [%{filter: true, sort: true}],  # Missing field
+        # Missing field
+        prop: [%{filter: true, sort: true}],
         card: [%{__slot__: :card, inner_block: fn _user -> "Card Content" end}]
       }
 
@@ -235,7 +236,7 @@ defmodule Cinder.CardsTest do
       }
 
       html = render_component(&Cinder.Cards.cards/1, assigns)
-      
+
       # Should contain sort controls when sortable props exist
       # Note: We can't easily test the LiveComponent template rendering in unit tests,
       # but we can verify the component compiles and the helper functions work
@@ -248,7 +249,7 @@ defmodule Cinder.CardsTest do
         %{field: "name", sortable: true},
         %{field: "email", sortable: false}
       ]
-      
+
       assert Cinder.Cards.LiveComponent.show_sort_controls?(sortable_columns) == true
 
       # Without sortable columns
@@ -256,7 +257,7 @@ defmodule Cinder.CardsTest do
         %{field: "name", sortable: false},
         %{field: "email", sortable: false}
       ]
-      
+
       assert Cinder.Cards.LiveComponent.show_sort_controls?(non_sortable_columns) == false
 
       # Empty columns
@@ -271,7 +272,7 @@ defmodule Cinder.CardsTest do
       ]
 
       sortable = Cinder.Cards.LiveComponent.get_sortable_columns(columns)
-      
+
       assert length(sortable) == 2
       assert Enum.at(sortable, 0).field == "name"
       assert Enum.at(sortable, 1).field == "age"
@@ -306,7 +307,7 @@ defmodule Cinder.CardsTest do
       # Verify the refresh event handler is defined by checking it's listed in module functions
       functions = Cinder.Cards.LiveComponent.__info__(:functions)
       assert {:handle_event, 3} in functions
-      
+
       # We can't easily test the actual async behavior in unit tests,
       # but we've verified the handler exists and the integration tests 
       # will cover the actual functionality

@@ -146,22 +146,30 @@ defmodule Cinder.Themes.Futuristic do
   end
 
   component Cinder.Components.Cards do
-    set :container_class, "bg-slate-950 shadow-2xl shadow-blue-500/10 border border-blue-500/30 backdrop-blur-lg"
-    set :controls_class, "p-6 bg-gradient-to-r from-slate-900/80 to-slate-800/80 border-b border-blue-500/30 backdrop-blur-sm"
+    set :container_class,
+        "bg-slate-950 shadow-2xl shadow-blue-500/10 border border-blue-500/30 backdrop-blur-lg"
+
+    set :controls_class,
+        "p-6 bg-gradient-to-r from-slate-900/80 to-slate-800/80 border-b border-blue-500/30 backdrop-blur-sm"
+
     set :cards_wrapper_class, "p-6 bg-slate-950/50 backdrop-blur-sm"
     set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-    
+
     set :card_class,
         "bg-slate-900/60 border border-blue-500/40 p-6 shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-green-400/20 hover:border-green-400/60 hover:bg-gradient-to-br hover:from-slate-900/70 hover:to-slate-800/70 transition-all duration-300 cursor-pointer backdrop-blur-sm"
-    
+
     # Sort controls
     set :sort_controls_class, "px-6 pb-4 border-b border-blue-500/30"
     set :sort_controls_container_class, "flex items-center space-x-4"
     set :sort_label_class, "text-sm font-light text-blue-100 tracking-wide"
     set :sort_buttons_class, "flex flex-wrap gap-3"
-    set :sort_button_class, "px-4 py-2 text-sm font-light text-blue-100 bg-slate-900/60 border border-blue-500/40 hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:border-green-400/60 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer select-none tracking-wide backdrop-blur-sm"
-    set :sort_button_active_class, "bg-gradient-to-r from-green-600/80 to-blue-600/80 border-green-400 text-black shadow-lg shadow-green-400/20"
-    
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-light text-blue-100 bg-slate-900/60 border border-blue-500/40 hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:border-green-400/60 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer select-none tracking-wide backdrop-blur-sm"
+
+    set :sort_button_active_class,
+        "bg-gradient-to-r from-green-600/80 to-blue-600/80 border-green-400 text-black shadow-lg shadow-green-400/20"
+
     # Sort indicators
     set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
@@ -171,12 +179,20 @@ defmodule Cinder.Themes.Futuristic do
     set :sort_desc_icon_class, "w-3 h-3 text-blue-400 drop-shadow-sm drop-shadow-blue-400/50"
     set :sort_none_icon_name, "hero-chevron-up-down"
     set :sort_none_icon_class, "w-3 h-3 text-slate-400 opacity-65"
-    
+
     set :loading_class, "text-center py-16 text-green-400 font-light tracking-wide"
-    set :loading_overlay_class, "absolute inset-0 bg-slate-950/80 backdrop-blur-lg flex items-center justify-center"
+
+    set :loading_overlay_class,
+        "absolute inset-0 bg-slate-950/80 backdrop-blur-lg flex items-center justify-center"
+
     set :loading_spinner_class, "text-green-400 text-lg font-light tracking-wide"
-    set :empty_class, "text-center py-24 text-blue-100 italic font-light col-span-full bg-slate-900/30 border border-dashed border-blue-500/30 backdrop-blur-sm"
-    set :error_container_class, "bg-red-900/40 border border-red-400/60 p-4 text-red-100 shadow-lg shadow-red-400/10 backdrop-blur-sm"
+
+    set :empty_class,
+        "text-center py-24 text-blue-100 italic font-light col-span-full bg-slate-900/30 border border-dashed border-blue-500/30 backdrop-blur-sm"
+
+    set :error_container_class,
+        "bg-red-900/40 border border-red-400/60 p-4 text-red-100 shadow-lg shadow-red-400/10 backdrop-blur-sm"
+
     set :error_message_class, "text-sm font-light"
     set :pagination_wrapper_class, "p-6"
   end

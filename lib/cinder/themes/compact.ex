@@ -142,18 +142,21 @@ defmodule Cinder.Themes.Compact do
     set :controls_class, "p-3 bg-gray-50 border-b border-gray-300"
     set :cards_wrapper_class, "p-3"
     set :cards_grid_class, "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-    
+
     set :card_class,
         "bg-white border border-gray-200 p-3 shadow-sm hover:shadow transition-shadow cursor-pointer"
-    
+
     # Sort controls
     set :sort_controls_class, "px-3 pb-2 border-b border-gray-200"
     set :sort_controls_container_class, "flex items-center space-x-3"
     set :sort_label_class, "text-xs font-semibold text-gray-700 uppercase tracking-wider"
     set :sort_buttons_class, "flex flex-wrap gap-1"
-    set :sort_button_class, "px-2 py-1 text-xs font-medium border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer select-none"
+
+    set :sort_button_class,
+        "px-2 py-1 text-xs font-medium border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer select-none"
+
     set :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700"
-    
+
     # Sort indicators
     set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
@@ -163,9 +166,12 @@ defmodule Cinder.Themes.Compact do
     set :sort_desc_icon_class, "w-3 h-3 text-blue-600"
     set :sort_none_icon_name, "hero-chevron-up-down"
     set :sort_none_icon_class, "w-3 h-3 text-gray-500 opacity-70"
-    
+
     set :loading_class, "text-center py-6 text-gray-500 text-sm"
-    set :loading_overlay_class, "absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center"
+
+    set :loading_overlay_class,
+        "absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center"
+
     set :loading_spinner_class, "text-blue-600 text-sm font-medium"
     set :empty_class, "text-center py-12 text-gray-500 text-sm italic col-span-full"
     set :error_container_class, "bg-red-50 border border-red-200 p-3 text-red-700 text-sm"

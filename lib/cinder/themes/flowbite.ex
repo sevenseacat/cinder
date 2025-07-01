@@ -147,22 +147,30 @@ defmodule Cinder.Themes.Flowbite do
   end
 
   component Cinder.Components.Cards do
-    set :container_class, "bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
-    set :controls_class, "p-6 bg-gray-50 border-b border-gray-200 rounded-t-lg dark:bg-gray-700 dark:border-gray-600"
+    set :container_class,
+        "bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+
+    set :controls_class,
+        "p-6 bg-gray-50 border-b border-gray-200 rounded-t-lg dark:bg-gray-700 dark:border-gray-600"
+
     set :cards_wrapper_class, "p-6"
     set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-    
+
     set :card_class,
         "bg-white border border-gray-200 rounded-lg shadow hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-700 cursor-pointer"
-    
+
     # Sort controls
     set :sort_controls_class, "px-6 pb-4 border-b border-gray-200 dark:border-gray-600"
     set :sort_controls_container_class, "flex items-center space-x-4"
     set :sort_label_class, "text-sm font-medium text-gray-900 dark:text-white"
     set :sort_buttons_class, "flex flex-wrap gap-2"
-    set :sort_button_class, "text-gray-500 bg-white border border-gray-300 rounded text-sm px-3 py-1.5 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white transition-colors cursor-pointer select-none"
-    set :sort_button_active_class, "text-white bg-blue-600 border border-blue-600 dark:bg-blue-500 dark:border-blue-500"
-    
+
+    set :sort_button_class,
+        "text-gray-500 bg-white border border-gray-300 rounded text-sm px-3 py-1.5 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white transition-colors cursor-pointer select-none"
+
+    set :sort_button_active_class,
+        "text-white bg-blue-600 border border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+
     # Sort indicators
     set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
@@ -172,12 +180,18 @@ defmodule Cinder.Themes.Flowbite do
     set :sort_desc_icon_class, "w-3 h-3 text-gray-500 dark:text-gray-400"
     set :sort_none_icon_name, "hero-chevron-up-down"
     set :sort_none_icon_class, "w-3 h-3 text-gray-500 opacity-70 dark:text-gray-400"
-    
+
     set :loading_class, "text-center py-12 text-gray-500 dark:text-gray-400"
-    set :loading_overlay_class, "absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg dark:bg-gray-800 dark:bg-opacity-75"
+
+    set :loading_overlay_class,
+        "absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg dark:bg-gray-800 dark:bg-opacity-75"
+
     set :loading_spinner_class, "text-gray-500 dark:text-gray-400"
     set :empty_class, "text-center py-16 text-gray-500 dark:text-gray-400 col-span-full"
-    set :error_container_class, "bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 dark:bg-red-800 dark:border-red-700 dark:text-red-100"
+
+    set :error_container_class,
+        "bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 dark:bg-red-800 dark:border-red-700 dark:text-red-100"
+
     set :error_message_class, "text-sm"
     set :pagination_wrapper_class, "p-6"
   end

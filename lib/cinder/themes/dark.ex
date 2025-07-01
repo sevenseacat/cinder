@@ -136,22 +136,28 @@ defmodule Cinder.Themes.Dark do
   end
 
   component Cinder.Components.Cards do
-    set :container_class, "bg-gray-900 shadow-2xl rounded-xl border border-gray-700 overflow-hidden"
+    set :container_class,
+        "bg-gray-900 shadow-2xl rounded-xl border border-gray-700 overflow-hidden"
+
     set :controls_class, "p-6 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700"
     set :cards_wrapper_class, "p-6 bg-gray-900"
     set :cards_grid_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-    
+
     set :card_class,
         "bg-gray-800 border border-gray-600 rounded-lg p-6 shadow-xl hover:shadow-2xl hover:border-purple-500/50 transition-all duration-200 cursor-pointer"
-    
+
     # Sort controls
     set :sort_controls_class, "px-6 pb-4 border-b border-gray-700"
     set :sort_controls_container_class, "flex items-center space-x-4"
     set :sort_label_class, "text-sm font-semibold text-gray-300"
     set :sort_buttons_class, "flex flex-wrap gap-2"
-    set :sort_button_class, "px-4 py-2 text-sm font-medium border border-gray-600 rounded-lg bg-gray-800 text-gray-300 hover:bg-purple-900/30 hover:border-purple-500/50 transition-all duration-200 cursor-pointer select-none"
-    set :sort_button_active_class, "bg-purple-900/50 border-purple-500/50 text-purple-300 shadow-lg"
-    
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-medium border border-gray-600 rounded-lg bg-gray-800 text-gray-300 hover:bg-purple-900/30 hover:border-purple-500/50 transition-all duration-200 cursor-pointer select-none"
+
+    set :sort_button_active_class,
+        "bg-purple-900/50 border-purple-500/50 text-purple-300 shadow-lg"
+
     # Sort indicators
     set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
@@ -161,12 +167,18 @@ defmodule Cinder.Themes.Dark do
     set :sort_desc_icon_class, "w-3 h-3 text-purple-400"
     set :sort_none_icon_name, "hero-chevron-up-down"
     set :sort_none_icon_class, "w-3 h-3 text-gray-500 opacity-50"
-    
+
     set :loading_class, "text-center py-12 text-gray-400"
-    set :loading_overlay_class, "absolute inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center rounded-xl"
+
+    set :loading_overlay_class,
+        "absolute inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center rounded-xl"
+
     set :loading_spinner_class, "text-purple-400 text-lg font-medium"
     set :empty_class, "text-center py-20 text-gray-400 italic col-span-full"
-    set :error_container_class, "bg-red-900/50 border border-red-600/50 rounded-lg p-4 text-red-200"
+
+    set :error_container_class,
+        "bg-red-900/50 border border-red-600/50 rounded-lg p-4 text-red-200"
+
     set :error_message_class, "text-sm"
     set :pagination_wrapper_class, "p-6"
   end

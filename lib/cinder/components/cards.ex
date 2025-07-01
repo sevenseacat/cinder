@@ -63,15 +63,16 @@ defmodule Cinder.Components.Cards do
       cards_wrapper_class: "",
       cards_grid_class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
       card_class: "border rounded-lg p-4 hover:shadow-md transition-shadow",
-      
+
       # Sort controls
       sort_controls_class: "mb-4 pb-4 border-b border-gray-200",
       sort_controls_container_class: "flex items-center space-x-4",
       sort_label_class: "text-sm font-medium text-gray-700",
       sort_buttons_class: "flex flex-wrap gap-2",
-      sort_button_class: "px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors cursor-pointer select-none",
+      sort_button_class:
+        "px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors cursor-pointer select-none",
       sort_button_active_class: "bg-blue-50 border-blue-300 text-blue-700",
-      
+
       # Sort indicators
       sort_indicator_class: "ml-1 inline-flex items-center align-baseline",
       sort_arrow_wrapper_class: "inline-flex items-center",
@@ -81,9 +82,9 @@ defmodule Cinder.Components.Cards do
       sort_desc_icon_class: "w-3 h-3 text-blue-600",
       sort_none_icon_name: "hero-chevron-up-down",
       sort_none_icon_class: "w-3 h-3 text-gray-400 opacity-50",
-      
       loading_class: "text-center py-4",
-      loading_overlay_class: "absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center",
+      loading_overlay_class:
+        "absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center",
       loading_spinner_class: "text-gray-600",
       empty_class: "text-center py-8 text-gray-500",
       error_container_class: "text-red-600 text-sm",

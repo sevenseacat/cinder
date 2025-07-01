@@ -275,20 +275,21 @@ defmodule Cinder.Cards.LiveComponent do
 
   defp assign_column_definitions(socket) do
     # Convert props to column format for compatibility with existing logic
-    columns = Enum.map(socket.assigns.props, fn prop ->
-      %{
-        field: prop.field,
-        label: prop.label,
-        filterable: prop.filterable,
-        filter_type: prop.filter_type,
-        filter_options: prop.filter_options,
-        sortable: prop.sortable,
-        class: "",
-        # Add filter_fn and sort_fn fields that QueryBuilder expects
-        filter_fn: Map.get(prop, :filter_fn, nil),
-        sort_fn: Map.get(prop, :sort_fn, nil)
-      }
-    end)
+    columns =
+      Enum.map(socket.assigns.props, fn prop ->
+        %{
+          field: prop.field,
+          label: prop.label,
+          filterable: prop.filterable,
+          filter_type: prop.filter_type,
+          filter_options: prop.filter_options,
+          sortable: prop.sortable,
+          class: "",
+          # Add filter_fn and sort_fn fields that QueryBuilder expects
+          filter_fn: Map.get(prop, :filter_fn, nil),
+          sort_fn: Map.get(prop, :sort_fn, nil)
+        }
+      end)
 
     assign(socket, :columns, columns)
   end
@@ -581,7 +582,6 @@ defmodule Cinder.Cards.LiveComponent do
     Enum.to_list(range_start..range_end)
   end
 
-
   # Notify parent LiveView about filter changes
   defp notify_state_change(socket, filters \\ nil) do
     filters = filters || socket.assigns.filters
@@ -619,7 +619,7 @@ defmodule Cinder.Cards.LiveComponent do
 
   def get_sort_button_classes(column, sort_by, theme) do
     base_classes = [theme.sort_button_class]
-    
+
     case Cinder.QueryBuilder.get_sort_direction(sort_by, column.field) do
       nil -> base_classes
       _direction -> base_classes ++ [theme.sort_button_active_class]

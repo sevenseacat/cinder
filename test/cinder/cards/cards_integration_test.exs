@@ -55,7 +55,7 @@ defmodule Cinder.Cards.IntegrationTest do
   describe "Cards filtering integration" do
     test "handles filter change events with proper column structure" do
       # This test reproduces the KeyError: filter_fn issue
-      
+
       # Create columns similar to your delivery_map project
       props = [
         %{field: "arca_tracking_number", filter: true, sort: true, label: "Tracking #"},
@@ -80,10 +80,10 @@ defmodule Cinder.Cards.IntegrationTest do
         assert Map.has_key?(prop, :filter_type)
         assert Map.has_key?(prop, :filter_options)
         assert Map.has_key?(prop, :sortable)
-        
+
         # The processed prop should have filter_fn field (even if nil) for QueryBuilder compatibility
-        assert Map.has_key?(prop, :filter_fn), 
-          "Cards processed props should have filter_fn field for QueryBuilder compatibility"
+        assert Map.has_key?(prop, :filter_fn),
+               "Cards processed props should have filter_fn field for QueryBuilder compatibility"
       end
     end
 
@@ -91,7 +91,7 @@ defmodule Cinder.Cards.IntegrationTest do
       # This test verifies that the original KeyError issue has been fixed
       # by ensuring Cards now provides proper column structure with filter_fn
       query = Ash.Query.new(TestPackage)
-      
+
       # This was the old problematic column format (without filter_fn)
       problematic_columns = [
         %{
@@ -127,7 +127,7 @@ defmodule Cinder.Cards.IntegrationTest do
     test "demonstrates the fix for missing filter_fn" do
       # This test shows how the columns should be structured to work with QueryBuilder
       query = Ash.Query.new(TestPackage)
-      
+
       # Fixed column format with filter_fn: nil (or no filter_fn access)
       columns = [
         %{
@@ -138,7 +138,8 @@ defmodule Cinder.Cards.IntegrationTest do
           filter_options: [operator: :contains, case_sensitive: false, placeholder: nil],
           sortable: true,
           class: "",
-          filter_fn: nil  # This is what QueryBuilder expects
+          # This is what QueryBuilder expects
+          filter_fn: nil
         }
       ]
 
@@ -163,16 +164,17 @@ defmodule Cinder.Cards.IntegrationTest do
       ]
 
       processed_props = Cinder.Cards.process_props(props, TestPackage)
-      
+
       # Should have filter_fn field
       assert length(processed_props) == 1
       prop = Enum.at(processed_props, 0)
       assert Map.has_key?(prop, :filter_fn)
-      assert prop.filter_fn == nil  # Default value
+      # Default value
+      assert prop.filter_fn == nil
 
       # Now test that QueryBuilder can use these columns
       query = Ash.Query.new(TestPackage)
-      
+
       # Convert to column format (as done in LiveComponent)
       columns = [
         %{
@@ -205,7 +207,7 @@ defmodule Cinder.Cards.IntegrationTest do
   describe "Cards state change handling" do
     test "Cards component sends proper state change messages" do
       # Test that demonstrates the missing handle_info issue
-      
+
       # This is the state change message format that Cards sends
       state_change_message = {
         :cards_state_change,
@@ -226,12 +228,12 @@ defmodule Cinder.Cards.IntegrationTest do
 
       # LiveView using Cards needs to handle this message
       # The error shows: no function clause matching in handle_info/2
-      
+
       # Expected handler in user's LiveView:
       # def handle_info({:cards_state_change, _id, _state}, socket) do
       #   {:noreply, socket}
       # end
-      
+
       assert elem(state_change_message, 0) == :cards_state_change
       assert elem(state_change_message, 1) == "packages-cards"
       assert is_map(elem(state_change_message, 2))
