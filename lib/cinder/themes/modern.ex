@@ -118,6 +118,24 @@ defmodule Cinder.Themes.Modern do
     set :card_class,
         "bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 cursor-pointer"
     
+    # Sort controls
+    set :sort_controls_class, "px-6 pb-4 border-b border-gray-200"
+    set :sort_controls_container_class, "flex items-center space-x-4"
+    set :sort_label_class, "text-sm font-semibold text-gray-700"
+    set :sort_buttons_class, "flex flex-wrap gap-2"
+    set :sort_button_class, "px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 cursor-pointer select-none"
+    set :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700 shadow-sm"
+    
+    # Sort indicators
+    set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
+    set :sort_arrow_wrapper_class, "inline-flex items-center"
+    set :sort_asc_icon_name, "hero-chevron-up"
+    set :sort_asc_icon_class, "w-3 h-3 text-blue-600"
+    set :sort_desc_icon_name, "hero-chevron-down"
+    set :sort_desc_icon_class, "w-3 h-3 text-blue-600"
+    set :sort_none_icon_name, "hero-chevron-up-down"
+    set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-50"
+    
     set :loading_class, "text-center py-12 text-gray-500"
     set :loading_overlay_class, "absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-xl"
     set :loading_spinner_class, "text-blue-600 text-lg font-medium"
