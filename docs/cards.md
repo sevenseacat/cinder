@@ -23,6 +23,8 @@ Cinder now supports card-based layouts as an alternative to traditional table vi
 </Cinder.Cards.cards>
 ```
 
+The cards component automatically displays sort controls when any property has `sort` enabled. Users can click the sort buttons to cycle through ascending, descending, and no sort states.
+
 ### Cards with Images
 
 ```elixir
@@ -160,6 +162,41 @@ defmodule MyAppWeb.ProductsLive do
   end
 end
 ```
+
+## Sorting
+
+Cards provide intuitive sorting through clickable sort buttons that appear above the card grid when any property has `sort` enabled.
+
+### Sort Controls
+
+```elixir
+<Cinder.Cards.cards resource={MyApp.Product} actor={@current_user}>
+  <:prop field="name" filter sort />
+  <:prop field="price" sort />
+  <:prop field="created_at" sort />
+  <:card :let={product}>
+    <div class="product-card">
+      <h3>{product.name}</h3>
+      <p class="price">${product.price}</p>
+      <p class="date">Created: {product.created_at}</p>
+    </div>
+  </:card>
+</Cinder.Cards.cards>
+```
+
+### Sort Behavior
+
+- **Click once**: Sort ascending
+- **Click twice**: Sort descending  
+- **Click third time**: Remove sort
+- **Multiple columns**: Supports multi-column sorting with priority order
+
+### Sort Indicators
+
+Each sortable button shows visual indicators:
+- **↑** Ascending sort (colored with theme accent)
+- **↓** Descending sort (colored with theme accent)
+- **↕** Available for sorting (muted)
 
 ## Properties vs Columns
 
