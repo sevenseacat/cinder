@@ -367,13 +367,22 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) == ^value))
 
       :contains ->
-        Ash.Query.filter(query, exists(^rel_path, contains(^ref(field_atom), ^value)))
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(type(^ref(field_atom), :string), ^value))
+        )
 
       :starts_with ->
-        Ash.Query.filter(query, exists(^rel_path, contains(^ref(field_atom), ^value)))
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(type(^ref(field_atom), :string), ^value))
+        )
 
       :ends_with ->
-        Ash.Query.filter(query, exists(^rel_path, contains(^ref(field_atom), ^value)))
+        Ash.Query.filter(
+          query,
+          exists(^rel_path, contains(type(^ref(field_atom), :string), ^value))
+        )
 
       :greater_than ->
         Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) > ^value))
@@ -404,13 +413,13 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, ^ref(field_atom) == ^value)
 
       :contains ->
-        Ash.Query.filter(query, contains(^ref(field_atom), ^value))
+        Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
 
       :starts_with ->
-        Ash.Query.filter(query, contains(^ref(field_atom), ^value))
+        Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
 
       :ends_with ->
-        Ash.Query.filter(query, contains(^ref(field_atom), ^value))
+        Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
 
       :greater_than ->
         Ash.Query.filter(query, ^ref(field_atom) > ^value)
@@ -1036,7 +1045,7 @@ defmodule Cinder.Filter.Helpers do
   end
 
   @doc """
-  Validates embedded field syntax.
+  Validates embedded field syntax and returns appropriate error messages.
 
   ## Examples
 
