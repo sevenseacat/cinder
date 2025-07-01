@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Fix compilation issue caused by other libraries redefining the `uuid` shortcode (#17)
+
 ## v0.4.0 (2025-06-27)
 
 ### Features
