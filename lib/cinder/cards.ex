@@ -320,7 +320,8 @@ defmodule Cinder.Cards do
         filter_type: parsed_column.filter_type,
         filter_options: parsed_column.filter_options,
         sortable: parsed_column.sortable,
-        filter_fn: Map.get(parsed_column, :filter_fn, nil)
+        filter_fn: Map.get(parsed_column, :filter_fn, nil),
+        sort_fn: Map.get(parsed_column, :sort_fn, nil)
       }
     end)
   end
