@@ -57,6 +57,27 @@ defmodule Cinder.Cards.LiveComponent do
         />
       </div>
 
+      <!-- Sort Controls -->
+      <div :if={show_sort_controls?(@columns)} class={@theme.sort_controls_class}>
+        <div class={@theme.sort_controls_container_class}>
+          <span class={@theme.sort_label_class}>Sort by:</span>
+          <div class={@theme.sort_buttons_class}>
+            <button :for={column <- get_sortable_columns(@columns)}
+                    class={get_sort_button_classes(column, @sort_by, @theme)}
+                    phx-click="toggle_sort"
+                    phx-value-key={column.field}
+                    phx-target={@myself}>
+              {column.label}
+              <span class={@theme.sort_indicator_class}>
+                <.sort_arrow sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} 
+                             theme={@theme} 
+                             loading={@loading} />
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Cards Grid -->
       <div class={@theme.cards_wrapper_class} {@theme.cards_wrapper_data}>
         <div class={@theme.cards_grid_class} {@theme.cards_grid_data}>
@@ -263,8 +284,9 @@ defmodule Cinder.Cards.LiveComponent do
         filter_options: prop.filter_options,
         sortable: prop.sortable,
         class: "",
-        # Add filter_fn field that QueryBuilder expects
-        filter_fn: Map.get(prop, :filter_fn, nil)
+        # Add filter_fn and sort_fn fields that QueryBuilder expects
+        filter_fn: Map.get(prop, :filter_fn, nil),
+        sort_fn: Map.get(prop, :sort_fn, nil)
       }
     end)
 
@@ -583,5 +605,54 @@ defmodule Cinder.Cards.LiveComponent do
     else
       classes
     end
+  end
+
+  # Sort helper functions
+
+  def show_sort_controls?(columns) do
+    Enum.any?(columns, & &1.sortable)
+  end
+
+  def get_sortable_columns(columns) do
+    Enum.filter(columns, & &1.sortable)
+  end
+
+  def get_sort_button_classes(column, sort_by, theme) do
+    base_classes = [theme.sort_button_class]
+    
+    case Cinder.QueryBuilder.get_sort_direction(sort_by, column.field) do
+      nil -> base_classes
+      _direction -> base_classes ++ [theme.sort_button_active_class]
+    end
+  end
+
+  defp sort_arrow(assigns) do
+    ~H"""
+    <span class={Map.get(@theme, :sort_arrow_wrapper_class, "inline-block ml-1")}>
+      <%= case @sort_direction do %>
+        <% :asc -> %>
+          <.icon
+            name={Map.get(@theme, :sort_asc_icon_name, "hero-chevron-up")}
+            class={[Map.get(@theme, :sort_asc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
+          />
+        <% :desc -> %>
+          <.icon
+            name={Map.get(@theme, :sort_desc_icon_name, "hero-chevron-down")}
+            class={[Map.get(@theme, :sort_desc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
+          />
+        <% _ -> %>
+          <.icon
+            name={Map.get(@theme, :sort_none_icon_name, "hero-chevron-up-down")}
+            class={Map.get(@theme, :sort_none_icon_class, "w-3 h-3 inline opacity-30")}
+          />
+      <% end %>
+    </span>
+    """
+  end
+
+  defp icon(%{name: "hero-" <> _} = assigns) do
+    ~H"""
+    <span class={[@name, @class]} />
+    """
   end
 end
