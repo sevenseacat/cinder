@@ -400,7 +400,7 @@ defmodule Cinder.Filter.Debug do
     use Ash.Resource, data_layer: Ash.DataLayer.Ets, domain: nil
 
     attributes do
-      uuid_primary_key(:id)
+      integer_primary_key(:id)
       attribute(:name, :string)
       attribute(:value, :integer)
       attribute(:active, :boolean)
