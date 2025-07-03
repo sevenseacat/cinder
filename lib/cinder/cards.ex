@@ -432,11 +432,11 @@ defmodule Cinder.Cards do
 
   defp get_state_change_handler(url_state, custom_handler, _cards_id) when is_map(url_state) do
     # Return the callback atom that UrlManager expects
-    # UrlManager will send {:cards_state_change, cards_id, encoded_state}
+    # UrlManager will send {:table_state_change, cards_id, encoded_state}
     if custom_handler do
       custom_handler
     else
-      :cards_state_change
+      :table_state_change
     end
   end
 

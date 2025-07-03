@@ -205,12 +205,13 @@ defmodule Cinder.Cards.IntegrationTest do
   end
 
   describe "Cards state change handling" do
-    test "Cards component sends proper state change messages" do
-      # Test that demonstrates the missing handle_info issue
+    test "Cards component sends proper state change messages compatible with Table UrlSync" do
+      # Cards should send :table_state_change messages for compatibility
+      # with existing UrlSync module that expects this format
 
-      # This is the state change message format that Cards sends
+      # This is the state change message format that Cards now sends
       state_change_message = {
-        :cards_state_change,
+        :table_state_change,
         "packages-cards",
         %{
           filters: %{
@@ -226,15 +227,10 @@ defmodule Cinder.Cards.IntegrationTest do
         }
       }
 
-      # LiveView using Cards needs to handle this message
-      # The error shows: no function clause matching in handle_info/2
+      # LiveView using Cards with UrlSync will receive this message
+      # The existing Table.UrlSync module already handles this format
 
-      # Expected handler in user's LiveView:
-      # def handle_info({:cards_state_change, _id, _state}, socket) do
-      #   {:noreply, socket}
-      # end
-
-      assert elem(state_change_message, 0) == :cards_state_change
+      assert elem(state_change_message, 0) == :table_state_change
       assert elem(state_change_message, 1) == "packages-cards"
       assert is_map(elem(state_change_message, 2))
     end
