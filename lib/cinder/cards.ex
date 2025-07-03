@@ -136,6 +136,7 @@ defmodule Cinder.Cards do
   """
 
   use Phoenix.Component
+  alias Cinder.Helpers
 
   attr(:resource, :atom,
     default: nil,
@@ -247,13 +248,13 @@ defmodule Cinder.Cards do
         actor={@resolved_options.actor}
         tenant={@resolved_options.tenant}
         page_size={@page_size}
-        theme={resolve_theme(@theme)}
-        url_filters={get_url_filters(@url_state)}
-        url_page={get_url_page(@url_state)}
-        url_sort={get_url_sort(@url_state)}
-        url_raw_params={get_raw_url_params(@url_state)}
+        theme={Helpers.resolve_theme(@theme)}
+        url_filters={Helpers.get_url_filters(@url_state)}
+        url_page={Helpers.get_url_page(@url_state)}
+        url_sort={Helpers.get_url_sort(@url_state)}
+        url_raw_params={Helpers.get_raw_url_params(@url_state)}
         query_opts={@query_opts}
-        on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
+        on_state_change={Helpers.get_state_change_handler(@url_state, @on_state_change, @id)}
         show_filters={@show_filters}
         show_pagination={@show_pagination}
         loading_message={@loading_message}
