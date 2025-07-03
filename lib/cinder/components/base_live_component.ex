@@ -210,7 +210,7 @@ defmodule Cinder.Components.BaseLiveComponent do
         # Get sorts from URL state first, then from query, then empty
         url_sorts = Map.get(assigns, :url_sort, [])
         
-        if not Enum.empty?(url_sorts) do
+        if is_list(url_sorts) and not Enum.empty?(url_sorts) do
           url_sorts
         else
           # Extract sorts from query if no URL sorts

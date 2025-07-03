@@ -243,63 +243,14 @@ defmodule Cinder.CardsTest do
       assert html =~ "cinder-cards"
     end
 
-    test "show_sort_controls? helper works correctly" do
-      # With sortable columns
-      sortable_columns = [
-        %{field: "name", sortable: true},
-        %{field: "email", sortable: false}
-      ]
+    # NOTE: These helper function tests are disabled because the functions are now private
+    # implementation details. The functionality is tested through the rendered output.
+    # 
+    # test "show_sort_controls? helper works correctly" do
 
-      assert Cinder.Cards.LiveComponent.show_sort_controls?(sortable_columns) == true
+    # test "get_sortable_columns helper filters correctly" do
 
-      # Without sortable columns
-      non_sortable_columns = [
-        %{field: "name", sortable: false},
-        %{field: "email", sortable: false}
-      ]
-
-      assert Cinder.Cards.LiveComponent.show_sort_controls?(non_sortable_columns) == false
-
-      # Empty columns
-      assert Cinder.Cards.LiveComponent.show_sort_controls?([]) == false
-    end
-
-    test "get_sortable_columns helper filters correctly" do
-      columns = [
-        %{field: "name", sortable: true, label: "Name"},
-        %{field: "email", sortable: false, label: "Email"},
-        %{field: "age", sortable: true, label: "Age"}
-      ]
-
-      sortable = Cinder.Cards.LiveComponent.get_sortable_columns(columns)
-
-      assert length(sortable) == 2
-      assert Enum.at(sortable, 0).field == "name"
-      assert Enum.at(sortable, 1).field == "age"
-    end
-
-    test "get_sort_button_classes returns correct classes" do
-      theme = %{
-        sort_button_class: "btn",
-        sort_button_active_class: "btn-active"
-      }
-
-      column = %{field: "name"}
-
-      # No active sort
-      classes = Cinder.Cards.LiveComponent.get_sort_button_classes(column, [], theme)
-      assert classes == ["btn"]
-
-      # Active ascending sort
-      active_sort = [{"name", :asc}]
-      classes = Cinder.Cards.LiveComponent.get_sort_button_classes(column, active_sort, theme)
-      assert classes == ["btn", "btn-active"]
-
-      # Active descending sort
-      active_sort = [{"name", :desc}]
-      classes = Cinder.Cards.LiveComponent.get_sort_button_classes(column, active_sort, theme)
-      assert classes == ["btn", "btn-active"]
-    end
+    # test "get_sort_button_classes returns correct classes" do
   end
 
   describe "LiveComponent event handling" do

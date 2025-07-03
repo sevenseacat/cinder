@@ -6,6 +6,7 @@ defmodule Cinder.Table.LiveComponent do
   """
 
   use Phoenix.LiveComponent
+  import Cinder.Components.Shared
   require Ash.Query
   require Logger
 
@@ -112,7 +113,7 @@ defmodule Cinder.Table.LiveComponent do
         <.pagination_controls
           page_info={@page_info}
           theme={@theme}
-          myself={@myself}
+          target={@myself}
         />
       </div>
     </div>
@@ -335,137 +336,7 @@ defmodule Cinder.Table.LiveComponent do
     end
   end
 
-  # Pagination controls component
-  defp pagination_controls(assigns) do
-    page_range = build_page_range(assigns.page_info)
-    assigns = assign(assigns, :page_range, page_range)
-
-    ~H"""
-    <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
-      <!-- Left side: Page info -->
-      <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
-        Page {@page_info.current_page} of {@page_info.total_pages}
-        <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
-          (showing {@page_info.start_index}-{@page_info.end_index} of {@page_info.total_count})
-        </span>
-      </div>
-
-      <!-- Right side: Page navigation -->
-      <div class={@theme.pagination_nav_class} {@theme.pagination_nav_data}>
-        <!-- First page and previous -->
-        <button
-          :if={@page_info.current_page > 2}
-          phx-click="goto_page"
-          phx-value-page="1"
-          phx-target={@myself}
-          class={@theme.pagination_button_class}
-          {@theme.pagination_button_data}
-          title="First page"
-        >
-          &laquo;
-        </button>
-
-        <button
-          :if={@page_info.has_previous_page}
-          phx-click="goto_page"
-          phx-value-page={@page_info.current_page - 1}
-          phx-target={@myself}
-          class={@theme.pagination_button_class}
-          {@theme.pagination_button_data}
-          title="Previous page"
-        >
-          &lsaquo;
-        </button>
-
-        <!-- Page numbers -->
-        <span :for={page <- @page_range} class="inline-flex">
-          <button
-            :if={page != @page_info.current_page}
-            phx-click="goto_page"
-            phx-value-page={page}
-            phx-target={@myself}
-            class={@theme.pagination_button_class}
-            {@theme.pagination_button_data}
-          >
-            {page}
-          </button>
-          <span :if={page == @page_info.current_page} class={@theme.pagination_current_class} {@theme.pagination_current_data}>
-            {page}
-          </span>
-        </span>
-
-        <!-- Next and last page -->
-        <button
-          :if={@page_info.has_next_page}
-          phx-click="goto_page"
-          phx-value-page={@page_info.current_page + 1}
-          phx-target={@myself}
-          class={@theme.pagination_button_class}
-          {@theme.pagination_button_data}
-          title="Next page"
-        >
-        &rsaquo;
-        </button>
-
-        <button
-          :if={@page_info.current_page < @page_info.total_pages - 1}
-          phx-click="goto_page"
-          phx-value-page={@page_info.total_pages}
-          phx-target={@myself}
-          class={@theme.pagination_button_class}
-          {@theme.pagination_button_data}
-          title="Last page"
-        >
-          &raquo;
-        </button>
-      </div>
-    </div>
-    """
-  end
-
-  # Build page range for pagination (show current page +/- 2 pages)
-  defp build_page_range(page_info) do
-    current = page_info.current_page
-    total = page_info.total_pages
-
-    # Calculate range around current page
-    range_start = max(1, current - 2)
-    range_end = min(total, current + 2)
-
-    Enum.to_list(range_start..range_end)
-  end
-
-  # Sort arrow component - customizable via theme
-  defp sort_arrow(assigns) do
-    ~H"""
-    <span class={Map.get(@theme, :sort_arrow_wrapper_class, "inline-block ml-1")}>
-      <%= case @sort_direction do %>
-        <% :asc -> %>
-          <.icon
-            name={Map.get(@theme, :sort_asc_icon_name, "hero-chevron-up")}
-            class={[Map.get(@theme, :sort_asc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
-          />
-        <% :desc -> %>
-          <.icon
-            name={Map.get(@theme, :sort_desc_icon_name, "hero-chevron-down")}
-            class={[Map.get(@theme, :sort_desc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
-          />
-        <% _ -> %>
-          <.icon
-            name={Map.get(@theme, :sort_none_icon_name, "hero-chevron-up-down")}
-            class={Map.get(@theme, :sort_none_icon_class, "w-3 h-3 inline opacity-30")}
-          />
-      <% end %>
-    </span>
-    """
-  end
-
-  # Simple heroicon component
-  defp icon(%{name: "hero-" <> _} = assigns) do
-    ~H"""
-    <span class={[@name, @class]} />
-    """
-  end
+  # Table specific components now use shared components
 
   # Private functions
 

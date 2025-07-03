@@ -12,29 +12,22 @@ defmodule Cinder.Helpers do
   Accepts either a resource module or an Ash.Query and returns a normalized query.
   """
   def normalize_query_params(resource, query) do
-    case query do
-      nil ->
-        if resource do
-          resource
-        else
-          raise ArgumentError, "Either resource or query must be provided"
-        end
-
-      %Ash.Query{} ->
-        query
-
-      resource_module when is_atom(resource_module) ->
-        resource_module
-
-      _ ->
-        raise ArgumentError, """
-        Invalid query parameter. Expected one of:
-        - An Ash.Query struct
-        - A resource module (atom)
-        - nil (when resource is provided)
+    case {resource, query} do
+      {nil, nil} ->
+        raise ArgumentError, "Either :resource or :query must be provided to Cinder.Table.table"
+      
+      {resource, nil} when not is_nil(resource) ->
+        # Convert resource to query
+        Ash.Query.new(resource)
         
-        Got: #{inspect(query)}
-        """
+      {nil, query} when not is_nil(query) ->
+        # Use provided query directly
+        query
+        
+      {resource, query} when not is_nil(resource) and not is_nil(query) ->
+        raise ArgumentError,
+              "Cannot provide both :resource and :query to Cinder.Table.table. Use one or the other."
+
     end
   end
 
@@ -192,13 +185,18 @@ defmodule Cinder.Helpers do
   def get_url_page(_url_state), do: 1
 
   @doc """
-  Gets URL state sort parameters, with fallback to empty list.
+  Gets URL state sort parameters, with fallback to nil.
   """
   def get_url_sort(url_state) when is_map(url_state) do
-    Map.get(url_state, :sort_by, [])
+    sort = Map.get(url_state, :sort_by, [])
+    
+    case sort do
+      [] -> nil
+      sort -> sort
+    end
   end
 
-  def get_url_sort(_url_state), do: []
+  def get_url_sort(_url_state), do: nil
 
   @doc """
   Gets raw URL parameters (for debugging/advanced use).

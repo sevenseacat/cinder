@@ -65,7 +65,7 @@ defmodule Cinder.Cards.LiveComponent do
       <!-- Loading indicator -->
       <div :if={@loading} class={@theme.loading_overlay_class} {@theme.loading_overlay_data}>
         <div class={@theme.loading_spinner_class}>
-          <div class={@theme.loading_text_class}>
+          <div class={Map.get(@theme, :loading_text_class, "text-gray-600")}>
             {@loading_message}
           </div>
         </div>
@@ -116,8 +116,14 @@ defmodule Cinder.Cards.LiveComponent do
     base_classes = theme.sort_button_class
     
     case current_direction do
-      nil -> [base_classes, theme.sort_button_inactive_class]
-      _ -> [base_classes, theme.sort_button_active_class]
+      nil -> 
+        # Use inactive class if available, otherwise just base classes
+        inactive_class = Map.get(theme, :sort_button_inactive_class, "opacity-70")
+        [base_classes, inactive_class]
+      _ -> 
+        # Use active class if available, otherwise default active styling
+        active_class = Map.get(theme, :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700")
+        [base_classes, active_class]
     end
   end
 

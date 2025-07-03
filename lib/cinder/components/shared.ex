@@ -89,18 +89,18 @@ defmodule Cinder.Components.Shared do
     <span class={["inline-block transition-all duration-200", (@loading && "opacity-50" || "")]}>
       <.icon
         :if={@sort_direction == :asc}
-        name="hero-arrow-up"
-        class={[@theme.sort_arrow_class, @theme.sort_arrow_active_class]}
+        name={Map.get(@theme, :sort_asc_icon_name, "hero-arrow-up")}
+        class={Map.get(@theme, :sort_asc_icon_class, "w-3 h-3 inline text-blue-600")}
       />
       <.icon
         :if={@sort_direction == :desc}
-        name="hero-arrow-down"
-        class={[@theme.sort_arrow_class, @theme.sort_arrow_active_class]}
+        name={Map.get(@theme, :sort_desc_icon_name, "hero-arrow-down")}
+        class={Map.get(@theme, :sort_desc_icon_class, "w-3 h-3 inline text-blue-600")}
       />
       <.icon
         :if={@sort_direction == nil}
-        name="hero-arrows-up-down"
-        class={[@theme.sort_arrow_class, @theme.sort_arrow_inactive_class]}
+        name={Map.get(@theme, :sort_none_icon_name, "hero-arrows-up-down")}
+        class={Map.get(@theme, :sort_none_icon_class, "w-3 h-3 inline opacity-30")}
       />
     </span>
     """
