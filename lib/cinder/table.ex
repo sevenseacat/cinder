@@ -234,6 +234,7 @@ defmodule Cinder.Table do
   """
 
   use Phoenix.Component
+  alias Cinder.Helpers
 
   attr(:resource, :atom,
     default: nil,
@@ -342,13 +343,13 @@ defmodule Cinder.Table do
         actor={@resolved_options.actor}
         tenant={@resolved_options.tenant}
         page_size={@page_size}
-        theme={resolve_theme(@theme)}
-        url_filters={get_url_filters(@url_state)}
-        url_page={get_url_page(@url_state)}
-        url_sort={get_url_sort(@url_state)}
-        url_raw_params={get_raw_url_params(@url_state)}
+        theme={Helpers.resolve_theme(@theme)}
+        url_filters={Helpers.get_url_filters(@url_state)}
+        url_page={Helpers.get_url_page(@url_state)}
+        url_sort={Helpers.get_url_sort(@url_state)}
+        url_raw_params={Helpers.get_raw_url_params(@url_state)}
         query_opts={@query_opts}
-        on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
+        on_state_change={Helpers.get_state_change_handler(@url_state, @on_state_change, @id)}
         show_filters={@show_filters}
         show_pagination={@show_pagination}
         loading_message={@loading_message}
@@ -503,91 +504,9 @@ defmodule Cinder.Table do
     end
   end
 
-  # Resolve theme configuration
-  defp resolve_theme("default") do
-    # Use configured default theme when theme is "default"
-    default_theme = Cinder.Theme.get_default_theme()
-    Cinder.Theme.merge(default_theme)
-  end
-
-  defp resolve_theme(theme) when is_binary(theme) do
-    Cinder.Theme.merge(theme)
-  end
-
-  defp resolve_theme(theme) when is_atom(theme) and not is_nil(theme) do
-    Cinder.Theme.merge(theme)
-  end
-
-  defp resolve_theme(nil) do
-    # Use configured default theme when no explicit theme provided
-    default_theme = Cinder.Theme.get_default_theme()
-    Cinder.Theme.merge(default_theme)
-  end
-
-  defp resolve_theme(_), do: Cinder.Theme.merge("default")
-
-  # URL state helpers - extract state from URL state object
-  defp get_url_filters(url_state) when is_map(url_state) do
-    Map.get(url_state, :filters, %{})
-  end
-
-  defp get_url_filters(_url_state), do: %{}
-
-  defp get_url_page(url_state) when is_map(url_state) do
-    Map.get(url_state, :current_page, nil)
-  end
-
-  defp get_url_page(_url_state), do: nil
-
-  defp get_url_sort(url_state) when is_map(url_state) do
-    sort = Map.get(url_state, :sort_by, [])
-
-    case sort do
-      [] -> nil
-      sort -> sort
-    end
-  end
-
-  defp get_url_sort(_url_state), do: nil
-
-  defp get_raw_url_params(url_state) when is_map(url_state) do
-    Map.get(url_state, :filters, %{})
-  end
-
-  defp get_raw_url_params(_url_state), do: %{}
-
-  defp get_state_change_handler(url_state, custom_handler, _table_id) when is_map(url_state) do
-    # Return the callback atom that UrlManager expects
-    # UrlManager will send {:table_state_change, table_id, encoded_state}
-    if custom_handler do
-      custom_handler
-    else
-      :table_state_change
-    end
-  end
-
-  defp get_state_change_handler(_url_state, custom_handler, _table_id) do
-    custom_handler
-  end
-
   # Query normalization and validation helpers
   defp normalize_query_params(resource, query) do
-    case {resource, query} do
-      {nil, nil} ->
-        raise ArgumentError, "Either :resource or :query must be provided to Cinder.Table.table"
-
-      {resource, nil} when not is_nil(resource) ->
-        # Convert resource to query
-        Ash.Query.new(resource)
-
-      {nil, query} when not is_nil(query) ->
-        # Use provided query directly
-        query
-
-      {resource, query} when not is_nil(resource) and not is_nil(query) ->
-        raise ArgumentError,
-              "Cannot provide both :resource and :query to Cinder.Table.table. Use one or the other."
-    end
+    Helpers.normalize_query_params(resource, query)
   end
 
   defp extract_resource_from_query(%Ash.Query{resource: resource}), do: resource

@@ -41,6 +41,7 @@ That's it! Cinder automatically provides:
 - **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel) plus powerful DSL for custom themes
 - **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
 - **⚡ Real-time Filtering**: Six filter types with debounced updates
+- **🃏 Card Layouts**: Alternative card-based layouts with the same filtering, sorting, and pagination features
 - **🔐 Ash Integration**: Native support for Ash Framework resources and authorization
 
 ## Installation
@@ -90,6 +91,25 @@ The installer will automatically update your Tailwind configuration to include C
   <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
   <:col :let={user} field="created_at" sort>{user.created_at}</:col>
 </Cinder.Table.table>
+```
+
+### Basic Cards
+
+For card-based layouts, use `Cinder.Cards`:
+
+```elixir
+<Cinder.Cards.cards resource={MyApp.User} actor={@current_user}>
+  <:prop field="name" filter sort />
+  <:prop field="email" filter />
+  <:prop field="profile__country" filter />
+  <:card :let={user}>
+    <div class="user-card">
+      <h3>{user.name}</h3>
+      <p>{user.email}</p>
+      <p>Country: {user.profile.country}</p>
+    </div>
+  </:card>
+</Cinder.Cards.cards>
 ```
 
 ### Advanced Query Usage
@@ -161,7 +181,9 @@ end
 ## Documentation
 
 - **`Cinder.Table`** - All the configuration options for `table` components and `col` slots.
+- **`Cinder.Cards`** - All the configuration options for `cards` components and `prop` slots.
 - **[Complete Examples](docs/examples.md)** - Comprehensive usage examples for all features
+- **[Card Layouts](docs/cards.md)** - How to use card-based layouts with filtering and sorting
 - **[Theming Guide](docs/theming.md)** - How to develop and use table themes
 - **[Module Documentation](https://hexdocs.pm/cinder)** - Full API reference
 - **[Hex Package](https://hex.pm/packages/cinder)** - Package information
