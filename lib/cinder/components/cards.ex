@@ -28,6 +28,7 @@ defmodule Cinder.Components.Cards do
     # Sort indicators (reused from existing Sorting component)
     :sort_indicator_class,
     :sort_arrow_wrapper_class,
+    :sort_arrow_loading_class,
     :sort_asc_icon_name,
     :sort_asc_icon_class,
     :sort_desc_icon_name,
@@ -75,7 +76,8 @@ defmodule Cinder.Components.Cards do
 
       # Sort indicators
       sort_indicator_class: "ml-1 inline-flex items-center align-baseline",
-      sort_arrow_wrapper_class: "inline-flex items-center",
+      sort_arrow_wrapper_class: "inline-flex items-center transition-all duration-200",
+      sort_arrow_loading_class: "opacity-50",
       sort_asc_icon_name: "hero-chevron-up",
       sort_asc_icon_class: "w-3 h-3 text-blue-600",
       sort_desc_icon_name: "hero-chevron-down",

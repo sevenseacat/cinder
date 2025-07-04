@@ -14,8 +14,11 @@ defmodule Cinder.Components.Pagination do
     :pagination_button_class,
     :pagination_info_class,
     :pagination_count_class,
+    :pagination_controls_class,
     :pagination_nav_class,
-    :pagination_current_class
+    :pagination_current_class,
+    :pagination_active_class,
+    :pagination_icon_class
   ]
 
   @doc """
@@ -34,8 +37,11 @@ defmodule Cinder.Components.Pagination do
       pagination_button_class: "",
       pagination_info_class: "",
       pagination_count_class: "",
+      pagination_controls_class: "flex items-center space-x-1",
       pagination_nav_class: "",
-      pagination_current_class: ""
+      pagination_current_class: "",
+      pagination_active_class: "",
+      pagination_icon_class: "w-4 h-4"
     }
   end
 

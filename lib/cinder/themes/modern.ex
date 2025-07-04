@@ -30,6 +30,11 @@ defmodule Cinder.Themes.Modern do
     set :empty_class, "text-center py-12 text-gray-500 italic"
     set :error_container_class, "bg-red-50 border border-red-200 rounded-lg p-4 text-red-700"
     set :error_message_class, "text-sm"
+    
+    # Interactive element styling
+    set :sort_header_class, "cursor-pointer select-none"
+    set :sort_header_loading_class, "opacity-75"
+    set :tbody_loading_class, "opacity-75"
   end
 
   component Cinder.Components.Filters do
@@ -131,7 +136,8 @@ defmodule Cinder.Themes.Modern do
 
     # Sort indicators
     set :sort_indicator_class, "ml-2 inline-flex items-center align-baseline"
-    set :sort_arrow_wrapper_class, "inline-flex items-center"
+    set :sort_arrow_wrapper_class, "inline-flex items-center transition-all duration-200"
+    set :sort_arrow_loading_class, "opacity-50"
     set :sort_asc_icon_name, "hero-chevron-up"
     set :sort_asc_icon_class, "w-3 h-3 text-blue-600"
     set :sort_desc_icon_name, "hero-chevron-down"
@@ -158,7 +164,9 @@ defmodule Cinder.Themes.Modern do
     set :pagination_info_class, "text-sm text-gray-600 font-medium"
     set :pagination_count_class, "text-xs text-gray-500 ml-2"
 
-    set :pagination_nav_class, "flex items-center space-x-1"
+    set :pagination_controls_class, "flex items-center space-x-1"
+    set :pagination_icon_class, "w-4 h-4"
+    set :pagination_active_class, "bg-blue-600 border-blue-600 text-white"
 
     set :pagination_button_class,
         "px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"

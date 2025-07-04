@@ -22,6 +22,11 @@ defmodule Cinder.Components.Table do
     :th_class,
     :td_class,
 
+    # Interactive elements
+    :sort_header_class,
+    :sort_header_loading_class,
+    :tbody_loading_class,
+
     # States
     :loading_class,
     :empty_class,
@@ -50,6 +55,9 @@ defmodule Cinder.Components.Table do
       row_class: "",
       th_class: "text-left whitespace-nowrap",
       td_class: "",
+      sort_header_class: "cursor-pointer select-none",
+      sort_header_loading_class: "opacity-75",
+      tbody_loading_class: "opacity-75",
       loading_class: "text-center py-4",
       empty_class: "text-center py-4",
       error_container_class: "text-red-600 text-sm",

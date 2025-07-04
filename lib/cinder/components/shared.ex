@@ -86,7 +86,7 @@ defmodule Cinder.Components.Shared do
   """
   def sort_arrow(assigns) do
     ~H"""
-    <span class={["inline-block transition-all duration-200", (@loading && "opacity-50" || "")]}>
+    <span class={[Map.get(@theme, :sort_arrow_wrapper_class, "inline-block transition-all duration-200"), (@loading && Map.get(@theme, :sort_arrow_loading_class, "opacity-50") || "")]}>
       <.icon
         :if={@sort_direction == :asc}
         name={Map.get(@theme, :sort_asc_icon_name, "hero-arrow-up")}

@@ -64,7 +64,7 @@ defmodule Cinder.Table.LiveComponent do
             <tr class={@theme.header_row_class} {@theme.header_row_data}>
               <th :for={column <- @columns} class={[@theme.th_class, column.class]} {@theme.th_data}>
                 <div :if={column.sortable}
-                     class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
+                     class={[Map.get(@theme, :sort_header_class, "cursor-pointer select-none"), (@loading && Map.get(@theme, :sort_header_loading_class, "opacity-75") || "")]}
                      phx-click="toggle_sort"
                      phx-value-key={column.field}
                      phx-target={@myself}>
@@ -79,7 +79,7 @@ defmodule Cinder.Table.LiveComponent do
               </th>
             </tr>
           </thead>
-          <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} {@theme.tbody_data}>
+          <tbody class={[@theme.tbody_class, (@loading && Map.get(@theme, :tbody_loading_class, "opacity-75") || "")]} {@theme.tbody_data}>
             <tr :for={item <- @data}
                 class={get_row_classes(@theme.row_class, @row_click)}
                 {@theme.row_data}
