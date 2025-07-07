@@ -460,8 +460,7 @@ defmodule Cinder.Table.LiveComponent do
     """
   end
 
-  # Simple heroicon component
-  defp icon(%{name: "hero-" <> _} = assigns) do
+  defp icon(%{name: _, class: _} = assigns) do
     ~H"""
     <span class={[@name, @class]} />
     """
