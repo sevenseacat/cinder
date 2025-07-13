@@ -49,9 +49,15 @@ defmodule Cinder.Components.BaseLiveComponent do
 
       @impl true
       def handle_event("filter_change", %{"filters" => filter_params}, socket) do
-        # Use FilterManager to process filters with proper column definitions
-        new_filters = Cinder.FilterManager.process_filter_params(filter_params, socket.assigns.columns)
-        
+        # Use FilterManager to convert filters to proper filter map structure
+        new_filters = Cinder.FilterManager.params_to_filters(filter_params, socket.assigns.columns)
+
+        socket =
+          socket
+          |> assign(:filters, new_filters)
+          |> assign(:current_page, 1)
+          |> load_data()
+
         socket = notify_state_change(socket, new_filters)
         {:noreply, socket}
       end

@@ -88,26 +88,59 @@ defmodule Cinder.UrlManager do
   """
   def encode_filters(filters) when is_map(filters) do
     filters
+    |> Enum.filter(fn
+      {_key, filter} when is_map(filter) -> 
+        Map.has_key?(filter, :type) and not is_nil(Map.get(filter, :type))
+      _ -> false
+    end)
     |> Enum.map(fn {key, filter} ->
       encoded_value =
-        case filter.type do
-          :multi_select when is_list(filter.value) ->
-            Enum.join(filter.value, ",")
+        case Map.get(filter, :type) do
+          :multi_select ->
+            value = Map.get(filter, :value, [])
+            if is_list(value) do
+              Enum.join(value, ",")
+            else
+              to_string(value)
+            end
 
-          :multi_checkboxes when is_list(filter.value) ->
-            Enum.join(filter.value, ",")
+          :multi_checkboxes ->
+            value = Map.get(filter, :value, [])
+            if is_list(value) do
+              Enum.join(value, ",")
+            else
+              to_string(value)
+            end
 
           :date_range ->
-            "#{filter.value.from},#{filter.value.to}"
+            value = Map.get(filter, :value, %{})
+            if is_map(value) do
+              "#{Map.get(value, :from, "")},#{Map.get(value, :to, "")}"
+            else
+              to_string(value)
+            end
 
           :number_range ->
-            "#{filter.value.min},#{filter.value.max}"
+            value = Map.get(filter, :value, %{})
+            if is_map(value) do
+              "#{Map.get(value, :min, "")},#{Map.get(value, :max, "")}"
+            else
+              to_string(value)
+            end
 
           _ ->
-            to_string(filter.value)
+            to_string(Map.get(filter, :value, ""))
         end
 
-      {String.to_atom(key), encoded_value}
+      # Safely convert key to atom
+      atom_key = 
+        cond do
+          is_atom(key) -> key
+          is_binary(key) -> String.to_atom(key)
+          true -> String.to_atom(to_string(key))
+        end
+
+      {atom_key, encoded_value}
     end)
     |> Enum.into(%{})
   end

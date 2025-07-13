@@ -96,7 +96,8 @@ defmodule Cinder.Cards.LiveComponent do
         filter_options: prop.filter_options,
         sortable: prop.sortable,
         class: "",
-        filter_fn: Map.get(prop, :filter_fn, nil)
+        filter_fn: Map.get(prop, :filter_fn, nil),
+        sort_fn: Map.get(prop, :sort_fn, nil)
       }
     end)
   end
