@@ -6,26 +6,28 @@ defmodule Cinder do
 
   The simplest table requires only a resource (or query) and actor:
 
-      # Using resource parameter
-      <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-        <:col :let={user} field="name" filter sort>{user.name}</:col>
-        <:col :let={user} field="email" filter>{user.email}</:col>
-        <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-      </Cinder.Table.table>
+  ```heex
+  # Using resource parameter
+  <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+  </Cinder.Table.table>
 
-      # Using query parameter
-      <Cinder.Table.table query={MyApp.User} actor={@current_user}>
-        <:col :let={user} field="name" filter sort>{user.name}</:col>
-        <:col :let={user} field="email" filter>{user.email}</:col>
-        <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-      </Cinder.Table.table>
+  # Using query parameter
+  <Cinder.Table.table query={MyApp.User} actor={@current_user}>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+  </Cinder.Table.table>
 
-      # Advanced query usage
-      <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
-        <:col :let={user} field="name" filter sort>{user.name}</:col>
-        <:col :let={user} field="email" filter>{user.email}</:col>
-        <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-      </Cinder.Table.table>
+  # Advanced query usage
+  <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+  </Cinder.Table.table>
+  ```
 
   ## Custom Filters
 

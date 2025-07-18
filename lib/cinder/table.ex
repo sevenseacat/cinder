@@ -9,35 +9,39 @@ defmodule Cinder.Table do
 
   ### With Resource Parameter (Simple)
 
-      <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-        <:col field="created_at" sort>Created</:col>
-      </Cinder.Table.table>
+  ```heex
+  <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+    <:col field="created_at" sort>Created</:col>
+  </Cinder.Table.table>
+  ```
 
   ### With Query Parameter (Advanced)
 
-      <!-- Using resource as query -->
-      <Cinder.Table.table query={MyApp.User} actor={@current_user}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-        <:col field="created_at" sort>Created</:col>
-      </Cinder.Table.table>
+  ```heex
+  <!-- Using resource as query -->
+  <Cinder.Table.table query={MyApp.User} actor={@current_user}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+    <:col field="created_at" sort>Created</:col>
+  </Cinder.Table.table>
 
-      <!-- Pre-configured query with custom read action -->
-      <Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-        <:col field="created_at" sort>Created</:col>
-      </Cinder.Table.table>
+  <!-- Pre-configured query with custom read action -->
+  <Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+    <:col field="created_at" sort>Created</:col>
+  </Cinder.Table.table>
 
-      <!-- Query with base filters -->
-      <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(department: "Engineering")} actor={@current_user}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-        <:col field="department.name" filter>Department</:col>
-        <:col field="profile__country" filter>Country</:col>
-      </Cinder.Table.table>
+  <!-- Query with base filters -->
+  <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(department: "Engineering")} actor={@current_user}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+    <:col field="department.name" filter>Department</:col>
+    <:col field="profile__country" filter>Country</:col>
+  </Cinder.Table.table>
+  ```
 
   ## Field Types
 
@@ -45,93 +49,105 @@ defmodule Cinder.Table do
 
   Use dot notation to access related resource fields:
 
-      <:col field="department.name" filter sort>Department</:col>
-      <:col field="manager.email" filter>Manager Email</:col>
-      <:col field="office.building.address" filter>Office Address</:col>
+  ```heex
+  <:col field="department.name" filter sort>Department</:col>
+  <:col field="manager.email" filter>Manager Email</:col>
+  <:col field="office.building.address" filter>Office Address</:col>
+  ```
 
   ### Embedded Resource Fields
 
   Use double underscore notation for embedded resource fields:
 
-      <:col field="profile__bio" filter>Bio</:col>
-      <:col field="settings__country" filter>Country</:col>
-      <:col field="metadata__preferences__theme" filter>Theme</:col>
+  ```heex
+  <:col field="profile__bio" filter>Bio</:col>
+  <:col field="settings__country" filter>Country</:col>
+  <:col field="metadata__preferences__theme" filter>Theme</:col>
+  ```
 
   Embedded enum fields are automatically detected and rendered as select filters:
 
-      <!-- If profile.country is an Ash.Type.Enum, this becomes a select filter -->
-      <:col field="profile__country" filter>Country</:col>
+  ```heex
+  <!-- If profile.country is an Ash.Type.Enum, this becomes a select filter -->
+  <:col field="profile__country" filter>Country</:col>
+  ```
 
   ## Advanced Configuration
 
-      <Cinder.Table.table
-        resource={MyApp.Album}
-        actor={@current_user}
-        url_state={@url_state}
-        page_size={50}
-        theme="modern"
-      >
-        <:col field="title" filter sort class="w-1/2">
-          Title
-        </:col>
-        <:col field="artist.name" filter sort>
-          Artist
-        </:col>
-        <:col field="genre" filter={:select}>
-          Genre
-        </:col>
-      </Cinder.Table.table>
+  ```heex
+  <Cinder.Table.table
+    resource={MyApp.Album}
+    actor={@current_user}
+    url_state={@url_state}
+    page_size={50}
+    theme="modern"
+  >
+    <:col field="title" filter sort class="w-1/2">
+      Title
+    </:col>
+    <:col field="artist.name" filter sort>
+      Artist
+    </:col>
+    <:col field="genre" filter={:select}>
+      Genre
+    </:col>
+  </Cinder.Table.table>
+  ```
 
   ## Complex Query Examples
 
-      <!-- Admin interface with authorization and tenant -->
-      <Cinder.Table.table
-        query={MyApp.User
-          |> Ash.Query.for_read(:admin_read, %{}, actor: @actor, authorize?: @authorizing)
-          |> Ash.Query.set_tenant(@tenant)
-          |> Ash.Query.filter(active: true)}
-        actor={@actor}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-        <:col field="last_login" sort>Last Login</:col>
-        <:col field="role" filter={:select}>Role</:col>
-      </Cinder.Table.table>
+  ```heex
+  <!-- Admin interface with authorization and tenant -->
+  <Cinder.Table.table
+    query={MyApp.User
+      |> Ash.Query.for_read(:admin_read, %{}, actor: @actor, authorize?: @authorizing)
+      |> Ash.Query.set_tenant(@tenant)
+      |> Ash.Query.filter(active: true)}
+    actor={@actor}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+    <:col field="last_login" sort>Last Login</:col>
+    <:col field="role" filter={:select}>Role</:col>
+  </Cinder.Table.table>
+  ```
 
   ## Multi-Tenant Examples
 
-      <!-- Simple tenant support -->
-      <Cinder.Table.table
-        resource={MyApp.User}
-        actor={@current_user}
-        tenant={@tenant}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-      </Cinder.Table.table>
+  ```heex
+  <!-- Simple tenant support -->
+  <Cinder.Table.table
+    resource={MyApp.User}
+    actor={@current_user}
+    tenant={@tenant}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+  </Cinder.Table.table>
 
-      <!-- Using Ash scope (only actor and tenant are extracted) -->
-      <Cinder.Table.table
-        resource={MyApp.User}
-        scope={%{actor: @current_user, tenant: @tenant}}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-      </Cinder.Table.table>
+  <!-- Using Ash scope (only actor and tenant are extracted) -->
+  <Cinder.Table.table
+    resource={MyApp.User}
+    scope={%{actor: @current_user, tenant: @tenant}}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+  </Cinder.Table.table>
 
-      <!-- Custom scope struct -->
-      <Cinder.Table.table
-        resource={MyApp.User}
-        scope={@my_scope}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-      </Cinder.Table.table>
+  <!-- Custom scope struct -->
+  <Cinder.Table.table
+    resource={MyApp.User}
+    scope={@my_scope}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+  </Cinder.Table.table>
 
-      <!-- Mixed usage (explicit overrides scope) -->
-      <Cinder.Table.table
-        resource={MyApp.User}
-        scope={@scope}
-        actor={@different_actor}>
-        <:col field="name" filter sort>Name</:col>
-        <:col field="email" filter>Email</:col>
-      </Cinder.Table.table>
+  <!-- Mixed usage (explicit overrides scope) -->
+  <Cinder.Table.table
+    resource={MyApp.User}
+    scope={@scope}
+    actor={@different_actor}>
+    <:col field="name" filter sort>Name</:col>
+    <:col field="email" filter>Email</:col>
+  </Cinder.Table.table>
+  ```
 
   ## Features
 
@@ -144,7 +160,7 @@ defmodule Cinder.Table do
 
   use Phoenix.LiveComponent
 
-  @doc """
+  @doc ~S"""
   Renders a data table with intelligent defaults.
 
   ## Attributes
@@ -219,14 +235,16 @@ defmodule Cinder.Table do
   Tables can be made interactive by providing a `row_click` function that will be
   executed when a row is clicked:
 
-      <Cinder.Table.table
-        resource={MyApp.Item}
-        actor={@current_user}
-        row_click={fn item -> JS.navigate(~p"/items/\#{item.id}") end}
-      >
-        <:col field="name" filter sort>Name</:col>
-        <:col field="description">Description</:col>
-      </Cinder.Table.table>
+  ```heex
+  <Cinder.Table.table
+    resource={MyApp.Item}
+    actor={@current_user}
+    row_click={fn item -> JS.navigate(~p"/items/#{item.id}") end}
+  >
+    <:col field="name" filter sort>Name</:col>
+    <:col field="description">Description</:col>
+  </Cinder.Table.table>
+  ```
 
   The `row_click` function receives the row item as its argument and should return
   a Phoenix.LiveView.JS command or similar action. When provided, rows will be
