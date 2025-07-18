@@ -43,10 +43,11 @@ defmodule Cinder.Theme do
 
   Individual tables can still override the configured default:
 
-      <Cinder.Table.table theme="dark" ...>
-        <!-- This table uses "dark" theme, ignoring the configured default -->
-      </Cinder.Table.table>
-
+  ```heex
+  <Cinder.Table.table theme="dark" ...>
+    <!-- This table uses "dark" theme, ignoring the configured default -->
+  </Cinder.Table.table>
+  ```
   """
 
   @type theme :: %{atom() => String.t()}
