@@ -113,8 +113,8 @@ Add interactivity with row clicks or action columns:
   actor={@current_user}
   row_click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
 >
-  <:col field="name" filter sort>Name</:col>
-  <:col field="email" filter>Email</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
 
   <!-- Action column - no field required -->
   <:col :let={user} label="Actions">
