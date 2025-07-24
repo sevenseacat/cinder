@@ -50,6 +50,8 @@ defmodule Cinder.MixProject do
       {:spark, "~> 2.0"},
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
+      {:makeup_eex, "~> 2.0", only: :dev},
+      {:makeup_html, ">= 0.0.0", only: :dev},
       {:igniter, "~> 0.5", only: [:dev, :test]},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:mimic, "~> 1.7", only: :test}

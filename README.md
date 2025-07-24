@@ -6,7 +6,7 @@ A powerful, intelligent data table component for Ash Framework resources, in you
 
 Cinder transforms complex data table requirements into simple, declarative markup. With automatic type inference and intelligent defaults, you can build feature-rich tables for Ash resources and queries, with minimal configuration.
 
-```elixir
+```heex
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
@@ -83,7 +83,7 @@ The installer will automatically update your Tailwind configuration to include C
 
 ### Basic Table
 
-```elixir
+```heex
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
@@ -96,7 +96,7 @@ The installer will automatically update your Tailwind configuration to include C
 
 For complex requirements, use the `query` parameter:
 
-```elixir
+```heex
 <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
@@ -107,7 +107,7 @@ For complex requirements, use the `query` parameter:
 
 Add interactivity with row clicks or action columns:
 
-```elixir
+```heex
 <Cinder.Table.table
   resource={MyApp.User}
   actor={@current_user}
