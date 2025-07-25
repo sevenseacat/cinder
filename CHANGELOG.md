@@ -6,6 +6,7 @@
 
 * Fix compilation issue caused by other libraries redefining the `uuid` shortcode (#17)
 * Cast all string-like fields to string before using them in queries. (#8)
+* Filters for array fields should be `filter_val in field_name`, not `field_name in filter_val`, eg. `"suspense" in tags`
 
 ## v0.4.0 (2025-06-27)
 

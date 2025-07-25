@@ -410,7 +410,44 @@ defmodule Cinder.Filter.Helpers do
 
     case operator do
       :equals ->
-        Ash.Query.filter(query, ^ref(field_atom) == ^value)
+        # Detect array fields and use containment logic
+        resource = query.resource
+
+        case get_field_type(resource, field_atom) do
+          {:array, _element_type} ->
+            # For array fields, use containment: value in array_field
+            # This handles the case where we want to find records where
+            # the array contains the selected value
+            case value do
+              "" ->
+                # Empty string - return unchanged query
+                query
+
+              nil ->
+                # Nil value - return unchanged query
+                query
+
+              _ ->
+                # Non-empty value: create containment filter
+                Ash.Query.filter(query, ^value in ^ref(field_atom))
+            end
+
+          _other_type ->
+            # Non-array fields use standard equality
+            case value do
+              "" ->
+                # Empty string - return unchanged query for consistency
+                query
+
+              nil ->
+                # Nil value - return unchanged query
+                query
+
+              _ ->
+                # Non-empty value: use standard equality
+                Ash.Query.filter(query, ^ref(field_atom) == ^value)
+            end
+        end
 
       :contains ->
         Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
@@ -434,10 +471,61 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, ^ref(field_atom) <= ^value)
 
       :in when is_list(value) ->
-        Ash.Query.filter(query, ^ref(field_atom) in ^value)
+        # Detect if this is an array field and handle accordingly
+        resource = query.resource
+
+        case get_field_type(resource, field_atom) do
+          {:array, _element_type} ->
+            # For array fields, we want: value in array_field (not array_field in [values])
+            # Handle multiple values with OR logic: (val1 in field) OR (val2 in field)
+            case value do
+              [] ->
+                # Empty array - return unchanged query
+                query
+
+              [single_value] ->
+                # Single value: value in field
+                Ash.Query.filter(query, ^single_value in ^ref(field_atom))
+
+              multiple_values ->
+                # Multiple values: (val1 in field) OR (val2 in field) OR ...
+                conditions =
+                  Enum.map(multiple_values, fn val ->
+                    expr(^val in ^ref(field_atom))
+                  end)
+
+                # Combine with OR
+                combined_condition =
+                  Enum.reduce(conditions, fn condition, acc ->
+                    expr(^acc or ^condition)
+                  end)
+
+                Ash.Query.filter(query, ^combined_condition)
+            end
+
+          _other_type ->
+            # Non-array fields use standard logic: field in [values]
+            case value do
+              [] ->
+                # Empty array - return unchanged query
+                query
+
+              _ ->
+                # Non-empty values: use standard IN operator
+                Ash.Query.filter(query, ^ref(field_atom) in ^value)
+            end
+        end
 
       _ ->
         query
+    end
+  end
+
+  # Helper function to get field type information
+  defp get_field_type(resource, field_atom) do
+    case Ash.Resource.Info.attribute(resource, field_atom) do
+      %{type: field_type} -> field_type
+      nil -> :unknown
     end
   end
 
