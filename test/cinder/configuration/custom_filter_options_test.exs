@@ -28,7 +28,7 @@ defmodule Cinder.CustomFilterOptionsTest do
   end
 
   describe "custom filter_options in slot" do
-    test "slot with custom filter_options overrides inferred options" do
+    test "slot with custom filter_options merges with inferred options" do
       # Create a slot configuration with custom multiselect options
       slot_config = %{
         field: "type",
@@ -44,15 +44,19 @@ defmodule Cinder.CustomFilterOptionsTest do
 
       parsed_column = Cinder.Column.parse_column(slot_config, TestWeapon)
 
-      # Should use the custom options instead of auto-inferred enum values
+      # Should merge custom options with inferred defaults
       assert parsed_column.filter_type == :multi_select
 
-      assert parsed_column.filter_options == [
-               options: [
-                 {"Blade", "short_blade"},
-                 {"Blunt", "blunt_1_hand"}
-               ]
+      # Should have custom options plus inferred defaults
+      assert Keyword.get(parsed_column.filter_options, :options) == [
+               {"Blade", "short_blade"},
+               {"Blunt", "blunt_1_hand"}
              ]
+
+      # Should also have inferred defaults
+      assert Keyword.get(parsed_column.filter_options, :prompt) == "All Type"
+      assert Keyword.get(parsed_column.filter_options, :match_mode) == :any
+      assert Keyword.get(parsed_column.filter_options, :class) == ""
     end
 
     test "slot without custom filter_options uses inferred enum options" do

@@ -218,13 +218,18 @@ defmodule Cinder.Column do
         :options
       ])
 
-    # Handle filter_options specially - only override if slot has non-empty options
+    # Handle filter_options specially - merge slot options with inferred options
     slot_config =
       case Map.get(slot_config, :filter_options, []) do
-        # Let inferred options take precedence
-        [] -> Map.delete(slot_config, :filter_options)
-        # Use slot options
-        _non_empty -> slot_config
+        # Let inferred options take precedence when slot has no options
+        [] ->
+          Map.delete(slot_config, :filter_options)
+
+        # Merge slot options with inferred options when slot has options
+        slot_options ->
+          inferred_options = Map.get(inferred, :filter_options, [])
+          merged_options = Keyword.merge(inferred_options, slot_options)
+          Map.put(slot_config, :filter_options, merged_options)
       end
 
     Map.merge(inferred, slot_config)
