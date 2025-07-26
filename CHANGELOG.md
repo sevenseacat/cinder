@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+* Add `match_mode` option to multi-select and multi-checkboxes filters for array fields
+
 ### Bug fixes
 
 * Fix compilation issue caused by other libraries redefining the `uuid` shortcode (#17)

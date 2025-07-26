@@ -231,7 +231,8 @@ defmodule Cinder.UrlManagerTest do
       assert result["tags"] == %{
                type: :multi_select,
                value: ["tag1", "tag2", "tag3"],
-               operator: :in
+               operator: :in,
+               match_mode: :any
              }
     end
 
@@ -547,7 +548,12 @@ defmodule Cinder.UrlManagerTest do
       original_state = %{
         filters: %{
           "title" => %{type: :text, value: "test", operator: :contains, case_sensitive: false},
-          "tags" => %{type: :multi_select, value: ["tag1", "tag2"], operator: :in},
+          "tags" => %{
+            type: :multi_select,
+            value: ["tag1", "tag2"],
+            operator: :in,
+            match_mode: :any
+          },
           "created_at" => %{
             type: :date_range,
             value: %{from: "2023-01-01", to: "2023-12-31"},

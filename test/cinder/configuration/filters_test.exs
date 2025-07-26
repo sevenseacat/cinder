@@ -227,7 +227,8 @@ defmodule Cinder.FiltersTest do
       assert result == %{
                type: :multi_select,
                value: ["option1", "option2"],
-               operator: :in
+               operator: :in,
+               match_mode: :any
              }
 
       # Single string input (converted to list)
@@ -236,7 +237,8 @@ defmodule Cinder.FiltersTest do
       assert result == %{
                type: :multi_select,
                value: ["option1"],
-               operator: :in
+               operator: :in,
+               match_mode: :any
              }
 
       # Empty list should return nil
@@ -274,7 +276,8 @@ defmodule Cinder.FiltersTest do
       assert result == %{
                type: :multi_checkboxes,
                value: ["option1", "option2"],
-               operator: :in
+               operator: :in,
+               match_mode: :any
              }
 
       result = MultiCheckboxes.process(["option1"], column)
@@ -282,7 +285,8 @@ defmodule Cinder.FiltersTest do
       assert result == %{
                type: :multi_checkboxes,
                value: ["option1"],
-               operator: :in
+               operator: :in,
+               match_mode: :any
              }
 
       assert MultiCheckboxes.process([], column) == nil
@@ -669,13 +673,15 @@ defmodule Cinder.FiltersTest do
       assert result["tags"] == %{
                type: :multi_select,
                value: ["tag1", "tag2"],
-               operator: :in
+               operator: :in,
+               match_mode: :any
              }
 
       assert result["categories"] == %{
                type: :multi_checkboxes,
                value: ["cat1", "cat2"],
-               operator: :in
+               operator: :in,
+               match_mode: :any
              }
 
       # Number range filter (combined from min/max)

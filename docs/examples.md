@@ -296,9 +296,13 @@ For multiple selection filtering, choose between:
 
 ### Multi-Select Filter
 
+#### Basic Multi-Select (ANY Logic)
+
+By default, multi-select filters use "ANY" logic - records are shown if they contain at least one of the selected values:
+
 ```elixir
 <Cinder.Table.table resource={MyApp.Book} actor={@current_user}>
-  <!-- Multi-select for tags -->
+  <!-- Multi-select for tags with default ANY logic -->
   <:col
     field="tags"
     filter={:multi_select}
@@ -315,8 +319,39 @@ For multiple selection filtering, choose between:
   >
     {Enum.join(book.tags, ", ")}
   </:col>
+</Cinder.Table.table>
+```
 
-  <!-- Multi-select for categories -->
+#### Multi-Select with ALL Logic
+
+Use `match_mode: :all` to show only records that contain ALL selected values:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Book} actor={@current_user}>
+  <!-- Multi-select requiring ALL selected tags -->
+  <:col
+    field="tags"
+    filter={:multi_select}
+    filter_options={[
+      options: [
+        {"Fiction", "fiction"},
+        {"Bestseller", "bestseller"},
+        {"Award Winner", "award_winner"},
+        {"New Release", "new_release"}
+      ],
+      match_mode: :all  # Records must contain ALL selected tags
+    ]}
+  >
+    <div class="flex flex-wrap gap-1">
+      {for tag <- book.tags do}
+        <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+          {String.capitalize(String.replace(tag, "_", " "))}
+        </span>
+      {/for}
+    </div>
+  </:col>
+
+  <!-- Multi-select for categories with ANY logic (explicit) -->
   <:col
     :let={book}
     field="categories"
@@ -327,7 +362,8 @@ For multiple selection filtering, choose between:
         {"New Release", "new_release"},
         {"Award Winner", "award_winner"},
         {"Staff Pick", "staff_pick"}
-      ]
+      ],
+      match_mode: :any  # Records with ANY selected category (default)
     ]}
   >
     <div class="flex flex-wrap gap-1">
@@ -340,6 +376,67 @@ For multiple selection filtering, choose between:
   </:col>
 </Cinder.Table.table>
 ```
+
+#### Multi-Checkboxes with Match Mode
+
+The `multi_checkboxes` filter also supports the same `match_mode` options:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Book} actor={@current_user}>
+  <!-- Multi-checkboxes with ANY logic (default) -->
+  <:col
+    field="genres"
+    filter={:multi_checkboxes}
+    filter_options={[
+      options: [
+        {"Science Fiction", "sci_fi"},
+        {"Fantasy", "fantasy"},
+        {"Mystery", "mystery"},
+        {"Romance", "romance"}
+      ],
+      match_mode: :any  # Books with ANY selected genre
+    ]}
+  >
+    {Enum.join(book.genres, ", ")}
+  </:col>
+
+  <!-- Multi-checkboxes with ALL logic -->
+  <:col
+    field="awards"
+    filter={:multi_checkboxes}
+    filter_options={[
+      options: [
+        {"Hugo Award", "hugo"},
+        {"Nebula Award", "nebula"},
+        {"World Fantasy Award", "wfa"}
+      ],
+      match_mode: :all  # Books with ALL selected awards
+    ]}
+  >
+    <div class="flex flex-wrap gap-1">
+      {for award <- book.awards do}
+        <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+          {award}
+        </span>
+      {/for}
+    </div>
+  </:col>
+</Cinder.Table.table>
+```
+
+#### Match Mode Comparison
+
+Both `multi_select` and `multi_checkboxes` support the same match mode options:
+
+- **`match_mode: :any`** (default): Shows records containing **at least one** of the selected values
+  - Example: Selecting "Fiction" and "Romance" shows books tagged with either "Fiction" OR "Romance" (or both)
+  
+- **`match_mode: :all`**: Shows records containing **all** of the selected values
+  - Example: Selecting "Fiction" and "Bestseller" shows only books tagged with both "Fiction" AND "Bestseller"
+
+This is particularly useful for:
+- **ANY mode**: Finding books in multiple genres or categories
+- **ALL mode**: Finding books that meet multiple criteria (e.g., "Fiction" AND "Award Winner")
 
 ### Boolean Filter
 

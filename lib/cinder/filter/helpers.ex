@@ -302,28 +302,28 @@ defmodule Cinder.Filter.Helpers do
       build_ash_filter(query, "settings[:address][:street]", "Main St", :contains)
 
   """
-  def build_ash_filter(query, field, value, operator) when is_binary(field) do
+  def build_ash_filter(query, field, value, operator, opts \\ []) when is_binary(field) do
     require Ash.Query
     import Ash.Expr
 
     case parse_field_notation(field) do
       {:direct, field_name} ->
         field_atom = String.to_atom(field_name)
-        apply_operator_to_field(query, field_atom, value, operator)
+        apply_operator_to_field(query, field_atom, value, operator, opts)
 
       {:relationship, rel_path, field_name} ->
         rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
         field_atom = String.to_atom(field_name)
-        apply_operator_to_relationship(query, rel_path_atoms, field_atom, value, operator)
+        apply_operator_to_relationship(query, rel_path_atoms, field_atom, value, operator, opts)
 
       {:embedded, embed_field, field_name} ->
         embed_atom = String.to_atom(embed_field)
         field_atom = String.to_atom(field_name)
-        apply_operator_to_embedded(query, embed_atom, field_atom, value, operator)
+        apply_operator_to_embedded(query, embed_atom, field_atom, value, operator, opts)
 
       {:nested_embedded, embed_field, field_path} ->
         embed_atom = String.to_atom(embed_field)
-        apply_operator_to_nested_embedded(query, embed_atom, field_path, value, operator)
+        apply_operator_to_nested_embedded(query, embed_atom, field_path, value, operator, opts)
 
       {:relationship_embedded, rel_path, embed_field, field_name} ->
         rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
@@ -336,7 +336,8 @@ defmodule Cinder.Filter.Helpers do
           embed_atom,
           field_atom,
           value,
-          operator
+          operator,
+          opts
         )
 
       {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
@@ -349,7 +350,8 @@ defmodule Cinder.Filter.Helpers do
           embed_atom,
           field_path,
           value,
-          operator
+          operator,
+          opts
         )
 
       {:invalid, _} ->
@@ -358,7 +360,7 @@ defmodule Cinder.Filter.Helpers do
     end
   end
 
-  defp apply_operator_to_relationship(query, rel_path, field_atom, value, operator) do
+  defp apply_operator_to_relationship(query, rel_path, field_atom, value, operator, _opts) do
     require Ash.Query
     import Ash.Expr
 
@@ -404,7 +406,7 @@ defmodule Cinder.Filter.Helpers do
     end
   end
 
-  defp apply_operator_to_field(query, field_atom, value, operator) do
+  defp apply_operator_to_field(query, field_atom, value, operator, opts) do
     require Ash.Query
     import Ash.Expr
 
@@ -477,28 +479,40 @@ defmodule Cinder.Filter.Helpers do
         case get_field_type(resource, field_atom) do
           {:array, _element_type} ->
             # For array fields, we want: value in array_field (not array_field in [values])
-            # Handle multiple values with OR logic: (val1 in field) OR (val2 in field)
+            # Handle multiple values with AND or OR logic based on match_mode
+            match_mode = Keyword.get(opts, :match_mode, :any)
+
             case value do
               [] ->
                 # Empty array - return unchanged query
                 query
 
               [single_value] ->
-                # Single value: value in field
+                # Single value: value in field (same for both AND/OR modes)
                 Ash.Query.filter(query, ^single_value in ^ref(field_atom))
 
               multiple_values ->
-                # Multiple values: (val1 in field) OR (val2 in field) OR ...
+                # Multiple values: combine based on match_mode
                 conditions =
                   Enum.map(multiple_values, fn val ->
                     expr(^val in ^ref(field_atom))
                   end)
 
-                # Combine with OR
+                # Combine with AND or OR based on match_mode
                 combined_condition =
-                  Enum.reduce(conditions, fn condition, acc ->
-                    expr(^acc or ^condition)
-                  end)
+                  case match_mode do
+                    :all ->
+                      # ALL mode: (val1 in field) AND (val2 in field) AND ...
+                      Enum.reduce(conditions, fn condition, acc ->
+                        expr(^acc and ^condition)
+                      end)
+
+                    _ ->
+                      # ANY mode (default): (val1 in field) OR (val2 in field) OR ...
+                      Enum.reduce(conditions, fn condition, acc ->
+                        expr(^acc or ^condition)
+                      end)
+                  end
 
                 Ash.Query.filter(query, ^combined_condition)
             end
@@ -803,7 +817,7 @@ defmodule Cinder.Filter.Helpers do
   end
 
   # Apply operators to embedded fields
-  defp apply_operator_to_embedded(query, embed_atom, field_atom, value, operator) do
+  defp apply_operator_to_embedded(query, embed_atom, field_atom, value, operator, _opts) do
     require Ash.Query
     import Ash.Expr
 
@@ -841,7 +855,14 @@ defmodule Cinder.Filter.Helpers do
   end
 
   # Apply operators to nested embedded fields
-  defp apply_operator_to_nested_embedded(query, embed_atom, field_path, value, operator) do
+  defp apply_operator_to_nested_embedded(
+         query,
+         embed_atom,
+         field_path,
+         value,
+         operator,
+         _opts
+       ) do
     require Ash.Query
     import Ash.Expr
 
@@ -888,7 +909,8 @@ defmodule Cinder.Filter.Helpers do
          embed_atom,
          field_atom,
          value,
-         operator
+         operator,
+         _opts
        ) do
     require Ash.Query
     import Ash.Expr
@@ -960,7 +982,8 @@ defmodule Cinder.Filter.Helpers do
          embed_atom,
          field_path,
          value,
-         operator
+         operator,
+         _opts
        ) do
     require Ash.Query
     import Ash.Expr

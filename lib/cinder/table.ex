@@ -218,7 +218,9 @@ defmodule Cinder.Table do
 
   **Filter Type Selection:**
   - `:multi_select` - Modern tag-based interface with dropdown (default for array types)
+    - Supports `match_mode: :any` (default) for OR logic or `match_mode: :all` for AND logic
   - `:multi_checkboxes` - Traditional checkbox interface for multiple selection
+    - Supports `match_mode: :any` (default) for OR logic or `match_mode: :all` for AND logic
 
   ## Column Labels
 
