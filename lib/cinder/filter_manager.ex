@@ -61,15 +61,14 @@ defmodule Cinder.FilterManager do
       <div class={@theme.filter_header_class} {@theme.filter_header_data}>
         <span class={@theme.filter_title_class} {@theme.filter_title_data}>
           🔍 Filters
-          <span :if={@active_filters > 0} class={@theme.filter_count_class} {@theme.filter_count_data}>
+          <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} {@theme.filter_count_data}>
             ({@active_filters} active)
           </span>
         </span>
         <button
-          :if={@active_filters > 0}
           phx-click="clear_all_filters"
           phx-target={@target}
-          class={@theme.filter_clear_all_class}
+          class={[@theme.filter_clear_all_class, if(@active_filters == 0, do: "invisible", else: "")]}
           {@theme.filter_clear_all_data}
         >
           Clear All

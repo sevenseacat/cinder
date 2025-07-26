@@ -48,12 +48,12 @@ defmodule Cinder.Filters.Select do
       <!-- Main dropdown button that looks like a select input -->
       <button
         type="button"
-        class={[@theme.filter_select_input_class, "flex items-center justify-between w-fit min-w-[160px]"]}
+        class={[@theme.filter_select_input_class, "flex items-center justify-between"]}
         {@theme.filter_select_input_data}
         phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
-        <span class={if @current_value == "", do: "text-gray-400", else: ""}>{@display_text}</span>
-        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span class={[if(@current_value == "", do: "text-gray-400", else: ""), "truncate"]}>{@display_text}</span>
+        <svg :if={@theme.filter_select_show_arrow} class="w-4 h-4 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
       </button>

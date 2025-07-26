@@ -51,10 +51,10 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_title_class, "text-lg font-light text-green-100 tracking-wider"
 
     set :filter_count_class,
-        "text-sm text-slate-900 bg-gradient-to-r from-blue-400 to-green-400 px-3 py-1 font-medium tracking-wide shadow-md shadow-blue-500/20"
+        "text-xs text-slate-900 bg-gradient-to-r from-blue-400 to-green-400 px-3 py-1 ml-1 font-medium tracking-wide shadow-md shadow-blue-500/20"
 
     set :filter_clear_all_class,
-        "text-sm text-green-400 hover:text-green-300 font-light tracking-wide transition-colors border border-green-500/50 hover:border-green-400/70 px-3 py-1 hover:shadow-md hover:shadow-green-500/20"
+        "text-xs text-green-400 hover:text-green-300 font-light tracking-wide transition-colors border border-green-500/50 hover:border-green-400/70 px-3 py-1 hover:shadow-md hover:shadow-green-500/20"
 
     set :filter_inputs_class,
         "flow-root -mb-6"
@@ -75,13 +75,13 @@ defmodule Cinder.Themes.Futuristic do
         "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light placeholder-slate-500 backdrop-blur-sm"
 
     set :filter_date_input_class,
-        "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
+        "w-40 px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
 
     set :filter_number_input_class,
         "w-20 px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
-        "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
+        "w-48 px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
 
     # Select filter (dropdown interface)
     set :filter_select_container_class, "relative"

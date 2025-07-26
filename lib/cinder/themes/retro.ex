@@ -52,10 +52,10 @@ defmodule Cinder.Themes.Retro do
     set :filter_title_class, "text-xl font-bold text-cyan-100 uppercase tracking-widest"
 
     set :filter_count_class,
-        "text-sm text-black bg-yellow-400 px-3 py-1 font-bold uppercase tracking-wide"
+        "text-xs text-black bg-yellow-400 px-3 py-1 font-bold uppercase tracking-wide"
 
     set :filter_clear_all_class,
-        "text-sm text-cyan-100 bg-magenta-600 hover:bg-magenta-500 font-bold uppercase tracking-wide transition-colors border-2 border-cyan-400 hover:border-yellow-400 px-4 py-2 shadow-lg shadow-magenta-400/30"
+        "text-xs text-cyan-100 bg-magenta-600 hover:bg-magenta-500 font-bold uppercase tracking-wide transition-colors border-2 border-cyan-400 hover:border-yellow-400 px-4 py-2 shadow-lg shadow-magenta-400/30"
 
     set :filter_inputs_class,
         "flow-root -mb-6"
@@ -76,13 +76,13 @@ defmodule Cinder.Themes.Retro do
         "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold placeholder-gray-500"
 
     set :filter_date_input_class,
-        "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
+        "w-40 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
 
     set :filter_number_input_class,
         "w-20 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
-        "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
+        "w-48 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
 
     # Select filter (dropdown interface)
     set :filter_select_container_class, "relative"

@@ -50,12 +50,12 @@ defmodule Cinder.Themes.DaisyUI do
 
     # Input styling
     set :filter_text_input_class, "input input-bordered w-full"
-    set :filter_date_input_class, "input input-bordered w-full"
+    set :filter_date_input_class, "input input-bordered w-40"
 
     set :filter_number_input_class,
         "input input-bordered w-20 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
-    set :filter_select_input_class, "select select-bordered w-full"
+    set :filter_select_input_class, "select select-bordered w-48"
 
     # Select filter (dropdown interface)
     set :filter_select_container_class, "relative"
@@ -64,10 +64,11 @@ defmodule Cinder.Themes.DaisyUI do
         "absolute z-50 w-full mt-1 bg-base-100 border border-base-300 rounded-box shadow-lg max-h-60 overflow-auto"
 
     set :filter_select_option_class,
-        "px-3 py-2 hover:bg-base-200 border-b border-base-300 last:border-b-0 cursor-pointer"
+        "px-4 py-2 hover:bg-base-200 border-b border-base-300 last:border-b-0 cursor-pointer"
 
-    set :filter_select_label_class, "label-text cursor-pointer select-none flex-1"
+    set :filter_select_label_class, "text-sm cursor-pointer select-none flex-1"
     set :filter_select_empty_class, "px-3 py-2 text-base-content/50 italic text-sm"
+    set :filter_select_show_arrow, false
 
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-4 h-[48px] items-center"
@@ -85,7 +86,7 @@ defmodule Cinder.Themes.DaisyUI do
         "px-3 py-2 hover:bg-base-200 border-b border-base-300 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class, "checkbox checkbox-sm checkbox-primary mr-2"
-    set :filter_multiselect_label_class, "label-text cursor-pointer select-none flex-1"
+    set :filter_multiselect_label_class, "text-sm cursor-pointer select-none flex-1"
     set :filter_multiselect_empty_class, "px-3 py-2 text-base-content/50 italic text-sm"
 
     # Multi-checkboxes filter
