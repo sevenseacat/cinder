@@ -32,6 +32,13 @@ defmodule Cinder.Components.Filters do
     # Select filter
     :filter_select_input_class,
 
+    # Select filter (dropdown interface)
+    :filter_select_container_class,
+    :filter_select_dropdown_class,
+    :filter_select_option_class,
+    :filter_select_label_class,
+    :filter_select_empty_class,
+
     # Boolean filter
     :filter_boolean_container_class,
     :filter_boolean_option_class,
@@ -93,6 +100,13 @@ defmodule Cinder.Components.Filters do
 
       # Select filter
       filter_select_input_class: "",
+
+      # Select filter (dropdown interface)
+      filter_select_container_class: "",
+      filter_select_dropdown_class: "",
+      filter_select_option_class: "",
+      filter_select_label_class: "",
+      filter_select_empty_class: "",
 
       # Boolean filter
       filter_boolean_container_class: "",

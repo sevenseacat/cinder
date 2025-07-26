@@ -56,7 +56,6 @@ defmodule Cinder.CustomFilterOptionsTest do
       # Should also have inferred defaults
       assert Keyword.get(parsed_column.filter_options, :prompt) == "All Type"
       assert Keyword.get(parsed_column.filter_options, :match_mode) == :any
-      assert Keyword.get(parsed_column.filter_options, :class) == ""
     end
 
     test "slot without custom filter_options uses inferred enum options" do

@@ -10,36 +10,98 @@ defmodule Cinder.Filters.Select do
 
   require Ash.Query
   import Cinder.Filter
+  alias Phoenix.LiveView.JS
 
   @impl true
-  def render(column, current_value, theme, _assigns) do
+  def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
     options = get_option(filter_options, :options, [])
     prompt = get_option(filter_options, :prompt, "All #{column.label}")
 
+    current_value = current_value || ""
+
+    # Create a lookup map for labels
+    option_labels =
+      Enum.into(options, %{}, fn {label, value} -> {to_string(value), label} end)
+
+    # Create display text for the dropdown button
+    display_text =
+      if current_value == "" do
+        prompt
+      else
+        Map.get(option_labels, current_value, current_value)
+      end
+
     assigns = %{
       column: column,
-      current_value: current_value || "",
+      current_value: current_value,
       options: options,
       prompt: prompt,
-      theme: theme
+      theme: theme,
+      display_text: display_text,
+      dropdown_id: "select-dropdown-#{column.field}",
+      target: Map.get(assigns, :target)
     }
 
     ~H"""
-    <select
-      name={field_name(@column.field)}
-      class={@theme.filter_select_input_class}
-      {@theme.filter_select_input_data}
-    >
-      <option value="">{@prompt}</option>
-      <option
-        :for={{label, value} <- @options}
-        value={to_string(value)}
-        selected={to_string(value) == @current_value}
+    <div class={@theme.filter_select_container_class} id={"select-dropdown-#{@column.field}"}>
+      <!-- Main dropdown button that looks like a select input -->
+      <button
+        type="button"
+        class={[@theme.filter_select_input_class, "flex items-center justify-between w-fit min-w-[160px]"]}
+        {@theme.filter_select_input_data}
+        phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
-        {label}
-      </option>
-    </select>
+        <span class={if @current_value == "", do: "text-gray-400", else: ""}>{@display_text}</span>
+        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+
+
+
+      <!-- Dropdown options (hidden by default) -->
+      <div
+        id={"#{@dropdown_id}-options"}
+        class={[@theme.filter_select_dropdown_class, "hidden"]}
+        {@theme.filter_select_dropdown_data}
+        phx-click-away={JS.hide(to: "##{@dropdown_id}-options")}
+      >
+        <label class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} {@theme.filter_select_option_data}>
+          <input
+            type="radio"
+            name={field_name(@column.field)}
+            value=""
+            checked={@current_value == ""}
+            class="sr-only"
+            phx-value-field={@column.field}
+            phx-value-option=""
+            phx-target={@target}
+            phx-click={JS.push("select_option", target: @target) |> JS.hide(to: "##{@dropdown_id}-options")}
+          />
+          <span class={@theme.filter_select_label_class} {@theme.filter_select_label_data}>{@prompt}</span>
+        </label>
+
+        <label :for={{label, value} <- @options} class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} {@theme.filter_select_option_data}>
+          <input
+            type="radio"
+            name={field_name(@column.field)}
+            value={to_string(value)}
+            checked={to_string(value) == @current_value}
+            class="sr-only"
+            phx-value-field={@column.field}
+            phx-value-option={value}
+            phx-target={@target}
+            phx-click={JS.push("select_option", target: @target) |> JS.hide(to: "##{@dropdown_id}-options")}
+          />
+          <span class={@theme.filter_select_label_class} {@theme.filter_select_label_data}>{label}</span>
+        </label>
+
+        <div :if={Enum.empty?(@options)} class={@theme.filter_select_empty_class} {@theme.filter_select_empty_data}>
+          No options available
+        </div>
+      </div>
+    </div>
     """
   end
 
@@ -98,5 +160,24 @@ defmodule Cinder.Filters.Select do
 
     # Use the centralized helper which supports direct, relationship, and embedded fields
     Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
+  end
+
+  @doc """
+  Handles selecting an option in the single-select filter.
+
+  This function should be called from the parent LiveView/LiveComponent
+  to handle the "select_option" event.
+  """
+  def handle_select_option(socket, field, value) do
+    current_filters = Map.get(socket.assigns, :filters, %{})
+
+    updated_filters =
+      if value == "" do
+        Map.delete(current_filters, field)
+      else
+        Map.put(current_filters, field, value)
+      end
+
+    assign(socket, :filters, updated_filters)
   end
 end

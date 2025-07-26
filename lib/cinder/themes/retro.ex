@@ -84,6 +84,21 @@ defmodule Cinder.Themes.Retro do
     set :filter_select_input_class,
         "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
 
+    # Select filter (dropdown interface)
+    set :filter_select_container_class, "relative"
+
+    set :filter_select_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-gray-800 border-2 border-cyan-400 shadow-2xl shadow-cyan-400/20 max-h-60 overflow-auto"
+
+    set :filter_select_option_class,
+        "px-3 py-2 hover:bg-magenta-800 hover:shadow-lg hover:shadow-magenta-400/30 border-b border-cyan-400/50 last:border-b-0 cursor-pointer"
+
+    set :filter_select_label_class,
+        "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide select-none flex-1"
+
+    set :filter_select_empty_class,
+        "px-3 py-2 text-magenta-300 italic font-bold uppercase tracking-wide text-sm"
+
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-8 h-[48px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"

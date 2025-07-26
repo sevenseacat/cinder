@@ -83,6 +83,21 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
 
+    # Select filter (dropdown interface)
+    set :filter_select_container_class, "relative"
+
+    set :filter_select_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-slate-900/95 border border-blue-500/40 shadow-2xl shadow-blue-500/20 backdrop-blur-sm max-h-60 overflow-auto"
+
+    set :filter_select_option_class,
+        "px-3 py-2 hover:bg-blue-950/60 border-b border-blue-500/20 last:border-b-0 cursor-pointer"
+
+    set :filter_select_label_class,
+        "text-sm font-light text-blue-100 cursor-pointer tracking-wide select-none flex-1"
+
+    set :filter_select_empty_class,
+        "px-3 py-2 text-blue-300/70 italic font-light tracking-wide text-sm"
+
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-8 h-[48px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"

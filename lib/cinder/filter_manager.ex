@@ -164,14 +164,16 @@ defmodule Cinder.FilterManager do
         <%= @filter_content %>
       </div>
 
-      <!-- Clear individual filter button -->
+      <!-- Clear individual filter button - always present but invisible when no value -->
       <button
-        :if={@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}}
         type="button"
         phx-click="clear_filter"
         phx-value-key={@column.field}
         phx-target={@target}
-        class={@theme.filter_clear_button_class}
+        class={[
+          @theme.filter_clear_button_class,
+          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible", else: "")
+        ]}
         {@theme.filter_clear_button_data}
         title="Clear filter"
       >

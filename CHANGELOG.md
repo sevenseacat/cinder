@@ -6,6 +6,10 @@
 
 * Merge provided `filter_options` with default options for a column, instead of overwriting them
 
+### Chores
+
+* Replace native select boxes with custom HTML implementation for better customizability
+
 ## v0.5.0 (2025-07-26)
 
 ### Features

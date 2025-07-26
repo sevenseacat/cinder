@@ -83,6 +83,20 @@ defmodule Cinder.Themes.Pastel do
     set :filter_select_input_class,
         "w-full px-4 py-3 border border-purple-200 rounded-xl text-sm bg-white/80 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition-all duration-200 font-medium shadow-sm"
 
+    # Select filter (dropdown interface)
+    set :filter_select_container_class, "relative"
+
+    set :filter_select_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-gradient-to-r from-green-50 to-blue-50 border border-purple-200 rounded-2xl shadow-lg max-h-60 overflow-auto"
+
+    set :filter_select_option_class,
+        "px-3 py-2 hover:bg-purple-50 border-b border-purple-200 last:border-b-0 cursor-pointer"
+
+    set :filter_select_label_class,
+        "text-sm font-medium text-purple-700 cursor-pointer select-none flex-1"
+
+    set :filter_select_empty_class, "px-3 py-2 text-green-600 italic text-sm"
+
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-6 h-[42px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"

@@ -81,7 +81,21 @@ defmodule Cinder.Themes.Compact do
         "w-16 px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
-        "w-full px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 bg-white"
+        "w-fit px-2 py-1.5 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150 leading-5"
+
+    # Select filter (dropdown interface)
+    set :filter_select_container_class, "relative"
+
+    set :filter_select_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded shadow-md max-h-48 overflow-auto"
+
+    set :filter_select_option_class,
+        "px-2 py-1.5 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 cursor-pointer text-xs"
+
+    set :filter_select_label_class,
+        "text-xs font-medium text-gray-700 cursor-pointer select-none flex-1"
+
+    set :filter_select_empty_class, "px-2 py-1.5 text-gray-500 italic text-xs"
 
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-4 h-[34px] items-center"

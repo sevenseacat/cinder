@@ -84,6 +84,21 @@ defmodule Cinder.Themes.Flowbite do
     set :filter_select_input_class,
         "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
 
+    # Select filter (dropdown interface)
+    set :filter_select_container_class, "relative"
+
+    set :filter_select_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg dark:bg-gray-700 dark:border-gray-600 max-h-60 overflow-auto"
+
+    set :filter_select_option_class,
+        "px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 border-b border-gray-200 dark:border-gray-600 last:border-b-0 cursor-pointer"
+
+    set :filter_select_label_class,
+        "text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer select-none flex-1"
+
+    set :filter_select_empty_class,
+        "px-3 py-2 text-gray-500 dark:text-gray-400 italic text-sm"
+
     # Boolean filter
     set :filter_boolean_container_class, "flex items-center space-x-6 h-[42px]"
     set :filter_boolean_option_class, "flex items-center space-x-2"

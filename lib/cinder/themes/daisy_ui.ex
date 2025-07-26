@@ -57,6 +57,18 @@ defmodule Cinder.Themes.DaisyUI do
 
     set :filter_select_input_class, "select select-bordered w-full"
 
+    # Select filter (dropdown interface)
+    set :filter_select_container_class, "relative"
+
+    set :filter_select_dropdown_class,
+        "absolute z-50 w-full mt-1 bg-base-100 border border-base-300 rounded-box shadow-lg max-h-60 overflow-auto"
+
+    set :filter_select_option_class,
+        "px-3 py-2 hover:bg-base-200 border-b border-base-300 last:border-b-0 cursor-pointer"
+
+    set :filter_select_label_class, "label-text cursor-pointer select-none flex-1"
+    set :filter_select_empty_class, "px-3 py-2 text-base-content/50 italic text-sm"
+
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-4 h-[48px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"

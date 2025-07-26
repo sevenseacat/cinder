@@ -252,6 +252,36 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("select_option", %{"field" => field, "option" => value}, socket) do
+    current_filters = Map.get(socket.assigns, :filters, %{})
+
+    new_filters =
+      if value == "" do
+        Map.delete(current_filters, field)
+      else
+        # Create proper filter structure for single select
+        new_filter = %{
+          type: :select,
+          value: value,
+          operator: :equals
+        }
+
+        Map.put(current_filters, field, new_filter)
+      end
+
+    socket =
+      socket
+      |> assign(:filters, new_filters)
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
+
+    {:noreply, socket}
+  end
+
   # Notify parent LiveView about filter changes
   defp notify_state_change(socket, filters \\ nil) do
     filters = filters || socket.assigns.filters

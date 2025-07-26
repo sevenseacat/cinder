@@ -44,6 +44,7 @@ defmodule Cinder.Filters.MultiSelect do
 
   require Ash.Query
   import Cinder.Filter
+  alias Phoenix.LiveView.JS
 
   @impl true
   def render(column, current_value, theme, assigns) do
@@ -89,9 +90,9 @@ defmodule Cinder.Filters.MultiSelect do
       <!-- Main dropdown button that looks like a select input -->
       <button
         type="button"
-        class={[@theme.filter_select_input_class, "flex items-center justify-between"]}
+        class={[@theme.filter_select_input_class, "flex items-center justify-between min-w-[160px]"]}
         {@theme.filter_select_input_data}
-        onclick={"document.getElementById('#{@dropdown_id}-options').classList.toggle('hidden')"}
+        phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
         <span class={if Enum.empty?(@selected_values), do: "text-gray-400", else: ""}>{@display_text}</span>
         <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,6 +105,7 @@ defmodule Cinder.Filters.MultiSelect do
         id={"#{@dropdown_id}-options"}
         class={[@theme.filter_multiselect_dropdown_class, "hidden"]}
         {@theme.filter_multiselect_dropdown_data}
+        phx-click-away={JS.hide(to: "##{@dropdown_id}-options")}
       >
         <label :for={{label, value} <- @options} class={[@theme.filter_multiselect_option_class, "flex items-center"]} {@theme.filter_multiselect_option_data}>
           <input
