@@ -95,7 +95,7 @@ defmodule Cinder.Filters.MultiSelect do
         phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
         <span class={[if(Enum.empty?(@selected_values), do: "text-gray-400", else: ""), "truncate"]}>{@display_text}</span>
-        <svg :if={@theme.filter_select_show_arrow} class="w-4 h-4 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg :if={@theme.filter_select_arrow_class != ""} class={@theme.filter_select_arrow_class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
       </button>
