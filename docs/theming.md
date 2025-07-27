@@ -21,8 +21,8 @@ The fastest way to style your table is with one of the 10 built-in themes:
 
 ```elixir
 <Cinder.Table.table theme="modern" resource={MyApp.User} actor={@current_user}>
-  <:col field="name" filter sort>Name</:col>
-  <:col field="email" filter>Email</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
 </Cinder.Table.table>
 ```
 
@@ -43,7 +43,7 @@ end
 
 # Use in your template
 <Cinder.Table.table theme={MyApp.CustomTheme} resource={MyApp.User} actor={@current_user}>
-  <:col field="name" filter sort>Name</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
 </Cinder.Table.table>
 ```
 

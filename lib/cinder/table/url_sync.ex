@@ -34,8 +34,8 @@ defmodule Cinder.Table.UrlSync do
             actor={@current_user}
             url_state={@url_state}
           >
-            <:col field="name" filter sort>Name</:col>
-            <:col field="email" filter>Email</:col>
+            <:col :let={user} field="name" filter sort>{user.name}</:col>
+            <:col :let={user} field="email" filter>{user.email}</:col>
           </Cinder.Table.table>
           \"\"\"
         end
@@ -48,8 +48,8 @@ defmodule Cinder.Table.UrlSync do
             actor={@current_user}
             url_state={@url_state}
           >
-            <:col field="name" filter sort>Name</:col>
-            <:col field="email" filter>Email</:col>
+            <:col :let={user} field="name" filter sort>{user.name}</:col>
+            <:col :let={user} field="email" filter>{user.email}</:col>
           </Cinder.Table.table>
           \"\"\"
         end
@@ -248,7 +248,7 @@ defmodule Cinder.Table.UrlSync do
           actor={@current_user}
           url_state={@url_state}
         >
-          <:col field="name" filter sort>Name</:col>
+          <:col :let={user} field="name" filter sort>{user.name}</:col>
         </Cinder.Table.table>
         \"\"\"
       end
@@ -284,8 +284,8 @@ defmodule Cinder.Table.UrlSync do
           url_state={@url_state}
           theme="minimal"
         >
-          <:col field="name" filter="text">Name</:col>
-          <:col field="artist.name" filter="text">Artist</:col>
+          <:col :let={album} field="name" filter="text">{album.name}</:col>
+          <:col :let={album} field="artist.name" filter="text">{album.artist.name}</:col>
         </Cinder.Table.table>
         \"\"\"
       end

@@ -68,7 +68,7 @@ defmodule Cinder.MixProject do
       maintainers: ["Rebecca Le"],
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
+      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
     ]
   end
 

@@ -11,9 +11,9 @@ defmodule Cinder.Table do
 
   ```heex
   <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
-    <:col field="created_at" sort>Created</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
   </Cinder.Table.table>
   ```
 
@@ -22,24 +22,24 @@ defmodule Cinder.Table do
   ```heex
   <!-- Using resource as query -->
   <Cinder.Table.table query={MyApp.User} actor={@current_user}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
-    <:col field="created_at" sort>Created</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
   </Cinder.Table.table>
 
   <!-- Pre-configured query with custom read action -->
   <Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
-    <:col field="created_at" sort>Created</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
   </Cinder.Table.table>
 
   <!-- Query with base filters -->
   <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(department: "Engineering")} actor={@current_user}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
-    <:col field="department.name" filter>Department</:col>
-    <:col field="profile__country" filter>Country</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="department.name" filter>{user.department.name}</:col>
+    <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
   </Cinder.Table.table>
   ```
 
@@ -50,9 +50,9 @@ defmodule Cinder.Table do
   Use dot notation to access related resource fields:
 
   ```heex
-  <:col field="department.name" filter sort>Department</:col>
-  <:col field="manager.email" filter>Manager Email</:col>
-  <:col field="office.building.address" filter>Office Address</:col>
+  <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
+  <:col :let={user} field="manager.email" filter>{user.manager.email}</:col>
+  <:col :let={user} field="office.building.address" filter>{user.office.building.address}</:col>
   ```
 
   ### Embedded Resource Fields
@@ -60,16 +60,16 @@ defmodule Cinder.Table do
   Use double underscore notation for embedded resource fields:
 
   ```heex
-  <:col field="profile__bio" filter>Bio</:col>
-  <:col field="settings__country" filter>Country</:col>
-  <:col field="metadata__preferences__theme" filter>Theme</:col>
+  <:col :let={user} field="profile__bio" filter>{user.profile.bio}</:col>
+  <:col :let={user} field="settings__country" filter>{user.settings.country}</:col>
+  <:col :let={user} field="metadata__preferences__theme" filter>{user.metadata.preferences.theme}</:col>
   ```
 
   Embedded enum fields are automatically detected and rendered as select filters:
 
   ```heex
   <!-- If profile.country is an Ash.Type.Enum, this becomes a select filter -->
-  <:col field="profile__country" filter>Country</:col>
+  <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
   ```
 
   ## Advanced Configuration
@@ -82,14 +82,14 @@ defmodule Cinder.Table do
     page_size={50}
     theme="modern"
   >
-    <:col field="title" filter sort class="w-1/2">
-      Title
+    <:col :let={album} field="title" filter sort class="w-1/2">
+      {album.title}
     </:col>
-    <:col field="artist.name" filter sort>
-      Artist
+    <:col :let={album} field="artist.name" filter sort>
+      {album.artist.name}
     </:col>
-    <:col field="genre" filter={:select}>
-      Genre
+    <:col :let={album} field="genre" filter={:select}>
+      {album.genre}
     </:col>
   </Cinder.Table.table>
   ```
@@ -104,10 +104,10 @@ defmodule Cinder.Table do
       |> Ash.Query.set_tenant(@tenant)
       |> Ash.Query.filter(active: true)}
     actor={@actor}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
-    <:col field="last_login" sort>Last Login</:col>
-    <:col field="role" filter={:select}>Role</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="last_login" sort>{user.last_login}</:col>
+    <:col :let={user} field="role" filter={:select}>{user.role}</:col>
   </Cinder.Table.table>
   ```
 
@@ -119,24 +119,24 @@ defmodule Cinder.Table do
     resource={MyApp.User}
     actor={@current_user}
     tenant={@tenant}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
   </Cinder.Table.table>
 
   <!-- Using Ash scope (only actor and tenant are extracted) -->
   <Cinder.Table.table
     resource={MyApp.User}
     scope={%{actor: @current_user, tenant: @tenant}}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
   </Cinder.Table.table>
 
   <!-- Custom scope struct -->
   <Cinder.Table.table
     resource={MyApp.User}
     scope={@my_scope}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
   </Cinder.Table.table>
 
   <!-- Mixed usage (explicit overrides scope) -->
@@ -144,8 +144,8 @@ defmodule Cinder.Table do
     resource={MyApp.User}
     scope={@scope}
     actor={@different_actor}>
-    <:col field="name" filter sort>Name</:col>
-    <:col field="email" filter>Email</:col>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
   </Cinder.Table.table>
   ```
 
@@ -243,8 +243,8 @@ defmodule Cinder.Table do
     actor={@current_user}
     row_click={fn item -> JS.navigate(~p"/items/#{item.id}") end}
   >
-    <:col field="name" filter sort>Name</:col>
-    <:col field="description">Description</:col>
+    <:col :let={item} field="name" filter sort>{item.name}</:col>
+    <:col :let={item} field="description">{item.description}</:col>
   </Cinder.Table.table>
   ```
 

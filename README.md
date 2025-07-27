@@ -151,7 +151,7 @@ defmodule MyAppWeb.UsersLive do
   def render(assigns) do
     ~H"""
     <Cinder.Table.table resource={MyApp.User} actor={@current_user} url_state={@url_state}>
-      <:col field="name" filter sort>Name</:col>
+      <:col :let={user} field="name" filter sort>{user.name}</:col>
     </Cinder.Table.table>
     """
   end
