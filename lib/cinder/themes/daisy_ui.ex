@@ -13,7 +13,7 @@ defmodule Cinder.Themes.DaisyUI do
   use Cinder.Theme
 
   component Cinder.Components.Table do
-    set :container_class, "card bg-base-100 shadow-xl"
+    set :container_class, "card bg-base-100"
     set :controls_class, "pb-4"
     set :table_wrapper_class, "overflow-x-auto"
     set :table_class, "table table-zebra w-full"
@@ -71,7 +71,7 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_select_arrow_class, ""
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex space-x-4 h-[48px] items-center"
+    set :filter_boolean_container_class, "flex space-x-4 h-[36px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"
     set :filter_boolean_radio_class, "radio radio-sm radio-primary"
     set :filter_boolean_label_class, "text-sm cursor-pointer"
@@ -104,7 +104,7 @@ defmodule Cinder.Themes.DaisyUI do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class, "p-6 mt-4"
+    set :pagination_wrapper_class, "p-4"
     set :pagination_container_class, "flex items-center justify-between"
 
     set :pagination_info_class, "text-base-content/70 text-sm"
@@ -112,7 +112,7 @@ defmodule Cinder.Themes.DaisyUI do
 
     set :pagination_nav_class, "flex items-center space-x-1"
 
-    set :pagination_button_class, "btn btn-outline btn-sm"
+    set :pagination_button_class, "btn btn-sm"
 
     set :pagination_current_class, "btn btn-primary btn-sm"
   end
