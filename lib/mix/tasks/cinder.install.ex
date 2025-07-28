@@ -66,6 +66,7 @@ if Code.ensure_loaded?(Igniter) do
     @impl Igniter.Mix.Task
     def igniter(igniter) do
       igniter
+      |> Igniter.Project.Formatter.import_dep(:cinder)
       |> configure_tailwind()
     end
 

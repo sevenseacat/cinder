@@ -10,6 +10,7 @@
 ### Chores
 
 * Replace native select boxes with custom HTML implementation for better customizability
+* Add `cinder` to the `import_deps` list for custom formatting, on installation
 
 ## v0.5.0 (2025-07-26)
 
