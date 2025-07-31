@@ -41,9 +41,6 @@ defmodule Cinder.FilterManager do
   - `filters` - Current filter state map
   - `theme` - Theme configuration
   - `target` - LiveComponent target for events
-  - `filters_label` - Custom label for the filter controls
-  - `active_label` - Custom label for the filter controls
-  - `clear_all_label` - Custom label for clear all button
 
   ## Returns
   HEEx template for filter controls
@@ -63,9 +60,9 @@ defmodule Cinder.FilterManager do
     <div :if={@filterable_columns != []} class={@theme.filter_container_class} {@theme.filter_container_data}>
       <div class={@theme.filter_header_class} {@theme.filter_header_data}>
         <span class={@theme.filter_title_class} {@theme.filter_title_data}>
-          {@filters_label}
+          🔍 Filters
           <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} {@theme.filter_count_data}>
-            ({@active_filters} {@active_label})
+            ({@active_filters} active)
           </span>
         </span>
         <button
@@ -74,7 +71,7 @@ defmodule Cinder.FilterManager do
           class={[@theme.filter_clear_all_class, if(@active_filters == 0, do: "invisible", else: "")]}
           {@theme.filter_clear_all_data}
         >
-          {@clear_all_label}
+          Clear All
         </button>
       </div>
 

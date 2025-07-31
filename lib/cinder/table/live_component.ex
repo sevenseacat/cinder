@@ -53,9 +53,6 @@ defmodule Cinder.Table.LiveComponent do
           filters={@filters}
           theme={@theme}
           target={@myself}
-          filters_label={@filters_label}
-          active_label={@active_label}
-          clear_all_label={@clear_all_label}
         />
       </div>
 
@@ -106,7 +103,7 @@ defmodule Cinder.Table.LiveComponent do
             <circle class={@theme.loading_spinner_circle_class} {@theme.loading_spinner_circle_data} cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class={@theme.loading_spinner_path_class} {@theme.loading_spinner_path_data} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          {@loading_message}
+          Loading...
         </div>
       </div>
 
@@ -116,9 +113,6 @@ defmodule Cinder.Table.LiveComponent do
           page_info={@page_info}
           theme={@theme}
           myself={@myself}
-          page_label={@page_label}
-          showing_label={@showing_label}
-          of_label={@of_label}
         />
       </div>
     </div>
@@ -380,9 +374,9 @@ defmodule Cinder.Table.LiveComponent do
     <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
       <!-- Left side: Page info -->
       <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
-        {@page_label} {@page_info.current_page} {@of_label} {@page_info.total_pages}
+        Page {@page_info.current_page} of {@page_info.total_pages}
         <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
-          ({@showing_label} {@page_info.start_index}-{@page_info.end_index} {@of_label} {@page_info.total_count})
+          (showing {@page_info.start_index}-{@page_info.end_index} of {@page_info.total_count})
         </span>
       </div>
 
