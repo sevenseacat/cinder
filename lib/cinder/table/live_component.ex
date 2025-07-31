@@ -53,6 +53,7 @@ defmodule Cinder.Table.LiveComponent do
           filters={@filters}
           theme={@theme}
           target={@myself}
+          filters_label={@filters_label}
         />
       </div>
 
