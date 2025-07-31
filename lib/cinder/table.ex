@@ -186,7 +186,13 @@ defmodule Cinder.Table do
   - `show_filters` - Show filter controls (default: auto-detect from columns)
   - `show_pagination` - Show pagination controls (default: true)
   - `loading_message` - Custom loading message
-  - `empty_message` - Custom empty state message
+  - `clear_all_label` - Custom label for the clear all button (default: "Clear all")
+  - `filters_label` - Custom label for filtering (default: "🔍 Filters")
+  - `active_label` - Custom label for active filters indicator (default: "active")
+  - `page_label`- Custom label for the pagination controls (default: "Page")
+  - `of_label`- Custom label for the pagination controls (default: "of")
+  - `showing_label`- Custom label for the pagination controls (default: "showing")
+  - `empty_message` - Custom empty state message (default: "No results found")
   - `class` - Additional CSS classes
 
   ## When to Use Resource vs Query
@@ -288,6 +294,36 @@ defmodule Cinder.Table do
 
   attr(:loading_message, :string, default: "Loading...", doc: "Message to show while loading")
 
+  attr(:clear_all_label, :string,
+    default: "Clear all",
+    doc: "Label on the button to clear all filters"
+  )
+
+  attr(:filters_label, :string,
+    default: "🔍 Filters",
+    doc: "Label for the filters component"
+  )
+
+  attr(:active_label, :string,
+    default: "active",
+    doc: "Label for the count of active filters"
+  )
+
+  attr(:page_label, :string,
+    default: "Page",
+    doc: "Label for the \"Page\" part of the pagination controls"
+  )
+
+  attr(:of_label, :string,
+    default: "of",
+    doc: "Label for the \"of\" part of the pagination controls"
+  )
+
+  attr(:showing_label, :string,
+    default: "showing",
+    doc: "Label for the \"showing\" part of the pagination controls"
+  )
+
   attr(:empty_message, :string,
     default: "No results found",
     doc: "Message to show when no results"
@@ -330,6 +366,12 @@ defmodule Cinder.Table do
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
       |> assign_new(:loading_message, fn -> "Loading..." end)
+      |> assign_new(:clear_all_label, fn -> "Clear all" end)
+      |> assign_new(:filters_label, fn -> "🔍 Filters" end)
+      |> assign_new(:active_label, fn -> "active" end)
+      |> assign_new(:page_label, fn -> "Page" end)
+      |> assign_new(:of_label, fn -> "of" end)
+      |> assign_new(:showing_label, fn -> "showing" end)
       |> assign_new(:empty_message, fn -> "No results found" end)
       |> assign_new(:class, fn -> "" end)
       |> assign_new(:tenant, fn -> nil end)
@@ -372,6 +414,12 @@ defmodule Cinder.Table do
         show_filters={@show_filters}
         show_pagination={@show_pagination}
         loading_message={@loading_message}
+        clear_all_label={@clear_all_label}
+        filters_label={@filters_label}
+        active_label={@active_label}
+        page_label={@page_label}
+        of_label={@of_label}
+        showing_label={@showing_label}
         empty_message={@empty_message}
         col={@processed_columns}
         row_click={@row_click}
