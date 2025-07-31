@@ -9,6 +9,9 @@ if Code.ensure_loaded?(Igniter) do
     included in your application's generated stylesheets by updating your
     Tailwind configuration.
 
+    The installer also adds a Cinder configuration to your `config/config.exs`
+    with a `:default_theme`.
+
     ## Recommended Installation
 
     For new installations, use Igniter:
@@ -68,6 +71,7 @@ if Code.ensure_loaded?(Igniter) do
       igniter
       |> Igniter.Project.Formatter.import_dep(:cinder)
       |> configure_tailwind()
+      |> configure_default_theme()
     end
 
     @tailwind_v3_prefix """
@@ -193,6 +197,20 @@ if Code.ensure_loaded?(Igniter) do
       3. Check that your Tailwind build process is running
       4. Verify the path to Cinder's files is correct for your setup
       """)
+    end
+
+    defp configure_default_theme(igniter) do
+      if Igniter.Project.Config.configures_key?(igniter, "config.exs", :cinder, :default_theme) do
+        igniter
+      else
+        igniter
+        |> Igniter.Project.Config.configure(
+          "config.exs",
+          :cinder,
+          [:default_theme],
+          "modern"
+        )
+      end
     end
   end
 else
