@@ -60,7 +60,7 @@ defmodule Cinder.FilterManager do
     <div :if={@filterable_columns != []} class={@theme.filter_container_class} {@theme.filter_container_data}>
       <div class={@theme.filter_header_class} {@theme.filter_header_data}>
         <span class={@theme.filter_title_class} {@theme.filter_title_data}>
-          🔍 Filters
+          {@filters_label}
           <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} {@theme.filter_count_data}>
             ({@active_filters} active)
           </span>

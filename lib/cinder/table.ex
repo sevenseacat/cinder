@@ -186,6 +186,7 @@ defmodule Cinder.Table do
   - `show_filters` - Show filter controls (default: auto-detect from columns)
   - `show_pagination` - Show pagination controls (default: true)
   - `loading_message` - Custom loading message
+  - `filters_label` - Custom label for filtering (default: "🔍 Filters")
   - `empty_message` - Custom empty state message
   - `class` - Additional CSS classes
 
@@ -288,6 +289,11 @@ defmodule Cinder.Table do
 
   attr(:loading_message, :string, default: "Loading...", doc: "Message to show while loading")
 
+  attr(:filters_label, :string,
+    default: "🔍 Filters",
+    doc: "Label for the filters component"
+  )
+
   attr(:empty_message, :string,
     default: "No results found",
     doc: "Message to show when no results"
@@ -330,6 +336,7 @@ defmodule Cinder.Table do
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
       |> assign_new(:loading_message, fn -> "Loading..." end)
+      |> assign_new(:filters_label, fn -> "🔍 Filters" end)
       |> assign_new(:empty_message, fn -> "No results found" end)
       |> assign_new(:class, fn -> "" end)
       |> assign_new(:tenant, fn -> nil end)
@@ -372,6 +379,7 @@ defmodule Cinder.Table do
         show_filters={@show_filters}
         show_pagination={@show_pagination}
         loading_message={@loading_message}
+        filters_label={@filters_label}
         empty_message={@empty_message}
         col={@processed_columns}
         row_click={@row_click}
