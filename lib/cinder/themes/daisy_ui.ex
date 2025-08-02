@@ -27,6 +27,13 @@ defmodule Cinder.Themes.DaisyUI do
     set :empty_class, "text-center py-8 text-base-content/60"
     set :error_container_class, "alert alert-error"
     set :error_message_class, ""
+
+    # Performance warning for large non-paginated datasets
+    set :performance_warning_class,
+        "alert alert-warning flex items-center justify-center"
+
+    set :performance_warning_icon_class, "w-5 h-5 mr-3 flex-shrink-0"
+    set :performance_warning_text_class, "text-sm"
   end
 
   component Cinder.Components.Filters do

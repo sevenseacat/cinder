@@ -46,6 +46,17 @@ defmodule Cinder.Table.LiveComponent do
   def render(assigns) do
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
+      <!-- Performance Warning for Large Non-Paginated Datasets -->
+      <div :if={Map.get(@page_info, :large_dataset_warning, false)} class={@theme.performance_warning_class} {@theme.performance_warning_data}>
+        <svg class={@theme.performance_warning_icon_class} {@theme.performance_warning_icon_data} fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+        </svg>
+        <span class={@theme.performance_warning_text_class} {@theme.performance_warning_text_data}>
+          <strong>Performance Notice:</strong> Showing all {@page_info.total_count} records at once.
+          Consider enabling <a href="https://hexdocs.pm/ash/pagination.html" class="underline" target="_blank">pagination</a> on the table query for better performance.
+        </span>
+      </div>
+
       <!-- Filter Controls -->
       <div class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls

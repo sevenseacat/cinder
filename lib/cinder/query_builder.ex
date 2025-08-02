@@ -25,7 +25,7 @@ defmodule Cinder.QueryBuilder do
   Builds a complete query with filters, sorting, and pagination.
 
   ## Parameters
-  - `resource`: The Ash resource to query
+  - `resource_or_query`: The Ash resource to query or a pre-built Ash.Query
   - `options`: Query building options including:
     - `:actor` - The current user/actor
     - `:filters` - Filter map
@@ -68,7 +68,7 @@ defmodule Cinder.QueryBuilder do
   ## Returns
   A tuple `{:ok, {results, page_info}}` or `{:error, reason}`
   """
-  def build_and_execute(resource, options) do
+  def build_and_execute(resource_or_query, options) do
     actor = Keyword.fetch!(options, :actor)
     tenant = Keyword.get(options, :tenant)
     filters = Keyword.get(options, :filters, %{})
@@ -79,48 +79,44 @@ defmodule Cinder.QueryBuilder do
     query_opts = Keyword.get(options, :query_opts, [])
 
     try do
-      # Build the query with pagination, sorting, and filtering using Ash.Query.page
-      query =
-        resource
-        |> Ash.Query.for_read(:read, %{}, build_ash_options(actor, tenant, query_opts))
+      # Normalize input to a query and extract resource for logging
+      {base_query, _resource} =
+        normalize_resource_or_query(resource_or_query, actor, tenant, query_opts)
+
+      # Build the complete query with filtering and sorting
+      prepared_query =
+        base_query
         |> apply_query_opts(query_opts)
         |> apply_filters(filters, columns)
         |> apply_sorting(sort_by, columns)
-        |> Ash.Query.page(
-          limit: page_size,
-          offset: (current_page - 1) * page_size,
-          count: true
-        )
 
-      # Execute the query to get paginated results with count in a single query
-      case Ash.read(query, build_ash_options(actor, tenant, query_opts)) do
-        {:ok, %{results: results, count: total_count}} ->
-          page_info =
-            build_page_info_with_total_count(results, current_page, page_size, total_count)
-
-          {:ok, {results, page_info}}
-
-        {:error, query_error} ->
-          # Log query execution error with full context
-          Logger.error(
-            "Cinder table query execution failed for #{inspect(resource)}: #{inspect(query_error)}",
-            %{
-              resource: resource,
-              filters: filters,
-              sort_by: sort_by,
-              current_page: current_page,
-              page_size: page_size,
-              query_opts: query_opts,
-              tenant: tenant,
-              error: inspect(query_error)
-            }
+      # Handle pagination based on action support
+      case action_supports_pagination?(prepared_query) do
+        true ->
+          execute_with_pagination(
+            prepared_query,
+            actor,
+            tenant,
+            query_opts,
+            current_page,
+            page_size
           )
 
-          {:error, query_error}
+        false ->
+          execute_without_pagination(
+            prepared_query,
+            actor,
+            tenant,
+            query_opts,
+            current_page,
+            page_size
+          )
       end
     rescue
       error ->
         # Log exceptions (like calculation errors) with full context
+        resource = extract_resource_for_logging(resource_or_query)
+
         Logger.error(
           "Cinder table query crashed with exception for #{inspect(resource)}: #{inspect(error)}",
           %{
@@ -139,6 +135,118 @@ defmodule Cinder.QueryBuilder do
         {:error, error}
     end
   end
+
+  # Normalize input to always return {query, resource} tuple
+  defp normalize_resource_or_query(%Ash.Query{} = query, _actor, _tenant, _query_opts) do
+    # Handle edge case where query has nil action (shouldn't happen with proper Ash.Query.for_read usage)
+    if is_nil(query.action) do
+      # Fix by creating a proper query for the default :read action
+      fixed_query = Ash.Query.for_read(query.resource, :read)
+      {fixed_query, query.resource}
+    else
+      {query, query.resource}
+    end
+  end
+
+  defp normalize_resource_or_query(resource, actor, tenant, query_opts) when is_atom(resource) do
+    query = Ash.Query.for_read(resource, :read, %{}, build_ash_options(actor, tenant, query_opts))
+    {query, resource}
+  end
+
+  # Check if the action supports pagination
+  defp action_supports_pagination?(%Ash.Query{action: nil}), do: false
+
+  defp action_supports_pagination?(%Ash.Query{action: %{pagination: false}}), do: false
+
+  defp action_supports_pagination?(%Ash.Query{action: %{pagination: pagination}})
+       when not is_nil(pagination),
+       do: true
+
+  # Default for resources without explicit pagination
+  defp action_supports_pagination?(_), do: true
+
+  # Execute query with pagination (existing behavior)
+  defp execute_with_pagination(query, actor, tenant, query_opts, current_page, page_size) do
+    paginated_query =
+      Ash.Query.page(query,
+        limit: page_size,
+        offset: (current_page - 1) * page_size,
+        count: true
+      )
+
+    case Ash.read(paginated_query, build_ash_options(actor, tenant, query_opts)) do
+      {:ok, %{results: results, count: total_count}} ->
+        page_info =
+          build_page_info_with_total_count(results, current_page, page_size, total_count)
+
+        {:ok, {results, page_info}}
+
+      {:error, query_error} ->
+        log_query_error(query.resource, query_error, current_page, page_size, query_opts, tenant)
+        {:error, query_error}
+    end
+  end
+
+  # Execute query without pagination and return all results
+  defp execute_without_pagination(query, actor, tenant, query_opts, _current_page, _page_size) do
+    case Ash.read(query, build_ash_options(actor, tenant, query_opts)) do
+      {:ok, results} ->
+        result_count = length(results)
+
+        # Warn about potential performance issues with large datasets
+        warning_threshold = Application.get_env(:cinder, :large_dataset_warning_threshold, 1000)
+
+        if result_count > warning_threshold do
+          require Logger
+
+          Logger.warning(
+            "Cinder loaded #{result_count} records for non-paginated action #{inspect(query.action.name)}. " <>
+              "Consider enabling pagination on this action for better performance."
+          )
+        end
+
+        # Return all results with simple page info indicating no pagination
+        page_info = %{
+          current_page: 1,
+          total_pages: 1,
+          total_count: result_count,
+          has_next_page: false,
+          has_previous_page: false,
+          start_index: if(result_count > 0, do: 1, else: 0),
+          end_index: result_count,
+          # Add flag to indicate this is a non-paginated result set
+          non_paginated: true,
+          # Add warning info for potential UI display
+          large_dataset_warning: result_count > warning_threshold
+        }
+
+        {:ok, {results, page_info}}
+
+      {:error, query_error} ->
+        log_query_error(query.resource, query_error, 1, 0, query_opts, tenant)
+        {:error, query_error}
+    end
+  end
+
+  # Helper for consistent error logging
+  defp log_query_error(resource, query_error, current_page, page_size, query_opts, tenant) do
+    Logger.error(
+      "Cinder table query execution failed for #{inspect(resource)}: #{inspect(query_error)}",
+      %{
+        resource: resource,
+        current_page: current_page,
+        page_size: page_size,
+        query_opts: query_opts,
+        tenant: tenant,
+        error: inspect(query_error)
+      }
+    )
+  end
+
+  # Extract resource for logging from either resource or query
+  defp extract_resource_for_logging(%Ash.Query{resource: resource}), do: resource
+  defp extract_resource_for_logging(resource) when is_atom(resource), do: resource
+  defp extract_resource_for_logging(_), do: :unknown
 
   @doc """
   Applies query options like load and select to an Ash query.

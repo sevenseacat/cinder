@@ -1,5 +1,6 @@
 locals_without_parens = [
-  set: 2
+  set: 2,
+  extends: 1
 ]
 
 # Used by "mix format"

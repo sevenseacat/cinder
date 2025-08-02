@@ -40,6 +40,13 @@ defmodule Cinder.Themes.Retro do
         "bg-red-900 border-2 border-red-400 p-4 text-red-100 shadow-lg shadow-red-400/30"
 
     set :error_message_class, "text-sm font-bold"
+
+    # Performance warning for large non-paginated datasets
+    set :performance_warning_class,
+        "flex items-center justify-center p-4 bg-yellow-900 border-2 border-yellow-400 rounded shadow-lg shadow-yellow-400/30"
+
+    set :performance_warning_icon_class, "w-5 h-5 text-yellow-300 mr-3 flex-shrink-0"
+    set :performance_warning_text_class, "text-yellow-100 text-sm font-bold"
   end
 
   component Cinder.Components.Filters do

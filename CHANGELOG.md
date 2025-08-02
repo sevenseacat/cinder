@@ -6,6 +6,7 @@
 
 * Merge provided `filter_options` with default options for a column, instead of overwriting them
 * Fix slight input jumping issues across all themes and duplicate select arrows from DaisyUI theme
+* Load all records for actions without pagination configured, showing a performance warning message
 
 ### Chores
 
