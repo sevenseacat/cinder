@@ -9,6 +9,7 @@ defmodule Cinder.Table.LiveComponent do
   require Ash.Query
   require Logger
   alias Phoenix.LiveView.JS
+  alias Cinder.Messages
 
   @impl true
   def mount(socket) do
@@ -479,9 +480,9 @@ defmodule Cinder.Table.LiveComponent do
     <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
       <!-- Left side: Page info -->
       <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
-        Page {@page_info.current_page} of {@page_info.total_pages}
+        {Messages.dgettext("cinder", "Page")} {@page_info.current_page} {Messages.dgettext("cinder", "of")} {@page_info.total_pages}
         <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
-          (showing {@page_info.start_index}-{@page_info.end_index} of {@page_info.total_count})
+          ({Messages.dgettext("cinder", "showing")} {@page_info.start_index}-{@page_info.end_index} {Messages.dgettext("cinder", "of")} {@page_info.total_count})
         </span>
       </div>
 
@@ -502,7 +503,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title="First page"
+          title={Messages.dgettext("cinder", "First page")}
         >
           &laquo;
         </button>
@@ -514,7 +515,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title="Previous page"
+          title={Messages.dgettext("cinder", "Previous page")}
         >
           &lsaquo;
         </button>
@@ -528,6 +529,7 @@ defmodule Cinder.Table.LiveComponent do
             phx-target={@myself}
             class={@theme.pagination_button_class}
             {@theme.pagination_button_data}
+            title={Messages.dgettext("cinder", "Go to page %{page}", %{page: page})}
           >
             {page}
           </button>
@@ -544,7 +546,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title="Next page"
+          title={Messages.dgettext("cinder", "Next page")}
         >
         &rsaquo;
         </button>
@@ -556,7 +558,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title="Last page"
+          title={Messages.dgettext("cinder", "Last page")}
         >
           &raquo;
         </button>
