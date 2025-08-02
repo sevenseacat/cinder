@@ -55,6 +55,7 @@ defmodule Cinder.MixProject do
       {:ash_phoenix, "~> 2.3"},
       {:phoenix_live_view, "~> 1.0"},
       {:spark, "~> 2.0"},
+      {:gettext, "~> 0.26.2"},
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:makeup_eex, "~> 2.0", only: :dev},
@@ -75,7 +76,7 @@ defmodule Cinder.MixProject do
       maintainers: ["Rebecca Le"],
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
+      files: ~w(lib i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
     ]
   end
 
