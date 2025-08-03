@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## v0.5.1 (2025-08-03)
+
+### Features
+
+* Allow `🔍 Filters` text to be customized via new `filters_label` table assign (#26)
+* Set up the "modern" theme by default (#27)
 
 ### Bug fixes
 
@@ -13,6 +18,7 @@
 
 * Replace native select boxes with custom HTML implementation for better customizability
 * Add `cinder` to the `import_deps` list for custom formatting, on installation
+* Use the provided `empty_message` and `loading_message` when rendering the table (#25)
 
 ## v0.5.0 (2025-07-26)
 
