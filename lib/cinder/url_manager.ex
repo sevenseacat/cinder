@@ -73,7 +73,7 @@ defmodule Cinder.UrlManager do
     %{
       filters: decode_filters(url_params, columns),
       current_page: decode_page(Map.get(url_params, "page")),
-      sort_by: decode_sort(Map.get(url_params, "sort"))
+      sort_by: decode_sort(Map.get(url_params, "sort"), columns)
     }
   end
 
@@ -223,7 +223,25 @@ defmodule Cinder.UrlManager do
       [{"title", :desc}, {"created_at", :asc}]
 
   """
+  def decode_sort(url_sort, columns) when is_binary(url_sort) and is_list(columns) do
+    url_sort
+    |> parse_sort_string()
+    |> filter_valid_sorts(columns)
+  end
+
+  def decode_sort(nil, _columns), do: []
+  def decode_sort("", _columns), do: []
+
+  # Backward compatibility - if called without columns, parse but don't validate
   def decode_sort(url_sort) when is_binary(url_sort) do
+    parse_sort_string(url_sort)
+  end
+
+  def decode_sort(nil), do: []
+  def decode_sort(""), do: []
+
+  # Helper function to parse sort string into {field, direction} tuples
+  defp parse_sort_string(url_sort) do
     url_sort
     |> String.split(",")
     |> Enum.filter(&(&1 != ""))
@@ -239,8 +257,25 @@ defmodule Cinder.UrlManager do
     end)
   end
 
-  def decode_sort(nil), do: []
-  def decode_sort(""), do: []
+  # Helper function to filter sorts based on column definitions
+  defp filter_valid_sorts(sorts, columns) do
+    if Enum.empty?(columns) do
+      sorts
+    else
+      Enum.filter(sorts, fn {field, _direction} ->
+        is_field_sortable?(field, columns)
+      end)
+    end
+  end
+
+  # Helper function to check if a field is sortable
+  defp is_field_sortable?(field, columns) do
+    case Enum.find(columns, &(&1.field == field)) do
+      nil -> false
+      column when is_map(column) -> Map.get(column, :sortable, true)
+      _column -> true
+    end
+  end
 
   @doc """
   Decodes page number from URL parameter.

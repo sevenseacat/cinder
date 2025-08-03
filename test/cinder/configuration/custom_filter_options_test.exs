@@ -14,6 +14,7 @@ defmodule Cinder.CustomFilterOptionsTest do
     attributes do
       uuid_primary_key(:id)
       attribute(:name, :string)
+      attribute(:damage, :integer)
 
       attribute(:type, :atom,
         constraints: [

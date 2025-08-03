@@ -12,7 +12,7 @@ defmodule Cinder.ColumnTest do
 
       assert column.field == "name"
       assert column.label == "Name"
-      assert column.sortable == true
+      assert column.sortable == false
       assert column.filterable == false
       assert column.filter_type == :text
       assert column.class == ""
@@ -283,7 +283,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.sortable == true
+      assert column.sortable == false
       assert column.filterable == false
       assert column.filter_type == :text
       assert column.filter_options == []
@@ -295,7 +295,7 @@ defmodule Cinder.ColumnTest do
 
       column = Column.parse_column(slot, resource)
 
-      assert column.sortable == true
+      assert column.sortable == false
       assert column.filterable == false
       assert column.filter_type == :text
       assert column.filter_options == []
@@ -442,8 +442,7 @@ defmodule Cinder.ColumnTest do
       [id_col, secret_col] = columns
 
       assert id_col.filterable == false
-      # sortable defaults to true
-      assert id_col.sortable == true
+      assert id_col.sortable == false
 
       assert secret_col.filterable == false
       # explicitly set to false

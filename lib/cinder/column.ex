@@ -22,7 +22,9 @@ defmodule Cinder.Column do
           filter_fn: function() | nil,
           search_fn: function() | nil,
           searchable: boolean(),
-          options: list()
+          options: list(),
+          sort_warning: String.t() | nil,
+          filter_warning: String.t() | nil
         }
 
   defstruct [
@@ -40,7 +42,9 @@ defmodule Cinder.Column do
     :filter_fn,
     :search_fn,
     :searchable,
-    :options
+    :options,
+    :sort_warning,
+    :filter_warning
   ]
 
   @doc """
@@ -83,7 +87,9 @@ defmodule Cinder.Column do
         filter_fn: nil,
         search_fn: nil,
         searchable: false,
-        options: []
+        options: [],
+        sort_warning: nil,
+        filter_warning: nil
       }
     else
       # Parse relationship information if field contains dots
@@ -94,13 +100,29 @@ defmodule Cinder.Column do
 
       # Merge slot configuration with inferred defaults
       merged_config = merge_config(slot, inferred)
+      # Check if this field is a non-sortable calculation
+      {sortable, sort_warning} = determine_sortability(resource, field, slot)
+
+      # Check if this field is a non-filterable calculation
+      {filterable, filter_warning} = determine_filterability(resource, field, slot)
+
+      # Log warnings if calculation has issues (in development/test environments)
+      if sort_warning && Mix.env() in [:dev, :test] do
+        require Logger
+        Logger.warning("Cinder Column: #{sort_warning}")
+      end
+
+      if filter_warning && Mix.env() in [:dev, :test] do
+        require Logger
+        Logger.warning("Cinder Column: #{filter_warning}")
+      end
 
       # Create column struct
       %__MODULE__{
         field: field,
         label: Map.get(merged_config, :label, humanize_key(field)),
-        sortable: Map.get(merged_config, :sortable, true),
-        filterable: Map.get(merged_config, :filterable, false),
+        sortable: sortable,
+        filterable: filterable,
         filter_type: Map.get(merged_config, :filter_type, :text),
         filter_options: Map.get(merged_config, :filter_options, []),
         class: Map.get(merged_config, :class, ""),
@@ -111,7 +133,9 @@ defmodule Cinder.Column do
         filter_fn: Map.get(merged_config, :filter_fn),
         search_fn: Map.get(merged_config, :search_fn),
         searchable: Map.get(merged_config, :searchable, false),
-        options: Map.get(merged_config, :options, [])
+        options: Map.get(merged_config, :options, []),
+        sort_warning: sort_warning,
+        filter_warning: filter_warning
       }
     end
   end
@@ -129,7 +153,7 @@ defmodule Cinder.Column do
             filter_config = Cinder.FilterManager.infer_filter_config(key, resource, slot)
 
             %{
-              sortable: true,
+              sortable: Map.get(slot, :sortable, false),
               filterable: true,
               searchable: false,
               filter_type: filter_config.filter_type,
@@ -137,7 +161,7 @@ defmodule Cinder.Column do
             }
           else
             %{
-              sortable: true,
+              sortable: Map.get(slot, :sortable, false),
               filterable: false,
               searchable: false,
               filter_type: :text,
@@ -251,7 +275,7 @@ defmodule Cinder.Column do
 
   defp default_column_config do
     %{
-      sortable: true,
+      sortable: false,
       filterable: false,
       filter_type: :text,
       filter_options: [],
@@ -269,4 +293,134 @@ defmodule Cinder.Column do
   end
 
   defp humanize_key(field), do: humanize_key(to_string(field))
+
+  # Extracts the resource from either an Ash.Query struct or a resource module.
+  # This allows the column parsing to work with both queries and resource modules.
+  defp extract_resource_from_query_or_resource(%Ash.Query{resource: resource}), do: resource
+  defp extract_resource_from_query_or_resource(resource) when is_atom(resource), do: resource
+  defp extract_resource_from_query_or_resource(other), do: other
+
+  defp determine_sortability(resource_or_query, field, slot) do
+    # Extract the actual resource from query or resource
+    resource = extract_resource_from_query_or_resource(resource_or_query)
+
+    # Check if the slot explicitly set sortable (user override)
+    slot_sortable = Map.get(slot, :sortable)
+
+    case slot_sortable do
+      nil ->
+        # No user request for sorting, default to false
+        {false, nil}
+
+      false ->
+        # User explicitly disabled sorting
+        {false, nil}
+
+      true ->
+        # User explicitly wants sorting - check if it's possible
+        {auto_sortable, auto_warning} = determine_auto_sortability(resource, field)
+
+        if auto_sortable do
+          # User wants to enable sorting on something that can be sorted - OK
+          {true, nil}
+        else
+          # User wants to enable sorting on something that can't be sorted
+          # Keep it non-sortable and show the warning about why it can't work
+          {false, auto_warning}
+        end
+    end
+  end
+
+  # Determines sortability based purely on the field's nature (ignoring user overrides)
+  defp determine_auto_sortability(resource, field) do
+    # Parse field to handle relationship calculations
+    {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
+
+    # Validate field existence first
+    if not Cinder.QueryBuilder.field_exists_on_resource?(target_resource, target_field) do
+      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
+      {false, warning}
+    else
+      # Check if this field is a calculation on the target resource
+      case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
+        nil ->
+          # Not a calculation, should be sortable
+          {true, nil}
+
+        calc ->
+          if Cinder.QueryBuilder.is_calculation_sortable?(calc) do
+            {true, nil}
+          else
+            warning =
+              "Field '#{field}' is an in-memory calculation and cannot be sorted. " <>
+                "Consider using expr() for database-level calculations that support sorting."
+
+            {false, warning}
+          end
+      end
+    end
+  end
+
+  # Determines filterability based on field nature and user intent
+  defp determine_filterability(resource_or_query, field, slot) do
+    # Extract the actual resource from query or resource
+    resource = extract_resource_from_query_or_resource(resource_or_query)
+
+    # Check if the slot explicitly set filterable (user override)
+    slot_filterable = Map.get(slot, :filterable)
+
+    case slot_filterable do
+      nil ->
+        # No user request for filtering, default to false
+        {false, nil}
+
+      false ->
+        # User explicitly disabled filtering
+        {false, nil}
+
+      true ->
+        # User explicitly wants filtering - check if it's possible
+        {auto_filterable, auto_warning} = determine_auto_filterability(resource, field)
+
+        if auto_filterable do
+          # User wants filtering on something that can be filtered - OK
+          {true, nil}
+        else
+          # User wants filtering on something that can't be filtered
+          # Keep it non-filterable and show the warning about why it can't work
+          {false, auto_warning}
+        end
+    end
+  end
+
+  # Determines filterability based purely on the field's nature (ignoring user overrides)
+  defp determine_auto_filterability(resource, field) do
+    # Parse field to handle relationship calculations
+    {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
+
+    # Validate field existence first
+    if not Cinder.QueryBuilder.field_exists_on_resource?(target_resource, target_field) do
+      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
+      {false, warning}
+    else
+      # Check if this field is a calculation on the target resource
+      case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
+        nil ->
+          # Not a calculation, should be filterable
+          {true, nil}
+
+        calc ->
+          if Cinder.QueryBuilder.is_calculation_sortable?(calc) do
+            # Database-level calculations can be filtered
+            {true, nil}
+          else
+            warning =
+              "Field '#{field}' is an in-memory calculation and cannot be filtered. " <>
+                "Consider using expr() for database-level calculations that support filtering."
+
+            {false, warning}
+          end
+      end
+    end
+  end
 end

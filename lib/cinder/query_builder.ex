@@ -80,37 +80,45 @@ defmodule Cinder.QueryBuilder do
 
     try do
       # Normalize input to a query and extract resource for logging
-      {base_query, _resource} =
+      {base_query, resource} =
         normalize_resource_or_query(resource_or_query, actor, tenant, query_opts)
 
-      # Build the complete query with filtering and sorting
-      prepared_query =
-        base_query
-        |> apply_query_opts(query_opts)
-        |> apply_filters(filters, columns)
-        |> apply_sorting(sort_by, columns)
+      # Validate sort fields before applying them to prevent crashes
+      case validate_sortable_fields(sort_by, resource) do
+        :ok ->
+          # Continue with normal query building
+          prepared_query =
+            base_query
+            |> apply_query_opts(query_opts)
+            |> apply_filters(filters, columns)
+            |> apply_sorting(sort_by, columns)
 
-      # Handle pagination based on action support
-      case action_supports_pagination?(prepared_query) do
-        true ->
-          execute_with_pagination(
-            prepared_query,
-            actor,
-            tenant,
-            query_opts,
-            current_page,
-            page_size
-          )
+          # Handle pagination based on action support
+          case action_supports_pagination?(prepared_query) do
+            true ->
+              execute_with_pagination(
+                prepared_query,
+                actor,
+                tenant,
+                query_opts,
+                current_page,
+                page_size
+              )
 
-        false ->
-          execute_without_pagination(
-            prepared_query,
-            actor,
-            tenant,
-            query_opts,
-            current_page,
-            page_size
-          )
+            false ->
+              execute_without_pagination(
+                prepared_query,
+                actor,
+                tenant,
+                query_opts,
+                current_page,
+                page_size
+              )
+          end
+
+        {:error, message} ->
+          # Return validation error instead of crashing
+          {:error, message}
       end
     rescue
       error ->
@@ -524,6 +532,258 @@ defmodule Cinder.QueryBuilder do
     [actor: actor]
     |> maybe_add_tenant(tenant)
     |> maybe_add_ash_options(query_opts)
+  end
+
+  @doc """
+  Determines if a calculation can be sorted at the database level.
+
+  Checks if a calculation has an `expression/2` function that allows it to be
+  converted to a database expression for sorting.
+
+  ## Parameters
+  - `calculation` - An Ash calculation struct
+
+  ## Returns
+  - `true` if the calculation can be sorted at the database level
+  - `false` if the calculation is computed in-memory and cannot be sorted
+
+  ## Examples
+
+      # Database-level calculation (using expr())
+      is_calculation_sortable?(%{calculation: {Ash.Resource.Calculation.Expression, _}})
+      # => true
+
+      # In-memory calculation without expression/2
+      is_calculation_sortable?(%{calculation: {MyCalcModule, _}})
+      # => false (if MyCalcModule doesn't implement expression/2)
+  """
+  def is_calculation_sortable?(%{calculation: {Ash.Resource.Calculation.Expression, _}}), do: true
+
+  def is_calculation_sortable?(%{calculation: {module, _opts}}) when is_atom(module) do
+    function_exported?(module, :expression, 2)
+  end
+
+  def is_calculation_sortable?(_), do: false
+
+  @doc """
+  Retrieves calculation information for a given field from an Ash resource.
+
+  ## Parameters
+  - `resource` - Ash resource module
+  - `field_name` - Field name as atom or string
+
+  ## Returns
+  - Calculation struct if the field is a calculation
+  - `nil` if the field is not a calculation or doesn't exist
+
+  ## Examples
+
+      get_calculation_info(User, :full_name)
+      # => %{name: :full_name, calculation: {...}, ...} or nil
+  """
+  def get_calculation_info(resource, field_name) when is_atom(resource) do
+    try do
+      calculations = Ash.Resource.Info.calculations(resource)
+      field_atom = if is_binary(field_name), do: String.to_atom(field_name), else: field_name
+
+      Enum.find(calculations, &(&1.name == field_atom))
+    rescue
+      _ -> nil
+    end
+  end
+
+  def get_calculation_info(_resource, _field_name) do
+    # Not an Ash resource, no calculations
+    nil
+  end
+
+  @doc """
+  Validates that all fields in a sort list can be sorted at the database level.
+
+  Checks each sort field to ensure it's not an in-memory calculation that would
+  cause crashes or undefined behavior when sorting is attempted.
+
+  ## Parameters
+  - `sort_by` - List of `{field, direction}` tuples
+  - `resource` - Ash resource module
+
+  ## Returns
+  - `:ok` if all fields can be sorted
+  - `{:error, message}` if any fields cannot be sorted
+
+  ## Examples
+
+      validate_sortable_fields([{"name", :asc}], User)
+      # => :ok
+
+      validate_sortable_fields([{"in_memory_calc", :asc}], User)
+      # => {:error, "Cannot sort by in-memory calculations..."}
+  """
+  def validate_sortable_fields(sort_by, resource) when is_atom(resource) do
+    try do
+      resource_info = build_resource_info(resource)
+
+      {unsortable_fields, details} =
+        sort_by
+        |> Enum.reduce({[], []}, fn {field, _direction}, acc ->
+          validate_single_sort_field(field, resource, resource_info, acc)
+        end)
+
+      build_validation_result(unsortable_fields, details)
+    rescue
+      error ->
+        require Logger
+        Logger.warning("Failed to validate sortable fields: #{inspect(error)}")
+        :ok
+    end
+  end
+
+  # Builds a map of resource information needed for field validation.
+  # Extracts calculations, attributes, and relationships for efficient lookup.
+  defp build_resource_info(resource) do
+    calculations = Ash.Resource.Info.calculations(resource)
+    calculation_map = Map.new(calculations, &{&1.name, &1})
+
+    # Get all valid field names for existence validation
+    attributes = Ash.Resource.Info.attributes(resource) |> Enum.map(& &1.name)
+    relationships = Ash.Resource.Info.relationships(resource) |> Enum.map(& &1.name)
+    aggregates = Ash.Resource.Info.aggregates(resource) |> Enum.map(& &1.name)
+
+    valid_fields =
+      MapSet.new(attributes ++ relationships ++ aggregates ++ Map.keys(calculation_map))
+
+    %{
+      calculation_map: calculation_map,
+      valid_fields: valid_fields
+    }
+  end
+
+  # Validates a single sort field against resource information.
+  # Returns updated {unsortable_fields, details} tuple.
+  defp validate_single_sort_field(field, resource, _resource_info, {unsortable, details}) do
+    field_string = to_string(field)
+
+    # Use the same recursive field resolution logic as column parsing
+    {target_resource, target_field} = resolve_field_resource(resource, field_string)
+
+    target_field_atom =
+      if is_binary(target_field), do: String.to_atom(target_field), else: target_field
+
+    # Check if field exists on the resolved target resource
+    if not field_exists_on_resource?(target_resource, target_field_atom) do
+      detail = "#{field} (field does not exist on #{inspect(resource)})"
+      {[field | unsortable], [detail | details]}
+    else
+      # Check if it's a calculation that needs validation
+      case get_calculation_info(target_resource, target_field_atom) do
+        nil ->
+          # Regular field that exists - should be sortable
+          {unsortable, details}
+
+        calc ->
+          # It's a calculation - check if sortable
+          validate_calculation_sortability(field, calc, {unsortable, details})
+      end
+    end
+  end
+
+  # Validates whether a calculation can be sorted at the database level.
+  # Checks if the calculation implements expression/2 for database-level sorting.
+  defp validate_calculation_sortability(field, calc, {unsortable, details}) do
+    if not is_calculation_sortable?(calc) do
+      detail =
+        case calc.calculation do
+          {module, _} ->
+            "#{field} (#{inspect(module)} - missing expression/2)"
+
+          other ->
+            "#{field} (#{inspect(other)})"
+        end
+
+      {[field | unsortable], [detail | details]}
+    else
+      {unsortable, details}
+    end
+  end
+
+  @doc """
+  Resolves a field to its target resource and field name.
+  Handles relationship traversal (e.g., "user.profile.first_name" -> {Profile, "first_name"})
+  """
+  def resolve_field_resource(resource, field) when is_binary(field) do
+    case String.split(field, ".", parts: 2) do
+      [single_field] ->
+        # Direct field on the main resource
+        {resource, single_field}
+
+      [relationship_name, remaining_field] ->
+        # Relationship field - try to resolve the target resource
+        try do
+          if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
+            case Ash.Resource.Info.relationship(resource, String.to_atom(relationship_name)) do
+              %{destination: destination_resource} ->
+                # Recursively resolve the remaining field path
+                resolve_field_resource(destination_resource, remaining_field)
+
+              nil ->
+                # Relationship not found, treat as direct field
+                {resource, field}
+            end
+          else
+            # Not an Ash resource, can't resolve relationships
+            {resource, field}
+          end
+        rescue
+          _ ->
+            # Error resolving relationship, fall back to direct field
+            {resource, field}
+        end
+    end
+  end
+
+  def resolve_field_resource(resource, field), do: {resource, to_string(field)}
+
+  @doc """
+  Checks if a field exists on a resource (including attributes, relationships, calculations, aggregates)
+  """
+  def field_exists_on_resource?(resource, field_atom) do
+    try do
+      if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
+        field_atom = if is_binary(field_atom), do: String.to_atom(field_atom), else: field_atom
+
+        # Get all valid field types
+        attributes = Ash.Resource.Info.attributes(resource) |> Enum.map(& &1.name)
+        relationships = Ash.Resource.Info.relationships(resource) |> Enum.map(& &1.name)
+        calculations = Ash.Resource.Info.calculations(resource) |> Enum.map(& &1.name)
+        aggregates = Ash.Resource.Info.aggregates(resource) |> Enum.map(& &1.name)
+
+        valid_fields = MapSet.new(attributes ++ relationships ++ calculations ++ aggregates)
+
+        # Check the target field on the resolved resource
+        MapSet.member?(valid_fields, field_atom)
+      else
+        # Not an Ash resource, assume field exists
+        true
+      end
+    rescue
+      _ ->
+        # Error checking resource, assume field exists
+        true
+    end
+  end
+
+  # Builds the final validation result from collected unsortable fields and details.
+  # Returns :ok if no issues found, or {:error, message} with helpful details.
+  defp build_validation_result([], _details), do: :ok
+
+  defp build_validation_result(unsortable_fields, details) do
+    field_list = Enum.join(unsortable_fields, ", ")
+    detail_list = Enum.join(details, ", ")
+
+    {:error,
+     "Cannot sort by invalid fields: #{field_list}. " <>
+       "Details: #{detail_list}. " <>
+       "Fields must exist on the resource and calculations must be database-level (using expr()) to be sortable."}
   end
 
   @doc """

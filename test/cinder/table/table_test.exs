@@ -27,6 +27,46 @@ defmodule Cinder.TableTest do
     end
   end
 
+  defmodule TestArtist do
+    use Ash.Resource,
+      domain: nil,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:name, :string)
+    end
+
+    actions do
+      defaults([:create, :read, :update, :destroy])
+    end
+  end
+
+  defmodule TestPublisher do
+    use Ash.Resource,
+      domain: nil,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:name, :string)
+    end
+
+    actions do
+      defaults([:create, :read, :update, :destroy])
+    end
+  end
+
   defmodule TestAlbum do
     use Ash.Resource,
       domain: nil,
@@ -42,6 +82,13 @@ defmodule Cinder.TableTest do
       attribute(:title, :string)
       attribute(:release_date, :date)
       attribute(:status, TestStatusEnum)
+      attribute(:artist_id, :uuid)
+      attribute(:publisher_id, :uuid)
+    end
+
+    relationships do
+      belongs_to(:artist, Cinder.TableTest.TestArtist)
+      belongs_to(:publisher, Cinder.TableTest.TestPublisher)
     end
 
     actions do
@@ -54,26 +101,9 @@ defmodule Cinder.TableTest do
 
     resources do
       resource(TestUser)
+      resource(TestArtist)
+      resource(TestPublisher)
       resource(TestAlbum)
-    end
-  end
-
-  defmodule TestArtist do
-    use Ash.Resource,
-      domain: nil,
-      data_layer: Ash.DataLayer.Ets
-
-    ets do
-      private?(true)
-    end
-
-    attributes do
-      uuid_primary_key(:id)
-      attribute(:name, :string)
-    end
-
-    actions do
-      defaults([:create, :read, :update, :destroy])
     end
   end
 
