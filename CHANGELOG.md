@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.2 (2025-08-06)
+
+### Bug fixes
+
+* Log warnings about invalid column config in all environments, at the `info` log level
+
 ## v0.5.1 (2025-08-03)
 
 ### Features
