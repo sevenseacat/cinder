@@ -106,15 +106,15 @@ defmodule Cinder.Column do
       # Check if this field is a non-filterable calculation
       {filterable, filter_warning} = determine_filterability(resource, field, slot)
 
-      # Log warnings if calculation has issues (in development/test environments)
-      if sort_warning && Mix.env() in [:dev, :test] do
+      # Log warnings if calculation has issues
+      if sort_warning do
         require Logger
-        Logger.warning("Cinder Column: #{sort_warning}")
+        Logger.info("Cinder Column: #{sort_warning}")
       end
 
-      if filter_warning && Mix.env() in [:dev, :test] do
+      if filter_warning do
         require Logger
-        Logger.warning("Cinder Column: #{filter_warning}")
+        Logger.info("Cinder Column: #{filter_warning}")
       end
 
       # Create column struct
