@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.3 (2025-08-07)
+
+### Bug fixes
+
+* Fix `query` not preserving filters/sorts when using `Ash.Query.filter(Resource, ...)` pattern (#36)
+* Ensure query tenant context is properly recognized
+
 ## v0.5.2 (2025-08-06)
 
 ### Bug fixes

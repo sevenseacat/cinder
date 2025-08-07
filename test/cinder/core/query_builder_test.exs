@@ -3,6 +3,7 @@ defmodule Cinder.QueryBuilderTest do
   use Mimic
   import ExUnit.CaptureLog
 
+  require Ash.Query
   alias Cinder.QueryBuilder
 
   # Test resource for tenant testing
@@ -1095,6 +1096,109 @@ defmodule Cinder.QueryBuilderTest do
       refute Keyword.has_key?(ash_opts, :timeout)
       refute Keyword.has_key?(ash_opts, :authorize?)
       refute Keyword.has_key?(ash_opts, :max_concurrency)
+    end
+  end
+
+  describe "normalize_resource_or_query/4 - query option bugs" do
+    defp default_options(overrides \\ []) do
+      [
+        actor: :test_actor,
+        tenant: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+      |> Keyword.merge(overrides)
+    end
+
+    test "explicit tenant overrides query tenant" do
+      query_with_tenant = Ash.Query.for_read(TestUser, :read, %{}, tenant: "query_tenant")
+
+      expect(Ash, :read, fn _query, opts ->
+        send(self(), {:ash_opts, opts})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      QueryBuilder.build_and_execute(
+        query_with_tenant,
+        default_options(tenant: "explicit_tenant")
+      )
+
+      assert_received {:ash_opts, ash_opts}
+      assert Keyword.get(ash_opts, :tenant) == "explicit_tenant"
+    end
+
+    test "query built from resource preserves filters and sorts" do
+      # Reproduces the main bug: Resource |> Ash.Query.filter(...) loses modifications
+      query_without_for_read =
+        TestUser
+        |> Ash.Query.filter(name == "test")
+        |> Ash.Query.sort(:email)
+
+      expect(Ash, :read, fn query, _opts ->
+        send(self(), {:final_query, query})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      QueryBuilder.build_and_execute(query_without_for_read, default_options())
+
+      assert_received {:final_query, final_query}
+      assert final_query.filter != nil
+      assert final_query.sort != []
+    end
+
+    test "query_opts applied to existing query" do
+      base_query = Ash.Query.for_read(TestUser, :read)
+
+      expect(Ash, :read, fn _query, opts ->
+        send(self(), {:ash_opts, opts})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      QueryBuilder.build_and_execute(base_query, default_options(query_opts: [timeout: 5000]))
+
+      assert_received {:ash_opts, ash_opts}
+      assert Keyword.get(ash_opts, :timeout) == 5000
+    end
+
+    test "query tenant is preserved when no explicit tenant provided" do
+      # This tests the actual bug: Ash.Query.set_tenant should be recognized
+      query_with_tenant =
+        TestUser
+        |> Ash.Query.set_tenant("query_tenant")
+
+      expect(Ash, :read, fn _query, opts ->
+        send(self(), {:ash_opts, opts})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      # No explicit tenant provided (tenant: nil)
+      QueryBuilder.build_and_execute(query_with_tenant, default_options())
+
+      assert_received {:ash_opts, ash_opts}
+      assert Keyword.get(ash_opts, :tenant) == "query_tenant"
+    end
+
+    test "context is properly merged without overwriting existing context" do
+      # Create a query with existing context
+      base_query = Ash.Query.for_read(TestUser, :read)
+      query_with_context = Ash.Query.set_context(base_query, %{custom_flag: true, other_data: "test"})
+
+      expect(Ash, :read, fn query, _opts ->
+        send(self(), {:final_query_context, query.context})
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      # Pass actor that should be merged with existing context
+      QueryBuilder.build_and_execute(query_with_context, default_options(actor: :test_actor))
+
+      assert_received {:final_query_context, final_context}
+      assert final_context.actor == :test_actor
+      assert final_context.custom_flag == true
+      assert final_context.other_data == "test"
     end
   end
 end
