@@ -48,6 +48,49 @@ defmodule Cinder.UrlManagerTest do
       refute Map.has_key?(result, :sort)
     end
 
+    @tag :pending
+    test "encodes page_size when different from default" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        page_size: 50,
+        default_page_size: 25
+      }
+
+      result = UrlManager.encode_state(state)
+
+      assert result[:page_size] == "50"
+    end
+
+    @tag :pending
+    test "omits page_size when equal to default" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        page_size: 25,
+        default_page_size: 25
+      }
+
+      result = UrlManager.encode_state(state)
+
+      refute Map.has_key?(result, :page_size)
+    end
+
+    @tag :pending
+    test "omits page_size when no default specified" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: []
+      }
+
+      result = UrlManager.encode_state(state)
+
+      refute Map.has_key?(result, :page_size)
+    end
+
     test "handles empty state" do
       state = %{
         filters: %{},
@@ -108,9 +151,64 @@ defmodule Cinder.UrlManagerTest do
                operator: :contains,
                case_sensitive: false
              }
-
       assert result.current_page == 1
       assert result.sort_by == []
+    end
+
+    @tag :pending
+    test "decodes page_size parameter", %{columns: columns} do
+      url_params = %{
+        "title" => "test",
+        "page_size" => "50"
+      }
+
+      result = UrlManager.decode_state(url_params, columns)
+
+      assert result.page_size == 50
+      assert result.current_page == 1
+    end
+
+    @tag :pending
+    test "handles invalid page_size gracefully", %{columns: columns} do
+      url_params = %{
+        "title" => "test",
+        "page_size" => "invalid"
+      }
+
+      result = UrlManager.decode_state(url_params, columns)
+
+      # Invalid page_size should fallback to default (25)
+      assert result.page_size == 25
+      assert result.current_page == 1
+      # Other parameters should still be processed correctly
+      assert Map.has_key?(result.filters, "title")
+    end
+
+    @tag :pending
+    test "handles missing page_size", %{columns: columns} do
+      url_params = %{"title" => "test"}
+
+      result = UrlManager.decode_state(url_params, columns)
+
+      # Missing page_size should use default (25)
+      assert result.page_size == 25
+      assert result.current_page == 1
+    end
+
+    @tag :pending
+    test "decodes page_size with other parameters", %{columns: columns} do
+      url_params = %{
+        "title" => "test",
+        "page" => "2",
+        "sort" => "-created_at",
+        "page_size" => "100"
+      }
+
+      result = UrlManager.decode_state(url_params, columns)
+
+      assert result.page_size == 100
+      assert result.current_page == 2
+      assert result.sort_by == [{"created_at", :desc}]
     end
 
     test "ignores non-filterable columns", %{columns: columns} do

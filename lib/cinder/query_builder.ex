@@ -73,7 +73,9 @@ defmodule Cinder.QueryBuilder do
     tenant = Keyword.get(options, :tenant)
     filters = Keyword.get(options, :filters, %{})
     sort_by = Keyword.get(options, :sort_by, [])
-    page_size = Keyword.get(options, :page_size, 25)
+    raw_page_size = Keyword.get(options, :page_size, 25)
+    # Strip negative page sizes - use default instead
+    page_size = if raw_page_size > 0, do: raw_page_size, else: 25
     current_page = Keyword.get(options, :current_page, 1)
     columns = Keyword.get(options, :columns, [])
     query_opts = Keyword.get(options, :query_opts, [])

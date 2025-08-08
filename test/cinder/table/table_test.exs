@@ -508,6 +508,10 @@ defmodule Cinder.TableTest do
     end
   end
 
+
+
+
+
   describe "edge cases and error handling" do
     test "handles empty column list" do
       assigns = %{

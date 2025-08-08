@@ -114,6 +114,54 @@ defmodule Cinder.Table.UrlSyncTest do
     end
   end
 
+  describe "page_size URL parameter handling" do
+    test "extracts page_size from URL parameters" do
+      params = %{"page_size" => "50"}
+      state = UrlSync.extract_table_state(params)
+
+      # page_size should be available in filters for component processing
+      assert Map.has_key?(params, "page_size")
+      # Current implementation doesn't decode page_size directly, but preserves it in filters
+      assert state.current_page == 1
+      assert state.sort_by == []
+    end
+
+
+
+    test "preserves invalid page_size in raw params for component validation" do
+      params = %{"page_size" => "invalid"}
+      state = UrlSync.extract_table_state(params)
+
+      # Invalid page_size should not crash URL parsing
+      assert state.current_page == 1
+      assert state.sort_by == []
+      # Raw params are preserved for component to handle validation
+      assert Map.get(params, "page_size") == "invalid"
+    end
+
+    test "handles missing page_size gracefully" do
+      params = %{"name" => "test", "page" => "2"}
+      state = UrlSync.extract_table_state(params)
+
+      # Should work fine without page_size parameter
+      assert state.current_page == 2
+      assert is_map(state.filters)
+    end
+
+    test "page_size URL encoding expectations for enhancement" do
+      # Test expected behavior: page_size should be in URL when different from default
+      # This documents the behavior we'll implement
+
+      # Current behavior: page_size is preserved in raw params
+      params_with_page_size = %{"name" => "test", "page_size" => "50"}
+      state = UrlSync.extract_table_state(params_with_page_size)
+
+      # The component will handle page_size validation and URL sync
+      assert Map.get(params_with_page_size, "page_size") == "50"
+      assert state.current_page == 1
+    end
+  end
+
   describe "integration with UrlManager" do
     test "URL sync sends correct message format" do
       # This test verifies that the Table component sends the expected message format

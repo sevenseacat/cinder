@@ -16,7 +16,9 @@ defmodule Cinder.UrlManager do
   @type table_state :: %{
           filters: %{String.t() => filter()},
           current_page: integer(),
-          sort_by: sort_by()
+          sort_by: sort_by(),
+          page_size: integer(),
+          default_page_size: integer()
         }
   @type url_params :: %{atom() => String.t()}
 
@@ -34,20 +36,29 @@ defmodule Cinder.UrlManager do
       %{title: "test", page: "2", sort: "-title"}
 
   """
-  def encode_state(%{filters: filters, current_page: current_page, sort_by: sort_by}) do
+  def encode_state(%{filters: filters, current_page: current_page, sort_by: sort_by} = state) do
     encoded_filters = encode_filters(filters)
 
-    state =
+    state_with_page =
       if current_page > 1 do
         Map.put(encoded_filters, :page, to_string(current_page))
       else
         encoded_filters
       end
 
+    # Add page_size if different from default
+    state_with_page_size =
+      case {Map.get(state, :page_size), Map.get(state, :default_page_size)} do
+        {page_size, default_page_size} when is_integer(page_size) and is_integer(default_page_size) and page_size != default_page_size ->
+          Map.put(state_with_page, :page_size, to_string(page_size))
+        _ ->
+          state_with_page
+      end
+
     if not Enum.empty?(sort_by) do
-      Map.put(state, :sort, encode_sort(sort_by))
+      Map.put(state_with_page_size, :sort, encode_sort(sort_by))
     else
-      state
+      state_with_page_size
     end
   end
 
@@ -73,7 +84,8 @@ defmodule Cinder.UrlManager do
     %{
       filters: decode_filters(url_params, columns),
       current_page: decode_page(Map.get(url_params, "page")),
-      sort_by: decode_sort(Map.get(url_params, "sort"), columns)
+      sort_by: decode_sort(Map.get(url_params, "sort"), columns),
+      page_size: decode_page_size(Map.get(url_params, "page_size"))
     }
   end
 
@@ -303,6 +315,33 @@ defmodule Cinder.UrlManager do
 
   def decode_page(nil), do: 1
   def decode_page(_), do: 1
+
+  @doc """
+  Decodes page size from URL parameter.
+
+  Returns 25 for invalid or missing page_size parameters.
+
+  ## Examples
+
+      iex> Cinder.UrlManager.decode_page_size("50")
+      50
+
+      iex> Cinder.UrlManager.decode_page_size("invalid")
+      25
+
+      iex> Cinder.UrlManager.decode_page_size(nil)
+      25
+
+  """
+  def decode_page_size(page_size_param) when is_binary(page_size_param) do
+    case Integer.parse(page_size_param) do
+      {page_size, ""} when page_size > 0 -> page_size
+      _ -> 25
+    end
+  end
+
+  def decode_page_size(nil), do: 25
+  def decode_page_size(_), do: 25
 
   @doc """
   Sends state change notification to parent LiveView.

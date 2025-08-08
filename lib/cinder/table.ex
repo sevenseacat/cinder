@@ -270,7 +270,7 @@ defmodule Cinder.Table do
   attr(:tenant, :any, default: nil, doc: "Tenant for multi-tenant resources")
   attr(:scope, :any, default: nil, doc: "Ash scope containing actor and tenant")
   attr(:id, :string, default: "cinder-table", doc: "Unique identifier for the table")
-  attr(:page_size, :integer, default: 25, doc: "Number of items per page")
+  attr(:page_size, :any, default: 25, doc: "Number of items per page or [default: 25, options: [10, 25, 50]]")
   attr(:theme, :any, default: "default", doc: "Theme name or theme map")
 
   attr(:url_state, :any,
@@ -353,11 +353,15 @@ defmodule Cinder.Table do
     processed_columns = process_columns(assigns.col, resource)
     show_filters = determine_show_filters(assigns, processed_columns)
 
+    # Parse page_size configuration
+    parsed_page_size = parse_page_size_config(assigns.page_size)
+
     assigns =
       assigns
       |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
       |> assign(:resolved_options, resolved_options)
+      |> assign(:parsed_page_size, parsed_page_size)
       |> assign_new(:show_filters, fn -> show_filters end)
 
     ~H"""
@@ -368,7 +372,7 @@ defmodule Cinder.Table do
         query={@normalized_query}
         actor={@resolved_options.actor}
         tenant={@resolved_options.tenant}
-        page_size={@page_size}
+        page_size={@parsed_page_size}
         theme={resolve_theme(@theme)}
         url_filters={get_url_filters(@url_state)}
         url_page={get_url_page(@url_state)}
@@ -646,5 +650,41 @@ defmodule Cinder.Table do
         # If scope doesn't implement the protocol, treat as empty
         %{}
     end
+  end
+
+  # Parse page_size configuration from integer or keyword list format
+  defp parse_page_size_config(page_size) when is_integer(page_size) do
+    %{
+      selected_page_size: page_size,
+      page_size_options: [],
+      default_page_size: page_size,
+      configurable: false
+    }
+  end
+
+  defp parse_page_size_config(config) when is_list(config) do
+    default = Keyword.get(config, :default, 25)
+    options = Keyword.get(config, :options, [])
+
+    # Ensure default is included in options
+    normalized_options =
+      if Enum.empty?(options) do
+        []
+      else
+        options = if default in options, do: options, else: [default | options]
+        Enum.sort(options)
+      end
+
+    %{
+      selected_page_size: default,
+      page_size_options: normalized_options,
+      default_page_size: default,
+      configurable: length(normalized_options) > 1
+    }
+  end
+
+  defp parse_page_size_config(_invalid) do
+    # Fallback to default for invalid configurations
+    parse_page_size_config(25)
   end
 end

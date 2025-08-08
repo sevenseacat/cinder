@@ -513,8 +513,13 @@ defmodule Cinder.Table.LiveComponent do
   defp assign_defaults(socket) do
     assigns = socket.assigns
 
+    # Handle new page_size configuration structure
+    page_size_config = assigns[:page_size] || %{selected_page_size: 25, page_size_options: [], default_page_size: 25, configurable: false}
+    selected_page_size = if is_integer(page_size_config), do: page_size_config, else: page_size_config.selected_page_size
+
     socket
-    |> assign(:page_size, assigns[:page_size] || 25)
+    |> assign(:page_size, selected_page_size)
+    |> assign(:page_size_config, page_size_config)
     |> assign(:current_page, assigns[:current_page] || 1)
     |> assign(:loading, false)
     |> assign(:data, [])

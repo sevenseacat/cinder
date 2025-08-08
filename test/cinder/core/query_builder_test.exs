@@ -234,6 +234,50 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  describe "page_size validation" do
+    test "strips negative page_size and uses default" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: -5,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      # Mock the query execution to verify default page_size (25) is used instead of -5
+      expect(Ash, :read, fn query, _opts ->
+        # Should use default page_size of 25, not the invalid -5
+        assert Keyword.get(query.page, :limit) == 25
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      {:ok, {_results, _page_info}} = QueryBuilder.build_and_execute(TestUser, options)
+    end
+
+    test "strips zero page_size and uses default" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 0,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      # Zero page_size should also be treated as invalid and use default (25)
+      expect(Ash, :read, fn query, _opts ->
+        # Should use default page_size of 25, not the invalid 0
+        assert Keyword.get(query.page, :limit) == 25
+        {:ok, %{results: [], count: 0}}
+      end)
+
+      {:ok, {_results, _page_info}} = QueryBuilder.build_and_execute(TestUser, options)
+    end
+  end
+
   describe "build_page_info_with_total_count/4" do
     test "builds correct pagination info" do
       results = [%{id: 1}, %{id: 2}, %{id: 3}]
