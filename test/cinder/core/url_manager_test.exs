@@ -155,7 +155,6 @@ defmodule Cinder.UrlManagerTest do
       assert result.sort_by == []
     end
 
-    @tag :pending
     test "decodes page_size parameter", %{columns: columns} do
       url_params = %{
         "title" => "test",
@@ -168,7 +167,6 @@ defmodule Cinder.UrlManagerTest do
       assert result.current_page == 1
     end
 
-    @tag :pending
     test "handles invalid page_size gracefully", %{columns: columns} do
       url_params = %{
         "title" => "test",
@@ -184,7 +182,6 @@ defmodule Cinder.UrlManagerTest do
       assert Map.has_key?(result.filters, "title")
     end
 
-    @tag :pending
     test "handles missing page_size", %{columns: columns} do
       url_params = %{"title" => "test"}
 
@@ -195,7 +192,6 @@ defmodule Cinder.UrlManagerTest do
       assert result.current_page == 1
     end
 
-    @tag :pending
     test "decodes page_size with other parameters", %{columns: columns} do
       url_params = %{
         "title" => "test",

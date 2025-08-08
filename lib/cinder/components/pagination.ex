@@ -15,7 +15,14 @@ defmodule Cinder.Components.Pagination do
     :pagination_info_class,
     :pagination_count_class,
     :pagination_nav_class,
-    :pagination_current_class
+    :pagination_current_class,
+    # Page size selector
+    :page_size_container_class,
+    :page_size_label_class,
+    :page_size_dropdown_class,
+    :page_size_dropdown_container_class,
+    :page_size_option_class,
+    :page_size_selected_class
   ]
 
   @doc """
@@ -35,7 +42,13 @@ defmodule Cinder.Components.Pagination do
       pagination_info_class: "",
       pagination_count_class: "",
       pagination_nav_class: "",
-      pagination_current_class: ""
+      pagination_current_class: "",
+      page_size_container_class: "",
+      page_size_label_class: "",
+      page_size_dropdown_class: "",
+      page_size_dropdown_container_class: "",
+      page_size_option_class: "",
+      page_size_selected_class: ""
     }
   end
 

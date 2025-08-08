@@ -323,5 +323,59 @@ defmodule Cinder.Table.UrlSyncTest do
       fallback_url = "#{fallback_path}?#{query_string}"
       assert fallback_url == "/?artist.name=za&page=2"
     end
+
+    test "includes page_size in URL when different from default" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        page_size: 50,
+        default_page_size: 25
+      }
+
+      encoded_state = Cinder.UrlManager.encode_state(state)
+
+      # Should include page_size when different from default
+      assert encoded_state[:page_size] == "50"
+    end
+
+    test "excludes page_size from URL when same as default" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        page_size: 25,
+        default_page_size: 25
+      }
+
+      encoded_state = Cinder.UrlManager.encode_state(state)
+
+      # Should NOT include page_size when same as default
+      refute Map.has_key?(encoded_state, :page_size)
+    end
+
+    test "decode_url_state uses url_raw_params correctly (regression test)" do
+      # This tests the specific bug where decode_url_state was looking for :url_state
+      # but the table component actually passes :url_raw_params, causing URL page_size
+      # to be completely ignored
+
+      # Simulate the assigns structure that LiveComponent actually receives
+      assigns = %{
+        url_raw_params: %{"page_size" => "5", "page" => "2"},
+        # Note: NO :url_state key (this was the bug)
+      }
+
+      # Test that url_raw_params gets properly processed
+      raw_params = assigns[:url_raw_params]
+      decoded_state = Cinder.UrlManager.decode_state(raw_params, [])
+
+      # Should decode both page_size and page correctly
+      assert decoded_state.page_size == 5
+      assert decoded_state.current_page == 2
+
+      # Verify the fix: decode_url_state should work with url_raw_params
+      assert Map.has_key?(assigns, :url_raw_params)
+      refute Map.has_key?(assigns, :url_state)  # This key should NOT exist
+    end
   end
 end

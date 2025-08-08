@@ -94,6 +94,25 @@ defmodule Cinder.Table do
   </Cinder.Table.table>
   ```
 
+  ## Configurable Page Sizes
+
+  Allow users to select their preferred page size:
+
+  ```heex
+  <Cinder.Table.table
+    resource={MyApp.User}
+    actor={@current_user}
+    page_size={[default: 25, options: [10, 25, 50, 100]]}
+  >
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+    <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
+  </Cinder.Table.table>
+  ```
+
+  The page size selector appears automatically when multiple options are provided.
+  For fixed page sizes, use: `page_size={25}`
+
   ## Complex Query Examples
 
   ```heex

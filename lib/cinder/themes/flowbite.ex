@@ -14,7 +14,7 @@ defmodule Cinder.Themes.Flowbite do
 
   component Cinder.Components.Table do
     set :container_class,
-        "relative overflow-hidden bg-white shadow-md dark:bg-gray-800 sm:rounded-lg"
+        "relative bg-white shadow-md dark:bg-gray-800 sm:rounded-lg"
 
     set :controls_class,
         "flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4"
@@ -166,6 +166,13 @@ defmodule Cinder.Themes.Flowbite do
 
     set :pagination_current_class,
         "flex items-center justify-center px-3 h-8 text-sm leading-tight text-white bg-blue-600 border border-blue-600 rounded dark:bg-blue-500 dark:border-blue-500"
+
+    set :page_size_container_class, "flex items-center space-x-2"
+    set :page_size_label_class, "text-sm font-normal text-gray-500 dark:text-gray-400"
+    set :page_size_dropdown_class, "flex items-center justify-center px-3 h-8 text-sm leading-tight text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer"
+    set :page_size_dropdown_container_class, "bg-white border border-gray-300 rounded shadow-lg dark:bg-gray-800 dark:border-gray-700"
+    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer"
+    set :page_size_selected_class, "bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300"
   end
 
   component Cinder.Components.Sorting do

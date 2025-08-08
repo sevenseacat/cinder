@@ -14,7 +14,7 @@ defmodule Cinder.Themes.Pastel do
 
   component Cinder.Components.Table do
     set :container_class,
-        "bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200 shadow-lg rounded-2xl overflow-hidden"
+        "bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200 shadow-lg rounded-2xl"
 
     set :controls_class,
         "p-6 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-b border-pink-200"
@@ -163,6 +163,13 @@ defmodule Cinder.Themes.Pastel do
 
     set :pagination_current_class,
         "px-3 py-1 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 border border-purple-500 rounded-xl shadow-sm"
+
+    set :page_size_container_class, "flex items-center space-x-2"
+    set :page_size_label_class, "text-sm text-blue-700 font-medium"
+    set :page_size_dropdown_class, "flex items-center px-3 py-1 text-sm font-medium text-purple-700 bg-white/80 border border-purple-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300 transition-all duration-200 cursor-pointer shadow-sm"
+    set :page_size_dropdown_container_class, "bg-white border border-purple-200 rounded-xl shadow-lg"
+    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 hover:text-purple-800 cursor-pointer"
+    set :page_size_selected_class, "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800"
   end
 
   component Cinder.Components.Sorting do

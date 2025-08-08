@@ -156,6 +156,13 @@ defmodule Cinder.Themes.Compact do
 
     set :pagination_current_class,
         "px-2 py-1 text-xs font-medium text-white bg-blue-600 border border-blue-600"
+
+    set :page_size_container_class, "flex items-center space-x-1"
+    set :page_size_label_class, "text-xs text-gray-600 font-medium"
+    set :page_size_dropdown_class, "flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-150 cursor-pointer"
+    set :page_size_dropdown_container_class, "bg-white border border-gray-300 rounded shadow-lg"
+    set :page_size_option_class, "w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+    set :page_size_selected_class, "bg-blue-50 text-blue-700"
   end
 
   component Cinder.Components.Sorting do

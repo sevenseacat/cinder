@@ -8,6 +8,7 @@ defmodule Cinder.Table.LiveComponent do
   use Phoenix.LiveComponent
   require Ash.Query
   require Logger
+  alias Phoenix.LiveView.JS
 
   @impl true
   def mount(socket) do
@@ -25,6 +26,8 @@ defmodule Cinder.Table.LiveComponent do
     socket =
       socket
       |> assign(Map.drop(assigns, [:refresh]))
+      |> assign_defaults()
+      |> assign_column_definitions()
       |> load_data()
 
     {:ok, socket}
@@ -123,6 +126,7 @@ defmodule Cinder.Table.LiveComponent do
       <div :if={@page_info.total_pages > 1} class={@theme.pagination_wrapper_class} {@theme.pagination_wrapper_data}>
         <.pagination_controls
           page_info={@page_info}
+          page_size_config={@page_size_config}
           theme={@theme}
           myself={@myself}
         />
@@ -138,6 +142,24 @@ defmodule Cinder.Table.LiveComponent do
     socket =
       socket
       |> assign(:current_page, page)
+      |> notify_state_change()
+      |> load_data()
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("change_page_size", %{"page_size" => page_size}, socket) do
+    page_size = String.to_integer(page_size)
+
+    # Update the page size config with the new selected size
+    updated_config = %{socket.assigns.page_size_config | selected_page_size: page_size}
+
+    socket =
+      socket
+      |> assign(:page_size, page_size)
+      |> assign(:page_size_config, updated_config)
+      |> assign(:current_page, 1)  # Reset to page 1 when changing page size
       |> notify_state_change()
       |> load_data()
 
@@ -299,11 +321,14 @@ defmodule Cinder.Table.LiveComponent do
     filters = filters || socket.assigns.filters
     current_page = socket.assigns.current_page
     sort_by = socket.assigns.sort_by
+    page_size_config = socket.assigns.page_size_config
 
     state = %{
       filters: filters,
       current_page: current_page,
-      sort_by: sort_by
+      sort_by: sort_by,
+      page_size: page_size_config.selected_page_size,
+      default_page_size: page_size_config.default_page_size
     }
 
     Cinder.UrlManager.notify_state_change(socket, state)
@@ -311,8 +336,8 @@ defmodule Cinder.Table.LiveComponent do
 
   # Decode URL state from URL parameters
   defp decode_url_state(socket, assigns) do
-    if Map.has_key?(assigns, :url_state) do
-      raw_params = assigns.url_state.params
+    if Map.has_key?(assigns, :url_raw_params) do
+      raw_params = assigns.url_raw_params
 
       # Use raw params with actual columns for proper filter decoding
       decoded_state = Cinder.UrlManager.decode_state(raw_params, socket.assigns.columns)
@@ -334,7 +359,18 @@ defmodule Cinder.Table.LiveComponent do
             socket.assigns.sort_by
         end
 
-      socket
+      # Update page_size_config if URL explicitly contains a page_size parameter
+      updated_socket =
+        if Map.has_key?(raw_params, "page_size") do
+          updated_page_size_config = %{socket.assigns.page_size_config | selected_page_size: decoded_state.page_size}
+          socket
+          |> assign(:page_size, decoded_state.page_size)
+          |> assign(:page_size_config, updated_page_size_config)
+        else
+          socket
+        end
+
+      updated_socket
       |> assign(:filters, decoded_state.filters)
       |> assign(:current_page, decoded_state.current_page)
       |> assign(:sort_by, final_sort_by)
@@ -392,8 +428,15 @@ defmodule Cinder.Table.LiveComponent do
         </span>
       </div>
 
-      <!-- Right side: Page navigation -->
-      <div class={@theme.pagination_nav_class} {@theme.pagination_nav_data}>
+      <!-- Right side: Page size selector and navigation -->
+      <div class="flex items-center space-x-6">
+        <!-- Page size selector (if configurable) -->
+        <div :if={@page_size_config.configurable} class={@theme.page_size_container_class} {@theme.page_size_container_data}>
+          <.page_size_selector page_size_config={@page_size_config} theme={@theme} myself={@myself} />
+        </div>
+
+        <!-- Page navigation -->
+        <div class={@theme.pagination_nav_class} {@theme.pagination_nav_data}>
         <!-- First page and previous -->
         <button
           :if={@page_info.current_page > 2}
@@ -460,7 +503,58 @@ defmodule Cinder.Table.LiveComponent do
         >
           &raquo;
         </button>
+        </div>
       </div>
+    </div>
+    """
+  end
+
+  # Page size selector component
+  defp page_size_selector(assigns) do
+    ~H"""
+    <div class="flex items-center space-x-2">
+      <span class={@theme.page_size_label_class} {@theme.page_size_label_data}>
+        Show
+      </span>
+      <div class="relative">
+        <button
+          type="button"
+          class={@theme.page_size_dropdown_class}
+          {@theme.page_size_dropdown_data}
+          phx-click={JS.toggle(to: "#page-size-options")}
+          aria-haspopup="true"
+          aria-expanded="false"
+        >
+          {@page_size_config.selected_page_size}
+          <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+        <div
+          id="page-size-options"
+          class={["absolute top-full right-0 mt-1 z-50 hidden min-w-max", @theme.page_size_dropdown_container_class]}
+          {@theme.page_size_dropdown_container_data}
+          phx-click-away={JS.hide(to: "#page-size-options")}
+        >
+          <button
+            :for={option <- @page_size_config.page_size_options}
+            type="button"
+            class={[
+              @theme.page_size_option_class,
+              (@page_size_config.selected_page_size == option && @theme.page_size_selected_class || "")
+            ]}
+            {@theme.page_size_option_data}
+            phx-click={JS.push("change_page_size") |> JS.hide(to: "#page-size-options")}
+            phx-value-page_size={option}
+            phx-target={@myself}
+          >
+            {option}
+          </button>
+        </div>
+      </div>
+      <span class={@theme.page_size_label_class} {@theme.page_size_label_data}>
+        per page
+      </span>
     </div>
     """
   end
@@ -513,9 +607,9 @@ defmodule Cinder.Table.LiveComponent do
   defp assign_defaults(socket) do
     assigns = socket.assigns
 
-    # Handle new page_size configuration structure
+    # The page_size comes from the table component already parsed as a config struct
     page_size_config = assigns[:page_size] || %{selected_page_size: 25, page_size_options: [], default_page_size: 25, configurable: false}
-    selected_page_size = if is_integer(page_size_config), do: page_size_config, else: page_size_config.selected_page_size
+    selected_page_size = page_size_config.selected_page_size
 
     socket
     |> assign(:page_size, selected_page_size)

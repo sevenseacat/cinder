@@ -14,7 +14,7 @@ defmodule Cinder.Themes.Dark do
 
   component Cinder.Components.Table do
     set :container_class,
-        "bg-gray-900 shadow-2xl rounded-xl border border-gray-700 overflow-hidden"
+        "bg-gray-900 shadow-2xl rounded-xl border border-gray-700"
 
     set :controls_class,
         "p-6 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700"
@@ -153,7 +153,14 @@ defmodule Cinder.Themes.Dark do
         "px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded hover:bg-gray-700 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 
     set :pagination_current_class,
-        "px-3 py-1 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded"
+        "px-3 py-1 text-sm font-medium text-black bg-purple-400 border border-purple-400 rounded"
+
+    set :page_size_container_class, "flex items-center space-x-2"
+    set :page_size_label_class, "text-sm text-gray-300 font-medium"
+    set :page_size_dropdown_class, "flex items-center px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded hover:bg-gray-700 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 cursor-pointer"
+    set :page_size_dropdown_container_class, "bg-gray-800 border border-gray-600 rounded shadow-lg"
+    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer"
+    set :page_size_selected_class, "bg-purple-900 text-purple-300"
   end
 
   component Cinder.Components.Sorting do

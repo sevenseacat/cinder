@@ -166,6 +166,13 @@ defmodule Cinder.Themes.Retro do
 
     set :pagination_current_class,
         "px-4 py-2 text-sm font-bold text-black bg-gradient-to-r from-cyan-400 to-magenta-400 border-2 border-yellow-400 rounded shadow-lg shadow-yellow-400/30 uppercase tracking-wide"
+
+    set :page_size_container_class, "flex items-center space-x-2"
+    set :page_size_label_class, "text-sm text-cyan-100 font-bold uppercase tracking-wide"
+    set :page_size_dropdown_class, "flex items-center px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded hover:bg-magenta-800 hover:border-magenta-400 hover:shadow-lg hover:shadow-magenta-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 cursor-pointer uppercase tracking-wide"
+    set :page_size_dropdown_container_class, "bg-gray-800 border-2 border-cyan-400 rounded shadow-lg shadow-cyan-400/20"
+    set :page_size_option_class, "w-full text-left px-4 py-2 text-sm font-bold text-cyan-100 hover:bg-magenta-800 hover:border-magenta-400 hover:text-yellow-400 cursor-pointer uppercase tracking-wide"
+    set :page_size_selected_class, "bg-gradient-to-r from-cyan-800 to-magenta-800 text-yellow-400"
   end
 
   component Cinder.Components.Sorting do
