@@ -486,6 +486,10 @@ defmodule Cinder.Table do
       filter_type when is_atom(filter_type) ->
         filter_type
 
+      filter_type when is_binary(filter_type) ->
+        # Convert string to atom - validation happens later in Column.validate/1
+        String.to_atom(filter_type)
+
       filter_config when is_list(filter_config) ->
         Keyword.get(filter_config, :type, :text)
 

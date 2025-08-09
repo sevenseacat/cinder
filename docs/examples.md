@@ -207,6 +207,10 @@ Cinder automatically detects the right filter type based on your Ash resource at
 
 You can also explicitly specify filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:date_range`, `:number_range`
 
+Both string and atom formats are supported:
+- `filter="select"` (string format)
+- `filter={:select}` (atom format)
+
 ### Multi-Select Options
 
 For multiple selection filtering, choose between:

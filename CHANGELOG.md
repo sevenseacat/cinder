@@ -7,6 +7,10 @@
 * Support configurable page sizes with dropdown selector
   * Use `page_size={25}` for fixed page sizes (existing behaviour), or `page_size={[default: 25, options: [10, 25, 50, 100]]}` for user-selectable page sizes
 
+### Chores
+
+* Support string format for filter types (e.g., `filter="select"` in addition to `filter={:select}`)
+
 ## v0.5.3 (2025-08-07)
 
 ### Bug fixes

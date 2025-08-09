@@ -213,6 +213,66 @@ defmodule Cinder.TableTest do
       assert html =~ "Age"
       assert html =~ "Active"
     end
+
+    test "string filter types render correct input types" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [
+          %{field: "name", filter: "text", __slot__: :col},
+          %{field: "age", filter: "number_range", __slot__: :col}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Text filter should render single text input
+      assert html =~ ~r/name="filters\[name\]"/
+      refute html =~ ~r/name="filters\[name_min\]"/
+
+      # Number range filter should render min/max inputs
+      assert html =~ ~r/name="filters\[age_min\]"/
+      assert html =~ ~r/name="filters\[age_max\]"/
+    end
+
+    test "invalid string filter types get converted to atoms but still render as text" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [
+          %{field: "name", filter: "invalid_filter_type", __slot__: :col}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Invalid filter types should still render successfully
+      # They get converted to atoms but fall back to text filter behavior
+      assert html =~ ~r/name="filters\[name\]"/
+      refute html =~ ~r/name="filters\[name_min\]"/
+      refute html =~ ~r/name="filters\[name_max\]"/
+    end
+
+    test "mixed string and atom filter types render correctly" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [
+          %{field: "name", filter: "text", __slot__: :col},
+          %{field: "age", filter: :number_range, __slot__: :col}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # String "text" should render single input
+      assert html =~ ~r/name="filters\[name\]"/
+      refute html =~ ~r/name="filters\[name_min\]"/
+
+      # Atom :number_range should render min/max inputs
+      assert html =~ ~r/name="filters\[age_min\]"/
+      assert html =~ ~r/name="filters\[age_max\]"/
+    end
   end
 
   describe "show filters behavior" do
