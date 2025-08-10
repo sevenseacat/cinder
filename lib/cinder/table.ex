@@ -1,4 +1,6 @@
 defmodule Cinder.Table do
+  require Logger
+
   @moduledoc """
   Simplified Cinder table component with intelligent defaults.
 
@@ -427,20 +429,33 @@ defmodule Cinder.Table do
         field: field,
         sortable: sort_attr,
         filterable: filter_attr != false,
-        class: Map.get(slot, :class, ""),
-        filter_options: Map.get(slot, :filter_options, [])
+        class: Map.get(slot, :class, "")
       }
 
       # Let Column module infer filter type if needed, otherwise use explicit type
+      {filter_type, filter_options_from_unified} = determine_filter_type(filter_attr, field, resource)
+
+      # Check for deprecated filter_options usage
+      legacy_filter_options = Map.get(slot, :filter_options, [])
+      if legacy_filter_options != [] do
+        field_name = field || "unknown"
+        Logger.warning("[DEPRECATED] Field '#{field_name}' uses deprecated filter_options attribute. Use `filter={[type: #{inspect(filter_type)}, ...]}` instead.")
+      end
+
+      # Merge options: unified format takes precedence over legacy filter_options
+      merged_filter_options = Keyword.merge(legacy_filter_options, filter_options_from_unified)
+
       column_config =
-        case determine_filter_type(filter_attr, field, resource) do
+        case filter_type do
           :auto ->
             # Let Column module infer the type from resource
-            column_config
+            Map.put(column_config, :filter_options, merged_filter_options)
 
           explicit_type ->
             # Use the explicitly specified filter type
-            Map.put(column_config, :filter_type, explicit_type)
+            column_config
+            |> Map.put(:filter_type, explicit_type)
+            |> Map.put(:filter_options, merged_filter_options)
         end
 
       # Parse through Column module for intelligent defaults (only if field exists)
@@ -477,24 +492,30 @@ defmodule Cinder.Table do
   defp determine_filter_type(filter_attr, _field, _resource) do
     case filter_attr do
       false ->
-        :text
+        {:text, []}
 
       # Let Column module infer the type
       true ->
-        :auto
+        {:auto, []}
 
       filter_type when is_atom(filter_type) ->
-        filter_type
+        {filter_type, []}
 
       filter_type when is_binary(filter_type) ->
         # Convert string to atom - validation happens later in Column.validate/1
-        String.to_atom(filter_type)
+        {String.to_atom(filter_type), []}
 
+      # New unified format: [type: :select, options: [...]]
       filter_config when is_list(filter_config) ->
-        Keyword.get(filter_config, :type, :text)
+        type = Keyword.get(filter_config, :type, :text)
+        # Convert string type to atom if needed
+        normalized_type = if is_binary(type), do: String.to_atom(type), else: type
+        # Extract all options except :type
+        options = Keyword.delete(filter_config, :type)
+        {normalized_type, options}
 
       _ ->
-        :text
+        {:text, []}
     end
   end
 

@@ -6,6 +6,8 @@
 
 * Support configurable page sizes with dropdown selector
   * Use `page_size={25}` for fixed page sizes (existing behaviour), or `page_size={[default: 25, options: [10, 25, 50, 100]]}` for user-selectable page sizes
+* Support unified filter API with options in single parameter (`filter={[type: :select, options: [...]]}`)
+  * Legacy `filter_options` parameter logs a deprecation warning, and will be removed in v1.0
 
 ### Chores
 

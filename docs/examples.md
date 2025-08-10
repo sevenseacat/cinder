@@ -150,12 +150,11 @@ Demonstration of every available column attribute:
   <:col
     :let={product}
     field="category"
-    filter={:select}
-    filter_options={[
+    filter={[
+      type: :select,
       options: [{"Electronics", "electronics"}, {"Books", "books"}, {"Clothing", "clothing"}],
       prompt: "All Categories"
     ]}
-    sort
   >
     {product.category}
   </:col>
@@ -164,8 +163,8 @@ Demonstration of every available column attribute:
   <:col
     :let={product}
     field="price"
-    filter={:number_range}
-    filter_options={[
+    filter={[
+      type: :number_range,
       min: 0,
       max: 1000,
       step: 0.01
@@ -180,8 +179,8 @@ Demonstration of every available column attribute:
   <:col
     :let={product}
     field="in_stock"
-    filter={:boolean}
-    filter_options={[
+    filter={[
+      type: :boolean,
       labels: %{
         all: "Any Stock Status",
         true: "In Stock",
@@ -207,9 +206,34 @@ Cinder automatically detects the right filter type based on your Ash resource at
 
 You can also explicitly specify filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:date_range`, `:number_range`
 
-Both string and atom formats are supported:
-- `filter="select"` (string format)
+### Filter Format Options
+
+Cinder supports multiple filter specification formats:
+
+**Simple formats:**
 - `filter={:select}` (atom format)
+- `filter="select"` (string format)
+
+**Unified format with options (recommended):**
+- `filter={[type: :select, options: [...], prompt: "Choose..."]}` (atom type)
+- `filter={[type: "select", options: [...], prompt: "Choose..."]}` (string type)
+
+**Legacy format (deprecated):**
+- `filter={:select} filter_options={[options: [...]]}`
+
+The unified format is recommended as it keeps all filter configuration in one place and is consistent with other table options like `page_size`.
+
+## Legacy Format
+
+For backward compatibility, the old separate parameter format is still supported but will log a deprecation warning:
+
+```elixir
+<!-- This still works but logs a deprecation warning -->
+<:col field="status" filter={:select} filter_options={[options: [{"A", "a"}]]} />
+
+<!-- Use this instead -->
+<:col field="status" filter={[type: :select, options: [{"A", "a"}]]} />
+```
 
 ### Multi-Select Options
 
@@ -229,21 +253,17 @@ For multiple selection filtering, choose between:
   <:col
     :let={article}
     field="content"
-    filter={:text}
-    filter_options={[placeholder: "Search article content..."]}
+    filter={[type: :text, placeholder: "Search article content..."]}
   >
     {String.slice(article.content, 0, 100)}...
   </:col>
 
   <!-- Case-sensitive text filter -->
+  <!-- Text filter with case sensitivity -->
   <:col
     :let={article}
     field="author_name"
-    filter={:text}
-    filter_options={[
-      placeholder: "Author name...",
-      case_sensitive: true
-    ]}
+    filter={[type: :text, placeholder: "Author name...", case_sensitive: true]}
   >
     {article.author_name}
   </:col>
@@ -261,8 +281,8 @@ For multiple selection filtering, choose between:
   <:col
     :let={order}
     field="priority"
-    filter={:select}
-    filter_options={[
+    filter={[
+      type: :select,
       options: [
         {"Low Priority", "low"},
         {"Normal Priority", "normal"},
@@ -287,8 +307,8 @@ For multiple selection filtering, choose between:
   <:col
     :let={order}
     field="is_paid"
-    filter={:select}
-    filter_options={[
+    filter={[
+      type: :select,
       options: [{"Paid", true}, {"Unpaid", false}],
       prompt: "Payment Status"
     ]}
@@ -309,17 +329,17 @@ By default, multi-select filters use "ANY" logic - records are shown if they con
   <!-- Multi-select for tags with default ANY logic -->
   <:col
     field="tags"
-    filter={:multi_select}
-    filter_options={[
+    filter={[
+      type: :multi_select,
       options: [
         {"Fiction", "fiction"},
         {"Non-Fiction", "non_fiction"},
         {"Science Fiction", "sci_fi"},
         {"Romance", "romance"},
-        {"Mystery", "mystery"},
         {"Biography", "biography"}
       ]
     ]}
+  />
   >
     {Enum.join(book.tags, ", ")}
   </:col>
@@ -335,16 +355,17 @@ Use `match_mode: :all` to show only records that contain ALL selected values:
   <!-- Multi-select requiring ALL selected tags -->
   <:col
     field="tags"
-    filter={:multi_select}
-    filter_options={[
+    filter={[
+      type: :multi_select,
       options: [
         {"Fiction", "fiction"},
         {"Bestseller", "bestseller"},
         {"Award Winner", "award_winner"},
         {"New Release", "new_release"}
       ],
-      match_mode: :all  # Records must contain ALL selected tags
+      match_mode: :all
     ]}
+  />
   >
     <div class="flex flex-wrap gap-1">
       {for tag <- book.tags do}
@@ -359,15 +380,14 @@ Use `match_mode: :all` to show only records that contain ALL selected values:
   <:col
     :let={book}
     field="categories"
-    filter={:multi_select}
-    filter_options={[
+    filter={[
+      type: :multi_select,
       options: [
         {"Bestseller", "bestseller"},
         {"New Release", "new_release"},
-        {"Award Winner", "award_winner"},
-        {"Staff Pick", "staff_pick"}
+        {"Award Winner", "award_winner"}
       ],
-      match_mode: :any  # Records with ANY selected category (default)
+      match_mode: :any
     ]}
   >
     <div class="flex flex-wrap gap-1">
@@ -390,15 +410,14 @@ The `multi_checkboxes` filter also supports the same `match_mode` options:
   <!-- Multi-checkboxes with ANY logic (default) -->
   <:col
     field="genres"
-    filter={:multi_checkboxes}
-    filter_options={[
+    filter={[
+      type: :multi_checkboxes,
       options: [
         {"Science Fiction", "sci_fi"},
         {"Fantasy", "fantasy"},
         {"Mystery", "mystery"},
         {"Romance", "romance"}
-      ],
-      match_mode: :any  # Books with ANY selected genre
+      ]
     ]}
   >
     {Enum.join(book.genres, ", ")}
@@ -407,14 +426,14 @@ The `multi_checkboxes` filter also supports the same `match_mode` options:
   <!-- Multi-checkboxes with ALL logic -->
   <:col
     field="awards"
-    filter={:multi_checkboxes}
-    filter_options={[
+    filter={[
+      type: :multi_checkboxes,
       options: [
         {"Hugo Award", "hugo"},
         {"Nebula Award", "nebula"},
         {"World Fantasy Award", "wfa"}
       ],
-      match_mode: :all  # Books with ALL selected awards
+      match_mode: :all
     ]}
   >
     <div class="flex flex-wrap gap-1">
@@ -434,7 +453,7 @@ Both `multi_select` and `multi_checkboxes` support the same match mode options:
 
 - **`match_mode: :any`** (default): Shows records containing **at least one** of the selected values
   - Example: Selecting "Fiction" and "Romance" shows books tagged with either "Fiction" OR "Romance" (or both)
-  
+
 - **`match_mode: :all`**: Shows records containing **all** of the selected values
   - Example: Selecting "Fiction" and "Bestseller" shows only books tagged with both "Fiction" AND "Bestseller"
 
@@ -455,12 +474,12 @@ This is particularly useful for:
   <:col
     :let={user}
     field="email_verified"
-    filter={:boolean}
-    filter_options={[
+    filter={[
+      type: :boolean,
       labels: %{
         all: "Any Verification Status",
-        true: "Email Verified",
-        false: "Email Not Verified"
+        true: "Verified",
+        false: "Unverified"
       }
     ]}
   >
@@ -477,12 +496,12 @@ This is particularly useful for:
   <:col
     :let={user}
     field="has_subscription"
-    filter={:boolean}
-    filter_options={[
+    filter={[
+      type: :boolean,
       labels: %{
         all: "All Users",
         true: "Subscribers",
-        false: "Free Users"
+        false: "Non-subscribers"
       }
     ]}
   >
@@ -504,8 +523,8 @@ This is particularly useful for:
   <:col
     :let={event}
     field="event_date"
-    filter={:date_range}
-    filter_options={[
+    filter={[
+      type: :date_range,
       format: "YYYY-MM-DD",
       placeholder_from: "Start date",
       placeholder_to: "End date"
@@ -518,10 +537,7 @@ This is particularly useful for:
   <:col
     :let={event}
     field="updated_at"
-    filter={:date_range}
-    filter_options={[
-      include_time: true
-    ]}
+    filter={[type: :date_range, include_time: true]}
   >
     {Calendar.strftime(event.updated_at, "%B %d, %Y at %I:%M %p")}
   </:col>
@@ -541,13 +557,11 @@ This is particularly useful for:
   <:col
     :let={property}
     field="square_feet"
-    filter={:number_range}
-    filter_options={[
+    filter={[
+      type: :number_range,
       min: 500,
       max: 10000,
-      step: 100,
-      placeholder_min: "Min sq ft",
-      placeholder_max: "Max sq ft"
+      step: 100
     ]}
   >
     {Number.Delimit.number_to_delimited(property.square_feet)} sq ft
@@ -555,13 +569,13 @@ This is particularly useful for:
 
   <!-- Decimal number range -->
   <:col
-    :let={property}
+    :let={product}
     field="rating"
-    filter={:number_range}
-    filter_options={[
+    filter={[
+      type: :number_range,
       min: 0.0,
       max: 5.0,
-      step: 0.1
+      step: 0.5
     ]}
   >
     <div class="flex items-center">
@@ -831,10 +845,10 @@ With URL sync enabled, your table state is preserved in the URL:
   <:col
     :let={order}
     field="customer.tier"
-    filter={:select}
-    filter_options={[
+    filter={[
+      type: :select,
       options: [{"Bronze", "bronze"}, {"Silver", "silver"}, {"Gold", "gold"}],
-      prompt: "Any Tier"
+      prompt: "All Tiers"
     ]}
   >
     <span class={[
@@ -933,50 +947,6 @@ You can combine relationship navigation (dot notation) with embedded fields (dou
   </:col>
   <:col :let={order} field="shipping.address__postal_code" filter>
     {order.shipping.address.postal_code}
-  </:col>
-</Cinder.Table.table>
-```
-
-### Advanced Examples
-
-#### Progress Bars and Indicators
-
-```elixir
-<Cinder.Table.table resource={MyApp.Project} actor={@current_user}>
-  <:col :let={project} field="name" filter sort>
-    {project.name}
-  </:col>
-
-  <!-- Progress bar -->
-  <:col :let={project} field="completion_percentage" filter={:number_range} sort>
-    <div class="flex items-center space-x-2">
-      <div class="flex-1 bg-gray-200 rounded-full h-2">
-        <div
-          class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-          style={"width: #{project.completion_percentage}%"}
-        >
-        </div>
-      </div>
-      <span class="text-sm text-gray-600 min-w-0">
-        {project.completion_percentage}%
-      </span>
-    </div>
-  </:col>
-
-  <!-- Health indicator -->
-  <:col :let={project} field="health_status" filter={:select}>
-    <div class="flex items-center space-x-2">
-      <div class={[
-        "w-3 h-3 rounded-full",
-        project.health_status == "healthy" && "bg-green-400",
-        project.health_status == "warning" && "bg-yellow-400",
-        project.health_status == "critical" && "bg-red-400"
-      ]}>
-      </div>
-      <span class="text-sm capitalize">
-        {project.health_status}
-      </span>
-    </div>
   </:col>
 </Cinder.Table.table>
 ```
@@ -1104,8 +1074,8 @@ Every available option demonstrated:
     :let={user}
     field="name"
     label="Full Name"
-    filter={:text}
-    filter_options={[
+    filter={[
+      type: :text,
       placeholder: "Search by name...",
       case_sensitive: false
     ]}
@@ -1126,8 +1096,7 @@ Every available option demonstrated:
   <:col
     :let={user}
     field="email"
-    filter={:text}
-    filter_options={[placeholder: "Email address..."]}
+    filter={[type: :text, placeholder: "Email address..."]}
     sort
     class="w-1/4"
   >
@@ -1140,8 +1109,8 @@ Every available option demonstrated:
   <:col
     :let={user}
     field="department.name"
-    filter={:select}
-    filter_options={[
+    filter={[
+      type: :select,
       options: [
         {"Engineering", "engineering"},
         {"Marketing", "marketing"},
@@ -1160,8 +1129,8 @@ Every available option demonstrated:
     :let={user}
     field="created_at"
     label="Member Since"
-    filter={:date_range}
-    filter_options={[
+    filter={[
+      type: :date_range,
       format: "MM/DD/YYYY",
       placeholder_from: "Start date",
       placeholder_to: "End date"
@@ -1182,8 +1151,8 @@ Every available option demonstrated:
   <:col
     :let={user}
     field="is_active"
-    filter={:boolean}
-    filter_options={[
+    filter={[
+      type: :boolean,
       labels: %{
         all: "All Users",
         true: "Active Users",

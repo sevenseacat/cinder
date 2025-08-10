@@ -1,6 +1,7 @@
 defmodule Cinder.TableTest do
   use ExUnit.Case, async: true
   import Phoenix.LiveViewTest
+  import ExUnit.CaptureLog
 
   # Mock Ash resource for testing
   defmodule TestUser do
@@ -272,6 +273,95 @@ defmodule Cinder.TableTest do
       # Atom :number_range should render min/max inputs
       assert html =~ ~r/name="filters\[age_min\]"/
       assert html =~ ~r/name="filters\[age_max\]"/
+    end
+
+    test "unified filter format works correctly" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [
+          %{field: "name", filter: [type: :text, placeholder: "Search name..."], __slot__: :col},
+          %{field: "age", filter: [type: "number_range", min: 0, max: 100], __slot__: :col}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Text filter should render with custom placeholder
+      assert html =~ ~r/placeholder="Search name\.\.\."/
+      assert html =~ ~r/name="filters\[name\]"/
+      refute html =~ ~r/name="filters\[name_min\]"/
+
+      # Number range filter should render min/max inputs
+      assert html =~ ~r/name="filters\[age_min\]"/
+      assert html =~ ~r/name="filters\[age_max\]"/
+    end
+
+    test "unified filter format with string types" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [
+          %{field: "name", filter: [type: "text"], __slot__: :col},
+          %{field: "age", filter: [type: "number_range"], __slot__: :col}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # String "text" should render single input
+      assert html =~ ~r/name="filters\[name\]"/
+      refute html =~ ~r/name="filters\[name_min\]"/
+
+      # String "number_range" should render min/max inputs
+      assert html =~ ~r/name="filters\[age_min\]"/
+      assert html =~ ~r/name="filters\[age_max\]"/
+    end
+
+    test "backward compatibility with old filter_options format" do
+      # Capture logs to test deprecation warning
+      logs = capture_log(fn ->
+        assigns = %{
+          resource: TestUser,
+          actor: nil,
+          col: [
+            %{field: "name", filter: :text, filter_options: [placeholder: "Old format"], __slot__: :col}
+          ]
+        }
+
+        html = render_component(&Cinder.Table.table/1, assigns)
+
+        # Should still work with old format
+        assert html =~ ~r/placeholder="Old format"/
+      end)
+
+      # Should log deprecation warning
+      assert logs =~ "[DEPRECATED] Field 'name' uses deprecated filter_options attribute"
+    end
+
+    test "unified format takes precedence over legacy filter_options" do
+      # Capture logs to test deprecation warning
+      logs = capture_log(fn ->
+        assigns = %{
+          resource: TestUser,
+          actor: nil,
+          col: [
+            %{field: "name",
+              filter: [type: :text, placeholder: "New format"],
+              filter_options: [placeholder: "Old format"],
+              __slot__: :col}
+          ]
+        }
+
+        html = render_component(&Cinder.Table.table/1, assigns)
+
+        # New format should win
+        assert html =~ ~r/placeholder="New format"/
+        refute html =~ ~r/placeholder="Old format"/
+      end)
+
+      # Should still log deprecation warning
+      assert logs =~ "[DEPRECATED] Field 'name' uses deprecated filter_options attribute"
     end
   end
 
