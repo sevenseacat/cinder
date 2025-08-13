@@ -532,7 +532,7 @@ defmodule Cinder.Table.LiveComponent do
         </button>
         <div
           id="page-size-options"
-          class={["absolute top-full right-0 mt-1 z-50 hidden min-w-max", @theme.page_size_dropdown_container_class]}
+          class={["absolute top-full right-0 mt-1 z-50 hidden", @theme.page_size_dropdown_container_class]}
           {@theme.page_size_dropdown_container_data}
           phx-click-away={JS.hide(to: "#page-size-options")}
         >
