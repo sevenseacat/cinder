@@ -333,14 +333,13 @@ defmodule Cinder.Column do
 
   # Determines sortability based purely on the field's nature (ignoring user overrides)
   defp determine_auto_sortability(resource, field) do
-    # Parse field to handle relationship calculations
-    {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
-
-    # Validate field existence first
-    if not Cinder.QueryBuilder.field_exists_on_resource?(target_resource, target_field) do
+    # Validate field existence first using comprehensive validation
+    if not Cinder.QueryBuilder.validate_field_existence(resource, field) do
       warning = "Field '#{field}' does not exist on #{inspect(resource)}."
       {false, warning}
     else
+      # Parse field to handle relationship calculations
+      {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
       # Check if this field is a calculation on the target resource
       case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
         nil ->
@@ -395,14 +394,13 @@ defmodule Cinder.Column do
 
   # Determines filterability based purely on the field's nature (ignoring user overrides)
   defp determine_auto_filterability(resource, field) do
-    # Parse field to handle relationship calculations
-    {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
-
-    # Validate field existence first
-    if not Cinder.QueryBuilder.field_exists_on_resource?(target_resource, target_field) do
+    # Validate field existence first using comprehensive validation
+    if not Cinder.QueryBuilder.validate_field_existence(resource, field) do
       warning = "Field '#{field}' does not exist on #{inspect(resource)}."
       {false, warning}
     else
+      # Parse field to handle relationship calculations
+      {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
       # Check if this field is a calculation on the target resource
       case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
         nil ->

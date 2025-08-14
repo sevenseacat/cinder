@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.5 (2025-08-14)
+
+### Bug fixes
+
+* Fix field validation for embedded fields using underscore notation (e.g., `profile__first_name`)
+
 ## v0.5.4 (2025-08-11)
 
 ### Features

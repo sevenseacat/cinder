@@ -687,17 +687,16 @@ defmodule Cinder.QueryBuilder do
   defp validate_single_sort_field(field, resource, _resource_info, {unsortable, details}) do
     field_string = to_string(field)
 
-    # Use the same recursive field resolution logic as column parsing
-    {target_resource, target_field} = resolve_field_resource(resource, field_string)
-
-    target_field_atom =
-      if is_binary(target_field), do: String.to_atom(target_field), else: target_field
-
-    # Check if field exists on the resolved target resource
-    if not field_exists_on_resource?(target_resource, target_field_atom) do
+    # Use comprehensive field validation that handles embedded fields
+    if not validate_field_existence(resource, field_string) do
       detail = "#{field} (field does not exist on #{inspect(resource)})"
       {[field | unsortable], [detail | details]}
     else
+      # Parse field to handle relationship calculations for sortability check
+      {target_resource, target_field} = resolve_field_resource(resource, field_string)
+      target_field_atom =
+        if is_binary(target_field), do: String.to_atom(target_field), else: target_field
+
       # Check if it's a calculation that needs validation
       case get_calculation_info(target_resource, target_field_atom) do
         nil ->
@@ -766,6 +765,247 @@ defmodule Cinder.QueryBuilder do
   end
 
   def resolve_field_resource(resource, field), do: {resource, to_string(field)}
+
+  @doc """
+  Validates field existence on a resource, handling all field types including embedded fields.
+
+  Supports:
+  - Direct fields: "name"
+  - Relationship fields: "user.profile.name"
+  - Embedded fields: "profile__first_name" (URL-safe) or "profile[:first_name]" (bracket notation)
+  - Mixed fields: "user.profile__address__street"
+  """
+  def validate_field_existence(resource, field) when is_binary(field) do
+    # Convert underscore notation to bracket notation first
+    bracket_notation_field = Cinder.Filter.Helpers.field_notation_from_url_safe(field)
+
+    case Cinder.Filter.Helpers.parse_field_notation(bracket_notation_field) do
+      {:direct, field_name} ->
+        field_exists_on_resource?(resource, field_name)
+
+      {:relationship, rel_path, target_field} ->
+        # Resolve through relationship chain
+        case resolve_relationship_resource(resource, rel_path) do
+          {:ok, target_resource} ->
+            field_exists_on_resource?(target_resource, target_field)
+          {:error, _} ->
+            false
+        end
+
+      {:embedded, embed_field, nested_field} ->
+        # Validate embedded field
+        validate_embedded_field(resource, embed_field, nested_field)
+
+      {:nested_embedded, embed_field, nested_path} ->
+        # Validate nested embedded field
+        validate_nested_embedded_field(resource, embed_field, nested_path)
+
+      {:relationship_embedded, rel_path, embed_field, nested_field} ->
+        # Resolve relationship then validate embedded field
+        validate_relationship_embedded_field(resource, rel_path, embed_field, nested_field)
+
+      {:relationship_nested_embedded, rel_path, embed_field, nested_path} ->
+        # Resolve relationship then validate nested embedded field
+        validate_relationship_nested_embedded_field(resource, rel_path, embed_field, nested_path)
+
+      {:invalid, _} ->
+        false
+    end
+  rescue
+    _ ->
+      # If parsing or validation fails, assume field doesn't exist
+      false
+  end
+
+  def validate_field_existence(resource, field), do: field_exists_on_resource?(resource, field)
+
+  # Resolves a relationship path to get the target resource
+  defp resolve_relationship_resource(resource, rel_path) do
+    try do
+      if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
+        Enum.reduce_while(rel_path, {:ok, resource}, fn rel_name, {:ok, current_resource} ->
+          case Ash.Resource.Info.relationship(current_resource, String.to_atom(rel_name)) do
+            %{destination: destination_resource} ->
+              {:cont, {:ok, destination_resource}}
+            nil ->
+              {:halt, {:error, "Relationship #{rel_name} not found on #{inspect(current_resource)}"}}
+          end
+        end)
+      else
+        {:error, "Not an Ash resource"}
+      end
+    rescue
+      error ->
+        {:error, "Error resolving relationship: #{inspect(error)}"}
+    end
+  end
+
+  # Validates an embedded field exists on the resource
+  defp validate_embedded_field(resource, embed_field, nested_field) do
+    try do
+      if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
+        embed_field_atom = String.to_atom(embed_field)
+
+        # Check if embed_field is an embedded attribute
+        case Ash.Resource.Info.attribute(resource, embed_field_atom) do
+          %{type: {:array, embedded_type}} when is_atom(embedded_type) ->
+            # Array of embedded resources - check if nested field exists on embedded type
+            validate_embedded_resource_field(embedded_type, nested_field)
+
+          %{type: embedded_type} when is_atom(embedded_type) ->
+            # Single embedded resource - check if nested field exists on embedded type
+            validate_embedded_resource_field(embedded_type, nested_field)
+
+          %{type: :map} ->
+            # Map type - assume nested field is valid (can't validate structure)
+            true
+
+          %{type: {:array, :map}} ->
+            # Array of maps - assume nested field is valid
+            true
+
+          nil ->
+            # Embed field doesn't exist
+            false
+
+          _ ->
+            # Field exists but is not embedded type
+            false
+        end
+      else
+        # Not an Ash resource, assume field exists
+        true
+      end
+    rescue
+      _ ->
+        false
+    end
+  end
+
+  # Validates a nested embedded field path
+  defp validate_nested_embedded_field(resource, embed_field, nested_path) do
+    try do
+      if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
+        embed_field_atom = String.to_atom(embed_field)
+
+        case Ash.Resource.Info.attribute(resource, embed_field_atom) do
+          %{type: {:array, embedded_type}} when is_atom(embedded_type) ->
+            # Array of embedded resources - validate nested path on embedded type
+            validate_nested_path_on_embedded_resource(embedded_type, nested_path)
+
+          %{type: embedded_type} when is_atom(embedded_type) ->
+            # Single embedded resource - validate nested path on embedded type
+            validate_nested_path_on_embedded_resource(embedded_type, nested_path)
+
+          %{type: :map} ->
+            # Map type - assume nested path is valid (can't validate structure)
+            true
+
+          %{type: {:array, :map}} ->
+            # Array of maps - assume nested path is valid
+            true
+
+          nil ->
+            # Embed field doesn't exist
+            false
+
+          _ ->
+            # Field exists but is not embedded type
+            false
+        end
+      else
+        true
+      end
+    rescue
+      _ ->
+        false
+    end
+  end
+
+  # Validates a nested path on an embedded resource type
+  defp validate_nested_path_on_embedded_resource(embedded_type, nested_path) do
+    case nested_path do
+      [single_field] ->
+        # Single nested field - check if it exists on embedded resource
+        validate_embedded_resource_field(embedded_type, single_field)
+
+      [next_embed_field | remaining_path] ->
+        # Multi-level nesting - recursively validate
+        try do
+          if is_atom(embedded_type) and Ash.Resource.Info.resource?(embedded_type) do
+            next_embed_atom = String.to_atom(next_embed_field)
+
+            case Ash.Resource.Info.attribute(embedded_type, next_embed_atom) do
+              %{type: {:array, deeper_embedded_type}} when is_atom(deeper_embedded_type) ->
+                validate_nested_path_on_embedded_resource(deeper_embedded_type, remaining_path)
+
+              %{type: deeper_embedded_type} when is_atom(deeper_embedded_type) ->
+                validate_nested_path_on_embedded_resource(deeper_embedded_type, remaining_path)
+
+              %{type: :map} ->
+                # Map type - assume remaining path is valid
+                true
+
+              %{type: {:array, :map}} ->
+                # Array of maps - assume remaining path is valid
+                true
+
+              nil ->
+                # Field doesn't exist on this embedded resource
+                false
+
+              _ ->
+                # Field exists but is not embedded type
+                false
+            end
+          else
+            # Not an Ash resource, assume valid
+            true
+          end
+        rescue
+          _ ->
+            false
+        end
+
+      _ ->
+        false
+    end
+  end
+
+  # Validates a relationship + embedded field combination
+  defp validate_relationship_embedded_field(resource, rel_path, embed_field, nested_field) do
+    case resolve_relationship_resource(resource, rel_path) do
+      {:ok, target_resource} ->
+        validate_embedded_field(target_resource, embed_field, nested_field)
+      {:error, _} ->
+        false
+    end
+  end
+
+  # Validates a relationship + nested embedded field combination
+  defp validate_relationship_nested_embedded_field(resource, rel_path, embed_field, nested_path) do
+    case resolve_relationship_resource(resource, rel_path) do
+      {:ok, target_resource} ->
+        validate_nested_embedded_field(target_resource, embed_field, nested_path)
+      {:error, _} ->
+        false
+    end
+  end
+
+  # Validates that a field exists on an embedded resource type
+  defp validate_embedded_resource_field(embedded_type, field_name) do
+    try do
+      if is_atom(embedded_type) and Ash.Resource.Info.resource?(embedded_type) do
+        field_exists_on_resource?(embedded_type, field_name)
+      else
+        # Not an Ash resource, assume field exists
+        true
+      end
+    rescue
+      _ ->
+        true
+    end
+  end
 
   @doc """
   Checks if a field exists on a resource (including attributes, relationships, calculations, aggregates)

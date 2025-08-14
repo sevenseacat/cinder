@@ -190,4 +190,107 @@ defmodule Cinder.FieldValidationTest do
       refute Map.has_key?(parsed_column, :key)
     end
   end
+
+  describe "embedded field validation" do
+    test "validates direct fields exist on resource" do
+      # Valid direct field
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "name") == true
+
+      # Invalid direct field
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "nonexistent") == false
+    end
+
+    test "validates embedded fields with underscore notation" do
+      # Valid embedded field using underscore notation
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile__first_name") == true
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile__phone") == true
+
+      # Invalid embedded field - valid embed attribute but invalid nested field
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile__nonexistent") == false
+
+      # Invalid embedded field - nonexistent embed attribute
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "nonexistent__field") == false
+    end
+
+    test "validates embedded fields with bracket notation" do
+      # Valid embedded field using bracket notation
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:first_name]") == true
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:phone]") == true
+
+      # Invalid embedded field - valid embed attribute but invalid nested field
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:nonexistent]") == false
+    end
+
+    test "validates nested embedded fields" do
+      # Valid nested embedded field
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__address__street") == true
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__address__city") == true
+
+      # Invalid nested embedded field
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__address__nonexistent") == false
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__nonexistent__field") == false
+    end
+
+    test "validates relationship fields" do
+      # Valid relationship field (if relationships exist)
+      assert Cinder.QueryBuilder.validate_field_existence(TestUuidResource, "user") == true
+
+      # Invalid relationship field
+      assert Cinder.QueryBuilder.validate_field_existence(TestUuidResource, "nonexistent_relation") == false
+    end
+
+    test "validates map type embedded fields" do
+      # Map type should allow any nested field (can't validate structure)
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "metadata__any_field") == true
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "metadata__deeply__nested__field") == true
+    end
+
+    test "handles invalid field syntax gracefully" do
+      # Invalid bracket notation
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[invalid]") == false
+
+      # Unclosed bracket
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:unclosed") == false
+
+      # Empty field name
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:]") == false
+    end
+
+    test "column validation uses comprehensive field validation" do
+      # Test that Column module properly validates embedded fields
+      column_config = %{
+        field: "profile__first_name",
+        filterable: true
+      }
+
+      column = Column.parse_column(column_config, TestResourceForInference)
+
+      # Should not have warnings for valid embedded field
+      assert column.filterable == true
+      assert is_nil(column.filter_warning)
+
+      # Test invalid embedded field generates warning
+      invalid_column_config = %{
+        field: "profile__nonexistent",
+        filterable: true
+      }
+
+      invalid_column = Column.parse_column(invalid_column_config, TestResourceForInference)
+
+      # Should have warning for invalid embedded field
+      assert invalid_column.filterable == false
+      assert not is_nil(invalid_column.filter_warning)
+    end
+
+    test "sort validation handles embedded fields" do
+      # Valid embedded field should be sortable (if not in-memory calc)
+      valid_sort = [{"profile__first_name", :asc}]
+      assert Cinder.QueryBuilder.validate_sortable_fields(valid_sort, TestResourceForInference) == :ok
+
+      # Invalid embedded field should fail validation
+      invalid_sort = [{"profile__nonexistent", :asc}]
+      result = Cinder.QueryBuilder.validate_sortable_fields(invalid_sort, TestResourceForInference)
+      assert match?({:error, _}, result)
+    end
+  end
 end
