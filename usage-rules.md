@@ -190,7 +190,7 @@ config :cinder, default_theme: "modern"
 
 ## Testing
 
-Use [`render_async`](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveViewTest.html#render_async/2) to wait for data to load before checking for the data on page.
+Use `render_async` to wait for data to load before checking for the data on page.
 
 ```elixir
 {:ok, index_live, html} = live(conn, ~p"/users")
