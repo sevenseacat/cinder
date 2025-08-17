@@ -25,6 +25,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Table Refresh](#table-refresh)
 - [Advanced Configuration](#advanced-configuration)
 - [Performance Optimization](#performance-optimization)
+- [Testing](#testing)
 
 ## Basic Usage
 
@@ -1270,6 +1271,22 @@ Only enable filters where users actually need them:
   <:col :let={user} field="email" filter>{user.email}</:col>
   <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
 </Cinder.Table.table>
+```
+
+## Testing
+
+When creating LiveView tests for pages with Cinder tables use [`render_async`](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveViewTest.html#render_async/2) to wait for data to load before checking for the data on page.
+
+```elixir
+test "lists all user", %{conn: conn} do
+  user = insert(:user)
+
+  {:ok, index_live, html} = live(conn, ~p"/users")
+
+  assert html =~ "Listing Users"
+  assert html =~ "Loading..."
+  assert render_async(index_live) =~ user.name
+end
 ```
 
 This comprehensive guide demonstrates every available feature and option in Cinder. The combination of intelligent defaults and extensive customization options makes Cinder suitable for simple data display as well as complex, feature-rich table implementations.
