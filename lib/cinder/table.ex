@@ -393,7 +393,7 @@ defmodule Cinder.Table do
         query={@normalized_query}
         actor={@resolved_options.actor}
         tenant={@resolved_options.tenant}
-        page_size={@parsed_page_size}
+        page_size_config={@parsed_page_size}
         theme={resolve_theme(@theme)}
         url_filters={get_url_filters(@url_state)}
         url_page={get_url_page(@url_state)}

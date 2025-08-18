@@ -607,8 +607,7 @@ defmodule Cinder.Table.LiveComponent do
   defp assign_defaults(socket) do
     assigns = socket.assigns
 
-    # The page_size comes from the table component already parsed as a config struct
-    page_size_config = assigns[:page_size] || %{selected_page_size: 25, page_size_options: [], default_page_size: 25, configurable: false}
+    page_size_config = assigns[:page_size_config] || %{selected_page_size: 25, page_size_options: [], default_page_size: 25, configurable: false}
     selected_page_size = page_size_config.selected_page_size
 
     socket
