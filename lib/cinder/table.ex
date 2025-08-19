@@ -375,14 +375,14 @@ defmodule Cinder.Table do
     show_filters = determine_show_filters(assigns, processed_columns)
 
     # Parse page_size configuration
-    parsed_page_size = parse_page_size_config(assigns.page_size)
+    page_size_config = parse_page_size_config(assigns.page_size)
 
     assigns =
       assigns
       |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
       |> assign(:resolved_options, resolved_options)
-      |> assign(:parsed_page_size, parsed_page_size)
+      |> assign(:page_size_config, page_size_config)
       |> assign_new(:show_filters, fn -> show_filters end)
 
     ~H"""
@@ -393,7 +393,7 @@ defmodule Cinder.Table do
         query={@normalized_query}
         actor={@resolved_options.actor}
         tenant={@resolved_options.tenant}
-        page_size={@parsed_page_size}
+        page_size_config={@page_size_config}
         theme={resolve_theme(@theme)}
         url_filters={get_url_filters(@url_state)}
         url_page={get_url_page(@url_state)}
