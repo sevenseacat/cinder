@@ -713,4 +713,111 @@ defmodule Cinder.UrlManagerTest do
       assert decoded.sort_by == [{"created_at", :desc}, {"name", :asc}]
     end
   end
+
+  describe "search parameter encoding/decoding" do
+    test "encode_state includes search term when present" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        search_term: "widget"
+      }
+
+      result = UrlManager.encode_state(state)
+
+      assert result[:search] == "widget"
+    end
+
+    test "encode_state omits search parameter when empty" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        search_term: ""
+      }
+
+      result = UrlManager.encode_state(state)
+
+      refute Map.has_key?(result, :search)
+    end
+
+    test "encode_state omits search parameter when nil" do
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        search_term: nil
+      }
+
+      result = UrlManager.encode_state(state)
+
+      refute Map.has_key?(result, :search)
+    end
+
+    test "decode_state extracts search term from URL params" do
+      url_params = %{"search" => "test query"}
+      columns = []
+
+      decoded = UrlManager.decode_state(url_params, columns)
+
+      assert decoded.search_term == "test query"
+    end
+
+    test "decode_state returns empty string when search param is nil" do
+      url_params = %{}
+      columns = []
+
+      decoded = UrlManager.decode_state(url_params, columns)
+
+      assert decoded.search_term == ""
+    end
+
+    test "decode_state returns empty string when search param is empty" do
+      url_params = %{"search" => ""}
+      columns = []
+
+      decoded = UrlManager.decode_state(url_params, columns)
+
+      assert decoded.search_term == ""
+    end
+
+    test "decode_state handles invalid search param gracefully" do
+      url_params = %{"search" => 123}
+      columns = []
+
+      decoded = UrlManager.decode_state(url_params, columns)
+
+      assert decoded.search_term == ""
+    end
+
+    test "search integrates with other parameters" do
+      state = %{
+        filters: %{"title" => %{type: :text, value: "book", operator: :contains}},
+        current_page: 2,
+        sort_by: [{"title", :asc}],
+        search_term: "widget"
+      }
+
+      encoded = UrlManager.encode_state(state)
+
+      assert encoded[:title] == "book"
+      assert encoded[:page] == "2"
+      assert encoded[:sort] == "title"
+      assert encoded[:search] == "widget"
+
+      # Test round-trip - convert atom keys to string keys like real URL params
+      url_params =
+        for {key, value} <- encoded, into: %{} do
+          {to_string(key), to_string(value)}
+        end
+
+      columns = [%{field: "title", filterable: true, filter_type: :text}]
+      decoded = UrlManager.decode_state(url_params, columns)
+
+      assert decoded.search_term == "widget"
+      assert decoded.current_page == 2
+      assert decoded.sort_by == [{"title", :asc}]
+      assert decoded.filters["title"].value == "book"
+    end
+  end
 end

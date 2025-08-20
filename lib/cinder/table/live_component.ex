@@ -347,19 +347,47 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("search_change", %{"search" => search_term}, socket) do
+    # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
+    url_sync_enabled = !!socket.assigns[:on_state_change]
+
+    socket =
+      if url_sync_enabled do
+        # URL sync enabled: update state but don't load data yet
+        # Data will be loaded via handle_params when URL updates
+        socket
+        |> assign(:search_term, search_term)
+        |> assign(:current_page, 1)
+      else
+        # URL sync disabled: load data immediately
+        socket
+        |> assign(:search_term, search_term)
+        |> assign(:current_page, 1)
+        |> load_data()
+      end
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket)
+
+    {:noreply, socket}
+  end
+
   # Notify parent LiveView about filter changes
   defp notify_state_change(socket, filters \\ nil) do
     filters = filters || socket.assigns.filters
     current_page = socket.assigns.current_page
     sort_by = socket.assigns.sort_by
     page_size_config = socket.assigns.page_size_config
+    search_term = socket.assigns.search_term
 
     state = %{
       filters: filters,
       current_page: current_page,
       sort_by: sort_by,
       page_size: page_size_config.selected_page_size,
-      default_page_size: page_size_config.default_page_size
+      default_page_size: page_size_config.default_page_size,
+      search_term: search_term
     }
 
     Cinder.UrlManager.notify_state_change(socket, state)
@@ -719,7 +747,8 @@ defmodule Cinder.Table.LiveComponent do
       current_page: current_page,
       sort_by: sort_by,
       filters: filters,
-      columns: columns
+      columns: columns,
+      search_term: search_term
     } = socket.assigns
 
     # Extract variables to avoid socket copying in async function
@@ -733,7 +762,9 @@ defmodule Cinder.Table.LiveComponent do
       sort_by: sort_by,
       page_size: page_size,
       current_page: current_page,
-      columns: columns
+      columns: columns,
+      search_term: search_term,
+      search_fn: socket.assigns[:search_fn]
     ]
 
     socket

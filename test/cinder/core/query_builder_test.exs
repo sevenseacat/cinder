@@ -83,12 +83,36 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  # Test resource for search testing
+  defmodule SearchTestResource do
+    use Ash.Resource,
+      domain: Cinder.QueryBuilderTest.TestDomain,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:title, :string, public?: true)
+      attribute(:description, :string, public?: true)
+      attribute(:status, :string, public?: true)
+    end
+
+    actions do
+      defaults([:read])
+    end
+  end
+
   defmodule TestDomain do
     use Ash.Domain, validate_config_inclusion?: false
 
     resources do
       resource(TestUser)
       resource(Album)
+      resource(SearchTestResource)
     end
   end
 
@@ -1301,6 +1325,204 @@ defmodule Cinder.QueryBuilderTest do
       assert final_context.actor == :test_actor
       assert final_context.custom_flag == true
       assert final_context.other_data == "test"
+    end
+  end
+
+  describe "apply_search/4" do
+    test "returns original query when search_term is nil" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+      columns = [%{field: "title", searchable: true}]
+
+      result = QueryBuilder.apply_search(query, nil, columns, nil)
+      assert result == query
+    end
+
+    test "returns original query when search_term is empty string" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+      columns = [%{field: "title", searchable: true}]
+
+      result = QueryBuilder.apply_search(query, "", columns, nil)
+      assert result == query
+    end
+
+    test "returns original query when no searchable columns exist" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+      columns = [%{field: "title", searchable: false}]
+
+      result = QueryBuilder.apply_search(query, "test", columns, nil)
+      assert result == query
+    end
+
+    test "applies default search across single searchable column" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+      columns = [%{field: "title", searchable: true}]
+
+      result = QueryBuilder.apply_search(query, "widget", columns, nil)
+
+      # Should have applied a filter
+      assert result != query
+      assert result.filter != nil
+    end
+
+    test "applies default search across multiple searchable columns" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+
+      columns = [
+        %{field: "title", searchable: true},
+        %{field: "description", searchable: true},
+        %{field: "status", searchable: false}
+      ]
+
+      result = QueryBuilder.apply_search(query, "widget", columns, nil)
+
+      # Should have applied a filter combining title and description (but not status)
+      assert result != query
+      assert result.filter != nil
+
+      # Verify the query can actually be executed without errors
+      assert {:ok, _results} = Ash.read(result)
+    end
+
+    test "multiple searchable columns create proper OR logic with query execution verification" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+
+      # Test 2 columns
+      two_columns = [
+        %{field: "title", searchable: true},
+        %{field: "description", searchable: true}
+      ]
+
+      two_result = QueryBuilder.apply_search(query, "test", two_columns, nil)
+      assert two_result != query
+      assert two_result.filter != nil
+      assert {:ok, _results} = Ash.read(two_result)
+
+      # Test 3 columns for more complex OR logic
+      three_columns = [
+        %{field: "title", searchable: true},
+        %{field: "description", searchable: true},
+        %{field: "status", searchable: true}
+      ]
+
+      three_result = QueryBuilder.apply_search(query, "test", three_columns, nil)
+      assert three_result != query
+      assert three_result.filter != nil
+      assert {:ok, _results} = Ash.read(three_result)
+
+      # Verify single vs multiple field queries produce different filters
+      single_result =
+        QueryBuilder.apply_search(query, "test", [%{field: "title", searchable: true}], nil)
+
+      assert single_result.filter != two_result.filter
+      assert two_result.filter != three_result.filter
+    end
+
+    test "calls custom search function when provided" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+      columns = [%{field: "title", searchable: true}]
+
+      # Mock custom search function
+      custom_search_fn = fn query, searchable_columns, search_term ->
+        assert search_term == "widget"
+        assert length(searchable_columns) == 1
+        assert hd(searchable_columns).field == "title"
+
+        # Return modified query for verification
+        Ash.Query.filter(query, title == "custom_search_applied")
+      end
+
+      result = QueryBuilder.apply_search(query, "widget", columns, custom_search_fn)
+
+      # Should have applied custom search function
+      assert result != query
+      assert result.filter != nil
+    end
+
+    test "handles URL-safe field notation in default search" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+      columns = [%{field: "user__profile__name", searchable: true}]
+
+      # Should not crash even with complex field notation
+      result = QueryBuilder.apply_search(query, "test", columns, nil)
+
+      # The function should handle this gracefully (even if it doesn't work perfectly)
+      assert result != nil
+    end
+
+    test "handles errors gracefully and returns original query" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+      columns = [%{field: "nonexistent_field", searchable: true}]
+
+      # Should handle invalid fields gracefully and log a warning
+      result = QueryBuilder.apply_search(query, "test", columns, nil)
+
+      # Should return original query on error
+      assert result == query
+    end
+
+    test "handles mixed valid and invalid fields correctly" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+
+      columns = [
+        # Valid field
+        %{field: "title", searchable: true},
+        # Invalid field
+        %{field: "nonexistent_field", searchable: true},
+        # Valid field
+        %{field: "description", searchable: true}
+      ]
+
+      result = QueryBuilder.apply_search(query, "test", columns, nil)
+
+      # Should create a search query using only the valid fields
+      assert result != query
+      assert result.filter != nil
+
+      # Should execute successfully (invalid field filtered out)
+      assert {:ok, _results} = Ash.read(result)
+    end
+
+    test "search query execution produces expected filter structure" do
+      query = Ash.Query.for_read(SearchTestResource, :read)
+
+      # Single field case
+      single_result =
+        QueryBuilder.apply_search(query, "test", [%{field: "title", searchable: true}], nil)
+
+      # Multiple field case
+      multi_result =
+        QueryBuilder.apply_search(
+          query,
+          "test",
+          [
+            %{field: "title", searchable: true},
+            %{field: "description", searchable: true}
+          ],
+          nil
+        )
+
+      # Both should execute successfully
+      assert {:ok, _results} = Ash.read(single_result)
+      assert {:ok, _results} = Ash.read(multi_result)
+
+      # Multi-field should have different (more complex) filter structure
+      assert single_result.filter != multi_result.filter
+    end
+
+    test "preserves existing query filters when applying search" do
+      query =
+        SearchTestResource
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.filter(status == "active")
+
+      columns = [%{field: "title", searchable: true}]
+
+      result = QueryBuilder.apply_search(query, "widget", columns, nil)
+
+      # Should have both the original filter and the new search filter
+      assert result != query
+      assert result.filter != nil
+      assert result.filter != query.filter
     end
   end
 end

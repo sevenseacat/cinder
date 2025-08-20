@@ -33,6 +33,8 @@ defmodule Cinder.QueryBuilder do
     - `:current_page` - Current page number
     - `:columns` - Column definitions
     - `:query_opts` - Additional Ash query and execution options
+    - `:search_term` - Global search term to search across searchable columns
+    - `:search_fn` - Optional custom search function with signature `(query, searchable_columns, search_term)`
 
   ## Supported Query Options
 
@@ -78,6 +80,8 @@ defmodule Cinder.QueryBuilder do
     current_page = Keyword.get(options, :current_page, 1)
     columns = Keyword.get(options, :columns, [])
     query_opts = Keyword.get(options, :query_opts, [])
+    search_term = Keyword.get(options, :search_term, "")
+    search_fn = Keyword.get(options, :search_fn)
 
     try do
       # Determine effective tenant (explicit tenant takes precedence over query tenant)
@@ -96,6 +100,7 @@ defmodule Cinder.QueryBuilder do
             base_query
             |> apply_query_opts(query_opts)
             |> apply_filters(filters, columns)
+            |> apply_search(search_term, columns, search_fn)
             |> apply_sorting(sort_by)
 
           # Handle pagination based on action support
@@ -348,6 +353,119 @@ defmodule Cinder.QueryBuilder do
             query
         end
     end
+  end
+
+  @doc """
+  Applies global search to an Ash query across searchable columns.
+
+  ## Parameters
+  - `query`: The Ash query to modify
+  - `search_term`: The search term to filter by (empty/nil terms are ignored)
+  - `columns`: List of column definitions to find searchable fields
+  - `custom_search_fn`: Optional table-level custom search function
+
+  ## Custom Search Function Signature
+  `search_fn(query, searchable_columns, search_term)`
+
+  ## Returns
+  The modified query with search conditions applied, or the original query
+  if no search term is provided or no searchable columns exist.
+
+  ## Examples
+
+      # Default search across searchable columns
+      query = apply_search(query, "widget", columns, nil)
+
+      # Custom search function
+      def custom_search(query, searchable_columns, search_term) do
+        # Custom implementation
+      end
+      query = apply_search(query, "widget", columns, &custom_search/3)
+
+  """
+  def apply_search(query, search_term, columns, custom_search_fn \\ nil)
+
+  def apply_search(query, search_term, _columns, _custom_search_fn)
+      when search_term in [nil, ""] do
+    query
+  end
+
+  def apply_search(query, search_term, columns, custom_search_fn) do
+    searchable_columns = Enum.filter(columns, & &1.searchable)
+
+    cond do
+      Enum.empty?(searchable_columns) ->
+        query
+
+      custom_search_fn ->
+        # Custom table-level search function gets all searchable columns
+        custom_search_fn.(query, searchable_columns, search_term)
+
+      true ->
+        # Default search: OR logic across searchable columns using text filter infrastructure
+        build_default_search(query, searchable_columns, search_term)
+    end
+  end
+
+  # Builds default search using OR logic across searchable columns
+  defp build_default_search(query, searchable_columns, search_term) do
+    require Ash.Query
+
+    try do
+      # Build filter conditions for each valid searchable column
+      filter_conditions = build_search_conditions(query, searchable_columns, search_term)
+
+      # Apply the combined search conditions
+      case filter_conditions do
+        [] ->
+          # No valid searchable fields found
+          require Logger
+          Logger.warning("Error building search filter for one or more searchable columns")
+          query
+
+        [single_condition] ->
+          # Single field search - apply directly
+          Ash.Query.filter(query, ^single_condition)
+
+        conditions ->
+          # Multiple fields - combine with OR logic
+          combined_condition = combine_conditions_with_or(conditions)
+          Ash.Query.filter(query, ^combined_condition)
+      end
+    rescue
+      error ->
+        require Logger
+        Logger.warning("Error building default search query: #{inspect(error)}")
+        query
+    end
+  end
+
+  # Builds individual filter conditions for searchable columns
+  defp build_search_conditions(query, searchable_columns, search_term) do
+    Enum.reduce(searchable_columns, [], fn column, acc ->
+      # Convert URL-safe field notation to bracket notation if needed
+      field_name = Cinder.Filter.Helpers.field_notation_from_url_safe(column.field)
+
+      # Test if this field can be filtered by building a test query
+      test_query =
+        Cinder.Filter.Helpers.build_ash_filter(query, field_name, search_term, :contains)
+
+      # Only include fields that don't produce errors
+      if Enum.empty?(test_query.errors) and not is_nil(test_query.filter) do
+        [test_query.filter | acc]
+      else
+        acc
+      end
+    end)
+  end
+
+  # Combines multiple filter conditions with OR logic
+  defp combine_conditions_with_or([first_condition | remaining_conditions]) do
+    import Ash.Expr
+
+    Enum.reduce(remaining_conditions, first_condition, fn condition, acc ->
+      expr(^acc or ^condition)
+    end)
   end
 
   @doc """

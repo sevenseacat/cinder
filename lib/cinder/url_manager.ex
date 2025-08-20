@@ -18,7 +18,8 @@ defmodule Cinder.UrlManager do
           current_page: integer(),
           sort_by: sort_by(),
           page_size: integer(),
-          default_page_size: integer()
+          default_page_size: integer(),
+          search_term: String.t()
         }
   @type url_params :: %{atom() => String.t()}
 
@@ -58,10 +59,20 @@ defmodule Cinder.UrlManager do
           state_with_page
       end
 
-    if not Enum.empty?(sort_by) do
-      Map.put(state_with_page_size, :sort, encode_sort(sort_by))
+    state_with_sort =
+      if not Enum.empty?(sort_by) do
+        Map.put(state_with_page_size, :sort, encode_sort(sort_by))
+      else
+        state_with_page_size
+      end
+
+    # Add search if not empty
+    search_term = Map.get(state, :search_term)
+
+    if search_term not in [nil, ""] do
+      Map.put(state_with_sort, :search, search_term)
     else
-      state_with_page_size
+      state_with_sort
     end
   end
 
@@ -88,9 +99,16 @@ defmodule Cinder.UrlManager do
       filters: decode_filters(url_params, columns),
       current_page: decode_page(Map.get(url_params, "page")),
       sort_by: decode_sort(Map.get(url_params, "sort"), columns),
-      page_size: decode_page_size(Map.get(url_params, "page_size"))
+      page_size: decode_page_size(Map.get(url_params, "page_size")),
+      search_term: decode_search(Map.get(url_params, "search"))
     }
   end
+
+  # Decodes search parameter from URL
+  defp decode_search(nil), do: ""
+  defp decode_search(""), do: ""
+  defp decode_search(search_term) when is_binary(search_term), do: search_term
+  defp decode_search(_), do: ""
 
   @doc """
   Encodes filters for URL parameters.
