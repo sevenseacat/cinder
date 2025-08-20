@@ -9,6 +9,7 @@
 
 ### Bug fixes
 
+* Fix URL sync double processing causing duplicate data loads on sort/filter events
 * Fix table refresh error when page_size on a table is set to a number (not a map of data) (#45)
 
 ## v0.5.5 (2025-08-14)

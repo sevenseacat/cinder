@@ -194,12 +194,25 @@ defmodule Cinder.Table.LiveComponent do
     # Use cycle-aware sort toggling
     new_sort = Cinder.QueryBuilder.toggle_sort_with_cycle(current_sort, key, sort_cycle)
 
+    # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
+    url_sync_enabled = !!socket.assigns[:on_state_change]
+
     socket =
-      socket
-      |> assign(:sort_by, new_sort)
-      |> assign(:current_page, 1)
-      |> assign(:user_has_interacted, true)
-      |> load_data()
+      if url_sync_enabled do
+        # URL sync enabled: update state but don't load data yet
+        # Data will be loaded via handle_params when URL updates
+        socket
+        |> assign(:sort_by, new_sort)
+        |> assign(:current_page, 1)
+        |> assign(:user_has_interacted, true)
+      else
+        # URL sync disabled: load data immediately
+        socket
+        |> assign(:sort_by, new_sort)
+        |> assign(:current_page, 1)
+        |> assign(:user_has_interacted, true)
+        |> load_data()
+      end
 
     notify_state_change(socket)
 
@@ -232,12 +245,23 @@ defmodule Cinder.Table.LiveComponent do
   def handle_event("filter_change", %{"filters" => filter_params}, socket) do
     new_filters = Cinder.FilterManager.params_to_filters(filter_params, socket.assigns.columns)
 
+    # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
+    url_sync_enabled = !!socket.assigns[:on_state_change]
+
     socket =
-      socket
-      |> assign(:filters, new_filters)
-      # Reset to first page when filters change
-      |> assign(:current_page, 1)
-      |> load_data()
+      if url_sync_enabled do
+        # URL sync enabled: update state but don't load data yet
+        # Data will be loaded via handle_params when URL updates
+        socket
+        |> assign(:filters, new_filters)
+        |> assign(:current_page, 1)
+      else
+        # URL sync disabled: load data immediately
+        socket
+        |> assign(:filters, new_filters)
+        |> assign(:current_page, 1)
+        |> load_data()
+      end
 
     # Notify parent about state changes
     socket = notify_state_change(socket, new_filters)
