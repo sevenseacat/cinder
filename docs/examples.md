@@ -17,6 +17,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Column Configuration](#column-configuration)
 - [Filter Types](#filter-types)
 - [Sorting](#sorting)
+- [Custom Functions](#custom-functions)
 - [Theming](#theming)
 - [URL State Management](#url-state-management)
 - [Relationship Fields](#relationship-fields)
@@ -191,6 +192,39 @@ Demonstration of every available column attribute:
   >
     {if product.in_stock, do: "In Stock", else: "Out of Stock"}
   </:col>
+
+  <!-- Column with custom sort function -->
+  <:col
+    :let={product}
+    field="updated_at"
+    sort={[fn: &sort_nulls_last/2]}
+    label="Last Updated"
+  >
+    {product.updated_at}
+  </:col>
+
+  <!-- Column with custom filter function -->
+  <:col
+    :let={product}
+    field="status"
+    filter={[
+      type: :select,
+      options: [{"Active", "active"}, {"Discontinued", "discontinued"}],
+      fn: &filter_product_status/2
+    ]}
+  >
+    {product.status}
+  </:col>
+
+  <!-- Column with both custom sort and filter -->
+  <:col
+    :let={product}
+    field="priority"
+    sort={&sort_by_business_priority/2}
+    filter={[type: :select, fn: &filter_by_priority_level/2]}
+  >
+    {product.priority}
+  </:col>
 </Cinder.Table.table>
 ```
 
@@ -207,6 +241,8 @@ Cinder automatically detects the right filter type based on your Ash resource at
 
 You can also explicitly specify filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:date_range`, `:number_range`
 
+> **💡 Advanced Filtering:** For complex filtering logic (like business rules or custom operators), see [Custom Functions](#custom-functions) for examples of custom filter functions.
+
 ### Filter Format Options
 
 Cinder supports multiple filter specification formats:
@@ -218,6 +254,7 @@ Cinder supports multiple filter specification formats:
 **Unified format with options (recommended):**
 - `filter={[type: :select, options: [...], prompt: "Choose..."]}` (atom type)
 - `filter={[type: "select", options: [...], prompt: "Choose..."]}` (string type)
+- `filter={[type: :select, options: [...], fn: &custom_filter/2]}` (with custom function)
 
 **Legacy format (deprecated):**
 - `filter={:select} filter_options={[options: [...]]}`
@@ -619,6 +656,160 @@ This is particularly useful for:
   <:col :let={product} field="price" filter={:number_range} sort>${product.price}</:col>
   <:col :let={product} field="category" filter={:select} sort>{product.category}</:col>
   <:col :let={product} field="created_at" filter={:date_range} sort>{product.created_at}</:col>
+</Cinder.Table.table>
+```
+
+> **💡 Advanced Sorting:** For complex sorting logic (like null handling or business rules), see [Custom Functions](#custom-functions) for examples of custom sort functions.
+
+## Custom Functions
+
+### Custom Sort Functions
+
+You can provide custom sort functions for complex sorting logic:
+
+```elixir
+defmodule MyAppWeb.InvoicesLive do
+  require Ash.Query
+  
+  # Custom sort function - handles null values properly
+  def sort_payment_date_nulls_first(query, direction) do
+    case direction do
+      :asc -> Ash.Query.sort(query, payment_date: :asc_nils_first)
+      :desc -> Ash.Query.sort(query, payment_date: :desc_nils_first)
+    end
+  end
+
+  # Custom priority sorting with business logic
+  def sort_by_priority(query, direction) do
+    case direction do
+      :asc ->
+        query
+        |> Ash.Query.sort(priority: :asc)
+        |> Ash.Query.sort(created_at: :desc)  # Secondary sort
+      :desc ->
+        query
+        |> Ash.Query.sort(priority: :desc)
+        |> Ash.Query.sort(created_at: :desc)
+    end
+  end
+
+  def render(assigns) do
+    ~H"""
+    <Cinder.Table.table resource={MyApp.Invoice} actor={@current_user}>
+      <!-- Using custom sort function -->
+      <:col :let={invoice} field="payment_date" sort={[fn: &sort_payment_date_nulls_first/2]}>
+        {invoice.payment_date}
+      </:col>
+      
+      <!-- Function shorthand syntax -->
+      <:col :let={invoice} field="priority" sort={&sort_by_priority/2}>
+        {invoice.priority}
+      </:col>
+      
+      <!-- Standard sorting still works -->
+      <:col :let={invoice} field="invoice_number" sort>
+        {invoice.invoice_number}
+      </:col>
+    </Cinder.Table.table>
+    """
+  end
+end
+```
+
+### Custom Filter Functions
+
+Custom filter functions enable complex filtering logic:
+
+```elixir
+defmodule MyAppWeb.InvoicesLive do
+  require Ash.Query
+  
+  # Custom filter with business logic
+  def filter_invoice_status(query, filter_config) do
+    %{value: status} = filter_config
+    
+    case status do
+      "overdue" ->
+        # Complex business rule: overdue = past due date AND unpaid
+        today = Date.utc_today()
+        query
+        |> Ash.Query.filter(due_date < ^today)
+        |> Ash.Query.filter(payment_status == :unpaid)
+        
+      "pending_approval" ->
+        # Another business rule: needs manager approval
+        query
+        |> Ash.Query.filter(status == :draft)
+        |> Ash.Query.filter(approval_required == true)
+        
+      _ ->
+        # Standard equality for other statuses
+        Ash.Query.filter(query, status == ^status)
+    end
+  end
+
+  def render(assigns) do
+    ~H"""
+    <Cinder.Table.table resource={MyApp.Invoice} actor={@current_user}>
+      <!-- Custom filter function -->
+      <:col :let={invoice} field="status" filter={[
+        type: :select,
+        options: [
+          {"Active", "active"},
+          {"Overdue", "overdue"},
+          {"Pending Approval", "pending_approval"}
+        ],
+        fn: &filter_invoice_status/2
+      ]}>
+        {invoice.status}
+      </:col>
+      
+      <!-- Standard filters still work -->
+      <:col :let={invoice} field="customer_name" filter>
+        {invoice.customer_name}
+      </:col>
+    </Cinder.Table.table>
+    """
+  end
+end
+```
+
+### Function Signatures
+
+Custom functions must follow these signatures:
+
+- **Sort functions:** `sort_fn(query :: Ash.Query.t(), direction :: :asc | :desc | atom()) :: Ash.Query.t()`
+- **Filter functions:** `filter_fn(query :: Ash.Query.t(), filter_config :: map()) :: Ash.Query.t()`
+
+The functions receive actual `Ash.Query` structs and should use `Ash.Query` functions like `Ash.Query.sort/2` and `Ash.Query.filter/2` to modify the query.
+
+### Mixed Standard and Custom
+
+You can mix standard and custom configurations in the same table:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
+  <!-- Standard sort and filter -->
+  <:col :let={order} field="order_number" sort filter>
+    {order.order_number}
+  </:col>
+  
+  <!-- Custom sort only -->
+  <:col :let={order} field="priority" sort={&sort_by_business_priority/2}>
+    {order.priority}
+  </:col>
+  
+  <!-- Custom filter only -->  
+  <:col :let={order} field="status" filter={[type: :select, fn: &filter_complex_status/2]}>
+    {order.status}
+  </:col>
+  
+  <!-- Both custom sort and filter -->
+  <:col :let={order} field="created_at" 
+        sort={[fn: &sort_dates_nulls_last/2]}
+        filter={[type: :date_range, fn: &filter_business_dates/2]}>
+    {order.created_at}
+  </:col>
 </Cinder.Table.table>
 ```
 

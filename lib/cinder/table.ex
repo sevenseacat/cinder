@@ -334,13 +334,21 @@ defmodule Cinder.Table do
         "Field name (supports dot notation for relationships or `__` for embedded attributes). Required when filter or sort is enabled."
     )
 
-    attr(:filter, :any, doc: "Enable filtering (true, false, or filter type atom)")
-
-    attr(:filter_options, :list,
-      doc: "Custom filter options (e.g., [options: [{\"Label\", \"value\"}]])"
+    attr(:filter, :any,
+      doc:
+        "Enable filtering (true, false, filter type atom, or unified config [type: :select, options: [...], fn: &custom_filter/2])"
     )
 
-    attr(:sort, :boolean, doc: "Enable sorting")
+    attr(:filter_options, :list,
+      doc:
+        "Custom filter options (e.g., [options: [{\"Label\", \"value\"}]]) - DEPRECATED: Use filter={[type: :select, options: [...]]} instead"
+    )
+
+    attr(:sort, :any,
+      doc:
+        "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc], fn: &custom_sort/2])"
+    )
+
     attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
     attr(:class, :string, doc: "CSS classes for this column")
   end
@@ -424,22 +432,33 @@ defmodule Cinder.Table do
       # Validate field requirement for filtering/sorting
       validate_field_requirement!(slot, field, filter_attr, sort_attr)
 
+      # Extract custom functions from unified configurations
+      sort_config = extract_sort_config(sort_attr)
+      filter_fn = if is_list(filter_attr), do: Keyword.get(filter_attr, :fn), else: nil
+
       # Use Column module to parse the column configuration
       column_config = %{
         field: field,
-        sortable: sort_attr,
+        sortable: sort_config.enabled,
         filterable: filter_attr != false,
-        class: Map.get(slot, :class, "")
+        class: Map.get(slot, :class, ""),
+        sort_fn: sort_config.fn,
+        filter_fn: filter_fn
       }
 
       # Let Column module infer filter type if needed, otherwise use explicit type
-      {filter_type, filter_options_from_unified} = determine_filter_type(filter_attr, field, resource)
+      {filter_type, filter_options_from_unified} =
+        determine_filter_type(filter_attr, field, resource)
 
       # Check for deprecated filter_options usage
       legacy_filter_options = Map.get(slot, :filter_options, [])
+
       if legacy_filter_options != [] do
         field_name = field || "unknown"
-        Logger.warning("[DEPRECATED] Field '#{field_name}' uses deprecated filter_options attribute. Use `filter={[type: #{inspect(filter_type)}, ...]}` instead.")
+
+        Logger.warning(
+          "[DEPRECATED] Field '#{field_name}' uses deprecated filter_options attribute. Use `filter={[type: #{inspect(filter_type)}, ...]}` instead."
+        )
       end
 
       # Merge options: unified format takes precedence over legacy filter_options
@@ -469,7 +488,9 @@ defmodule Cinder.Table do
             filterable: false,
             filter_type: :text,
             filter_options: [],
-            sortable: false
+            sortable: false,
+            sort_fn: nil,
+            filter_fn: nil
           }
         end
 
@@ -483,12 +504,40 @@ defmodule Cinder.Table do
         sortable: parsed_column.sortable,
         class: Map.get(slot, :class, ""),
         inner_block: slot[:inner_block] || default_inner_block(field),
+        sort_fn: parsed_column.sort_fn,
+        filter_fn: parsed_column.filter_fn,
         __slot__: :col
       }
     end)
   end
 
-  # Determine filter type from the simplified API
+  # Extract custom functions from unified sort configuration
+  defp extract_sort_config(sort_attr) do
+    case sort_attr do
+      # Boolean values - standard behavior
+      true ->
+        %{enabled: true, cycle: nil, fn: nil}
+
+      false ->
+        %{enabled: false, cycle: nil, fn: nil}
+
+      # Function shorthand: sort={&custom_sort/2}
+      func when is_function(func) ->
+        %{enabled: true, cycle: nil, fn: func}
+
+      # Unified configuration: sort={[cycle: [...], fn: &func/2]}
+      config when is_list(config) ->
+        %{
+          enabled: Keyword.get(config, :enabled, true),
+          cycle: Keyword.get(config, :cycle),
+          fn: Keyword.get(config, :fn)
+        }
+
+      _ ->
+        %{enabled: false, cycle: nil, fn: nil}
+    end
+  end
+
   defp determine_filter_type(filter_attr, _field, _resource) do
     case filter_attr do
       false ->

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* Allow custom filter/sort functions to be defined for a column
+
+### Bug fixes
+
+* Fix table refresh error when page_size on a table is set to a number (not a map of data) (#45)
+
 ## v0.5.5 (2025-08-14)
 
 ### Bug fixes
