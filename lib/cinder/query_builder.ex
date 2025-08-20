@@ -16,8 +16,7 @@ defmodule Cinder.QueryBuilder do
           field: String.t(),
           filterable: boolean(),
           filter_type: atom(),
-          filter_fn: function() | nil,
-          sort_fn: function() | nil
+          filter_fn: function() | nil
         }
   @type query_opts :: keyword()
 
@@ -82,7 +81,8 @@ defmodule Cinder.QueryBuilder do
 
     try do
       # Determine effective tenant (explicit tenant takes precedence over query tenant)
-      effective_tenant = tenant || (if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant)
+      effective_tenant =
+        tenant || if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant
 
       # Normalize input to a query and extract resource for logging
       {base_query, resource} =
@@ -96,7 +96,7 @@ defmodule Cinder.QueryBuilder do
             base_query
             |> apply_query_opts(query_opts)
             |> apply_filters(filters, columns)
-            |> apply_sorting(sort_by, columns)
+            |> apply_sorting(sort_by)
 
           # Handle pagination based on action support
           case action_supports_pagination?(prepared_query) do
@@ -152,7 +152,8 @@ defmodule Cinder.QueryBuilder do
   # Normalize input to always return {query, resource} tuple
   defp normalize_resource_or_query(%Ash.Query{} = query, actor, tenant, query_opts) do
     # Fix nil action edge case
-    updated_query = if is_nil(query.action) do
+    updated_query =
+      if is_nil(query.action) do
         %{query | action: Ash.Resource.Info.action(query.resource, :read)}
       else
         query
@@ -179,6 +180,7 @@ defmodule Cinder.QueryBuilder do
   defp maybe_set_tenant(query, tenant), do: Ash.Query.set_tenant(query, tenant)
 
   defp maybe_set_actor(query, nil), do: query
+
   defp maybe_set_actor(query, actor) do
     existing_context = query.context || %{}
     new_context = Map.put(existing_context, :actor, actor)
@@ -349,11 +351,11 @@ defmodule Cinder.QueryBuilder do
   end
 
   @doc """
-  Applies sorting to an Ash query based on sort specifications and column definitions.
+  Applies sorting to an Ash query based on sort specifications.
   """
-  def apply_sorting(query, sort_by, _columns) when sort_by == [], do: query
+  def apply_sorting(query, sort_by) when sort_by == [], do: query
 
-  def apply_sorting(query, sort_by, columns) do
+  def apply_sorting(query, sort_by) do
     # Validate sort_by input to prevent Protocol.UndefinedError
     unless is_list(sort_by) and Enum.all?(sort_by, &valid_sort_tuple?/1) do
       require Logger
@@ -373,53 +375,38 @@ defmodule Cinder.QueryBuilder do
           query
         end
 
-      # Check if any sorts have custom sort functions
-      has_custom_sorts =
-        sort_by
-        |> Enum.any?(fn {field, _direction} ->
-          column = Enum.find(columns, &(&1.field == field))
-          column && column.sort_fn
-        end)
-
-      if has_custom_sorts do
-        # Use custom logic when custom sort functions are present
-        Enum.reduce(sort_by, query, fn {field, direction}, query ->
-          column = Enum.find(columns, &(&1.field == field))
-
+      # Use Ash sort input for standard sorting (more efficient)
+      sort_list =
+        Enum.map(sort_by, fn {field, direction} ->
           cond do
-            column && column.sort_fn ->
-              # Use custom sort function
-              column.sort_fn.(query, direction)
-
             String.contains?(field, ".") ->
               # Handle dot notation for relationship sorting
               sort_expr = build_expression_sort(field)
-              Ash.Query.sort(query, [{sort_expr, direction}])
+              {sort_expr, direction}
 
             true ->
               # Standard attribute sorting
-              Ash.Query.sort(query, [{String.to_atom(field), direction}])
+              {String.to_atom(field), direction}
           end
         end)
-      else
-        # Use Ash sort input for standard sorting (more efficient)
-        sort_list =
-          Enum.map(sort_by, fn {field, direction} ->
-            {String.to_atom(field), direction}
-          end)
 
-        if not Enum.empty?(sort_list) do
-          Ash.Query.sort(query, sort_list)
-        else
-          query
-        end
-      end
+      Ash.Query.sort(query, sort_list)
     end
   end
 
   # Validates that a sort tuple has the correct format.
-  defp valid_sort_tuple?({field, direction}) when is_binary(field) and direction in [:asc, :desc],
-    do: true
+  # Supports standard and Ash built-in null handling directions.
+  defp valid_sort_tuple?({field, direction})
+       when is_binary(field) and
+              direction in [
+                :asc,
+                :desc,
+                :asc_nils_first,
+                :desc_nils_first,
+                :asc_nils_last,
+                :desc_nils_last
+              ],
+       do: true
 
   defp valid_sort_tuple?(_), do: false
 
@@ -473,15 +460,61 @@ defmodule Cinder.QueryBuilder do
   end
 
   @doc """
+  Toggles sort direction using custom cycle configuration.
+
+  Supports custom sort cycles like [nil, :desc_nils_last, :asc_nils_first].
+
+  Falls back to standard toggle_sort_direction/2 if no custom cycle provided.
+  """
+  def toggle_sort_with_cycle(current_sort, key, sort_cycle \\ nil) do
+    cycle = sort_cycle || [nil, :asc, :desc]
+
+    case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
+      {^key, current_direction} ->
+        # Find current position in cycle and advance to next
+        current_index = Enum.find_index(cycle, &(&1 == current_direction))
+        next_index = if current_index, do: current_index + 1, else: 1
+
+        if next_index >= length(cycle) do
+          # End of cycle, remove sort (nil state)
+          Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
+        else
+          next_direction = Enum.at(cycle, next_index)
+
+          if next_direction == nil do
+            # Next state is nil, remove sort
+            Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
+          else
+            # Update to next direction in cycle
+            Enum.map(current_sort, fn
+              {^key, _} -> {key, next_direction}
+              other -> other
+            end)
+          end
+        end
+
+      nil ->
+        # Not currently sorted, start with first non-nil value in cycle
+        first_direction = Enum.find(cycle, &(&1 != nil))
+
+        if first_direction do
+          [{key, first_direction} | current_sort]
+        else
+          # Cycle has no non-nil values, fall back to standard
+          toggle_sort_direction(current_sort, key)
+        end
+    end
+  end
+
+  @doc """
   Toggles sort direction with special handling for query-extracted sorts.
 
   When a column has a sort from query extraction, the first user click
   provides intuitive behavior:
   - desc (from query) → asc (user takes control)
   - asc (from query) → desc (user takes control)
-  Then follows normal toggle cycle.
 
-  This provides better UX when tables start with pre-sorted queries.
+  After first click, follows standard toggle cycle.
   """
   def toggle_sort_from_query(current_sort, key) do
     case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
@@ -694,6 +727,7 @@ defmodule Cinder.QueryBuilder do
     else
       # Parse field to handle relationship calculations for sortability check
       {target_resource, target_field} = resolve_field_resource(resource, field_string)
+
       target_field_atom =
         if is_binary(target_field), do: String.to_atom(target_field), else: target_field
 
@@ -788,6 +822,7 @@ defmodule Cinder.QueryBuilder do
         case resolve_relationship_resource(resource, rel_path) do
           {:ok, target_resource} ->
             field_exists_on_resource?(target_resource, target_field)
+
           {:error, _} ->
             false
         end
@@ -827,8 +862,10 @@ defmodule Cinder.QueryBuilder do
           case Ash.Resource.Info.relationship(current_resource, String.to_atom(rel_name)) do
             %{destination: destination_resource} ->
               {:cont, {:ok, destination_resource}}
+
             nil ->
-              {:halt, {:error, "Relationship #{rel_name} not found on #{inspect(current_resource)}"}}
+              {:halt,
+               {:error, "Relationship #{rel_name} not found on #{inspect(current_resource)}"}}
           end
         end)
       else
@@ -977,6 +1014,7 @@ defmodule Cinder.QueryBuilder do
     case resolve_relationship_resource(resource, rel_path) do
       {:ok, target_resource} ->
         validate_embedded_field(target_resource, embed_field, nested_field)
+
       {:error, _} ->
         false
     end
@@ -987,6 +1025,7 @@ defmodule Cinder.QueryBuilder do
     case resolve_relationship_resource(resource, rel_path) do
       {:ok, target_resource} ->
         validate_nested_embedded_field(target_resource, embed_field, nested_path)
+
       {:error, _} ->
         false
     end

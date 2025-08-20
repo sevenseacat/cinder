@@ -49,8 +49,11 @@ defmodule Cinder.UrlManager do
     # Add page_size if different from default
     state_with_page_size =
       case {Map.get(state, :page_size), Map.get(state, :default_page_size)} do
-        {page_size, default_page_size} when is_integer(page_size) and is_integer(default_page_size) and page_size != default_page_size ->
+        {page_size, default_page_size}
+        when is_integer(page_size) and is_integer(default_page_size) and
+               page_size != default_page_size ->
           Map.put(state_with_page, :page_size, to_string(page_size))
+
         _ ->
           state_with_page
       end
@@ -200,6 +203,12 @@ defmodule Cinder.UrlManager do
       iex> Cinder.UrlManager.encode_sort([{"title", :desc}, {"created_at", :asc}])
       "-title,created_at"
 
+      iex> Cinder.UrlManager.encode_sort([{"payment_date", :desc_nils_last}, {"created_at", :asc_nils_first}])
+      "--payment_date,++created_at"
+
+      iex> Cinder.UrlManager.encode_sort([{"score", :asc_nils_last}, {"priority", :desc_nils_first}])
+      "-+score,+-priority"
+
   """
   def encode_sort(sort_by) when is_list(sort_by) do
     # Validate sort_by input to prevent Protocol.UndefinedError
@@ -215,8 +224,12 @@ defmodule Cinder.UrlManager do
       sort_by
       |> Enum.map(fn {key, direction} ->
         case direction do
+          :asc -> key
           :desc -> "-#{key}"
-          _ -> key
+          :asc_nils_first -> "++#{key}"
+          :desc_nils_first -> "+-#{key}"
+          :asc_nils_last -> "-+#{key}"
+          :desc_nils_last -> "--#{key}"
         end
       end)
       |> Enum.join(",")
@@ -233,6 +246,12 @@ defmodule Cinder.UrlManager do
 
       iex> Cinder.UrlManager.decode_sort("-title,created_at")
       [{"title", :desc}, {"created_at", :asc}]
+
+      iex> Cinder.UrlManager.decode_sort("--payment_date,++created_at")
+      [{"payment_date", :desc_nils_last}, {"created_at", :asc_nils_first}]
+
+      iex> Cinder.UrlManager.decode_sort("-+score,+-priority")
+      [{"score", :asc_nils_last}, {"priority", :desc_nils_first}]
 
   """
   def decode_sort(url_sort, columns) when is_binary(url_sort) and is_list(columns) do
@@ -258,12 +277,34 @@ defmodule Cinder.UrlManager do
     |> String.split(",")
     |> Enum.filter(&(&1 != ""))
     |> Enum.map(fn sort_item ->
-      case String.starts_with?(sort_item, "-") do
-        true ->
+      cond do
+        String.starts_with?(sort_item, "--") ->
+          # Double dash: desc_nils_last
+          key = String.slice(sort_item, 2..-1//1)
+          {key, :desc_nils_last}
+
+        String.starts_with?(sort_item, "++") ->
+          # Double plus: asc_nils_first
+          key = String.slice(sort_item, 2..-1//1)
+          {key, :asc_nils_first}
+
+        String.starts_with?(sort_item, "+-") ->
+          # Plus-dash: desc_nils_first
+          key = String.slice(sort_item, 2..-1//1)
+          {key, :desc_nils_first}
+
+        String.starts_with?(sort_item, "-+") ->
+          # Dash-plus: asc_nils_last
+          key = String.slice(sort_item, 2..-1//1)
+          {key, :asc_nils_last}
+
+        String.starts_with?(sort_item, "-") ->
+          # Single dash: desc
           key = String.slice(sort_item, 1..-1//1)
           {key, :desc}
 
-        false ->
+        true ->
+          # Default: field means asc
           {sort_item, :asc}
       end
     end)
@@ -405,8 +446,18 @@ defmodule Cinder.UrlManager do
   def validate_url_params(_), do: {:error, "Invalid URL parameters format"}
 
   # Validates that a sort tuple has the correct format for URL encoding.
-  defp valid_sort_tuple?({field, direction}) when is_binary(field) and direction in [:asc, :desc],
-    do: true
+  # Supports standard and Ash built-in null handling directions.
+  defp valid_sort_tuple?({field, direction})
+       when is_binary(field) and
+              direction in [
+                :asc,
+                :desc,
+                :asc_nils_first,
+                :desc_nils_first,
+                :asc_nils_last,
+                :desc_nils_last
+              ],
+       do: true
 
   defp valid_sort_tuple?(_), do: false
 end

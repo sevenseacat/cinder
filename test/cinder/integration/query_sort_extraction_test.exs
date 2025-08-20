@@ -113,10 +113,9 @@ defmodule Cinder.Integration.QuerySortExtractionTest do
         |> Ash.Query.sort([{:name, :desc}])
 
       # Test that apply_sorting clears existing sorts and applies new ones
-      columns = []
       new_sort_by = [{"email", :asc}]
 
-      result_query = Cinder.QueryBuilder.apply_sorting(query, new_sort_by, columns)
+      result_query = Cinder.QueryBuilder.apply_sorting(query, new_sort_by)
 
       # The result should only have the new sort, not the original query sort
       assert result_query.sort == [{:email, :asc}]

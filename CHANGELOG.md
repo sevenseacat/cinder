@@ -4,7 +4,8 @@
 
 ### Features
 
-* Allow custom filter/sort functions to be defined for a column
+* Allow custom filter functions to be defined for a column
+* Allow custom sort cycles to be defined for a column
 
 ### Bug fixes
 

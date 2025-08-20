@@ -684,46 +684,23 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "apply_sorting/3" do
+  describe "apply_sorting/2" do
     test "returns query unchanged when no sorting" do
       query = %MockQuerySorts{resource: TestResource}
       sort_by = []
-      columns = []
 
-      result = QueryBuilder.apply_sorting(query, sort_by, columns)
+      result = QueryBuilder.apply_sorting(query, sort_by)
       assert result == query
     end
 
-    test "uses custom sort functions when present" do
+    test "handles standard sorts without custom functions" do
       query = %MockQuerySorts{resource: TestResource}
       sort_by = [{"title", :desc}]
 
-      custom_sort_fn = fn query, _direction ->
-        %{query | sorts: [:custom_sort_applied]}
-      end
-
-      columns = [%{field: "title", sort_fn: custom_sort_fn}]
-
-      result = QueryBuilder.apply_sorting(query, sort_by, columns)
-      assert result.sorts == [:custom_sort_applied]
-    end
-
-    test "handles mixed custom and standard sorts" do
-      query = %MockQuerySorts{resource: TestResource}
-      sort_by = [{"title", :desc}, {"created_at", :asc}]
-
-      custom_sort_fn = fn query, _direction ->
-        %{query | sorts: (query.sorts || []) ++ [:custom_sort]}
-      end
-
-      columns = [
-        %{field: "title", sort_fn: custom_sort_fn},
-        %{field: "created_at", sort_fn: nil}
-      ]
-
       # This will fail with mock query when it tries to apply standard sort
+      # but that's expected since we're using a mock query struct
       assert_raise ArgumentError, fn ->
-        QueryBuilder.apply_sorting(query, sort_by, columns)
+        QueryBuilder.apply_sorting(query, sort_by)
       end
     end
 
@@ -739,12 +716,11 @@ defmodule Cinder.QueryBuilderTest do
       # This should be [{"field", :asc}] format, but test with invalid data
       # Missing direction
       invalid_sort_by = [{"field"}]
-      columns = []
 
       # This should not crash with Protocol.UndefinedError
       # The function should handle invalid input gracefully and return original query
       {result, _logs} =
-        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by, columns) end)
+        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by) end)
 
       assert result == query
 
@@ -752,7 +728,7 @@ defmodule Cinder.QueryBuilderTest do
       invalid_sort_by2 = ["not_a_tuple"]
 
       {result2, _logs} =
-        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by2, columns) end)
+        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by2) end)
 
       assert result2 == query
 
@@ -761,7 +737,7 @@ defmodule Cinder.QueryBuilderTest do
       invalid_sort_by3 = [query]
 
       {result3, _logs} =
-        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by3, columns) end)
+        with_log(fn -> QueryBuilder.apply_sorting(query, invalid_sort_by3) end)
 
       assert result3 == query
     end
@@ -778,13 +754,11 @@ defmodule Cinder.QueryBuilderTest do
       # This would happen if there was a bug in data flow where queries got mixed up with sort specs
       ash_query_struct = %MockQuerySorts{resource: TestResource, sorts: [:some_sort]}
       problematic_sort_by = [ash_query_struct, {"valid_field", :asc}]
-      columns = []
-
       # Before the fix, this would crash with:
       # Protocol.UndefinedError) protocol String.Chars not implemented for type Ash.Query
       # After the fix, it should handle gracefully and return original query
       {result, _logs} =
-        with_log(fn -> QueryBuilder.apply_sorting(query, problematic_sort_by, columns) end)
+        with_log(fn -> QueryBuilder.apply_sorting(query, problematic_sort_by) end)
 
       assert result == query
 
@@ -792,7 +766,7 @@ defmodule Cinder.QueryBuilderTest do
       # This simulates what would happen if the invalid data reached string interpolation
       {result, logs} =
         with_log(fn ->
-          QueryBuilder.apply_sorting(query, problematic_sort_by, columns)
+          QueryBuilder.apply_sorting(query, problematic_sort_by)
         end)
 
       assert result == query
@@ -809,12 +783,10 @@ defmodule Cinder.QueryBuilderTest do
 
       # Apply table sorting - this should override the existing sorts
       sort_by = [{"email", :asc}]
-      columns = []
-
       # Currently this test will fail because existing sorts take precedence
       # The query will have both sorts: [{:name, :desc}, {:email, :asc}]
       # But we want only the table sort: [{:email, :asc}]
-      result = QueryBuilder.apply_sorting(query_with_existing_sorts, sort_by, columns)
+      result = QueryBuilder.apply_sorting(query_with_existing_sorts, sort_by)
 
       # This assertion will fail with current implementation
       # because the existing sort is not cleared
@@ -1229,7 +1201,9 @@ defmodule Cinder.QueryBuilderTest do
     test "context is properly merged without overwriting existing context" do
       # Create a query with existing context
       base_query = Ash.Query.for_read(TestUser, :read)
-      query_with_context = Ash.Query.set_context(base_query, %{custom_flag: true, other_data: "test"})
+
+      query_with_context =
+        Ash.Query.set_context(base_query, %{custom_flag: true, other_data: "test"})
 
       expect(Ash, :read, fn query, _opts ->
         send(self(), {:final_query_context, query.context})

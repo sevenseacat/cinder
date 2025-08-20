@@ -4,51 +4,11 @@ defmodule Cinder.Table.CustomFunctionsTest do
   alias Cinder.Table
 
   # Mock functions for testing
-  defp custom_sort_function(query, direction) do
-    %{query | custom_sort: {direction, :applied}}
-  end
-
   defp custom_filter_function(query, filter_config) do
     %{query | custom_filter: {filter_config, :applied}}
   end
 
   describe "custom function extraction" do
-    test "extracts sort_fn from function shorthand" do
-      col_slots = [
-        %{
-          field: "name",
-          sort: &custom_sort_function/2,
-          filter: false,
-          inner_block: fn -> "Name" end
-        }
-      ]
-
-      processed = Table.process_columns(col_slots, TestResource)
-      column = List.first(processed)
-
-      assert column.sortable == true
-      assert is_function(column.sort_fn, 2)
-      assert column.filter_fn == nil
-    end
-
-    test "extracts sort_fn from unified configuration" do
-      col_slots = [
-        %{
-          field: "created_at",
-          sort: [enabled: true, fn: &custom_sort_function/2],
-          filter: false,
-          inner_block: fn -> "Created At" end
-        }
-      ]
-
-      processed = Table.process_columns(col_slots, TestResource)
-      column = List.first(processed)
-
-      assert column.sortable == true
-      assert is_function(column.sort_fn, 2)
-      assert column.filter_fn == nil
-    end
-
     test "extracts filter_fn from unified configuration" do
       col_slots = [
         %{
@@ -63,28 +23,8 @@ defmodule Cinder.Table.CustomFunctionsTest do
       column = List.first(processed)
 
       assert column.sortable == false
-      assert column.sort_fn == nil
       assert column.filterable == true
       assert column.filter_type == :select
-      assert is_function(column.filter_fn, 2)
-    end
-
-    test "extracts both sort_fn and filter_fn" do
-      col_slots = [
-        %{
-          field: "priority",
-          sort: [cycle: [nil, :high, :low], fn: &custom_sort_function/2],
-          filter: [type: :select, fn: &custom_filter_function/2],
-          inner_block: fn -> "Priority" end
-        }
-      ]
-
-      processed = Table.process_columns(col_slots, TestResource)
-      column = List.first(processed)
-
-      assert column.sortable == true
-      assert is_function(column.sort_fn, 2)
-      assert column.filterable == true
       assert is_function(column.filter_fn, 2)
     end
 
@@ -102,7 +42,6 @@ defmodule Cinder.Table.CustomFunctionsTest do
       column = List.first(processed)
 
       assert column.sortable == true
-      assert column.sort_fn == nil
       assert column.filterable == true
       assert column.filter_fn == nil
     end
@@ -121,18 +60,17 @@ defmodule Cinder.Table.CustomFunctionsTest do
       column = List.first(processed)
 
       assert column.sortable == false
-      assert column.sort_fn == nil
       assert column.filterable == false
       assert column.filter_fn == nil
     end
   end
 
   describe "integration with existing functionality" do
-    test "custom functions work with existing Column struct fields" do
+    test "custom filter functions work with existing Column struct fields" do
       col_slots = [
         %{
           field: "name",
-          sort: [fn: &custom_sort_function/2],
+          sort: true,
           filter: [type: :text, fn: &custom_filter_function/2],
           inner_block: fn -> "Name" end
         }
@@ -143,7 +81,6 @@ defmodule Cinder.Table.CustomFunctionsTest do
 
       # Verify the functions are preserved and could be passed to QueryBuilder
       assert column.sortable == true
-      assert is_function(column.sort_fn, 2)
       assert column.filterable == true
       assert is_function(column.filter_fn, 2)
 
@@ -167,8 +104,6 @@ defmodule Cinder.Table.CustomFunctionsTest do
       column = List.first(processed)
 
       assert column.sortable == true
-      # No custom function
-      assert column.sort_fn == nil
       assert column.filterable == true
       # No custom function
       assert column.filter_fn == nil
@@ -176,41 +111,6 @@ defmodule Cinder.Table.CustomFunctionsTest do
   end
 
   describe "end-to-end integration with QueryBuilder" do
-    test "custom sort functions are called by QueryBuilder" do
-      # Mock query that tracks when custom sort is applied
-      mock_query = %{resource: TestResource, custom_sort_applied: false}
-
-      # Custom sort function that modifies the query to show it was called
-      custom_sort_fn = fn query, direction ->
-        Map.put(query, :custom_sort_applied, {direction, :called})
-      end
-
-      # Create processed column with custom sort function
-      col_slots = [
-        %{
-          field: "name",
-          sort: [fn: custom_sort_fn],
-          filter: false,
-          inner_block: fn -> "Name" end
-        }
-      ]
-
-      processed_columns = Table.process_columns(col_slots, TestResource)
-
-      # Convert to QueryBuilder format (matches existing QueryBuilder tests)
-      columns =
-        Enum.map(processed_columns, fn col ->
-          %{field: col.field, sort_fn: col.sort_fn, filter_fn: col.filter_fn}
-        end)
-
-      # Apply sorting using QueryBuilder
-      sort_by = [{"name", :desc}]
-      result = Cinder.QueryBuilder.apply_sorting(mock_query, sort_by, columns)
-
-      # Verify our custom function was called
-      assert result.custom_sort_applied == {:desc, :called}
-    end
-
     test "custom filter functions are called by QueryBuilder" do
       # Mock query that tracks when custom filter is applied
       mock_query = %{resource: TestResource, custom_filter_applied: false}
@@ -235,7 +135,7 @@ defmodule Cinder.Table.CustomFunctionsTest do
       # Convert to QueryBuilder format
       columns =
         Enum.map(processed_columns, fn col ->
-          %{field: col.field, sort_fn: col.sort_fn, filter_fn: col.filter_fn}
+          %{field: col.field, filter_fn: col.filter_fn}
         end)
 
       # Apply filtering using QueryBuilder

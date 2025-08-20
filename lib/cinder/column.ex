@@ -18,7 +18,6 @@ defmodule Cinder.Column do
           slot: map(),
           relationship: String.t() | nil,
           display_field: String.t() | nil,
-          sort_fn: function() | nil,
           filter_fn: function() | nil,
           search_fn: function() | nil,
           searchable: boolean(),
@@ -38,7 +37,6 @@ defmodule Cinder.Column do
     :slot,
     :relationship,
     :display_field,
-    :sort_fn,
     :filter_fn,
     :search_fn,
     :searchable,
@@ -83,7 +81,6 @@ defmodule Cinder.Column do
         slot: slot,
         relationship: nil,
         display_field: nil,
-        sort_fn: nil,
         filter_fn: nil,
         search_fn: nil,
         searchable: false,
@@ -125,11 +122,10 @@ defmodule Cinder.Column do
         filterable: filterable,
         filter_type: Map.get(merged_config, :filter_type, :text),
         filter_options: Map.get(merged_config, :filter_options, []),
-        class: Map.get(merged_config, :class, ""),
+        class: Map.get(slot, :class, ""),
         slot: slot,
         relationship: Map.get(relationship_info, :relationship),
         display_field: Map.get(relationship_info, :field),
-        sort_fn: Map.get(merged_config, :sort_fn),
         filter_fn: Map.get(merged_config, :filter_fn),
         search_fn: Map.get(merged_config, :search_fn),
         searchable: Map.get(merged_config, :searchable, false),
@@ -235,7 +231,6 @@ defmodule Cinder.Column do
         :filter_type,
         :filter_options,
         :class,
-        :sort_fn,
         :filter_fn,
         :search_fn,
         :searchable,
@@ -339,7 +334,9 @@ defmodule Cinder.Column do
       {false, warning}
     else
       # Parse field to handle relationship calculations
-      {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
+      {target_resource, target_field} =
+        Cinder.QueryBuilder.resolve_field_resource(resource, field)
+
       # Check if this field is a calculation on the target resource
       case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
         nil ->
@@ -400,7 +397,9 @@ defmodule Cinder.Column do
       {false, warning}
     else
       # Parse field to handle relationship calculations
-      {target_resource, target_field} = Cinder.QueryBuilder.resolve_field_resource(resource, field)
+      {target_resource, target_field} =
+        Cinder.QueryBuilder.resolve_field_resource(resource, field)
+
       # Check if this field is a calculation on the target resource
       case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
         nil ->

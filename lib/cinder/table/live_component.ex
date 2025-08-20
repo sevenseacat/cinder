@@ -159,7 +159,8 @@ defmodule Cinder.Table.LiveComponent do
       socket
       |> assign(:page_size, page_size)
       |> assign(:page_size_config, updated_config)
-      |> assign(:current_page, 1)  # Reset to page 1 when changing page size
+      # Reset to page 1 when changing page size
+      |> assign(:current_page, 1)
       |> notify_state_change()
       |> load_data()
 
@@ -185,7 +186,13 @@ defmodule Cinder.Table.LiveComponent do
   @impl true
   def handle_event("toggle_sort", %{"key" => key}, socket) do
     current_sort = socket.assigns.sort_by
-    new_sort = Cinder.QueryBuilder.toggle_sort_direction(current_sort, key)
+
+    # Find the column to get its sort cycle configuration
+    column = Enum.find(socket.assigns.col, &(&1.field == key))
+    sort_cycle = if column, do: column.sort_cycle, else: nil
+
+    # Use cycle-aware sort toggling
+    new_sort = Cinder.QueryBuilder.toggle_sort_with_cycle(current_sort, key, sort_cycle)
 
     socket =
       socket
@@ -362,7 +369,11 @@ defmodule Cinder.Table.LiveComponent do
       # Update page_size_config if URL explicitly contains a page_size parameter
       updated_socket =
         if Map.has_key?(raw_params, "page_size") do
-          updated_page_size_config = %{socket.assigns.page_size_config | selected_page_size: decoded_state.page_size}
+          updated_page_size_config = %{
+            socket.assigns.page_size_config
+            | selected_page_size: decoded_state.page_size
+          }
+
           socket
           |> assign(:page_size, decoded_state.page_size)
           |> assign(:page_size_config, updated_page_size_config)
@@ -576,12 +587,12 @@ defmodule Cinder.Table.LiveComponent do
     ~H"""
     <span class={Map.get(@theme, :sort_arrow_wrapper_class, "inline-block ml-1")}>
       <%= case @sort_direction do %>
-        <% :asc -> %>
+        <% direction when direction in [:asc, :asc_nils_first, :asc_nils_last] -> %>
           <.icon
             name={Map.get(@theme, :sort_asc_icon_name, "hero-chevron-up")}
             class={[Map.get(@theme, :sort_asc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
           />
-        <% :desc -> %>
+        <% direction when direction in [:desc, :desc_nils_first, :desc_nils_last] -> %>
           <.icon
             name={Map.get(@theme, :sort_desc_icon_name, "hero-chevron-down")}
             class={[Map.get(@theme, :sort_desc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
@@ -607,7 +618,15 @@ defmodule Cinder.Table.LiveComponent do
   defp assign_defaults(socket) do
     assigns = socket.assigns
 
-    page_size_config = assigns[:page_size_config] || %{selected_page_size: 25, page_size_options: [], default_page_size: 25, configurable: false}
+    page_size_config =
+      assigns[:page_size_config] ||
+        %{
+          selected_page_size: 25,
+          page_size_options: [],
+          default_page_size: 25,
+          configurable: false
+        }
+
     selected_page_size = page_size_config.selected_page_size
 
     socket
@@ -770,7 +789,6 @@ defmodule Cinder.Table.LiveComponent do
       filter_fn: column.filter_fn,
       options: column.options,
       display_field: column.display_field,
-      sort_fn: column.sort_fn,
       search_fn: column.search_fn,
       class: column.class,
       slot: column.slot

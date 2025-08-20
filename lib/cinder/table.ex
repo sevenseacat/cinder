@@ -291,7 +291,12 @@ defmodule Cinder.Table do
   attr(:tenant, :any, default: nil, doc: "Tenant for multi-tenant resources")
   attr(:scope, :any, default: nil, doc: "Ash scope containing actor and tenant")
   attr(:id, :string, default: "cinder-table", doc: "Unique identifier for the table")
-  attr(:page_size, :any, default: 25, doc: "Number of items per page or [default: 25, options: [10, 25, 50]]")
+
+  attr(:page_size, :any,
+    default: 25,
+    doc: "Number of items per page or [default: 25, options: [10, 25, 50]]"
+  )
+
   attr(:theme, :any, default: "default", doc: "Theme name or theme map")
 
   attr(:url_state, :any,
@@ -345,8 +350,7 @@ defmodule Cinder.Table do
     )
 
     attr(:sort, :any,
-      doc:
-        "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc], fn: &custom_sort/2])"
+      doc: "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc]])"
     )
 
     attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
@@ -442,7 +446,6 @@ defmodule Cinder.Table do
         sortable: sort_config.enabled,
         filterable: filter_attr != false,
         class: Map.get(slot, :class, ""),
-        sort_fn: sort_config.fn,
         filter_fn: filter_fn
       }
 
@@ -489,8 +492,8 @@ defmodule Cinder.Table do
             filter_type: :text,
             filter_options: [],
             sortable: false,
-            sort_fn: nil,
-            filter_fn: nil
+            filter_fn: nil,
+            sort_cycle: [nil, :asc, :desc]
           }
         end
 
@@ -504,8 +507,8 @@ defmodule Cinder.Table do
         sortable: parsed_column.sortable,
         class: Map.get(slot, :class, ""),
         inner_block: slot[:inner_block] || default_inner_block(field),
-        sort_fn: parsed_column.sort_fn,
         filter_fn: parsed_column.filter_fn,
+        sort_cycle: sort_config.cycle || [nil, :asc, :desc],
         __slot__: :col
       }
     end)
@@ -516,25 +519,20 @@ defmodule Cinder.Table do
     case sort_attr do
       # Boolean values - standard behavior
       true ->
-        %{enabled: true, cycle: nil, fn: nil}
+        %{enabled: true, cycle: nil}
 
       false ->
-        %{enabled: false, cycle: nil, fn: nil}
+        %{enabled: false, cycle: nil}
 
-      # Function shorthand: sort={&custom_sort/2}
-      func when is_function(func) ->
-        %{enabled: true, cycle: nil, fn: func}
-
-      # Unified configuration: sort={[cycle: [...], fn: &func/2]}
+      # Unified configuration: sort={[cycle: [...]]}
       config when is_list(config) ->
         %{
           enabled: Keyword.get(config, :enabled, true),
-          cycle: Keyword.get(config, :cycle),
-          fn: Keyword.get(config, :fn)
+          cycle: Keyword.get(config, :cycle)
         }
 
       _ ->
-        %{enabled: false, cycle: nil, fn: nil}
+        %{enabled: false, cycle: nil}
     end
   end
 

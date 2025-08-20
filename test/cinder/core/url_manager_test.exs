@@ -151,6 +151,7 @@ defmodule Cinder.UrlManagerTest do
                operator: :contains,
                case_sensitive: false
              }
+
       assert result.current_page == 1
       assert result.sort_by == []
     end

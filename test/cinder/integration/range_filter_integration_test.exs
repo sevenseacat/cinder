@@ -26,7 +26,6 @@ defmodule Cinder.RangeFilterIntegrationTest do
           filter_fn: nil,
           options: [],
           display_field: nil,
-          sort_fn: nil,
           search_fn: nil,
           class: ""
         }
@@ -62,7 +61,6 @@ defmodule Cinder.RangeFilterIntegrationTest do
           filter_fn: nil,
           options: [],
           display_field: nil,
-          sort_fn: nil,
           search_fn: nil,
           class: ""
         }
@@ -98,7 +96,6 @@ defmodule Cinder.RangeFilterIntegrationTest do
           filter_fn: nil,
           options: [],
           display_field: nil,
-          sort_fn: nil,
           search_fn: nil,
           class: ""
         },
@@ -113,7 +110,6 @@ defmodule Cinder.RangeFilterIntegrationTest do
           filter_fn: nil,
           options: [],
           display_field: nil,
-          sort_fn: nil,
           search_fn: nil,
           class: ""
         },
@@ -130,7 +126,6 @@ defmodule Cinder.RangeFilterIntegrationTest do
           filter_fn: nil,
           options: [],
           display_field: nil,
-          sort_fn: nil,
           search_fn: nil,
           class: ""
         }

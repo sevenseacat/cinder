@@ -382,7 +382,6 @@ defmodule Cinder.ColumnTest do
         filter_type: :select,
         filter_options: [options: [{"Active", :active}, {"Inactive", :inactive}]],
         class: "w-32 text-center",
-        sort_fn: &custom_sort/2,
         filter_fn: &custom_filter/2,
         search_fn: &custom_search/2,
         searchable: true,
@@ -400,7 +399,6 @@ defmodule Cinder.ColumnTest do
       assert column.filter_type == :select
       assert column.filter_options == [options: [{"Active", :active}, {"Inactive", :inactive}]]
       assert column.class == "w-32 text-center"
-      assert is_function(column.sort_fn)
       assert is_function(column.filter_fn)
       assert is_function(column.search_fn)
       assert column.searchable == true
@@ -479,7 +477,7 @@ defmodule Cinder.ColumnTest do
   end
 
   # Mock functions for testing
-  defp custom_sort(_a, _b), do: :eq
+
   defp custom_filter(_query, _value), do: nil
   defp custom_search(_query, _value), do: nil
 end
