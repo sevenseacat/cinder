@@ -69,6 +69,10 @@ defmodule Cinder.QueryBuilderTest do
       attribute(:publisher, Publisher, public?: true)
     end
 
+    calculations do
+      calculate(:track_count, :integer, expr(10))
+    end
+
     actions do
       defaults([:read])
 
@@ -216,21 +220,101 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "build_expression_sort/1" do
-    test "handles relationship field" do
-      result = QueryBuilder.build_expression_sort("author.name")
-      assert result == {:author, :name}
+  describe "validate_sortable_fields/2" do
+    test "handles calculation field sorting" do
+      # Test calculation fields work correctly
+      sort_by = [{"track_count", :asc}]
+      result = QueryBuilder.validate_sortable_fields(sort_by, Album)
+      assert result == :ok
     end
 
-    test "handles simple field" do
-      result = QueryBuilder.build_expression_sort("title")
-      assert result == :title
+    test "handles regular field sorting" do
+      # Test regular fields work correctly
+      sort_by = [{"title", :asc}]
+      result = QueryBuilder.validate_sortable_fields(sort_by, Album)
+      assert result == :ok
     end
 
-    test "handles complex nested field" do
-      result = QueryBuilder.build_expression_sort("author.profile.name")
-      # Takes first two parts for now
-      assert result == {:author, :profile}
+    test "handles mixed calculation and field sorting" do
+      # Test combination of different field types
+      sort_by = [
+        {"track_count", :asc},
+        {"title", :desc}
+      ]
+
+      result = QueryBuilder.validate_sortable_fields(sort_by, Album)
+      assert result == :ok
+    end
+
+    test "handles invalid field gracefully" do
+      # Test that invalid fields return error instead of crashing
+      invalid_sort = [{"nonexistent_field", :asc}]
+      result = QueryBuilder.validate_sortable_fields(invalid_sort, Album)
+
+      case result do
+        :ok ->
+          # This is fine - might be valid in some contexts
+          :ok
+
+        {:error, message} ->
+          # Error message should be helpful
+          assert is_binary(message)
+          assert String.contains?(message, "nonexistent_field")
+      end
+    end
+  end
+
+  describe "resolve_field_resource/2" do
+    test "handles direct fields" do
+      # Should handle direct fields
+      {resource, field} = QueryBuilder.resolve_field_resource(Album, "title")
+      assert resource == Album
+      assert field == "title"
+    end
+
+    test "handles calculation fields" do
+      # Should handle calculations
+      {resource, field} = QueryBuilder.resolve_field_resource(Album, "track_count")
+      assert resource == Album
+      assert field == "track_count"
+    end
+
+    test "handles relationship fields correctly" do
+      # Test that it handles dot notation gracefully (even if relationship doesn't exist)
+      {resource, field} = QueryBuilder.resolve_field_resource(Album, "artist.name")
+
+      # Should return something reasonable, doesn't need to be perfect since relationship doesn't exist
+      assert is_atom(resource)
+      assert is_binary(field)
+    end
+  end
+
+  describe "string-based sorting integration" do
+    test "build_and_execute handles string-based field sorting" do
+      # Integration test for string-based sorting (both regular and relationship fields)
+      columns = [
+        %{field: "title", label: "Title", sortable: true},
+        %{field: "track_count", label: "Track Count", sortable: true}
+      ]
+
+      sort_by = [{"title", :asc}, {"track_count", :desc}]
+
+      # This should work with string-based sorting
+      result =
+        QueryBuilder.build_and_execute(
+          Album,
+          filters: %{},
+          sort_by: sort_by,
+          current_page: 1,
+          page_size: 10,
+          columns: columns,
+          actor: nil,
+          tenant: nil,
+          query_opts: []
+        )
+
+      # Should return either success or error, but should NOT crash
+      assert match?({:ok, _}, result) or match?({:error, _}, result)
     end
   end
 

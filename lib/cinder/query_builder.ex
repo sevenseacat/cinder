@@ -375,22 +375,11 @@ defmodule Cinder.QueryBuilder do
           query
         end
 
-      # Use Ash sort input for standard sorting (more efficient)
-      sort_list =
-        Enum.map(sort_by, fn {field, direction} ->
-          cond do
-            String.contains?(field, ".") ->
-              # Handle dot notation for relationship sorting
-              sort_expr = build_expression_sort(field)
-              {sort_expr, direction}
-
-            true ->
-              # Standard attribute sorting
-              {String.to_atom(field), direction}
-          end
-        end)
-
-      Ash.Query.sort(query, sort_list)
+      # Process sorts individually to handle relationship sorts properly
+      # Ash supports string format for both regular fields and relationships
+      Enum.reduce(sort_by, query, fn {field, direction}, acc_query ->
+        Ash.Query.sort(acc_query, [{field, direction}])
+      end)
     end
   end
 
@@ -409,27 +398,6 @@ defmodule Cinder.QueryBuilder do
        do: true
 
   defp valid_sort_tuple?(_), do: false
-
-  @doc """
-  Builds expression sort for relationship fields using dot notation.
-  """
-  def build_expression_sort(key) do
-    # Convert "author.name" to expression sort
-    parts = String.split(key, ".")
-
-    case parts do
-      [rel, field] ->
-        # For now, create a simple expression - this may need adjustment based on Ash version
-        {String.to_atom(rel), String.to_atom(field)}
-
-      [rel, field | _] ->
-        # Handle complex nested fields by taking first two parts
-        {String.to_atom(rel), String.to_atom(field)}
-
-      _ ->
-        String.to_atom(key)
-    end
-  end
 
   @doc """
   Toggles sort direction for a given key in the sort specification.

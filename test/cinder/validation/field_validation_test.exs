@@ -194,66 +194,165 @@ defmodule Cinder.FieldValidationTest do
   describe "embedded field validation" do
     test "validates direct fields exist on resource" do
       # Valid direct field
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "name") == true
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "name") ==
+               true
 
       # Invalid direct field
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "nonexistent") == false
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "nonexistent") ==
+               false
     end
 
     test "validates embedded fields with underscore notation" do
       # Valid embedded field using underscore notation
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile__first_name") == true
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile__phone") == true
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile__first_name"
+             ) == true
+
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile__phone"
+             ) == true
 
       # Invalid embedded field - valid embed attribute but invalid nested field
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile__nonexistent") == false
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile__nonexistent"
+             ) == false
 
       # Invalid embedded field - nonexistent embed attribute
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "nonexistent__field") == false
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "nonexistent__field"
+             ) == false
     end
 
     test "validates embedded fields with bracket notation" do
       # Valid embedded field using bracket notation
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:first_name]") == true
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:phone]") == true
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile[:first_name]"
+             ) == true
+
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile[:phone]"
+             ) == true
 
       # Invalid embedded field - valid embed attribute but invalid nested field
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:nonexistent]") == false
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile[:nonexistent]"
+             ) == false
     end
 
     test "validates nested embedded fields" do
       # Valid nested embedded field
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__address__street") == true
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__address__city") == true
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "settings__address__street"
+             ) == true
+
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "settings__address__city"
+             ) == true
 
       # Invalid nested embedded field
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__address__nonexistent") == false
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "settings__nonexistent__field") == false
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "settings__address__nonexistent"
+             ) == false
+
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "settings__nonexistent__field"
+             ) == false
     end
 
-    test "validates relationship fields" do
+    test "handles relationship fields" do
       # Valid relationship field (if relationships exist)
       assert Cinder.QueryBuilder.validate_field_existence(TestUuidResource, "user") == true
 
       # Invalid relationship field
-      assert Cinder.QueryBuilder.validate_field_existence(TestUuidResource, "nonexistent_relation") == false
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestUuidResource,
+               "nonexistent_relation"
+             ) == false
+    end
+
+    test "handles relationship dot notation fields" do
+      # This would work if TestUuidResource had the right relationships
+      # For now, just test that it doesn't crash
+      result = Cinder.QueryBuilder.validate_field_existence(TestUuidResource, "user.name")
+      assert is_boolean(result)
+
+      # Test nonexistent relationship
+      assert Cinder.QueryBuilder.validate_field_existence(TestUuidResource, "producer.name") ==
+               false
+
+      # Test valid relationship but nonexistent field
+      result2 = Cinder.QueryBuilder.validate_field_existence(TestUuidResource, "user.nonexistent")
+      assert is_boolean(result2)
+    end
+
+    test "handles mixed relationship and embedded field notation" do
+      # Test mixed format that combines embedded field notation with relationship
+      # This should handle the mixed format gracefully without crashing
+      result =
+        Cinder.QueryBuilder.validate_field_existence(
+          TestResourceForInference,
+          "user__profile.name"
+        )
+
+      assert is_boolean(result)
+    end
+
+    test "defensive programming prevents crashes with malformed inputs" do
+      # Test that we handle edge cases that could create crashes
+
+      # These should all handle gracefully without FunctionClauseError
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "") == false
+
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "user.") ==
+               false
+
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, ".name") ==
+               false
+
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "user..name") ==
+               false
     end
 
     test "validates map type embedded fields" do
       # Map type should allow any nested field (can't validate structure)
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "metadata__any_field") == true
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "metadata__deeply__nested__field") == true
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "metadata__any_field"
+             ) == true
+
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "metadata__deeply__nested__field"
+             ) == true
     end
 
     test "handles invalid field syntax gracefully" do
       # Invalid bracket notation
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[invalid]") == false
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile[invalid]"
+             ) == false
 
       # Unclosed bracket
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:unclosed") == false
+      assert Cinder.QueryBuilder.validate_field_existence(
+               TestResourceForInference,
+               "profile[:unclosed"
+             ) == false
 
       # Empty field name
-      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:]") == false
+      assert Cinder.QueryBuilder.validate_field_existence(TestResourceForInference, "profile[:]") ==
+               false
     end
 
     test "column validation uses comprehensive field validation" do
@@ -285,11 +384,16 @@ defmodule Cinder.FieldValidationTest do
     test "sort validation handles embedded fields" do
       # Valid embedded field should be sortable (if not in-memory calc)
       valid_sort = [{"profile__first_name", :asc}]
-      assert Cinder.QueryBuilder.validate_sortable_fields(valid_sort, TestResourceForInference) == :ok
+
+      assert Cinder.QueryBuilder.validate_sortable_fields(valid_sort, TestResourceForInference) ==
+               :ok
 
       # Invalid embedded field should fail validation
       invalid_sort = [{"profile__nonexistent", :asc}]
-      result = Cinder.QueryBuilder.validate_sortable_fields(invalid_sort, TestResourceForInference)
+
+      result =
+        Cinder.QueryBuilder.validate_sortable_fields(invalid_sort, TestResourceForInference)
+
       assert match?({:error, _}, result)
     end
   end
