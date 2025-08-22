@@ -13,6 +13,7 @@
 * Fix URL sync double processing causing duplicate data loads on sort/filter events
 * Fix table refresh error when page_size on a table is set to a number (not a map of data) (#45)
 * Fix table refresh resetting current sort/search state
+* Add warning when table has pagination configured but Ash action lacks pagination support
 
 ## v0.5.5 (2025-08-14)
 

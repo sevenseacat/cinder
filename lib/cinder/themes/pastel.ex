@@ -39,13 +39,6 @@ defmodule Cinder.Themes.Pastel do
         "bg-pink-50 border border-pink-200 rounded-xl p-4 text-pink-800 shadow-sm"
 
     set :error_message_class, "text-sm"
-
-    # Performance warning for large non-paginated datasets
-    set :performance_warning_class,
-        "flex items-center justify-center p-4 bg-yellow-50 border border-yellow-200 rounded-xl shadow-sm"
-
-    set :performance_warning_icon_class, "w-5 h-5 text-yellow-600 mr-3 flex-shrink-0"
-    set :performance_warning_text_class, "text-yellow-800 text-sm"
   end
 
   component Cinder.Components.Filters do

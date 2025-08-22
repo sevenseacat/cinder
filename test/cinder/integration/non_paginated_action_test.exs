@@ -1,5 +1,6 @@
 defmodule Cinder.Integration.NonPaginatedActionTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureLog
 
   alias Cinder.QueryBuilder
 
@@ -28,10 +29,19 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
         accept([:name, :email])
       end
 
+      destroy :destroy do
+        primary?(true)
+      end
+
       # Action that doesn't support pagination - this simulates the issue
       read :by_name do
         argument(:name, :string, allow_nil?: false)
         filter(expr(name == ^arg(:name)))
+      end
+
+      # Another non-paginated action for testing
+      read :list_non_paginated do
+        # No pagination configured
       end
     end
   end
@@ -173,65 +183,68 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
     end
   end
 
-  describe "large dataset warnings" do
-    test "shows warning for datasets over configured threshold" do
-      # Temporarily set a very low threshold for testing
-      original_threshold = Application.get_env(:cinder, :large_dataset_warning_threshold, 1000)
-      Application.put_env(:cinder, :large_dataset_warning_threshold, 0)
-
-      try do
-        # Use the non-paginated action - even 1 result will exceed threshold of 0
-        query = Ash.Query.for_read(TestUser, :by_name, %{name: "Alice"})
-
-        options = [
-          actor: nil,
-          filters: %{},
-          sort_by: [],
-          page_size: 25,
-          current_page: 1,
-          columns: [],
-          query_opts: []
-        ]
-
-        {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
-
-        # Should return matching results and trigger warning (1 > 0)
-        assert length(results) == 1
-        assert page_info.total_count == 1
-        assert page_info.non_paginated == true
-        assert page_info.large_dataset_warning == true
-        assert page_info.total_pages == 1
-      after
-        # Restore original threshold
-        if original_threshold do
-          Application.put_env(:cinder, :large_dataset_warning_threshold, original_threshold)
-        else
-          Application.delete_env(:cinder, :large_dataset_warning_threshold)
-        end
-      end
-    end
-
-    test "does not show warning for small datasets" do
-      # Use non-paginated action with small result set
+  describe "pagination configuration warnings" do
+    test "warns when pagination is configured but action doesn't support it" do
+      # Use the non-paginated action with pagination_configured flag
       query = Ash.Query.for_read(TestUser, :by_name, %{name: "Alice"})
 
       options = [
         actor: nil,
         filters: %{},
         sort_by: [],
+        page_size: 50,
+        current_page: 1,
+        columns: [],
+        query_opts: [],
+        # User explicitly configured pagination
+        pagination_configured: true
+      ]
+
+      # Capture log output to verify the warning appears
+      log_output =
+        capture_log(fn ->
+          {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+
+          # Should return matching results
+          assert length(results) == 1
+          assert page_info.non_paginated == true
+        end)
+
+      # Should warn about pagination configuration mismatch
+      assert log_output =~ "Table configured with page_size but action"
+      assert log_output =~ "doesn't support pagination"
+      assert log_output =~ "https://hexdocs.pm/ash/pagination.html"
+    end
+
+    test "does not warn when pagination is not explicitly configured" do
+      # Use the non-paginated action without pagination_configured flag
+      query = Ash.Query.for_read(TestUser, :by_name, %{name: "Alice"})
+
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [],
+        # Default page size
         page_size: 25,
         current_page: 1,
         columns: [],
         query_opts: []
+        # pagination_configured: false (implicit)
       ]
 
-      {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+      # Capture log output to verify no warning appears
+      log_output =
+        capture_log(fn ->
+          {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
 
-      # Should return matching results without warning
-      assert length(results) == 1
-      assert page_info.total_count == 1
-      assert page_info.non_paginated == true
-      assert page_info.large_dataset_warning == false
+          # Should return matching results
+          assert length(results) == 1
+          assert page_info.non_paginated == true
+        end)
+
+      # Should not warn about pagination
+      refute log_output =~ "Table configured with page_size"
+      refute log_output =~ "doesn't support pagination"
     end
   end
 end

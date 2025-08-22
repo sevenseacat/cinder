@@ -116,6 +116,17 @@ defmodule Cinder.QueryBuilder do
               )
 
             false ->
+              # Check if user has configured pagination but action doesn't support it
+              if Keyword.get(options, :pagination_configured, false) do
+                require Logger
+
+                Logger.warning(
+                  "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
+                    "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
+                    "https://hexdocs.pm/ash/pagination.html"
+                )
+              end
+
               execute_without_pagination(
                 prepared_query,
                 actor,
@@ -232,18 +243,6 @@ defmodule Cinder.QueryBuilder do
       {:ok, results} ->
         result_count = length(results)
 
-        # Warn about potential performance issues with large datasets
-        warning_threshold = Application.get_env(:cinder, :large_dataset_warning_threshold, 1000)
-
-        if result_count > warning_threshold do
-          require Logger
-
-          Logger.warning(
-            "Cinder loaded #{result_count} records for non-paginated action #{inspect(query.action.name)}. " <>
-              "Consider enabling pagination on this action for better performance."
-          )
-        end
-
         # Return all results with simple page info indicating no pagination
         page_info = %{
           current_page: 1,
@@ -254,9 +253,7 @@ defmodule Cinder.QueryBuilder do
           start_index: if(result_count > 0, do: 1, else: 0),
           end_index: result_count,
           # Add flag to indicate this is a non-paginated result set
-          non_paginated: true,
-          # Add warning info for potential UI display
-          large_dataset_warning: result_count > warning_threshold
+          non_paginated: true
         }
 
         {:ok, {results, page_info}}

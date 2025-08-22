@@ -39,13 +39,6 @@ defmodule Cinder.Themes.Futuristic do
         "bg-red-950/50 border border-red-500/50 p-4 text-red-200 shadow-lg shadow-red-500/20 backdrop-blur-sm"
 
     set :error_message_class, "text-sm font-light"
-
-    # Performance warning for large non-paginated datasets
-    set :performance_warning_class,
-        "flex items-center justify-center p-4 bg-yellow-950/30 border border-yellow-400/50 rounded-lg shadow-lg shadow-yellow-400/20 backdrop-blur-sm"
-
-    set :performance_warning_icon_class, "w-5 h-5 text-yellow-400 mr-3 flex-shrink-0"
-    set :performance_warning_text_class, "text-yellow-200 text-sm font-light"
   end
 
   component Cinder.Components.Filters do

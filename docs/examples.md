@@ -1463,6 +1463,37 @@ Every available option demonstrated:
 </Cinder.Table.table>
 ```
 
+### Pagination Configuration
+
+When using configurable page sizes, ensure your Ash action supports pagination to prevent memory issues:
+
+```elixir
+# In your resource
+defmodule MyApp.User do
+  use Ash.Resource
+
+  actions do
+    read :read do
+      pagination offset?: true, default_limit: 25
+    end
+  end
+end
+```
+
+```elixir
+<Cinder.Table.table
+  resource={MyApp.User}
+  actor={@current_user}
+  # Configurable page sizes - requires action with pagination
+  page_size={[default: 25, options: [10, 25, 50, 100]]}
+>
+  <:col field="name" filter sort>Name</:col>
+  <:col field="email" filter sort>Email</:col>
+</Cinder.Table.table>
+```
+
+**Important**: Without pagination configured in your Ash action, Cinder will load ALL records into memory, potentially causing out-of-memory crashes with large datasets. See the [Ash pagination guide](https://hexdocs.pm/ash/pagination.html) for complete documentation.
+
 ### Strategic Filtering
 
 Only enable filters where users actually need them:

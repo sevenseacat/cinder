@@ -26,12 +26,7 @@ defmodule Cinder.Components.Table do
     :loading_class,
     :empty_class,
     :error_container_class,
-    :error_message_class,
-
-    # Performance warning
-    :performance_warning_class,
-    :performance_warning_icon_class,
-    :performance_warning_text_class
+    :error_message_class
   ]
 
   @doc """
@@ -58,10 +53,7 @@ defmodule Cinder.Components.Table do
       loading_class: "text-center py-4",
       empty_class: "text-center py-4",
       error_container_class: "text-red-600 text-sm",
-      error_message_class: "",
-      performance_warning_class: "flex items-center p-2",
-      performance_warning_icon_class: "w-4 h-4 mr-2",
-      performance_warning_text_class: "text-sm"
+      error_message_class: ""
     }
   end
 
