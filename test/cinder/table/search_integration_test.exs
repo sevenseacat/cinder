@@ -316,32 +316,33 @@ defmodule Cinder.Table.SearchIntegrationTest do
       # Test the new unified search={...} attribute
       search_config_cases = [
         # Boolean values
-        {false, {nil, nil, false}},
-        {true, {nil, nil, true}},
-        {nil, {nil, nil, nil}},
+        {false, {nil, nil, false, nil}},
+        {true, {nil, nil, true, nil}},
+        {nil, {nil, nil, nil, nil}},
 
         # Keyword list configurations
-        {[label: "Find Items"], {"Find Items", nil, true}},
-        {[placeholder: "Type here..."], {nil, "Type here...", true}},
+        {[label: "Find Items"], {"Find Items", nil, true, nil}},
+        {[placeholder: "Type here..."], {nil, "Type here...", true, nil}},
         {[label: "Search Products", placeholder: "Find products..."],
-         {"Search Products", "Find products...", true}},
+         {"Search Products", "Find products...", true, nil}},
         {[label: "Custom", placeholder: "Custom placeholder", show_search: false],
-         {"Custom", "Custom placeholder", false}},
+         {"Custom", "Custom placeholder", false, nil}},
 
         # Empty list
-        {[], {nil, nil, true}},
+        {[], {nil, nil, true, nil}},
 
         # Invalid config
-        {"invalid", {nil, nil, nil}}
+        {"invalid", {nil, nil, nil, nil}}
       ]
 
       Enum.each(search_config_cases, fn {input,
                                          {expected_label, expected_placeholder,
-                                          expected_show_search}} ->
+                                          expected_show_search, expected_search_fn}} ->
         # This simulates the process_search_config/1 function
         result = process_search_config_helper(input)
 
-        assert result == {expected_label, expected_placeholder, expected_show_search},
+        assert result ==
+                 {expected_label, expected_placeholder, expected_show_search, expected_search_fn},
                "Failed for input: #{inspect(input)}"
       end)
     end
@@ -351,7 +352,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       unified_config = [label: "Unified Label", placeholder: "Unified Placeholder"]
 
       # Simulate table component processing
-      {label, placeholder, show_search} = process_search_config_helper(unified_config)
+      {label, placeholder, show_search, _search_fn} = process_search_config_helper(unified_config)
 
       # Should use unified config values
       assert label == "Unified Label"
@@ -381,22 +382,23 @@ defmodule Cinder.Table.SearchIntegrationTest do
   defp process_search_config_helper(search_config) do
     case search_config do
       nil ->
-        {nil, nil, nil}
+        {nil, nil, nil, nil}
 
       false ->
-        {nil, nil, false}
+        {nil, nil, false, nil}
 
       true ->
-        {nil, nil, true}
+        {nil, nil, true, nil}
 
       config when is_list(config) ->
         label = Keyword.get(config, :label)
         placeholder = Keyword.get(config, :placeholder)
         show_search = Keyword.get(config, :show_search, true)
-        {label, placeholder, show_search}
+        search_fn = Keyword.get(config, :fn)
+        {label, placeholder, show_search, search_fn}
 
       _invalid ->
-        {nil, nil, nil}
+        {nil, nil, nil, nil}
     end
   end
 

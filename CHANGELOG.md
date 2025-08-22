@@ -6,6 +6,7 @@
 
 * Allow custom filter functions to be defined for a column
 * Allow custom sort cycles to be defined for a column
+* Allow searching multiple fields in a table at once, with a new `search` config option on tables and columns (#40)
 
 ### Bug fixes
 

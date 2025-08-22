@@ -356,7 +356,7 @@ defmodule Cinder.Table do
   attr(:search, :any,
     default: nil,
     doc:
-      "Search configuration. Auto-enables when searchable columns exist. Use [label: \"Custom\", placeholder: \"Custom...\"] to customize, or false to disable."
+      "Search configuration. Auto-enables when searchable columns exist. Use [label: \"Custom\", placeholder: \"Custom...\"] to customize, [fn: my_search_fn] for custom search function, or false to disable."
   )
 
   attr(:empty_message, :string,
@@ -431,7 +431,7 @@ defmodule Cinder.Table do
     show_filters = determine_show_filters(assigns, processed_columns)
 
     # Process unified search configuration after columns are processed
-    {search_label, search_placeholder, search_enabled} =
+    {search_label, search_placeholder, search_enabled, search_fn} =
       process_search_config(assigns.search, processed_columns)
 
     # Parse page_size configuration
@@ -446,6 +446,7 @@ defmodule Cinder.Table do
       |> assign(:search_label, search_label)
       |> assign(:search_placeholder, search_placeholder)
       |> assign(:search_enabled, search_enabled)
+      |> assign(:search_fn, search_fn)
       |> assign_new(:show_filters, fn -> show_filters end)
 
     ~H"""
@@ -474,6 +475,7 @@ defmodule Cinder.Table do
         search_enabled={@search_enabled}
         search_label={@search_label}
         search_placeholder={@search_placeholder}
+        search_fn={@search_fn}
       />
     </div>
     """
@@ -845,27 +847,28 @@ defmodule Cinder.Table do
       nil ->
         # Auto-enable if searchable columns exist
         if has_searchable_columns do
-          {"Search", "Search...", true}
+          {"Search", "Search...", true, nil}
         else
-          {nil, nil, false}
+          {nil, nil, false, nil}
         end
 
       false ->
         # Explicitly disabled
-        {nil, nil, false}
+        {nil, nil, false, nil}
 
       config when is_list(config) ->
         # Custom configuration
         label = Keyword.get(config, :label, "Search")
         placeholder = Keyword.get(config, :placeholder, "Search...")
-        {label, placeholder, true}
+        search_fn = Keyword.get(config, :fn)
+        {label, placeholder, true, search_fn}
 
       _invalid ->
         # Invalid config - auto-detect
         if has_searchable_columns do
-          {"Search", "Search...", true}
+          {"Search", "Search...", true, nil}
         else
-          {nil, nil, false}
+          {nil, nil, false, nil}
         end
     end
   end

@@ -791,7 +791,7 @@ defmodule Cinder.Table.LiveComponent do
       current_page: current_page,
       columns: columns,
       search_term: search_term,
-      search_fn: socket.assigns[:search_fn]
+      search_fn: socket.assigns.search_fn
     ]
 
     socket

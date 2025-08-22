@@ -16,6 +16,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Resource vs Query](#resource-vs-query)
 - [Column Configuration](#column-configuration)
 - [Filter Types](#filter-types)
+- [Searching](#searching)
 - [Sorting](#sorting)
 - [Custom Filter Functions](#custom-filter-functions)
 - [Theming](#theming)
@@ -629,6 +630,76 @@ This is particularly useful for:
       <span class="ml-1 text-sm text-gray-600">{property.rating}</span>
     </div>
   </:col>
+</Cinder.Table.table>
+```
+
+## Searching
+
+Cinder provides global search functionality that automatically enables when columns have the `search` attribute. This allows searching across multiple columns from a single field.
+
+### Auto-Enable Search
+
+Search automatically appears when any column has `search`:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
+  <:col :let={album} field="title" filter search>{album.title}</:col>
+  <:col :let={album} field="artist.name" filter search>{album.artist.name}</:col>
+  <:col :let={album} field="genre" filter>{album.genre}</:col>
+</Cinder.Table.table>
+```
+
+### Custom Search Configuration
+
+Customize search label and placeholder:
+
+```elixir
+<Cinder.Table.table
+  resource={MyApp.Product}
+  search={[label: "Find Products", placeholder: "Search by name or SKU..."]}
+  actor={@current_user}
+>
+  <:col :let={product} field="name" search>{product.name}</:col>
+  <:col :let={product} field="sku" search>{product.sku}</:col>
+  <:col :let={product} field="price" filter>{product.price}</:col>
+</Cinder.Table.table>
+```
+
+### Search with Relationships
+
+Search works across relationship fields:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
+  <:col :let={order} field="number" search>{order.number}</:col>
+  <:col :let={order} field="customer.name" search>{order.customer.name}</:col>
+  <:col :let={order} field="customer.email" search>{order.customer.email}</:col>
+</Cinder.Table.table>
+```
+
+### Custom Search Functions
+
+For advanced search requirements, provide a custom search function as part of the search configuration:
+
+```elixir
+defmodule MyApp.CustomSearch do
+  def advanced_search(query, searchable_columns, search_term) do
+    # Any logic here to filter the query and return the updated query
+  end
+end
+
+<Cinder.Table.table
+  resource={MyApp.User}
+  search={[
+    label: "Find Users",
+    placeholder: "Search by name, email, or role...",
+    fn: &MyApp.CustomSearch.advanced_search/3
+  ]}
+  actor={@current_user}
+>
+  <:col :let={user} field="name" search>{user.name}</:col>
+  <:col :let={user} field="email" search>{user.email}</:col>
+  <:col :let={user} field="role">{user.role}</:col>
 </Cinder.Table.table>
 ```
 

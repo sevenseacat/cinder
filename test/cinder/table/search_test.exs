@@ -112,11 +112,12 @@ defmodule Cinder.Table.SearchTest do
         %{field: "email", searchable: false}
       ]
 
-      {label, placeholder, enabled} = Cinder.Table.process_search_config(nil, columns)
+      {label, placeholder, enabled, search_fn} = Cinder.Table.process_search_config(nil, columns)
 
       assert enabled == true
       assert label == "Search"
       assert placeholder == "Search..."
+      assert search_fn == nil
     end
 
     test "does not auto-enable when no columns are searchable" do
@@ -125,7 +126,9 @@ defmodule Cinder.Table.SearchTest do
         %{field: "description", searchable: false}
       ]
 
-      {_label, _placeholder, enabled} = Cinder.Table.process_search_config(nil, columns)
+      {_label, _placeholder, enabled, _search_fn} =
+        Cinder.Table.process_search_config(nil, columns)
+
       assert enabled == false
     end
 
@@ -133,21 +136,45 @@ defmodule Cinder.Table.SearchTest do
       columns = [%{field: "name", searchable: true}]
       config = [label: "Find Users", placeholder: "Type to search users..."]
 
-      {label, placeholder, enabled} = Cinder.Table.process_search_config(config, columns)
+      {label, placeholder, enabled, search_fn} =
+        Cinder.Table.process_search_config(config, columns)
 
       assert enabled == true
       assert label == "Find Users"
       assert placeholder == "Type to search users..."
+      assert search_fn == nil
     end
 
     test "search disabled with false config even with searchable columns" do
       columns = [%{field: "name", searchable: true}]
 
-      {label, placeholder, enabled} = Cinder.Table.process_search_config(false, columns)
+      {label, placeholder, enabled, search_fn} =
+        Cinder.Table.process_search_config(false, columns)
 
       assert enabled == false
       assert label == nil
       assert placeholder == nil
+      assert search_fn == nil
+    end
+
+    test "custom search function configuration" do
+      columns = [%{field: "name", searchable: true}]
+
+      custom_search_fn = fn query, _columns, _term ->
+        require Ash.Query
+        Ash.Query.filter(query, name == "custom")
+      end
+
+      config = [fn: custom_search_fn]
+
+      {label, placeholder, enabled, search_fn} =
+        Cinder.Table.process_search_config(config, columns)
+
+      assert enabled == true
+      assert label == "Search"
+      assert placeholder == "Search..."
+      assert search_fn == custom_search_fn
+      assert is_function(search_fn, 3)
     end
   end
 
