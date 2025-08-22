@@ -168,11 +168,30 @@ defmodule Cinder.Themes.Flowbite do
         "flex items-center justify-center px-3 h-8 text-sm leading-tight text-white bg-blue-600 border border-blue-600 rounded dark:bg-blue-500 dark:border-blue-500"
 
     set :page_size_container_class, "flex items-center space-x-2"
-    set :page_size_label_class, "text-sm font-normal text-gray-500 dark:text-gray-400"
-    set :page_size_dropdown_class, "flex items-center justify-center px-3 h-8 text-sm leading-tight text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer"
-    set :page_size_dropdown_container_class, "bg-white border border-gray-300 rounded shadow-lg dark:bg-gray-800 dark:border-gray-700"
-    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer"
+    set :page_size_label_class, "text-sm font-medium text-gray-500 dark:text-gray-400"
+
+    set :page_size_dropdown_class,
+        "flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer transition-all duration-150"
+
+    set :page_size_dropdown_container_class,
+        "bg-white border border-gray-300 rounded shadow-lg dark:bg-gray-800 dark:border-gray-700"
+
+    set :page_size_option_class,
+        "w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer"
+
     set :page_size_selected_class, "bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300"
+  end
+
+  component Cinder.Components.Search do
+    set :search_container_class, ""
+    set :search_wrapper_class, ""
+
+    set :search_input_class,
+        "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+
+    set :search_icon_class, "w-4 h-4 text-gray-400"
+
+    set :search_label_class, ""
   end
 
   component Cinder.Components.Sorting do

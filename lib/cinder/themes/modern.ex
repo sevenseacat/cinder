@@ -147,9 +147,15 @@ defmodule Cinder.Themes.Modern do
 
     set :page_size_container_class, "flex items-center space-x-2"
     set :page_size_label_class, "text-sm text-gray-600 font-medium"
-    set :page_size_dropdown_class, "flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 cursor-pointer"
+
+    set :page_size_dropdown_class,
+        "flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 cursor-pointer"
+
     set :page_size_dropdown_container_class, "bg-white border border-gray-300 rounded shadow-lg"
-    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+
+    set :page_size_option_class,
+        "w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+
     set :page_size_selected_class, "bg-blue-50 text-blue-700"
   end
 
@@ -167,5 +173,19 @@ defmodule Cinder.Themes.Modern do
     set :loading_spinner_class, "animate-spin h-5 w-5 text-blue-600 mr-2"
     set :loading_spinner_circle_class, "opacity-25"
     set :loading_spinner_path_class, "opacity-75"
+  end
+
+  component Cinder.Components.Search do
+    # Search now uses filter input wrapper and label classes
+    set :search_container_class, ""
+    set :search_wrapper_class, ""
+
+    set :search_input_class,
+        "w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
+
+    set :search_icon_class, "w-4 h-4 text-gray-400"
+
+    # Now uses filter_label_class from filter theme
+    set :search_label_class, ""
   end
 end

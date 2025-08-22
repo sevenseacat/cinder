@@ -168,10 +168,18 @@ defmodule Cinder.Themes.Futuristic do
 
     set :page_size_container_class, "flex items-center space-x-2"
     set :page_size_label_class, "text-sm text-blue-100 font-light tracking-wide"
-    set :page_size_dropdown_class, "flex items-center px-3 py-1 text-sm font-light text-blue-100 bg-slate-900/60 border border-blue-500/40 rounded hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:border-green-400/60 hover:shadow-lg hover:shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition-all duration-300 cursor-pointer tracking-wide backdrop-blur-sm"
-    set :page_size_dropdown_container_class, "bg-slate-950 border border-blue-500/60 rounded shadow-xl shadow-blue-500/30 backdrop-blur-sm"
-    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm font-light text-blue-100 hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:text-green-400 cursor-pointer tracking-wide"
-    set :page_size_selected_class, "bg-gradient-to-r from-green-900/80 to-blue-900/80 text-green-400"
+
+    set :page_size_dropdown_class,
+        "flex items-center px-3 py-1 text-sm font-light text-blue-100 bg-slate-900/60 border border-blue-500/40 rounded hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:border-green-400/60 hover:shadow-lg hover:shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition-all duration-300 cursor-pointer tracking-wide backdrop-blur-sm"
+
+    set :page_size_dropdown_container_class,
+        "bg-slate-950 border border-blue-500/60 rounded shadow-xl shadow-blue-500/30 backdrop-blur-sm"
+
+    set :page_size_option_class,
+        "w-full text-left px-3 py-2 text-sm font-light text-blue-100 hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:text-green-400 cursor-pointer tracking-wide"
+
+    set :page_size_selected_class,
+        "bg-gradient-to-r from-green-900/80 to-blue-900/80 text-green-400"
   end
 
   component Cinder.Components.Sorting do
@@ -180,6 +188,18 @@ defmodule Cinder.Themes.Futuristic do
     set :sort_asc_icon_class, "w-3 h-3 text-green-400 drop-shadow-sm drop-shadow-green-400/50"
     set :sort_desc_icon_class, "w-3 h-3 text-blue-400 drop-shadow-sm drop-shadow-blue-400/50"
     set :sort_none_icon_class, "w-3 h-3 text-slate-400 opacity-65"
+  end
+
+  component Cinder.Components.Search do
+    set :search_container_class, ""
+    set :search_wrapper_class, ""
+
+    set :search_input_class,
+        "w-full pl-10 px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light placeholder-slate-500 backdrop-blur-sm"
+
+    set :search_icon_class, "w-4 h-4 text-blue-300"
+
+    set :search_label_class, ""
   end
 
   component Cinder.Components.Loading do

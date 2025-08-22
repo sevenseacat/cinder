@@ -74,6 +74,39 @@ defmodule Cinder.Table do
   <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
   ```
 
+  ## Search Configuration
+
+  Search is automatically enabled when columns have the `search` attribute:
+
+  ```heex
+  <Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
+    <:col :let={album} field="title" filter search>{album.title}</:col>
+    <:col :let={album} field="artist.name" filter search>{album.artist.name}</:col>
+    <:col :let={album} field="genre" filter>{album.genre}</:col>
+  </Cinder.Table.table>
+  ```
+
+  Customize search label and placeholder:
+
+  ```heex
+  <Cinder.Table.table
+    resource={MyApp.Album}
+    actor={@current_user}
+    search={[label: "Find Albums", placeholder: "Search by title or artist..."]}
+  >
+    <:col :let={album} field="title" search>{album.title}</:col>
+    <:col :let={album} field="artist.name" search>{album.artist.name}</:col>
+  </Cinder.Table.table>
+  ```
+
+  Explicitly disable search even with searchable columns:
+
+  ```heex
+  <Cinder.Table.table resource={MyApp.Album} search={false}>
+    <:col :let={album} field="title" search>{album.title}</:col>
+  </Cinder.Table.table>
+  ```
+
   ## Advanced Configuration
 
   ```heex
@@ -320,6 +353,12 @@ defmodule Cinder.Table do
     doc: "Label for the filters component"
   )
 
+  attr(:search, :any,
+    default: nil,
+    doc:
+      "Search configuration. Auto-enables when searchable columns exist. Use [label: \"Custom\", placeholder: \"Custom...\"] to customize, or false to disable."
+  )
+
   attr(:empty_message, :string,
     default: "No results found",
     doc: "Message to show when no results"
@@ -353,6 +392,10 @@ defmodule Cinder.Table do
       doc: "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc]])"
     )
 
+    attr(:search, :boolean,
+      doc: "Enable global search on this column (makes column searchable in global search input)"
+    )
+
     attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
     attr(:class, :string, doc: "CSS classes for this column")
   end
@@ -374,6 +417,7 @@ defmodule Cinder.Table do
       |> assign_new(:class, fn -> "" end)
       |> assign_new(:tenant, fn -> nil end)
       |> assign_new(:scope, fn -> nil end)
+      |> assign_new(:search, fn -> nil end)
 
     # Resolve actor and tenant from scope and explicit attributes
     resolved_options = resolve_actor_and_tenant(assigns)
@@ -386,6 +430,10 @@ defmodule Cinder.Table do
     processed_columns = process_columns(assigns.col, resource)
     show_filters = determine_show_filters(assigns, processed_columns)
 
+    # Process unified search configuration after columns are processed
+    {search_label, search_placeholder, search_enabled} =
+      process_search_config(assigns.search, processed_columns)
+
     # Parse page_size configuration
     page_size_config = parse_page_size_config(assigns.page_size)
 
@@ -395,6 +443,9 @@ defmodule Cinder.Table do
       |> assign(:processed_columns, processed_columns)
       |> assign(:resolved_options, resolved_options)
       |> assign(:page_size_config, page_size_config)
+      |> assign(:search_label, search_label)
+      |> assign(:search_placeholder, search_placeholder)
+      |> assign(:search_enabled, search_enabled)
       |> assign_new(:show_filters, fn -> show_filters end)
 
     ~H"""
@@ -420,6 +471,9 @@ defmodule Cinder.Table do
         empty_message={@empty_message}
         col={@processed_columns}
         row_click={@row_click}
+        search_enabled={@search_enabled}
+        search_label={@search_label}
+        search_placeholder={@search_placeholder}
       />
     </div>
     """
@@ -446,7 +500,8 @@ defmodule Cinder.Table do
         sortable: sort_config.enabled,
         filterable: filter_attr != false,
         class: Map.get(slot, :class, ""),
-        filter_fn: filter_fn
+        filter_fn: filter_fn,
+        search: Map.get(slot, :search, false)
       }
 
       # Let Column module infer filter type if needed, otherwise use explicit type
@@ -493,6 +548,7 @@ defmodule Cinder.Table do
             filter_options: [],
             sortable: false,
             filter_fn: nil,
+            searchable: false,
             sort_cycle: [nil, :asc, :desc]
           }
         end
@@ -508,6 +564,7 @@ defmodule Cinder.Table do
         class: Map.get(slot, :class, ""),
         inner_block: slot[:inner_block] || default_inner_block(field),
         filter_fn: parsed_column.filter_fn,
+        searchable: parsed_column.searchable,
         sort_cycle: sort_config.cycle || [nil, :asc, :desc],
         __slot__: :col
       }
@@ -777,5 +834,39 @@ defmodule Cinder.Table do
   defp parse_page_size_config(_invalid) do
     # Fallback to default for invalid configurations
     parse_page_size_config(25)
+  end
+
+  # Process unified search configuration into individual components
+  def process_search_config(search_config, columns) do
+    # Check if any columns are searchable
+    has_searchable_columns = Enum.any?(columns, & &1.searchable)
+
+    case search_config do
+      nil ->
+        # Auto-enable if searchable columns exist
+        if has_searchable_columns do
+          {"Search", "Search...", true}
+        else
+          {nil, nil, false}
+        end
+
+      false ->
+        # Explicitly disabled
+        {nil, nil, false}
+
+      config when is_list(config) ->
+        # Custom configuration
+        label = Keyword.get(config, :label, "Search")
+        placeholder = Keyword.get(config, :placeholder, "Search...")
+        {label, placeholder, true}
+
+      _invalid ->
+        # Invalid config - auto-detect
+        if has_searchable_columns do
+          {"Search", "Search...", true}
+        else
+          {nil, nil, false}
+        end
+    end
   end
 end

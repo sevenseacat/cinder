@@ -126,9 +126,26 @@ defmodule Cinder.Themes.DaisyUI do
     set :page_size_container_class, "flex items-center space-x-2"
     set :page_size_label_class, "text-base-content/70 text-sm"
     set :page_size_dropdown_class, "btn btn-sm btn-outline flex items-center cursor-pointer"
-    set :page_size_dropdown_container_class, "bg-base-100 border border-base-300 rounded-box shadow-lg"
-    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer"
+
+    set :page_size_dropdown_container_class,
+        "bg-base-100 border border-base-300 rounded-box shadow-lg"
+
+    set :page_size_option_class,
+        "w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer"
+
     set :page_size_selected_class, "bg-primary text-primary-content"
+  end
+
+  component Cinder.Components.Search do
+    set :search_container_class, ""
+    set :search_wrapper_class, ""
+
+    set :search_input_class,
+        "input input-bordered w-full pl-10"
+
+    set :search_icon_class, "w-4 h-4"
+
+    set :search_label_class, ""
   end
 
   component Cinder.Components.Sorting do

@@ -1,42 +1,7 @@
 defmodule Cinder.Table.SearchTest do
   use ExUnit.Case, async: true
 
-  # Test resources for search testing
-  defmodule SearchTestResource do
-    use Ash.Resource,
-      domain: Cinder.Table.SearchTest.TestDomain,
-      data_layer: Ash.DataLayer.Ets,
-      validate_domain_inclusion?: false
-
-    ets do
-      private?(true)
-    end
-
-    attributes do
-      uuid_primary_key(:id)
-      attribute(:title, :string, public?: true)
-      attribute(:description, :string, public?: true)
-      attribute(:status, :string, public?: true)
-      attribute(:category, :string, public?: true)
-    end
-
-    actions do
-      defaults([:read])
-
-      create :create do
-        primary?(true)
-        accept([:title, :description, :status, :category])
-      end
-    end
-  end
-
-  defmodule TestDomain do
-    use Ash.Domain, validate_config_inclusion?: false
-
-    resources do
-      resource(SearchTestResource)
-    end
-  end
+  alias Cinder.Support.SearchTestResource
 
   describe "search parameter validation" do
     test "search_change event expects proper parameter structure" do
@@ -102,24 +67,87 @@ defmodule Cinder.Table.SearchTest do
   end
 
   describe "search column configuration" do
-    test "columns can be marked as searchable" do
-      columns = [
-        %{field: "title", searchable: true, filterable: false},
-        %{field: "description", searchable: true, filterable: true},
-        %{field: "status", searchable: false, filterable: true}
-      ]
+    test "search attribute processing in column parsing" do
+      # Test that search=true gets converted to searchable: true
+      slot_with_search = %{
+        field: "title",
+        search: true,
+        label: "Title"
+      }
 
-      searchable_columns = Enum.filter(columns, & &1.searchable)
+      parsed_column = Cinder.Column.parse_column(slot_with_search, SearchTestResource)
 
-      assert length(searchable_columns) == 2
-      assert Enum.map(searchable_columns, & &1.field) == ["title", "description"]
+      assert parsed_column.searchable == true
+      assert parsed_column.field == "title"
     end
 
-    test "default searchable value is false" do
-      column = %{field: "title"}
+    test "search attribute defaults to false when not specified" do
+      slot_without_search = %{
+        field: "title",
+        label: "Title"
+      }
 
-      # Default value should be false when not specified
-      assert Map.get(column, :searchable, false) == false
+      parsed_column = Cinder.Column.parse_column(slot_without_search, SearchTestResource)
+
+      assert parsed_column.searchable == false
+    end
+
+    test "search=false explicitly sets searchable to false" do
+      slot_with_search_false = %{
+        field: "title",
+        search: false,
+        label: "Title"
+      }
+
+      parsed_column = Cinder.Column.parse_column(slot_with_search_false, SearchTestResource)
+
+      assert parsed_column.searchable == false
+    end
+  end
+
+  describe "search auto-enable logic" do
+    test "auto-enables when searchable columns exist" do
+      columns = [
+        %{field: "name", searchable: true},
+        %{field: "email", searchable: false}
+      ]
+
+      {label, placeholder, enabled} = Cinder.Table.process_search_config(nil, columns)
+
+      assert enabled == true
+      assert label == "Search"
+      assert placeholder == "Search..."
+    end
+
+    test "does not auto-enable when no columns are searchable" do
+      columns = [
+        %{field: "title", searchable: false},
+        %{field: "description", searchable: false}
+      ]
+
+      {_label, _placeholder, enabled} = Cinder.Table.process_search_config(nil, columns)
+      assert enabled == false
+    end
+
+    test "custom search configuration overrides auto-detection" do
+      columns = [%{field: "name", searchable: true}]
+      config = [label: "Find Users", placeholder: "Type to search users..."]
+
+      {label, placeholder, enabled} = Cinder.Table.process_search_config(config, columns)
+
+      assert enabled == true
+      assert label == "Find Users"
+      assert placeholder == "Type to search users..."
+    end
+
+    test "search disabled with false config even with searchable columns" do
+      columns = [%{field: "name", searchable: true}]
+
+      {label, placeholder, enabled} = Cinder.Table.process_search_config(false, columns)
+
+      assert enabled == false
+      assert label == nil
+      assert placeholder == nil
     end
   end
 

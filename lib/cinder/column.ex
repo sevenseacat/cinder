@@ -151,7 +151,7 @@ defmodule Cinder.Column do
             %{
               sortable: Map.get(slot, :sortable, false),
               filterable: true,
-              searchable: false,
+              searchable: Map.get(slot, :search, false),
               filter_type: filter_config.filter_type,
               filter_options: filter_config.filter_options
             }
@@ -159,7 +159,7 @@ defmodule Cinder.Column do
             %{
               sortable: Map.get(slot, :sortable, false),
               filterable: false,
-              searchable: false,
+              searchable: Map.get(slot, :search, false),
               filter_type: :text,
               filter_options: []
             }

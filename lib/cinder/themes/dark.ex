@@ -157,9 +157,16 @@ defmodule Cinder.Themes.Dark do
 
     set :page_size_container_class, "flex items-center space-x-2"
     set :page_size_label_class, "text-sm text-gray-300 font-medium"
-    set :page_size_dropdown_class, "flex items-center px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded hover:bg-gray-700 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 cursor-pointer"
-    set :page_size_dropdown_container_class, "bg-gray-800 border border-gray-600 rounded shadow-lg"
-    set :page_size_option_class, "w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer"
+
+    set :page_size_dropdown_class,
+        "flex items-center px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded hover:bg-gray-700 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 cursor-pointer"
+
+    set :page_size_dropdown_container_class,
+        "bg-gray-800 border border-gray-600 rounded shadow-lg"
+
+    set :page_size_option_class,
+        "w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer"
+
     set :page_size_selected_class, "bg-purple-900 text-purple-300"
   end
 
@@ -174,8 +181,22 @@ defmodule Cinder.Themes.Dark do
   component Cinder.Components.Loading do
     set :loading_overlay_class, "absolute top-4 right-4"
     set :loading_container_class, "flex items-center text-sm text-purple-400 font-medium"
-    set :loading_spinner_class, "animate-spin h-5 w-5 text-purple-400 mr-2"
+    set :loading_spinner_class, "animate-spin h-5 w-5 text-green-400 mr-2"
     set :loading_spinner_circle_class, "opacity-25"
     set :loading_spinner_path_class, "opacity-75"
+  end
+
+  component Cinder.Components.Search do
+    # Search now uses filter input wrapper and label classes
+    set :search_container_class, ""
+    set :search_wrapper_class, ""
+
+    set :search_input_class,
+        "w-full pl-10 px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 placeholder-gray-400"
+
+    set :search_icon_class, "w-4 h-4 text-gray-400"
+
+    # Now uses filter_label_class from filter theme
+    set :search_label_class, ""
   end
 end

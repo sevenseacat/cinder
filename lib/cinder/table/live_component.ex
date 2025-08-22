@@ -60,7 +60,7 @@ defmodule Cinder.Table.LiveComponent do
         </span>
       </div>
 
-      <!-- Filter Controls -->
+      <!-- Filter Controls (including search) -->
       <div class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
           columns={@columns}
@@ -68,6 +68,10 @@ defmodule Cinder.Table.LiveComponent do
           theme={@theme}
           target={@myself}
           filters_label={@filters_label}
+          search_term={@search_term}
+          show_search={@search_enabled}
+          search_label={@search_label}
+          search_placeholder={@search_placeholder}
         />
       </div>
 
@@ -163,6 +167,21 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:current_page, 1)
       |> notify_state_change()
       |> load_data()
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("clear_filter", %{"key" => "search"}, socket) do
+    # Handle search clearing
+    socket =
+      socket
+      |> assign(:search_term, "")
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket)
 
     {:noreply, socket}
   end
@@ -348,7 +367,15 @@ defmodule Cinder.Table.LiveComponent do
   end
 
   @impl true
-  def handle_event("search_change", %{"search" => search_term}, socket) do
+  def handle_event("search_change", params, socket) do
+    # Extract search term from different parameter formats
+    search_term =
+      case params do
+        %{"search" => term} -> term
+        %{"_target" => ["search"], "search" => term} -> term
+        %{} -> Map.get(params, "search", "")
+      end
+
     # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
     url_sync_enabled = !!socket.assigns[:on_state_change]
 

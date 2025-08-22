@@ -236,7 +236,8 @@ defmodule Cinder.Theme do
       Cinder.Components.Filters,
       Cinder.Components.Pagination,
       Cinder.Components.Sorting,
-      Cinder.Components.Loading
+      Cinder.Components.Loading,
+      Cinder.Components.Search
     ]
     |> Enum.flat_map(& &1.theme_properties())
     |> Enum.uniq()
@@ -252,13 +253,15 @@ defmodule Cinder.Theme do
     pagination_theme = Cinder.Components.Pagination.default_theme()
     sorting_theme = Cinder.Components.Sorting.default_theme()
     loading_theme = Cinder.Components.Loading.default_theme()
+    search_theme = Cinder.Components.Search.default_theme()
 
     [
       table_theme,
       filters_theme,
       pagination_theme,
       sorting_theme,
-      loading_theme
+      loading_theme,
+      search_theme
     ]
     |> Enum.reduce(%{}, &Map.merge/2)
   end

@@ -447,8 +447,16 @@ defmodule Cinder.QueryBuilder do
       field_name = Cinder.Filter.Helpers.field_notation_from_url_safe(column.field)
 
       # Test if this field can be filtered by building a test query
+      # Use case-insensitive search by wrapping with Ash.CiString
+      case_insensitive_term = Ash.CiString.new(search_term)
+
       test_query =
-        Cinder.Filter.Helpers.build_ash_filter(query, field_name, search_term, :contains)
+        Cinder.Filter.Helpers.build_ash_filter(
+          query,
+          field_name,
+          case_insensitive_term,
+          :contains
+        )
 
       # Only include fields that don't produce errors
       if Enum.empty?(test_query.errors) and not is_nil(test_query.filter) do

@@ -57,7 +57,9 @@ defmodule Cinder.FilterManager do
       |> assign(:filter_values, filter_values)
 
     ~H"""
-    <div :if={@filterable_columns != []} class={@theme.filter_container_class} {@theme.filter_container_data}>
+    <!-- Filter Controls (including search) -->
+    <div :if={@filterable_columns != [] or Map.get(assigns, :show_search, false)} class={@theme.filter_container_class} {@theme.filter_container_data}>
+      <!-- Filter Header -->
       <div class={@theme.filter_header_class} {@theme.filter_header_data}>
         <span class={@theme.filter_title_class} {@theme.filter_title_data}>
           {@filters_label}
@@ -66,6 +68,7 @@ defmodule Cinder.FilterManager do
           </span>
         </span>
         <button
+          :if={@filterable_columns != []}
           phx-click="clear_all_filters"
           phx-target={@target}
           class={[@theme.filter_clear_all_class, if(@active_filters == 0, do: "invisible", else: "")]}
@@ -77,6 +80,47 @@ defmodule Cinder.FilterManager do
 
       <form phx-change="filter_change" phx-target={@target}>
         <div class={@theme.filter_inputs_class} {@theme.filter_inputs_data}>
+          <!-- Search Input (if enabled) - as first filter -->
+          <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
+            <label class={@theme.filter_label_class} {@theme.filter_label_data}>{Map.get(assigns, :search_label, "Search")}:</label>
+            <div class="flex items-center space-x-2">
+              <div class="flex-1 relative">
+                <input
+                  type="text"
+                  name="search"
+                  value={Map.get(assigns, :search_term, "")}
+                  placeholder={Map.get(assigns, :search_placeholder, "Search...")}
+                  phx-change="search_change"
+                  phx-debounce="300"
+                  phx-target={@target}
+                  class={@theme.search_input_class}
+                  {@theme.search_input_data}
+                />
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg class={@theme.search_icon_class} {@theme.search_icon_data} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Clear search button - consistent with filter clear buttons -->
+              <button
+                type="button"
+                phx-click="clear_filter"
+                phx-value-key="search"
+                phx-target={@target}
+                class={[
+                  @theme.filter_clear_button_class,
+                  unless(Map.get(assigns, :search_term, "") != "", do: "invisible", else: "")
+                ]}
+                {@theme.filter_clear_button_data}
+                title="Clear search"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
           <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
             <label class={@theme.filter_label_class} {@theme.filter_label_data}>{column.label}:</label>
             <.filter_input
