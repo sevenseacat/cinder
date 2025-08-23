@@ -17,7 +17,8 @@ defmodule Cinder.Filters.Registry do
       multi_checkboxes: Cinder.Filters.MultiCheckboxes,
       date_range: Cinder.Filters.DateRange,
       number_range: Cinder.Filters.NumberRange,
-      boolean: Cinder.Filters.Boolean
+      boolean: Cinder.Filters.Boolean,
+      checkbox: Cinder.Filters.Checkbox
     }
   end
 

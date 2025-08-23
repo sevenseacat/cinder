@@ -107,6 +107,15 @@ defmodule Cinder.Themes.Pastel do
     set :filter_boolean_label_class,
         "text-sm font-medium text-purple-700 cursor-pointer"
 
+    # Checkbox filter
+    set :filter_checkbox_container_class, "flex items-center h-[42px]"
+
+    set :filter_checkbox_input_class,
+        "h-4 w-4 text-pink-500 focus:ring-pink-400 focus:ring-2 rounded border border-pink-300 mr-2"
+
+    set :filter_checkbox_label_class,
+        "text-sm font-medium text-purple-700 cursor-pointer"
+
     # Multi-select filter (dropdown interface)
     set :filter_multiselect_container_class, "relative"
 

@@ -108,6 +108,15 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_boolean_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
 
+    # Checkbox filter
+    set :filter_checkbox_container_class, "flex items-center h-[48px]"
+
+    set :filter_checkbox_input_class,
+        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60 rounded mr-2"
+
+    set :filter_checkbox_label_class,
+        "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
+
     # Multi-select filter (dropdown interface)
     set :filter_multiselect_container_class, "relative"
 

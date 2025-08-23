@@ -384,7 +384,10 @@ defmodule Cinder.Filter do
   Gets a nested value from filter options with a default.
   """
   def get_option(filter_options, path, default \\ nil) do
-    get_in(filter_options, List.wrap(path)) || default
+    case get_in(filter_options, List.wrap(path)) do
+      nil -> default
+      value -> value
+    end
   end
 
   @doc """

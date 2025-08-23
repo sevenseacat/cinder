@@ -200,6 +200,7 @@ defmodule Cinder.Column do
       :multi_select,
       :multi_checkboxes,
       :boolean,
+      :checkbox,
       :date_range,
       :number_range
     ]

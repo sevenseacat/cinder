@@ -58,6 +58,10 @@ defmodule Cinder.ThemeTest do
         :filter_boolean_option_class,
         :filter_boolean_radio_class,
         :filter_boolean_label_class,
+        # Checkbox filter styling
+        :filter_checkbox_container_class,
+        :filter_checkbox_input_class,
+        :filter_checkbox_label_class,
         # Multi-select filter styling (dropdown interface)
         :filter_multiselect_container_class,
         :filter_multiselect_dropdown_class,

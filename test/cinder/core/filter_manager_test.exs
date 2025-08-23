@@ -458,4 +458,53 @@ defmodule Cinder.FilterManagerRuntimeTest do
       assert Registry.custom_filter?(:text) == false
     end
   end
+
+  describe "checkbox filter unchecking behavior" do
+    test "checkbox filter is cleared when unchecked (not in form data)" do
+      # Setup columns including a checkbox filter
+      columns = [
+        %{
+          field: "published",
+          filterable: true,
+          filter_type: :checkbox,
+          filter_options: [label: "Published only", value: true]
+        },
+        %{field: "title", filterable: true, filter_type: :text, filter_options: []}
+      ]
+
+      # Simulate form data when checkbox is checked
+      checked_params = %{"published" => "true", "title" => "test"}
+      checked_filters = FilterManager.params_to_filters(checked_params, columns)
+
+      # Should include the checkbox filter
+      assert Map.has_key?(checked_filters, "published")
+      assert checked_filters["published"].value == true
+
+      # Simulate form data when checkbox is unchecked (field missing from form)
+      unchecked_params = %{"title" => "test"}
+      unchecked_filters = FilterManager.params_to_filters(unchecked_params, columns)
+
+      # Should NOT include the checkbox filter (it gets cleared)
+      refute Map.has_key?(unchecked_filters, "published")
+      # Other filters should still be present
+      assert Map.has_key?(unchecked_filters, "title")
+    end
+
+    test "checkbox filter handles empty string values correctly" do
+      columns = [
+        %{
+          field: "active",
+          filterable: true,
+          filter_type: :checkbox,
+          filter_options: [label: "Active only", value: true]
+        }
+      ]
+
+      # Empty string should result in no filter (same as unchecked)
+      empty_params = %{"active" => ""}
+      empty_filters = FilterManager.params_to_filters(empty_params, columns)
+
+      refute Map.has_key?(empty_filters, "active")
+    end
+  end
 end

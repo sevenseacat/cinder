@@ -240,7 +240,7 @@ Cinder automatically detects the right filter type based on your Ash resource at
 - **Integer/Decimal fields** → Number range inputs
 - **Array fields** → Multi-select tag interface
 
-You can also explicitly specify filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:date_range`, `:number_range`
+You can also explicitly specify filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:checkbox`, `:date_range`, `:number_range`
 
 > **💡 Advanced Filtering:** For complex filtering logic (like business rules or custom operators), see [Custom Filter Functions](#custom-filter-functions) for examples of custom filter functions.
 
@@ -297,7 +297,6 @@ For multiple selection filtering, choose between:
     {String.slice(article.content, 0, 100)}...
   </:col>
 
-  <!-- Case-sensitive text filter -->
   <!-- Text filter with case sensitivity -->
   <:col
     :let={article}
@@ -305,6 +304,16 @@ For multiple selection filtering, choose between:
     filter={[type: :text, placeholder: "Author name...", case_sensitive: true]}
   >
     {article.author_name}
+  </:col>
+
+  <!-- Checkbox filter for boolean field -->
+  <:col :let={article} field="published" filter={[type: :checkbox, label: "Published only"]}>
+    {if article.published, do: "✓", else: "✗"}
+  </:col>
+
+  <!-- Checkbox filter for non-boolean field -->
+  <:col :let={article} field="priority" filter={[type: :checkbox, value: "high", label: "High priority only"]}>
+    {article.priority}
   </:col>
 </Cinder.Table.table>
 ```

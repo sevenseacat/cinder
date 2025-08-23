@@ -184,6 +184,16 @@ defmodule Cinder.ColumnTest do
       assert "Invalid filter type: invalid_type" in errors
     end
 
+    test "accepts checkbox filter type" do
+      column = %Column{
+        field: "published",
+        label: "Published",
+        filter_type: :checkbox
+      }
+
+      assert {:ok, _} = Column.validate(column)
+    end
+
     test "returns multiple errors" do
       column = %Column{
         field: "",

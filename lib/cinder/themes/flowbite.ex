@@ -109,6 +109,15 @@ defmodule Cinder.Themes.Flowbite do
     set :filter_boolean_label_class,
         "text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer"
 
+    # Checkbox filter
+    set :filter_checkbox_container_class, "flex items-center h-[42px]"
+
+    set :filter_checkbox_input_class,
+        "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 checked:bg-blue-600 checked:border-blue-600 mr-2"
+
+    set :filter_checkbox_label_class,
+        "text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer"
+
     # Multi-select filter (dropdown interface)
     set :filter_multiselect_container_class, "relative"
 

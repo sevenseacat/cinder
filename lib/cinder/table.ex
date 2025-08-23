@@ -269,13 +269,17 @@ defmodule Cinder.Table do
   - `class` - CSS classes for this column
   - `label` - Column header label (auto-generated from field name if not provided)
 
-  Filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:date_range`, `:number_range`
+  Filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:checkbox`, `:date_range`, `:number_range`
 
   **Filter Type Selection:**
   - `:multi_select` - Modern tag-based interface with dropdown (default for array types)
     - Supports `match_mode: :any` (default) for OR logic or `match_mode: :all` for AND logic
   - `:multi_checkboxes` - Traditional checkbox interface for multiple selection
     - Supports `match_mode: :any` (default) for OR logic or `match_mode: :all` for AND logic
+  - `:boolean` - Radio buttons for true/false/all selection (default for boolean fields)
+  - `:checkbox` - Single checkbox for "show only X" filtering
+    - For boolean fields: defaults to filtering for `true` when checked
+    - For non-boolean fields: requires explicit `value` option
 
   ## Column Labels
 

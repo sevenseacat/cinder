@@ -251,15 +251,10 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_event("filter_change", params, socket) do
-    # Process filters if present
+    # Process filters - use empty map when no "filters" key to handle unchecked checkboxes
     new_filters =
-      case Map.get(params, "filters") do
-        nil ->
-          socket.assigns.filters
-
-        filter_params ->
-          Cinder.FilterManager.params_to_filters(filter_params, socket.assigns.columns)
-      end
+      Map.get(params, "filters", %{})
+      |> Cinder.FilterManager.params_to_filters(socket.assigns.columns)
 
     # Process search if present
     search_term =

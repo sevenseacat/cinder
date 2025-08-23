@@ -109,6 +109,15 @@ defmodule Cinder.Themes.Retro do
     set :filter_boolean_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
 
+    # Checkbox filter
+    set :filter_checkbox_container_class, "flex items-center h-[48px]"
+
+    set :filter_checkbox_input_class,
+        "h-5 w-5 text-magenta-400 focus:ring-magenta-400 focus:ring-2 border-2 border-cyan-400 rounded mr-2"
+
+    set :filter_checkbox_label_class,
+        "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
+
     # Multi-select filter (dropdown interface)
     set :filter_multiselect_container_class, "relative"
 

@@ -76,6 +76,11 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_boolean_radio_class, "radio radio-sm radio-primary"
     set :filter_boolean_label_class, "text-sm cursor-pointer"
 
+    # Checkbox filter
+    set :filter_checkbox_container_class, "flex items-center h-[36px]"
+    set :filter_checkbox_input_class, "checkbox checkbox-primary checkbox-sm mr-2"
+    set :filter_checkbox_label_class, "text-sm cursor-pointer"
+
     # Multi-select filter (dropdown interface)
     set :filter_multiselect_container_class, "relative"
 

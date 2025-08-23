@@ -91,6 +91,14 @@ defmodule Cinder.Themes.Modern do
     set :filter_boolean_radio_class, "h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2"
     set :filter_boolean_label_class, "text-sm font-medium text-gray-700 cursor-pointer"
 
+    # Checkbox filter
+    set :filter_checkbox_container_class, "flex items-center h-[42px]"
+
+    set :filter_checkbox_input_class,
+        "h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 rounded mr-2"
+
+    set :filter_checkbox_label_class, "text-sm font-medium text-gray-700 cursor-pointer"
+
     # Multi-select filter (dropdown interface)
     set :filter_multiselect_container_class, "relative"
 

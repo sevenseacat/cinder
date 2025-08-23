@@ -18,6 +18,7 @@ defmodule Cinder.FilterManager do
           | :date_range
           | :number_range
           | :boolean
+          | :checkbox
   @type filter_value ::
           String.t()
           | [String.t()]
@@ -120,7 +121,10 @@ defmodule Cinder.FilterManager do
           </div>
 
           <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
-            <label class={@theme.filter_label_class} {@theme.filter_label_data}>{column.label}:</label>
+            <label class={[
+              @theme.filter_label_class,
+              if(column.filter_type == :checkbox, do: "invisible", else: "")
+            ]} {@theme.filter_label_data}>{column.label}:</label>
             <.filter_input
               column={column}
               current_value={Map.get(@filter_values, column.field, "")}
@@ -282,13 +286,24 @@ defmodule Cinder.FilterManager do
     |> Enum.reduce(%{}, fn column, acc ->
       raw_value = Map.get(processed_params, column.field, "")
 
-      if has_filter_value?(raw_value) do
+      # Special handling for checkbox filters: always process them,
+      # even when empty, so unchecking clears the filter
+      if column.filter_type == :checkbox do
         case process_filter_value(raw_value, column) do
+          # When unchecked, exclude from filters (clears the filter)
           nil -> acc
           processed_filter -> Map.put(acc, column.field, processed_filter)
         end
       else
-        acc
+        # Standard handling for other filter types
+        if has_filter_value?(raw_value) do
+          case process_filter_value(raw_value, column) do
+            nil -> acc
+            processed_filter -> Map.put(acc, column.field, processed_filter)
+          end
+        else
+          acc
+        end
       end
     end)
   end
