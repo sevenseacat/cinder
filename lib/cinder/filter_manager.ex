@@ -90,9 +90,7 @@ defmodule Cinder.FilterManager do
                   name="search"
                   value={Map.get(assigns, :search_term, "")}
                   placeholder={Map.get(assigns, :search_placeholder, "Search...")}
-                  phx-change="search_change"
                   phx-debounce="300"
-                  phx-target={@target}
                   class={@theme.search_input_class}
                   {@theme.search_input_data}
                 />

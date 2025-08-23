@@ -250,8 +250,23 @@ defmodule Cinder.Table.LiveComponent do
   end
 
   @impl true
-  def handle_event("filter_change", %{"filters" => filter_params}, socket) do
-    new_filters = Cinder.FilterManager.params_to_filters(filter_params, socket.assigns.columns)
+  def handle_event("filter_change", params, socket) do
+    # Process filters if present
+    new_filters =
+      case Map.get(params, "filters") do
+        nil ->
+          socket.assigns.filters
+
+        filter_params ->
+          Cinder.FilterManager.params_to_filters(filter_params, socket.assigns.columns)
+      end
+
+    # Process search if present
+    search_term =
+      case Map.get(params, "search") do
+        nil -> socket.assigns.search_term
+        term -> term
+      end
 
     # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
     url_sync_enabled = !!socket.assigns[:on_state_change]
@@ -262,11 +277,13 @@ defmodule Cinder.Table.LiveComponent do
         # Data will be loaded via handle_params when URL updates
         socket
         |> assign(:filters, new_filters)
+        |> assign(:search_term, search_term)
         |> assign(:current_page, 1)
       else
         # URL sync disabled: load data immediately
         socket
         |> assign(:filters, new_filters)
+        |> assign(:search_term, search_term)
         |> assign(:current_page, 1)
         |> load_data()
       end
@@ -351,40 +368,6 @@ defmodule Cinder.Table.LiveComponent do
 
     # Notify parent about state changes
     socket = notify_state_change(socket, new_filters)
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("search_change", params, socket) do
-    # Extract search term from different parameter formats
-    search_term =
-      case params do
-        %{"search" => term} -> term
-        %{"_target" => ["search"], "search" => term} -> term
-        %{} -> Map.get(params, "search", "")
-      end
-
-    # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
-    url_sync_enabled = !!socket.assigns[:on_state_change]
-
-    socket =
-      if url_sync_enabled do
-        # URL sync enabled: update state but don't load data yet
-        # Data will be loaded via handle_params when URL updates
-        socket
-        |> assign(:search_term, search_term)
-        |> assign(:current_page, 1)
-      else
-        # URL sync disabled: load data immediately
-        socket
-        |> assign(:search_term, search_term)
-        |> assign(:current_page, 1)
-        |> load_data()
-      end
-
-    # Notify parent about state changes
-    socket = notify_state_change(socket)
 
     {:noreply, socket}
   end
