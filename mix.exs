@@ -30,7 +30,14 @@ defmodule Cinder.MixProject do
   end
 
   defp aliases do
-    [docs: ["docs", &copy_theme_images/1]]
+    [
+      docs: [
+        "compile",
+        fn _ -> Cinder.Theme.Docs.write_docs!() end,
+        "docs",
+        &copy_theme_images/1
+      ]
+    ]
   end
 
   defp copy_theme_images(_) do

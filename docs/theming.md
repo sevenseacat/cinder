@@ -211,121 +211,138 @@ end
 
 ## Component Reference
 
-Cinder organizes theme properties by logical components:
+<!-- theme-properties-begin -->
 
 ### Table Component
-Controls the main table structure:
+Theme properties for the main table component.
 
 ```elixir
 component Cinder.Components.Table do
-  set :container_class, "..."           # Outer container
-  set :controls_class, "..."            # Controls section
-  set :table_wrapper_class, "..."       # Scrollable wrapper
-  set :table_class, "..."               # Table element
-  set :thead_class, "..."               # Table header
-  set :tbody_class, "..."               # Table body
-  set :header_row_class, "..."          # Header row
-  set :row_class, "..."                 # Data rows
-  set :th_class, "..."                  # Header cells
-  set :td_class, "..."                  # Data cells
-  set :loading_class, "..."             # Loading state
-  set :empty_class, "..."               # Empty state
-  set :error_container_class, "..."     # Error container
-  set :error_message_class, "..."       # Error message
+  set :container_class, ""
+  set :controls_class, ""
+  set :table_wrapper_class, "overflow-x-auto"
+  set :table_class, "w-full border-collapse"
+  set :thead_class, ""
+  set :tbody_class, ""
+  set :header_row_class, ""
+  set :row_class, ""
+  set :th_class, "text-left whitespace-nowrap"
+  set :td_class, ""
+  set :loading_class, "text-center py-4"
+  set :empty_class, "text-center py-4"
+  set :error_container_class, "text-red-600 text-sm"
+  set :error_message_class, ""
 end
 ```
 
 ### Filters Component
-Controls all filter-related styling:
+Theme properties for filter components.
 
 ```elixir
 component Cinder.Components.Filters do
-  # Container structure
-  set :filter_container_class, "..."
-  set :filter_header_class, "..."
-  set :filter_title_class, "..."
-  set :filter_count_class, "..."
-  set :filter_clear_all_class, "..."
-  set :filter_inputs_class, "..."
-  set :filter_input_wrapper_class, "..."
-  set :filter_label_class, "..."
-  set :filter_placeholder_class, "..."
-  set :filter_clear_button_class, "..."
-
-  # Input types
-  set :filter_text_input_class, "..."
-  set :filter_select_input_class, "..."
-  set :filter_date_input_class, "..."
-  set :filter_number_input_class, "..."
-
-  # Boolean filters
-  set :filter_boolean_container_class, "..."
-  set :filter_boolean_option_class, "..."
-  set :filter_boolean_radio_class, "..."
-  set :filter_boolean_label_class, "..."
-
-  # Multi-select filters (dropdown interface)
-  set :filter_multiselect_container_class, "..."
-  set :filter_multiselect_dropdown_class, "..."
-  set :filter_multiselect_option_class, "..."
-  set :filter_multiselect_checkbox_class, "..."
-  set :filter_multiselect_label_class, "..."
-  set :filter_multiselect_empty_class, "..."
-
-  # Multi-checkboxes filters (traditional interface)
-  set :filter_multicheckboxes_container_class, "..."
-  set :filter_multicheckboxes_option_class, "..."
-  set :filter_multicheckboxes_checkbox_class, "..."
-  set :filter_multicheckboxes_label_class, "..."
-
-  # Range filters
-  set :filter_range_container_class, "..."
-  set :filter_range_input_group_class, "..."
-  set :filter_range_separator_class, "..."
+  set :filter_container_class, ""
+  set :filter_header_class, ""
+  set :filter_title_class, ""
+  set :filter_count_class, ""
+  set :filter_clear_all_class, ""
+  set :filter_inputs_class, ""
+  set :filter_input_wrapper_class, ""
+  set :filter_label_class, ""
+  set :filter_placeholder_class, ""
+  set :filter_clear_button_class, ""
+  set :filter_text_input_class, ""
+  set :filter_date_input_class, ""
+  set :filter_number_input_class, "[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+  set :filter_select_input_class, ""
+  set :filter_select_container_class, ""
+  set :filter_select_dropdown_class, ""
+  set :filter_select_option_class, ""
+  set :filter_select_label_class, ""
+  set :filter_select_empty_class, ""
+  set :filter_select_arrow_class, "w-4 h-4 ml-2 flex-shrink-0"
+  set :filter_boolean_container_class, ""
+  set :filter_boolean_option_class, ""
+  set :filter_boolean_radio_class, ""
+  set :filter_boolean_label_class, ""
+  set :filter_multiselect_container_class, ""
+  set :filter_multiselect_dropdown_class, ""
+  set :filter_multiselect_option_class, ""
+  set :filter_multiselect_checkbox_class, ""
+  set :filter_multiselect_label_class, ""
+  set :filter_multiselect_empty_class, ""
+  set :filter_multicheckboxes_container_class, ""
+  set :filter_multicheckboxes_option_class, ""
+  set :filter_multicheckboxes_checkbox_class, ""
+  set :filter_multicheckboxes_label_class, ""
+  set :filter_range_container_class, ""
+  set :filter_range_input_group_class, ""
+  set :filter_range_separator_class, "flex items-center px-2 text-sm text-gray-500"
 end
 ```
 
 ### Pagination Component
-Controls pagination styling:
+Theme properties for pagination components.
 
 ```elixir
 component Cinder.Components.Pagination do
-  set :pagination_wrapper_class, "..."    # Outer wrapper
-  set :pagination_container_class, "..."  # Inner container
-  set :pagination_info_class, "..."       # Page info ("Page 1 of 10")
-  set :pagination_nav_class, "..."        # Navigation section
-  set :pagination_button_class, "..."     # Navigation buttons
-  set :pagination_current_class, "..."    # Current page indicator
-  set :pagination_count_class, "..."      # Record count
+  set :pagination_wrapper_class, ""
+  set :pagination_container_class, ""
+  set :pagination_button_class, ""
+  set :pagination_info_class, ""
+  set :pagination_count_class, ""
+  set :pagination_nav_class, ""
+  set :pagination_current_class, ""
+  set :page_size_container_class, ""
+  set :page_size_label_class, ""
+  set :page_size_dropdown_class, ""
+  set :page_size_dropdown_container_class, ""
+  set :page_size_option_class, ""
+  set :page_size_selected_class, ""
+end
+```
+
+### Search Component
+Theme properties for the global search component.
+
+```elixir
+component Cinder.Components.Search do
+  set :search_container_class, ""
+  set :search_wrapper_class, "relative"
+  set :search_input_class, "w-full px-3 py-2 border rounded"
+  set :search_icon_class, "w-4 h-4"
+  set :search_label_class, ""
 end
 ```
 
 ### Sorting Component
-Controls sort indicators and icons:
+Theme properties for sorting components.
 
 ```elixir
 component Cinder.Components.Sorting do
-  set :sort_indicator_class, "..."         # Sort indicator wrapper
-  set :sort_arrow_wrapper_class, "..."     # Icon wrapper
-  set :sort_asc_icon_class, "..."          # Ascending icon
-  set :sort_asc_icon_name, "hero-chevron-up"     # Icon name
-  set :sort_desc_icon_class, "..."         # Descending icon
-  set :sort_desc_icon_name, "hero-chevron-down"  # Icon name
-  set :sort_none_icon_class, "..."         # Unsorted icon
-  set :sort_none_icon_name, "hero-chevron-up-down"  # Icon name
+  set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
+  set :sort_arrow_wrapper_class, "inline-flex items-center"
+  set :sort_asc_icon_name, "hero-chevron-up"
+  set :sort_asc_icon_class, "w-3 h-3"
+  set :sort_desc_icon_name, "hero-chevron-down"
+  set :sort_desc_icon_class, "w-3 h-3"
+  set :sort_none_icon_name, "hero-chevron-up-down"
+  set :sort_none_icon_class, "w-3 h-3 opacity-50"
 end
 ```
 
 ### Loading Component
-Controls loading states:
+Theme properties for loading components.
 
 ```elixir
 component Cinder.Components.Loading do
-  set :loading_overlay_class, "..."        # Loading overlay
-  set :loading_container_class, "..."      # Loading container
-  set :loading_class, "..."                # Loading text
-  set :loading_spinner_class, "..."        # Spinner element
-  set :loading_spinner_circle_class, "..." # Spinner circle
-  set :loading_spinner_path_class, "..."   # Spinner path
+  set :loading_overlay_class, ""
+  set :loading_container_class, ""
+  set :loading_spinner_class, ""
+  set :loading_spinner_circle_class, ""
+  set :loading_spinner_path_class, ""
 end
 ```
+
+
+<!-- theme-properties-end -->
+

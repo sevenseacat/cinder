@@ -23,9 +23,9 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [URL State Management](#url-state-management)
 - [Relationship Fields](#relationship-fields)
 - [Embedded Resources](#embedded-resources)
+- [Interactive Tables](#interactive-tables)
 - [Action Columns](#action-columns)
 - [Table Refresh](#table-refresh)
-- [Advanced Configuration](#advanced-configuration)
 - [Performance Optimization](#performance-optimization)
 - [Testing](#testing)
 
@@ -740,12 +740,12 @@ You can define custom sort cycles that control the order of sort states when cli
   <:col :let={invoice} field="created_at" sort={[cycle: [nil, :desc_nils_last, :asc_nils_first]]}>
     {invoice.created_at}
   </:col>
-  
-  <!-- Standard Ash sort directions with custom cycle -->  
+
+  <!-- Standard Ash sort directions with custom cycle -->
   <:col :let={invoice} field="priority" sort={[cycle: [nil, :desc_nils_first, :asc_nils_last]]}>
     {invoice.priority}
   </:col>
-  
+
   <!-- Standard Ash sort directions -->
   <:col :let={invoice} field="payment_date" sort={[cycle: [nil, :desc_nils_first, :asc]]}>
     {invoice.payment_date}
@@ -768,11 +768,11 @@ Custom filter functions enable complex filtering logic:
 ```elixir
 defmodule MyAppWeb.InvoicesLive do
   require Ash.Query
-  
+
   # Custom filter with business logic
   def filter_invoice_status(query, filter_config) do
     %{value: status} = filter_config
-    
+
     case status do
       "overdue" ->
         # Complex business rule: overdue = past due date AND unpaid
@@ -780,13 +780,13 @@ defmodule MyAppWeb.InvoicesLive do
         query
         |> Ash.Query.filter(due_date < ^today)
         |> Ash.Query.filter(payment_status == :unpaid)
-        
+
       "pending_approval" ->
         # Another business rule: needs manager approval
         query
         |> Ash.Query.filter(status == :draft)
         |> Ash.Query.filter(approval_required == true)
-        
+
       _ ->
         # Standard equality for other statuses
         Ash.Query.filter(query, status == ^status)
@@ -808,7 +808,7 @@ defmodule MyAppWeb.InvoicesLive do
       ]}>
         {invoice.status}
       </:col>
-      
+
       <!-- Standard filters still work -->
       <:col :let={invoice} field="customer_name" filter>
         {invoice.customer_name}
@@ -837,19 +837,19 @@ You can mix standard sorting, sort cycles, and custom filter functions:
   <:col :let={order} field="order_number" sort filter>
     {order.order_number}
   </:col>
-  
+
   <!-- Custom sort cycle with null handling -->
   <:col :let={order} field="priority" sort={[cycle: [nil, :desc_nils_first, :asc_nils_last]]}>
     {order.priority}
   </:col>
-  
-  <!-- Custom filter function -->  
+
+  <!-- Custom filter function -->
   <:col :let={order} field="status" filter={[type: :select, fn: &filter_complex_status/2]}>
     {order.status}
   </:col>
-  
+
   <!-- Sort cycle with custom filter -->
-  <:col :let={order} field="created_at" 
+  <:col :let={order} field="created_at"
         sort={[cycle: [nil, :desc_nils_last, :asc_nils_first]]}
         filter={[type: :date_range, fn: &filter_business_dates/2]}>
     {order.created_at}
@@ -1187,6 +1187,41 @@ You can combine relationship navigation (dot notation) with embedded fields (dou
 </Cinder.Table.table>
 ```
 
+## Interactive Tables
+
+### Row Click Functionality
+
+Make entire rows clickable for navigation or actions. When `row_click` is provided, rows will be styled as clickable with hover effects and cursor changes.
+
+#### Basic Navigation
+
+```elixir
+<Cinder.Table.table
+  resource={MyApp.User}
+  actor={@current_user}
+  row_click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
+>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="role" filter={:select}>{user.role}</:col>
+</Cinder.Table.table>
+```
+
+#### Custom JavaScript Actions
+
+```elixir
+<Cinder.Table.table
+  resource={MyApp.Product}
+  actor={@current_user}
+  row_click={fn product -> JS.push("select_product") |> JS.push_focus() end}
+>
+  <:col :let={product} field="name" filter sort>{product.name}</:col>
+  <:col :let={product} field="price" filter={:number_range} sort>${product.price}</:col>
+</Cinder.Table.table>
+```
+
+**Note:** The `row_click` function receives the row item as its argument and should return a Phoenix.LiveView.JS command. When provided, rows automatically receive `cursor-pointer` styling to indicate they are interactive.
+
 ## Action Columns
 
 Action columns allow you to add buttons, links, and other interactive elements to your tables without requiring a database field. Simply omit the `field` attribute to create an action column.
@@ -1265,171 +1300,6 @@ When operations affect multiple tables, refresh them all by providing a list of 
 
 ```elixir
 refresh_tables(socket, ["users-table", "audit-logs-table"])
-```
-
-## Advanced Configuration
-
-### Complete Configuration Example
-
-Every available option demonstrated:
-
-```elixir
-<Cinder.Table.table
-  # Required attributes
-  resource={MyApp.User}
-  actor={@current_user}
-
-  # Component configuration
-  id="advanced-users-table"
-  class="my-custom-table-wrapper border rounded-lg"
-
-  # Data configuration
-  page_size={50}
-  query_opts={[
-    load: [:profile, :department, :manager],
-    select: [:id, :name, :email, :created_at, :is_active]
-  ]}
-
-  # URL state management
-  url_state={@url_state}
-
-  # UI configuration
-  theme="modern"
-  show_filters={true}
-  show_pagination={true}
-
-  # Custom messages
-  loading_message="Loading users, please wait..."
-  empty_message="No users found matching your search criteria"
-
-  # Callbacks (if needed for custom behavior)
-  on_state_change={&handle_table_state_change/1}
->
-  <!-- Text column with all options using :let -->
-  <:col
-    :let={user}
-    field="name"
-    label="Full Name"
-    filter={[
-      type: :text,
-      placeholder: "Search by name...",
-      case_sensitive: false
-    ]}
-    sort={true}
-    class="w-1/4 font-semibold"
-  >
-    <div class="flex items-center space-x-2">
-      <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-        <span class="text-white text-xs font-semibold">
-          {String.first(user.name)}
-        </span>
-      </div>
-      <span>{user.name}</span>
-    </div>
-  </:col>
-
-  <!-- Email with mailto link using :let -->
-  <:col
-    :let={user}
-    field="email"
-    filter={[type: :text, placeholder: "Email address..."]}
-    sort
-    class="w-1/4"
-  >
-    <a href={"mailto:#{user.email}"} class="text-blue-600 hover:underline">
-      {user.email}
-    </a>
-  </:col>
-
-  <!-- Relationship with select filter -->
-  <:col
-    :let={user}
-    field="department.name"
-    filter={[
-      type: :select,
-      options: [
-        {"Engineering", "engineering"},
-        {"Marketing", "marketing"},
-        {"Sales", "sales"},
-        {"Support", "support"}
-      ],
-      prompt: "All Departments"
-    ]}
-    sort
-  >
-    {user.department.name}
-  </:col>
-
-  <!-- Date with range filter using :let -->
-  <:col
-    :let={user}
-    field="created_at"
-    label="Member Since"
-    filter={[
-      type: :date_range,
-      format: "MM/DD/YYYY",
-      placeholder_from: "Start date",
-      placeholder_to: "End date"
-    ]}
-    sort
-  >
-    <div class="text-sm">
-      <div class="font-medium">
-        {Calendar.strftime(user.created_at, "%B %d, %Y")}
-      </div>
-      <div class="text-gray-500">
-        {Calendar.strftime(user.created_at, "%H:%M")}
-      </div>
-    </div>
-  </:col>
-
-  <!-- Boolean with custom labels using :let -->
-  <:col
-    :let={user}
-    field="is_active"
-    filter={[
-      type: :boolean,
-      labels: %{
-        all: "All Users",
-        true: "Active Users",
-        false: "Inactive Users"
-      }
-    ]}
-  >
-    <span class={[
-      "px-2 py-1 text-xs font-semibold rounded-full",
-      user.is_active && "bg-green-100 text-green-800",
-      !user.is_active && "bg-red-100 text-red-800"
-    ]}>
-      {if user.is_active, do: "Active", else: "Inactive"}
-    </span>
-  </:col>
-
-  <!-- Actions column using :let -->
-  <:col :let={user} field="actions" class="text-right w-32">
-    <div class="flex gap-1 justify-end">
-      <.link
-        navigate={~p"/users/#{user.id}"}
-        class="p-1 text-blue-600 hover:text-blue-800"
-        title="View user"
-      >
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-          <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
-        </svg>
-      </.link>
-      <.link
-        navigate={~p"/users/#{user.id}/edit"}
-        class="p-1 text-green-600 hover:text-green-800"
-        title="Edit user"
-      >
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
-        </svg>
-      </.link>
-    </div>
-  </:col>
-</Cinder.Table.table>
 ```
 
 ## Performance Optimization
@@ -1554,5 +1424,3 @@ test "lists all user", %{conn: conn} do
   assert render_async(index_live) =~ user.name
 end
 ```
-
-This comprehensive guide demonstrates every available feature and option in Cinder. The combination of intelligent defaults and extensive customization options makes Cinder suitable for simple data display as well as complex, feature-rich table implementations.
