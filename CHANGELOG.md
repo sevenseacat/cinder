@@ -5,6 +5,7 @@
 ### Bug fixes
 
 * Fix filter type inference for relationship attributes
+* Fix unified filter options to default to auto-inference when no type is specified
 
 ## v0.6.0 (2025-08-26)
 
