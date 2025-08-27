@@ -617,12 +617,18 @@ defmodule Cinder.Table do
 
       # New unified format: [type: :select, options: [...]]
       filter_config when is_list(filter_config) ->
-        type = Keyword.get(filter_config, :type, :text)
-        # Convert string type to atom if needed
-        normalized_type = if is_binary(type), do: String.to_atom(type), else: type
-        # Extract all options except :type
-        options = Keyword.delete(filter_config, :type)
-        {normalized_type, options}
+        case Keyword.get(filter_config, :type) do
+          nil ->
+            # No type specified, let Column module auto-infer the type
+            {:auto, filter_config}
+
+          type ->
+            # Type specified, use it
+            normalized_type = if is_binary(type), do: String.to_atom(type), else: type
+            # Extract all options except :type
+            options = Keyword.delete(filter_config, :type)
+            {normalized_type, options}
+        end
 
       _ ->
         {:text, []}

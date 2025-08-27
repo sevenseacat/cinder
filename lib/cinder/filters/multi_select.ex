@@ -52,6 +52,9 @@ defmodule Cinder.Filters.MultiSelect do
     options = get_option(filter_options, :options, [])
     selected_values = current_value || []
 
+    # Get custom prompt or use default
+    custom_prompt = get_option(filter_options, :prompt, "Select options...")
+
     # Create a lookup map for labels
     option_labels =
       Enum.into(options, %{}, fn {label, value} -> {to_string(value), label} end)
@@ -60,7 +63,7 @@ defmodule Cinder.Filters.MultiSelect do
     display_text =
       case length(selected_values) do
         0 ->
-          "Select options..."
+          custom_prompt
 
         1 ->
           Map.get(
@@ -179,7 +182,10 @@ defmodule Cinder.Filters.MultiSelect do
   def default_options do
     [
       options: [],
-      match_mode: :any
+      match_mode: :any,
+      # prompt: nil means "auto-generate prompt from field name"
+      # This is processed by FilterManager.enhance_select_options/3
+      prompt: nil
     ]
   end
 

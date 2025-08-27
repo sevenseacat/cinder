@@ -108,6 +108,40 @@ Cinder automatically detects filter types from Ash resource attributes:
 - **Number Range**: `:integer`, `:float`, `:decimal` → min/max inputs
 - **Multi-Select**: array fields → multiple selection with AND/OR logic
 
+## Filter Customization
+
+### Prompt Customization
+
+**Select and Multi-Select filters** support custom prompts:
+
+```heex
+<!-- Custom prompt for single-select -->
+<:col field="user.user_type" filter={[prompt: "Choose user type"]}>
+
+<!-- Custom prompt for multi-select -->  
+<:col field="tags" filter={[type: :multi_select, prompt: "Pick tags"]}>
+
+<!-- Auto-generated prompt (default behavior) -->
+<:col field="user.user_type" filter>
+<!-- Shows: "All User > User Type" -->
+```
+
+**Other filter options:**
+
+```heex
+<!-- Boolean filter with custom labels -->
+<:col field="active" filter={[labels: %{true => "Active", false => "Inactive", all => "Any Status"}]}>
+
+<!-- Date filter with time -->
+<:col field="created_at" filter={[include_time: true]}>
+
+<!-- Text filter with custom placeholder -->
+<:col field="email" filter={[placeholder: "Search emails..."]}>
+
+<!-- Number range with constraints -->
+<:col field="price" filter={[min: 0, max: 1000]}>
+```
+
 ## Custom Filters
 
 ### 1. Configure in config.exs

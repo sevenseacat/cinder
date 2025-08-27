@@ -140,6 +140,8 @@ defmodule Cinder.Filters.Select do
   def default_options do
     [
       options: [],
+      # prompt: nil means "auto-generate prompt from field name"
+      # This is processed by FilterManager.enhance_select_options/3
       prompt: nil
     ]
   end
