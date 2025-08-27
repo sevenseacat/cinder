@@ -745,45 +745,25 @@ defmodule Cinder.FilterManager do
     end
   end
 
-  # Enhances select/multi-select filter options with Ash-specific data.
-  #
-  # This function:
-  # 1. Extracts enum options from Ash attribute definitions
-  # 2. Auto-generates human-readable prompts when needed
-  #
-  # ## Prompt Convention
-  # Filter default options use `prompt: nil` to indicate "please auto-generate a prompt".
-  # This is different from a missing `:prompt` key - `nil` is an explicit request for
-  # auto-generation, while a string value (including "") is a custom prompt to preserve.
-  #
-  # Examples:
-  #   [prompt: nil] -> becomes [prompt: "All User Type"] (auto-generated)
-  #   [prompt: "Custom"] -> remains [prompt: "Custom"] (preserved)
-  #   [other: :option] -> becomes [other: :option, prompt: "All User Type"] (added)
-  #
   defp enhance_select_options(default_options, attribute, key) do
-    # Convert URL-safe notation to bracket notation for proper humanization
-    converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
-    humanized_key = Cinder.Filter.Helpers.humanize_embedded_field(converted_key)
+    case extract_enum_options(attribute) do
+      [] ->
+        # No enum options found, return defaults
+        # Convert URL-safe notation to bracket notation for proper humanization
+        converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
+        humanized_key = Cinder.Filter.Helpers.humanize_embedded_field(converted_key)
 
-    enhanced_options =
-      case extract_enum_options(attribute) do
-        [] ->
-          # No enum options found, return defaults
-          default_options
+        Keyword.merge(default_options, prompt: "All #{humanized_key}")
 
-        options ->
-          # Add enum options
-          Keyword.put(default_options, :options, options)
-      end
+      options ->
+        # Add enum options and prompt
+        # Convert URL-safe notation to bracket notation for proper humanization
+        converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
+        humanized_key = Cinder.Filter.Helpers.humanize_embedded_field(converted_key)
 
-    # Set prompt if none was provided or if it's nil
-    case Keyword.get(enhanced_options, :prompt) do
-      nil ->
-        Keyword.put(enhanced_options, :prompt, "All #{humanized_key}")
-
-      _existing_prompt ->
-        enhanced_options
+        default_options
+        |> Keyword.put(:options, options)
+        |> Keyword.put(:prompt, "All #{humanized_key}")
     end
   end
 

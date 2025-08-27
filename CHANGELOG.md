@@ -2,16 +2,9 @@
 
 ## Unreleased
 
-### Features
-
-* Add customizable prompts to multi-select filters for consistency with single-select filters
-* Enhance filter configuration UX - auto-infer filter types when only options are provided (e.g., `filter={[prompt: "Custom"]}` without specifying `type`)
-
 ### Bug fixes
 
-* Fix filter type inference for relationship fields (e.g., `user.user_type`, `user.company.name`)
-* Fix dropdown visibility issue for relationship field filters caused by invalid CSS selectors (dots in field names)
-* Fix custom prompt preservation in select filters
+* Fix filter type inference for relationship attributes
 
 ## v0.6.0 (2025-08-26)
 
