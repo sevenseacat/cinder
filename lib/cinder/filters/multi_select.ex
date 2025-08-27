@@ -50,6 +50,7 @@ defmodule Cinder.Filters.MultiSelect do
   def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
     options = get_option(filter_options, :options, [])
+    prompt = get_option(filter_options, :prompt, "Select options...")
     selected_values = current_value || []
 
     # Create a lookup map for labels
@@ -60,7 +61,7 @@ defmodule Cinder.Filters.MultiSelect do
     display_text =
       case length(selected_values) do
         0 ->
-          "Select options..."
+          prompt
 
         1 ->
           Map.get(
@@ -179,7 +180,8 @@ defmodule Cinder.Filters.MultiSelect do
   def default_options do
     [
       options: [],
-      match_mode: :any
+      match_mode: :any,
+      prompt: nil
     ]
   end
 

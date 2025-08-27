@@ -50,7 +50,8 @@ Cinder is a powerful, intelligent data table component for Phoenix LiveView appl
 - `filter` - enables filtering (auto-detects type from Ash resource)
 - `sort` - enables sorting
 - `filter={:specific_type}` - override filter type
-- `filter_options={[key: value]}` - configure filter behavior
+- `filter={[type: :select, options: [...]]}` - unified filter configuration (recommended)
+- `filter_options={[key: value]}` - configure filter behavior (deprecated, use unified syntax)
 - `label="Custom Label"` - override auto-generated column header
 
 ### Action Columns (No Field)
@@ -58,6 +59,25 @@ Cinder is a powerful, intelligent data table component for Phoenix LiveView appl
 <:col :let={user} label="Actions">
   <.link patch={~p"/users/#{user.id}/edit"}>Edit</.link>
 </:col>
+```
+
+### Filter Configuration Examples
+
+**Basic filtering (auto-detected type):**
+```heex
+<:col field="status" filter>Status</:col>
+```
+
+**Unified syntax with custom options:**
+```heex
+<:col field="status" filter={[type: :select, prompt: "All Statuses"]}>Status</:col>
+<:col field="price" filter={[type: :number_range, min: 0, max: 1000]}>Price</:col>
+<:col field="tags" filter={[type: :multi_select, prompt: "Select tags...", match_mode: :any]}>Tags</:col>
+```
+
+**Legacy syntax (deprecated but supported):**
+```heex
+<:col field="status" filter={:select} filter_options={[prompt: "All Statuses"]}>Status</:col>
 ```
 
 ## Table Configuration
@@ -154,7 +174,7 @@ end
 
 ### 4. Use in Tables
 ```heex
-<:col :let={product} field="price" filter={:slider} filter_options={[min: 0, max: 1000]}>
+<:col :let={product} field="price" filter={[type: :slider, min: 0, max: 1000]}>
   ${product.price}
 </:col>
 ```

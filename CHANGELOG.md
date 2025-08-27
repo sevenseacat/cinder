@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+* Add custom prompt support for multi-select filters
+
 ### Bug fixes
 
 * Fix filter type inference for relationship attributes
