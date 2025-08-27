@@ -32,6 +32,9 @@ defmodule Cinder.Filters.Select do
         Map.get(option_labels, current_value, current_value)
       end
 
+    # Escape dots in field names to create valid CSS selectors
+    safe_field_name = String.replace(column.field, ".", "_")
+
     assigns = %{
       column: column,
       current_value: current_value,
@@ -39,7 +42,7 @@ defmodule Cinder.Filters.Select do
       prompt: prompt,
       theme: theme,
       display_text: display_text,
-      dropdown_id: "select-dropdown-#{column.field}",
+      dropdown_id: "select-dropdown-#{safe_field_name}",
       target: Map.get(assigns, :target)
     }
 

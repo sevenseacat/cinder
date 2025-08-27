@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Fix filter type inference for relationship attributes
+
 ## v0.6.0 (2025-08-26)
 
 ### Features

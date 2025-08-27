@@ -81,7 +81,7 @@ defmodule Cinder.Filters.MultiSelect do
       display_text: display_text,
       theme: theme,
       field_name: field_name(column.field),
-      dropdown_id: "multiselect-dropdown-#{column.field}",
+      dropdown_id: "multiselect-dropdown-#{String.replace(column.field, ".", "_")}",
       target: Map.get(assigns, :target)
     }
 

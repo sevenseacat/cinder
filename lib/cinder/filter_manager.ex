@@ -534,6 +534,10 @@ defmodule Cinder.FilterManager do
           # Handle nested embedded fields
           get_nested_embedded_attribute(resource, embed_field, field_path)
 
+        {:relationship, rel_path, field_name} ->
+          # Handle relationship fields like "user.user_type" or "user.company.name"
+          get_relationship_attribute(resource, rel_path, field_name)
+
         {:relationship_embedded, rel_path, embed_field, field_name} ->
           # Handle relationship + embedded fields
           get_relationship_embedded_attribute(resource, rel_path, embed_field, field_name)
@@ -690,6 +694,18 @@ defmodule Cinder.FilterManager do
       else
         nil
       end
+    else
+      nil
+    end
+  end
+
+  defp get_relationship_attribute(resource, rel_path, field_name) do
+    # Navigate to the related resource first
+    related_resource = traverse_relationship_path(resource, rel_path)
+
+    if related_resource do
+      field_atom = String.to_atom(field_name)
+      get_regular_attribute(related_resource, field_atom)
     else
       nil
     end
