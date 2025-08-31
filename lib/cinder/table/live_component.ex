@@ -680,7 +680,7 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:page_size_config, page_size_config)
     |> assign(:current_page, assigns[:current_page] || 1)
     |> assign(:loading, false)
-    |> assign(:data, [])
+    |> assign(:data, assigns[:data] || [])
     |> assign(:sort_by, assigns[:sort_by] || extract_initial_sorts(assigns))
     |> assign(:filters, assigns[:filters] || %{})
     |> assign(:search_term, assigns[:search_term] || "")
