@@ -32,40 +32,33 @@ defmodule Cinder.Filters.Boolean do
 
     ~H"""
     <div class={@theme.filter_boolean_container_class} {@theme.filter_boolean_container_data}>
-      <label class={@theme.filter_boolean_option_class} {@theme.filter_boolean_option_data}>
-        <input
-          type="radio"
-          name={field_name(@column.field)}
-          value=""
-          checked={@current_boolean_value == "" || @current_boolean_value == "all"}
-          class={@theme.filter_boolean_radio_class}
-          {@theme.filter_boolean_radio_data}
-        />
-        <span class={@theme.filter_boolean_label_class} {@theme.filter_boolean_label_data}>{@all_label}</span>
-      </label>
-      <label class={@theme.filter_boolean_option_class} {@theme.filter_boolean_option_data}>
-        <input
-          type="radio"
-          name={field_name(@column.field)}
-          value="true"
-          checked={@current_boolean_value == "true"}
-          class={@theme.filter_boolean_radio_class}
-          {@theme.filter_boolean_radio_data}
-        />
-        <span class={@theme.filter_boolean_label_class} {@theme.filter_boolean_label_data}>{@true_label}</span>
-      </label>
-      <label class={@theme.filter_boolean_option_class} {@theme.filter_boolean_option_data}>
-        <input
-          type="radio"
-          name={field_name(@column.field)}
-          value="false"
-          checked={@current_boolean_value == "false"}
-          class={@theme.filter_boolean_radio_class}
-          {@theme.filter_boolean_radio_data}
-        />
-        <span class={@theme.filter_boolean_label_class} {@theme.filter_boolean_label_data}>{@false_label}</span>
-      </label>
+      <.option name={field_name(@column.field)} label={@all_label} value="" checked={@current_boolean_value in ["", "all"]} theme={@theme} />
+      <.option name={field_name(@column.field)} label={@true_label} value="true" checked={@current_boolean_value == "true"} theme={@theme} />
+      <.option name={field_name(@column.field)} label={@false_label} value="false" checked={@current_boolean_value == "false"} theme={@theme} />
     </div>
+    """
+  end
+
+  attr :name, :string, required: true
+  attr :label, :string, required: true
+  attr :value, :string, required: true
+  attr :checked, :boolean, required: true
+  attr :theme, :map, required: true
+
+  defp option(assigns) do
+    ~H"""
+    <label class={@theme.filter_boolean_option_class} {@theme.filter_boolean_option_data}>
+      <input
+        type="radio"
+        name={@name}
+        value={@value}
+        checked={@checked}
+        class={@theme.filter_boolean_radio_class}
+        aria-label={@label}
+        {@theme.filter_boolean_radio_data}
+      />
+      <span class={@theme.filter_boolean_label_class} {@theme.filter_boolean_label_data}>{@label}</span>
+    </label>
     """
   end
 
