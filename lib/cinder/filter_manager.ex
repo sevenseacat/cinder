@@ -767,9 +767,14 @@ defmodule Cinder.FilterManager do
     end
   end
 
-  defp extract_enum_options(nil), do: []
+  @doc """
+  Extracts enum options from Ash resource attribute.
 
-  defp extract_enum_options(%{type: type, constraints: constraints}) do
+  This function is public for testing purposes.
+  """
+  def extract_enum_options(nil), do: []
+
+  def extract_enum_options(%{type: type, constraints: constraints}) do
     cond do
       # Handle constraint-based enums (new Ash format) - constraints can be a map or keyword list
       (is_map(constraints) and Map.has_key?(constraints, :one_of)) or
@@ -797,11 +802,11 @@ defmodule Cinder.FilterManager do
     end
   end
 
-  defp extract_enum_options(%{type: {:one_of, values}}) when is_list(values) do
+  def extract_enum_options(%{type: {:one_of, values}}) when is_list(values) do
     enum_to_options(values, nil)
   end
 
-  defp extract_enum_options(_), do: []
+  def extract_enum_options(_), do: []
 
   defp enum_to_options(values, enum_module) do
     Enum.map(values, fn value ->
@@ -809,7 +814,10 @@ defmodule Cinder.FilterManager do
         atom when is_atom(atom) ->
           label =
             if enum_module && function_exported?(enum_module, :description, 1) do
-              apply(enum_module, :description, [atom])
+              case apply(enum_module, :description, [atom]) do
+                nil -> Cinder.Filter.humanize_atom(atom)
+                description -> description
+              end
             else
               Cinder.Filter.humanize_atom(atom)
             end
@@ -819,7 +827,7 @@ defmodule Cinder.FilterManager do
         string when is_binary(string) ->
           {String.capitalize(string), string}
 
-        {label, value} ->
+        {value, label} ->
           {to_string(label), value}
 
         other ->

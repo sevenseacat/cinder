@@ -507,4 +507,79 @@ defmodule Cinder.FilterManagerRuntimeTest do
       refute Map.has_key?(empty_filters, "active")
     end
   end
+
+  describe "enum option labeling for simple atom arrays" do
+    # Real Ash.Type.Enum module with simple atom array values
+    defmodule TestSimpleEnum do
+      use Ash.Type.Enum, values: [:pending, :trading, :paused, "Test"]
+    end
+
+    # Real Ash.Type.Enum module with keyword array values (working case)
+    defmodule TestKeywordEnum do
+      use Ash.Type.Enum,
+        values: [pending: "Pending Status", trading: "Currently Trading", paused: "Paused Status"]
+    end
+
+    test "enum_to_options correctly labels atoms from simple array" do
+      # This reproduces the issue from GitHub issue #52
+      # Call the private function through a mock attribute
+      mock_attribute = %{
+        type: TestSimpleEnum,
+        constraints: []
+      }
+
+      result = FilterManager.extract_enum_options(mock_attribute)
+
+      # These should be properly labeled, not showing raw atom values
+      expected = [
+        {"Pending", :pending},
+        {"Trading", :trading},
+        {"Paused", :paused},
+        {"Test", "Test"}
+      ]
+
+      assert result == expected
+    end
+
+    test "enum_to_options correctly labels keyword enum values" do
+      mock_attribute = %{
+        type: TestKeywordEnum,
+        constraints: []
+      }
+
+      result = FilterManager.extract_enum_options(mock_attribute)
+
+      expected = [
+        {"Pending Status", :pending},
+        {"Currently Trading", :trading},
+        {"Paused Status", :paused}
+      ]
+
+      assert result == expected
+    end
+
+    test "enum_to_options handles mixed atom and string values correctly" do
+      # Test the exact case from the GitHub issue
+      defmodule TestMixedEnum do
+        use Ash.Type.Enum, values: [:pending, :trading, :paused, "Test"]
+      end
+
+      mock_attribute = %{
+        type: TestMixedEnum,
+        constraints: []
+      }
+
+      result = FilterManager.extract_enum_options(mock_attribute)
+
+      # Atoms should be humanized, strings should be capitalized
+      expected = [
+        {"Pending", :pending},
+        {"Trading", :trading},
+        {"Paused", :paused},
+        {"Test", "Test"}
+      ]
+
+      assert result == expected
+    end
+  end
 end

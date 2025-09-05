@@ -10,6 +10,7 @@
 
 * Fix filter type inference for relationship attributes
 * Fix unified filter options to default to auto-inference when no type is specified
+* Fix atoms in Enum modules generating missing labels in filters (#52)
 
 ## v0.6.0 (2025-08-26)
 
