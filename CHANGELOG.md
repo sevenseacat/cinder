@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.6.1 (2025-09-05)
 
 ### Features
 
@@ -12,6 +12,7 @@
 * Fix unified filter options to default to auto-inference when no type is specified
 * Fix atoms in Enum modules generating missing labels in filters (#52)
 * Fix embedded field sorting using calc expressions (#51)
+* Don't empty data when refreshing tables, to prevent flickering (#48)
 
 ## v0.6.0 (2025-08-26)
 
