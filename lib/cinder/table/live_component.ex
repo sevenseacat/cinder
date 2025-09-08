@@ -480,9 +480,9 @@ defmodule Cinder.Table.LiveComponent do
     <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
       <!-- Left side: Page info -->
       <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
-        {Messages.dgettext("cinder", "Page")} {@page_info.current_page} {Messages.dgettext("cinder", "of")} {@page_info.total_pages}
+        {Messages.dgettext("cinder", "Page %{current} of %{total}", current: @page_info.current_page, total: @page_info.total_pages)}
         <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
-          ({Messages.dgettext("cinder", "showing")} {@page_info.start_index}-{@page_info.end_index} {Messages.dgettext("cinder", "of")} {@page_info.total_count})
+          ({Messages.dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @page_info.start_index, end: @page_info.end_index, total: @page_info.total_count)})
         </span>
       </div>
 

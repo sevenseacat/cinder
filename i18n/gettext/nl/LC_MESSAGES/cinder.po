@@ -8,40 +8,40 @@
 ### to merge POT files into PO files.
 msgid ""
 msgstr ""
-"Language: sv\n"
+"Language: nl\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgid "Clear all"
-msgstr "Rensa alla"
+msgstr "Alles wissen"
 
 msgid "Clear filter"
-msgstr "Rensa filter"
+msgstr "Filter wissen"
 
 msgid "active"
 msgid_plural "active"
-msgstr[0] "aktiv"
-msgstr[1] "aktiva"
+msgstr[0] "actief"
+msgstr[1] "actief"
 
 msgid "Page %{current} of %{total}"
-msgstr "Sida %{current} av %{total}"
+msgstr "Pagina %{current} van %{total}"
 
 msgid "showing %{start}-%{end} of %{total}"
-msgstr "visar %{start}-%{end} av %{total}"
+msgstr "toont %{start}-%{end} van %{total}"
 
 msgid "to"
-msgstr "till"
+msgstr "tot"
 
 msgid "Next page"
-msgstr "Nästa sida"
+msgstr "Volgende pagina"
 
 msgid "Previous page"
-msgstr "Föregående sida"
+msgstr "Vorige pagina"
 
 msgid "First page"
-msgstr "Första sidan"
+msgstr "Eerste pagina"
 
 msgid "Last page"
-msgstr "Sista sidan"
+msgstr "Laatste pagina"
 
 msgid "Go to page %{page}"
-msgstr "Gå till sidan %{page}"
+msgstr "Ga naar pagina %{page}"

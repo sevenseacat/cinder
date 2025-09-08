@@ -22,13 +22,13 @@ msgid_plural "active"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Page"
+msgid "Page %{current} of %{total}"
 msgstr ""
 
-msgid "of"
+msgid "showing %{start}-%{end} of %{total}"
 msgstr ""
 
-msgid "showing"
+msgid "to"
 msgstr ""
 
 msgid "Next page"
