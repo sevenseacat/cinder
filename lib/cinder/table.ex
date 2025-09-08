@@ -292,10 +292,43 @@ defmodule Cinder.Table do
 
   The `:filter` slot supports these attributes:
 
+  **Universal attributes (all filter types):**
   - `field` (required) - Field name or relationship path (e.g., "user.name")
   - `type` - Filter type (e.g., `:select`, `:text`, `:date_range`) - auto-detected if not provided
-  - `options` - Filter options for select/multi-select filters
   - `label` - Filter label (auto-generated from field name if not provided)
+  - `fn` - Custom filter function
+
+  **Filter type specific attributes:**
+
+  **Text filters (`:text`):**
+  - `operator` - Operator (`:contains`, `:starts_with`, `:ends_with`, `:equals`)
+  - `case_sensitive` - Whether filter should be case sensitive
+  - `placeholder` - Placeholder text for input
+
+  **Select filters (`:select`):**
+  - `options` - Options list (e.g., `[{"Label", "value"}]`)
+  - `prompt` - Prompt text ("Choose..." style text)
+
+  **Multi-select filters (`:multi_select`, `:multi_checkboxes`):**
+  - `options` - Options list (e.g., `[{"Label", "value"}]`)
+  - `match_mode` - Match mode (`:any` for OR logic, `:all` for AND logic)
+  - `prompt` - Prompt text (`:multi_select` only)
+
+  **Boolean filters (`:boolean`):**
+  - `labels` - Custom labels (map with `:all`, `:true`, `:false` keys)
+
+  **Checkbox filters (`:checkbox`):**
+  - `value` - Filter value when checked
+  - `label` - Display text (required for checkbox)
+
+  **Date range filters (`:date_range`):**
+  - `format` - Format (`:date` or `:datetime`)
+  - `include_time` - Whether to include time selection
+
+  **Number range filters (`:number_range`):**
+  - `step` - Step value for inputs
+  - `min` - Minimum allowed value
+  - `max` - Maximum allowed value
 
   Filter-only slots use the same filter types and options as column filters, but are purely for filtering without displaying the field in the table.
 
@@ -435,6 +468,58 @@ defmodule Cinder.Table do
 
     attr(:options, :list,
       doc: "Filter options for select/multi-select filters"
+    )
+
+    attr(:value, :any,
+      doc: "Filter value for checkbox filters"
+    )
+
+    attr(:operator, :atom,
+      doc: "Text filter operator (:contains, :starts_with, :ends_with, :equals)"
+    )
+
+    attr(:case_sensitive, :boolean,
+      doc: "Whether text filter should be case sensitive"
+    )
+
+    attr(:placeholder, :string,
+      doc: "Placeholder text for input filters"
+    )
+
+    attr(:labels, :map,
+      doc: "Custom labels for boolean filter (map with :all, :true, :false keys)"
+    )
+
+    attr(:prompt, :string,
+      doc: "Prompt text for select filters ('Choose...' style text)"
+    )
+
+    attr(:match_mode, :atom,
+      doc: "Multi-select match mode (:any for OR logic, :all for AND logic)"
+    )
+
+    attr(:format, :atom,
+      doc: "Date range format (:date or :datetime)"
+    )
+
+    attr(:include_time, :boolean,
+      doc: "Whether date range should include time selection"
+    )
+
+    attr(:step, :any,
+      doc: "Step value for number range filters"
+    )
+
+    attr(:min, :any,
+      doc: "Minimum value for number range filters"
+    )
+
+    attr(:max, :any,
+      doc: "Maximum value for number range filters"
+    )
+
+    attr(:fn, :any,
+      doc: "Custom filter function"
     )
 
     attr(:label, :string, doc: "Custom filter label (auto-generated if not provided)")
@@ -628,7 +713,25 @@ defmodule Cinder.Table do
       field = Map.get(slot, :field)
       filter_type = Map.get(slot, :type)
       filter_options = Map.get(slot, :options, [])
+      filter_value = Map.get(slot, :value)
       label = Map.get(slot, :label)
+
+      # Extract all filter-specific options
+      extra_options = [
+        operator: Map.get(slot, :operator),
+        case_sensitive: Map.get(slot, :case_sensitive),
+        placeholder: Map.get(slot, :placeholder),
+        labels: Map.get(slot, :labels),
+        prompt: Map.get(slot, :prompt),
+        match_mode: Map.get(slot, :match_mode),
+        format: Map.get(slot, :format),
+        include_time: Map.get(slot, :include_time),
+        step: Map.get(slot, :step),
+        min: Map.get(slot, :min),
+        max: Map.get(slot, :max),
+        fn: Map.get(slot, :fn)
+      ]
+      |> Enum.filter(fn {_key, value} -> value != nil end)
 
       # Validate required attributes
       if is_nil(field) or field == "" do
@@ -636,9 +739,12 @@ defmodule Cinder.Table do
       end
 
       # Build filter configuration in unified format for determine_filter_type
+      base_options = if filter_value, do: [value: filter_value], else: []
+      all_options = base_options ++ extra_options ++ (filter_options || [])
+
       filter_config = if filter_type do
         # Explicit type provided - build unified config with options
-        [type: filter_type] ++ (filter_options || [])
+        [type: filter_type] ++ all_options
       else
         # No type specified - use auto-detection
         true
@@ -649,7 +755,15 @@ defmodule Cinder.Table do
         determine_filter_type(filter_config, field, resource)
 
       # Merge options: type-inferred options as base, with any additional options
-      merged_filter_options = filter_options_from_type
+      # Handle both keyword lists and regular lists (like options tuples)
+      merged_filter_options =
+        if Keyword.keyword?(filter_options_from_type) do
+          Keyword.merge(filter_options_from_type, all_options)
+        else
+          # If filter_options_from_type is not a keyword list (e.g. options list),
+          # combine them as a regular list with our keyword options
+          filter_options_from_type ++ all_options
+        end
 
       # Build column config for filter processing
       column_config = %{

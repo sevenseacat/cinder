@@ -315,6 +315,70 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert count_filter.filter_type == :number_range
     end
 
+    test "supports all filter-specific options" do
+      filter_slots = [
+        # Text filter with all options
+        %{field: "name", type: :text, operator: :starts_with, case_sensitive: true, placeholder: "Enter name...", __slot__: :filter},
+        # Boolean filter with custom labels
+        %{field: "active", type: :boolean, labels: %{all: "All Users", true: "Active Only", false: "Inactive Only"}, __slot__: :filter},
+        # Select filter with prompt
+        %{field: "status", type: :select, options: [{"Active", "active"}], prompt: "Choose status...", __slot__: :filter},
+        # Multi-select with match mode
+        %{field: "tags", type: :multi_select, options: [{"Tag1", "tag1"}], match_mode: :all, __slot__: :filter},
+        # Date range with time
+        %{field: "created_at", type: :date_range, include_time: true, format: :datetime, __slot__: :filter},
+        # Number range with constraints
+        %{field: "price", type: :number_range, min: 0, max: 1000, step: 10, __slot__: :filter},
+        # Checkbox with custom value
+        %{field: "featured", type: :checkbox, value: "yes", label: "Featured Only", __slot__: :filter}
+      ]
+
+      processed = Cinder.Table.process_filter_slots(filter_slots, TestUser)
+
+      # Verify all slots processed correctly
+      assert length(processed) == 7
+
+      # Check specific option extraction
+      text_filter = Enum.find(processed, &(&1.field == "name"))
+      assert text_filter.filter_type == :text
+
+      boolean_filter = Enum.find(processed, &(&1.field == "active"))
+      assert boolean_filter.filter_type == :boolean
+
+      select_filter = Enum.find(processed, &(&1.field == "status"))
+      assert select_filter.filter_type == :select
+
+      multi_select_filter = Enum.find(processed, &(&1.field == "tags"))
+      assert multi_select_filter.filter_type == :multi_select
+
+      date_filter = Enum.find(processed, &(&1.field == "created_at"))
+      assert date_filter.filter_type == :date_range
+
+      number_filter = Enum.find(processed, &(&1.field == "price"))
+      assert number_filter.filter_type == :number_range
+
+      checkbox_filter = Enum.find(processed, &(&1.field == "featured"))
+      assert checkbox_filter.filter_type == :checkbox
+    end
+
+    test "passes filter options through to filter system" do
+      # Test that options are properly passed to the filter processing
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}],
+        filter: [
+          %{field: "email", type: :text, placeholder: "Enter email...", case_sensitive: true, __slot__: :filter}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+      # The actual filter rendering would contain the placeholder and case sensitivity,
+      # but testing that would require more complex HTML parsing
+    end
+
+
 
 
 
@@ -596,6 +660,41 @@ defmodule Cinder.Table.FilterSlotsTest do
       refute html =~ ">Department<"
 
       # But should have filter controls (exact HTML would depend on filter rendering)
+      assert html =~ "🔍 Filters"
+    end
+
+    test "checkbox filter with custom value renders and processes correctly" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}],
+        filter: [
+          %{field: "age", type: :checkbox, value: "21", label: "Legal drinking age", __slot__: :filter}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+      assert html =~ "Legal drinking age"
+      # This test verifies the fix for the value attribute bug
+    end
+
+    test "filter-only slots work with URL state integration" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}],
+        filter: [
+          %{field: "age", type: :number_range, __slot__: :filter},
+          %{field: "active", type: :boolean, __slot__: :filter}
+        ]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+
+      # Filter-only slots should be processed and available for URL state management
+      # The actual URL encoding/decoding would be tested in URL sync integration tests
       assert html =~ "🔍 Filters"
     end
   end

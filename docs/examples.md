@@ -831,42 +831,142 @@ Provide custom labels for better UX:
 </Cinder.Table.table>
 ```
 
-### Complex Filter Options
+### Filter Type Specific Options
 
-Filter-only slots support all the same options as column filters:
+Each filter type supports different configuration options:
+
+#### Text Filters
 
 ```elixir
-<Cinder.Table.table resource={MyApp.Project} actor={@current_user}>
-  <:col :let={project} field="name">{project.name}</:col>
-  <:col :let={project} field="status">{project.status}</:col>
+<:filter 
+  field="description" 
+  type="text"
+  operator="starts_with"        <!-- :contains (default), :starts_with, :ends_with, :equals -->
+  case_sensitive={true}         <!-- default: false -->
+  placeholder="Search text..."  <!-- custom placeholder -->
+/>
+```
 
-  <!-- Multi-select with AND/OR logic -->
-  <:filter
-    field="tags"
-    type="multi_select"
-    options={["urgent", "backend", "frontend", "mobile"]}
-    match_mode="any"
-    label="Project Tags"
-  />
+#### Select Filters
 
+```elixir
+<:filter 
+  field="status" 
+  type="select"
+  options={[{"Active", "active"}, {"Inactive", "inactive"}]}  <!-- required -->
+  prompt="Choose status..."     <!-- optional "Choose..." text -->
+/>
+```
+
+#### Multi-Select Filters
+
+```elixir
+<!-- Dropdown interface -->
+<:filter 
+  field="tags" 
+  type="multi_select"
+  options={["urgent", "backend", "frontend"]}
+  match_mode="any"              <!-- :any (OR logic, default) or :all (AND logic) -->
+  prompt="Select tags..."       <!-- optional prompt text -->
+/>
+
+<!-- Checkbox list interface -->
+<:filter 
+  field="categories" 
+  type="multi_checkboxes"
+  options={[{"Category A", "cat_a"}, {"Category B", "cat_b"}]}
+  match_mode="all"              <!-- :any (OR logic, default) or :all (AND logic) -->
+/>
+```
+
+#### Boolean Filters
+
+```elixir
+<:filter 
+  field="is_published" 
+  type="boolean"
+  labels={%{                    <!-- custom labels for radio buttons -->
+    all: "All Articles", 
+    true: "Published Only", 
+    false: "Drafts Only"
+  }}
+/>
+```
+
+#### Checkbox Filters
+
+```elixir
+<!-- Boolean field -->
+<:filter 
+  field="featured" 
+  type="checkbox" 
+  label="Featured items only"   <!-- required label text -->
+/>
+
+<!-- Non-boolean field with custom value -->
+<:filter 
+  field="priority" 
+  type="checkbox"
+  value="high"                  <!-- value to filter by when checked -->
+  label="High priority only"    <!-- required label text -->
+/>
+```
+
+#### Date Range Filters
+
+```elixir
+<:filter 
+  field="created_at" 
+  type="date_range"
+  format="date"                 <!-- :date (default) or :datetime -->
+  include_time={false}          <!-- default: false -->
+/>
+
+<!-- With time selection -->
+<:filter 
+  field="event_datetime" 
+  type="date_range"
+  format="datetime"
+  include_time={true}
+/>
+```
+
+#### Number Range Filters
+
+```elixir
+<:filter 
+  field="price" 
+  type="number_range"
+  step={0.01}                   <!-- step increment (default: 1) -->
+  min={0}                       <!-- minimum allowed value -->
+  max={9999.99}                 <!-- maximum allowed value -->
+/>
+```
+
+#### Complete Example with Mixed Filter Types
+
+```elixir
+<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
+  <:col :let={product} field="name">{product.name}</:col>
+  <:col :let={product} field="price">${product.price}</:col>
+  
+  <!-- Text search with custom operator -->
+  <:filter field="description" type="text" operator="contains" placeholder="Search descriptions..." />
+  
+  <!-- Multi-select categories with AND logic -->
+  <:filter field="categories" type="multi_select" options={@category_options} match_mode="all" />
+  
   <!-- Boolean with custom labels -->
-  <:filter
-    field="is_active"
-    type="boolean"
-    labels={%{all: "All Projects", true: "Active Only", false: "Archived Only"}}
-  />
-
-  <!-- Select with complex options -->
-  <:filter
-    field="priority"
-    type="select"
-    options={[
-      {"Low Priority", "low"},
-      {"Medium Priority", "medium"},
-      {"High Priority", "high"},
-      {"Critical", "critical"}
-    ]}
-  />
+  <:filter field="in_stock" type="boolean" labels={%{all: "All Items", true: "In Stock", false: "Out of Stock"}} />
+  
+  <!-- Checkbox for featured items -->
+  <:filter field="featured" type="checkbox" label="Featured products only" />
+  
+  <!-- Date range for creation date -->
+  <:filter field="created_at" type="date_range" label="Created Date" />
+  
+  <!-- Number range for price with constraints -->
+  <:filter field="price" type="number_range" min={0} max={10000} step={10} />
 </Cinder.Table.table>
 ```
 
