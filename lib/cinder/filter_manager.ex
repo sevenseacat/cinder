@@ -577,10 +577,10 @@ defmodule Cinder.FilterManager do
           # Count aggregates should be treated as integers
           case aggregate.kind do
             :count -> %{name: key_atom, type: :integer}
-            :sum -> %{name: key_atom, type: aggregate.field_type || :integer}
+            :sum -> %{name: key_atom, type: aggregate.type || :integer}
             :avg -> %{name: key_atom, type: :decimal}
-            :max -> %{name: key_atom, type: aggregate.field_type || :integer}
-            :min -> %{name: key_atom, type: aggregate.field_type || :integer}
+            :max -> %{name: key_atom, type: aggregate.type || :integer}
+            :min -> %{name: key_atom, type: aggregate.type || :integer}
             _ -> %{name: key_atom, type: :integer}
           end
         else

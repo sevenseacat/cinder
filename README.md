@@ -37,6 +37,7 @@ That's it! Cinder automatically provides:
 - **🔗 Complete URL State Management**: Filters, pagination, and sorting synchronized with browser URL
 - **🌐 Relationship Support**: Dot notation for related fields (e.g., `user.department.name`)
 - **📦 Embedded Resource Support**: Double underscore notation for embedded fields (e.g., `user__profile__bio`) with automatic enum detection
+- **🔍 Filter-Only Slots**: Filter on any field without displaying it in the table
 - **🖱️ Interactive Row Actions**: Click handlers with Phoenix LiveView JS commands for navigation, modals, and custom actions
 - **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel) plus powerful DSL for custom themes
 - **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
@@ -65,7 +66,7 @@ Add `cinder` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:cinder, "~> 0.2"}
+    {:cinder, "~> 0.6"}
   ]
 end
 ```

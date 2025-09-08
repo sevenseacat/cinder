@@ -281,6 +281,24 @@ defmodule Cinder.Table do
     - For boolean fields: defaults to filtering for `true` when checked
     - For non-boolean fields: requires explicit `value` option
 
+  ## Filter Slot
+
+  The `:filter` slot allows filtering on fields that are not displayed in the table:
+
+  ```heex
+  <:filter field="created_at" type="date_range" label="Creation Date" />
+  <:filter field="department" type="select" options={["Sales", "Marketing"]} />
+  ```
+
+  The `:filter` slot supports these attributes:
+
+  - `field` (required) - Field name or relationship path (e.g., "user.name")
+  - `type` - Filter type (e.g., `:select`, `:text`, `:date_range`) - auto-detected if not provided
+  - `options` - Filter options for select/multi-select filters
+  - `label` - Filter label (auto-generated from field name if not provided)
+
+  Filter-only slots use the same filter types and options as column filters, but are purely for filtering without displaying the field in the table.
+
   ## Column Labels
 
   Column labels are automatically generated from field names using intelligent humanization:
@@ -404,6 +422,24 @@ defmodule Cinder.Table do
     attr(:class, :string, doc: "CSS classes for this column")
   end
 
+  slot :filter do
+    attr(:field, :string,
+      required: true,
+      doc: "Field name (supports dot notation for relationships or `__` for embedded attributes)"
+    )
+
+    attr(:type, :atom,
+      required: false,
+      doc: "Filter type (e.g., :select, :text, :date_range, :number_range, etc.) - auto-detected if not provided"
+    )
+
+    attr(:options, :list,
+      doc: "Filter options for select/multi-select filters"
+    )
+
+    attr(:label, :string, doc: "Custom filter label (auto-generated if not provided)")
+  end
+
   def table(assigns) do
     # Set intelligent defaults
     assigns =
@@ -430,9 +466,15 @@ defmodule Cinder.Table do
     normalized_query = normalize_query_params(assigns.resource, assigns.query)
     resource = extract_resource_from_query(normalized_query)
 
-    # Process columns and determine if filters should be shown
+    # Process columns and filter slots
     processed_columns = process_columns(assigns.col, resource)
-    show_filters = determine_show_filters(assigns, processed_columns)
+    processed_filter_slots = process_filter_slots(Map.get(assigns, :filter, []), resource)
+
+    # Merge columns and filter slots, checking for field conflicts
+    all_filter_configs = merge_filter_configurations(processed_columns, processed_filter_slots)
+
+    # Determine if filters should be shown
+    show_filters = determine_show_filters(assigns, all_filter_configs)
 
     # Process unified search configuration after columns are processed
     {search_label, search_placeholder, search_enabled, search_fn} =
@@ -445,6 +487,7 @@ defmodule Cinder.Table do
       assigns
       |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
+      |> assign(:all_filter_configs, all_filter_configs)
       |> assign(:resolved_options, resolved_options)
       |> assign(:page_size_config, page_size_config)
       |> assign(:search_label, search_label)
@@ -475,6 +518,7 @@ defmodule Cinder.Table do
         filters_label={@filters_label}
         empty_message={@empty_message}
         col={@processed_columns}
+        filter_configs={@all_filter_configs}
         row_click={@row_click}
         search_enabled={@search_enabled}
         search_label={@search_label}
@@ -575,6 +619,112 @@ defmodule Cinder.Table do
         __slot__: :col
       }
     end)
+  end
+
+  # Process filter-only slot definitions into the format expected by the filter system
+  @doc false
+  def process_filter_slots(filter_slots, resource) do
+    Enum.map(filter_slots, fn slot ->
+      field = Map.get(slot, :field)
+      filter_type = Map.get(slot, :type)
+      filter_options = Map.get(slot, :options, [])
+      label = Map.get(slot, :label)
+
+      # Validate required attributes
+      if is_nil(field) or field == "" do
+        raise ArgumentError, "Filter slot missing required :field attribute"
+      end
+
+      # Build filter configuration in unified format for determine_filter_type
+      filter_config = if filter_type do
+        # Explicit type provided - build unified config with options
+        [type: filter_type] ++ (filter_options || [])
+      else
+        # No type specified - use auto-detection
+        true
+      end
+
+      # Let Column module infer filter type if needed, otherwise use explicit type
+      {determined_filter_type, filter_options_from_type} =
+        determine_filter_type(filter_config, field, resource)
+
+      # Merge options: type-inferred options as base, with any additional options
+      merged_filter_options = filter_options_from_type
+
+      # Build column config for filter processing
+      column_config = %{
+        field: field,
+        filterable: true,
+        sortable: false,
+        class: "",
+        filter_fn: nil,
+        search: false
+      }
+
+      column_config =
+        case determined_filter_type do
+          :auto ->
+            # Let Column module infer the type from resource
+            Map.put(column_config, :filter_options, merged_filter_options)
+
+          explicit_type ->
+            # Use the explicitly specified filter type
+            column_config
+            |> Map.put(:filter_type, explicit_type)
+            |> Map.put(:filter_options, merged_filter_options)
+        end
+
+      # Parse through Column module for validation and intelligent defaults
+      parsed_column = Cinder.Column.parse_column(column_config, resource)
+
+      # Create filter slot in internal format
+      %{
+        field: field,
+        label: label || parsed_column.label,
+        filterable: true,
+        filter_type: parsed_column.filter_type,
+        filter_options: parsed_column.filter_options,
+        sortable: false,
+        class: "",
+        inner_block: nil,  # Filter slots don't render content
+        filter_fn: parsed_column.filter_fn,
+        searchable: false,
+        sort_cycle: [nil, :asc, :desc],
+        __slot__: :filter
+      }
+    end)
+  end
+
+  # Merge column filters and filter-only slots, checking for field conflicts
+  @doc false
+  def merge_filter_configurations(processed_columns, processed_filter_slots) do
+    # Extract fields from columns that have filtering enabled
+    column_fields =
+      processed_columns
+      |> Enum.filter(& &1.filterable)
+      |> Enum.map(& &1.field)
+      |> MapSet.new()
+
+    # Extract fields from filter slots
+    filter_slot_fields =
+      processed_filter_slots
+      |> Enum.map(& &1.field)
+      |> MapSet.new()
+
+    # Check for conflicts
+    conflicts = MapSet.intersection(column_fields, filter_slot_fields)
+
+    if MapSet.size(conflicts) > 0 do
+      conflict_list = MapSet.to_list(conflicts)
+      raise ArgumentError,
+        "Field conflict detected: #{inspect(conflict_list)}. " <>
+        "Fields cannot be defined in both :col (with filter enabled) and :filter slots. " <>
+        "Use either column filtering or filter-only slots, not both for the same field."
+    end
+
+    # Merge all filterable configurations
+    column_filters = Enum.filter(processed_columns, & &1.filterable)
+    column_filters ++ processed_filter_slots
   end
 
   # Extract custom functions from unified sort configuration

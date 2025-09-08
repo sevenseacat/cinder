@@ -16,6 +16,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Resource vs Query](#resource-vs-query)
 - [Column Configuration](#column-configuration)
 - [Filter Types](#filter-types)
+- [Filter-Only Slots](#filter-only-slots)
 - [Searching](#searching)
 - [Sorting](#sorting)
 - [Custom Filter Functions](#custom-filter-functions)
@@ -26,8 +27,128 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Interactive Tables](#interactive-tables)
 - [Action Columns](#action-columns)
 - [Table Refresh](#table-refresh)
-- [Performance Optimization](#performance-optimization)
+- **Performance Optimization](#performance-optimization)
 - [Testing](#testing)
+
+## Filter-Only Slots
+
+Filter-only slots allow you to add filtering capabilities for fields that you don't want to display as columns in your table. This is perfect for keeping your table clean while providing powerful filtering options.
+
+### Basic Filter-Only Slots
+
+```elixir
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <!-- Display columns -->
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+
+  <!-- Filter-only slots - not displayed in table -->
+  <:filter field="created_at" type="date_range" label="Registration Date" />
+  <:filter field="department" type="select" options={["Engineering", "Sales"]} />
+  <:filter field="active" type="boolean" label="Active Users" />
+</Cinder.Table.table>
+```
+
+### Auto-Detection
+
+Just like column filters, filter-only slots support automatic type detection based on your Ash resource attributes:
+
+```elixir
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name">{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+
+  <!-- These will auto-detect appropriate filter types -->
+  <:filter field="age" />           <!-- number_range for integer -->
+  <:filter field="created_at" />    <!-- date_range for datetime -->
+  <:filter field="active" />        <!-- boolean for boolean -->
+  <:filter field="department" />    <!-- text for string -->
+</Cinder.Table.table>
+```
+
+### Custom Labels and Options
+
+Customize the filter appearance with labels and options:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
+  <:col :let={product} field="name" filter sort>{product.name}</:col>
+  <:col :let={product} field="price" sort>{product.price}</:col>
+
+  <!-- Custom labels and select options -->
+  <:filter field="category" type="select"
+           label="Product Category"
+           options={[{"Electronics", "electronics"}, {"Books", "books"}, {"Clothing", "clothing"}]} />
+
+  <:filter field="created_at" type="date_range" label="Launch Date" />
+
+  <:filter field="in_stock" type="boolean" label="Available Now" />
+</Cinder.Table.table>
+```
+
+### Complex Filter Scenarios
+
+Filter-only slots work great for administrative interfaces where you need many filtering options:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Order} actor={@current_admin}>
+  <!-- Essential display columns -->
+  <:col :let={order} field="id" sort>#{order.id}</:col>
+  <:col :let={order} field="customer.email">{order.customer.email}</:col>
+  <:col :let={order} field="total" sort>{order.total}</:col>
+
+  <!-- Extensive filtering without cluttering the display -->
+  <:filter field="status" type="select"
+           options={[{"Pending", "pending"}, {"Shipped", "shipped"}, {"Delivered", "delivered"}]} />
+
+  <:filter field="created_at" type="date_range" label="Order Date" />
+
+  <:filter field="customer.country" type="select"
+           label="Customer Country"
+           options={[{"US", "us"}, {"CA", "ca"}, {"UK", "uk"}]} />
+
+  <:filter field="payment_method" type="select"
+           options={[{"Credit Card", "card"}, {"PayPal", "paypal"}, {"Bank Transfer", "bank"}]} />
+
+  <:filter field="total" type="number_range" label="Order Value" />
+
+  <:filter field="discount_applied" type="boolean" label="Has Discount" />
+</Cinder.Table.table>
+```
+
+### Relationship and Embedded Field Filtering
+
+Filter-only slots support the same relationship and embedded field syntax as regular columns:
+
+```elixir
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name">{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+
+  <!-- Relationship filtering -->
+  <:filter field="department.name" type="select"
+           label="Department"
+           options={[{"Engineering", "engineering"}, {"Sales", "sales"}]} />
+
+  <:filter field="manager.name" type="text" label="Manager" />
+
+  <!-- Embedded resource filtering -->
+  <:filter field="profile__country" type="select" label="Country" />
+  <:filter field="settings__timezone" type="select" label="Timezone" />
+</Cinder.Table.table>
+```
+
+### Field Conflict Prevention
+
+Cinder prevents you from defining the same field in both a column (with filtering enabled) and a filter-only slot:
+
+```elixir
+<!-- This will raise an error -->
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter>{user.name}</:col>  <!-- Filter enabled -->
+  <:filter field="name" type="text" />  <!-- Conflict! -->
+</Cinder.Table.table>
+```
 
 ## Basic Usage
 
@@ -39,6 +160,22 @@ The simplest possible table:
 <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name">{user.name}</:col>
   <:col :let={user} field="email">{user.email}</:col>
+</Cinder.Table.table>
+```
+
+### With Filter-Only Fields
+
+Add filtering on fields without displaying them in the table:
+
+```elixir
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+
+  <!-- Filter on these fields without showing them as columns -->
+  <:filter field="created_at" type="date_range" label="Registration Date" />
+  <:filter field="department" type="select" options={["Engineering", "Sales", "Marketing"]} />
+  <:filter field="last_login" />  <!-- Auto-detects as date_range -->
 </Cinder.Table.table>
 ```
 
@@ -641,6 +778,152 @@ This is particularly useful for:
   </:col>
 </Cinder.Table.table>
 ```
+
+## Filter-Only Slots
+
+Filter-only slots allow you to add filtering capabilities for fields that you don't want to display as columns in your table. This keeps your table clean and focused while providing powerful filtering options.
+
+### Basic Filter-Only Slots
+
+```elixir
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <!-- Display columns -->
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+
+  <!-- Filter-only slots - appear in filter controls but not as columns -->
+  <:filter field="created_at" type="date_range" label="Registration Date" />
+  <:filter field="department" type="select" options={["Engineering", "Sales", "Marketing"]} />
+  <:filter field="last_login" type="date_range" />
+</Cinder.Table.table>
+```
+
+### Auto-Detection of Filter Types
+
+When you don't specify a `type`, Cinder automatically detects the appropriate filter based on the field's Ash resource type:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
+  <:col :let={product} field="name">{product.name}</:col>
+  <:col :let={product} field="price">${product.price}</:col>
+
+  <!-- Auto-detected filter types -->
+  <:filter field="created_at" />          <!-- becomes :date_range -->
+  <:filter field="stock_count" />         <!-- becomes :number_range -->
+  <:filter field="is_featured" />         <!-- becomes :boolean -->
+  <:filter field="tags" />                <!-- becomes :multi_select for arrays -->
+</Cinder.Table.table>
+```
+
+### Custom Labels
+
+Provide custom labels for better UX:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
+  <:col :let={order} field="number">{order.number}</:col>
+  <:col :let={order} field="total">${order.total}</:col>
+
+  <!-- Custom labels for filter-only slots -->
+  <:filter field="created_at" type="date_range" label="Order Date" />
+  <:filter field="customer_id" type="select" label="Customer" options={@customer_options} />
+  <:filter field="status" label="Order Status" />  <!-- Auto-detects type, uses custom label -->
+</Cinder.Table.table>
+```
+
+### Complex Filter Options
+
+Filter-only slots support all the same options as column filters:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Project} actor={@current_user}>
+  <:col :let={project} field="name">{project.name}</:col>
+  <:col :let={project} field="status">{project.status}</:col>
+
+  <!-- Multi-select with AND/OR logic -->
+  <:filter
+    field="tags"
+    type="multi_select"
+    options={["urgent", "backend", "frontend", "mobile"]}
+    match_mode="any"
+    label="Project Tags"
+  />
+
+  <!-- Boolean with custom labels -->
+  <:filter
+    field="is_active"
+    type="boolean"
+    labels={%{all: "All Projects", true: "Active Only", false: "Archived Only"}}
+  />
+
+  <!-- Select with complex options -->
+  <:filter
+    field="priority"
+    type="select"
+    options={[
+      {"Low Priority", "low"},
+      {"Medium Priority", "medium"},
+      {"High Priority", "high"},
+      {"Critical", "critical"}
+    ]}
+  />
+</Cinder.Table.table>
+```
+
+### Field Conflict Prevention
+
+You cannot use the same field in both a column filter and a filter-only slot:
+
+```elixir
+<!-- This will raise an error -->
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter>{user.name}</:col>  <!-- Filter enabled -->
+  <:filter field="name" type="text" />                      <!-- Conflict! -->
+</Cinder.Table.table>
+
+<!-- Instead, choose one approach -->
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <!-- Option 1: Column with filter -->
+  <:col :let={user} field="name" filter>{user.name}</:col>
+
+  <!-- Option 2: Display column + filter-only slot -->
+  <:col :let={user} field="name">{user.name}</:col>  <!-- No filter -->
+  <:filter field="name" type="text" />               <!-- Filter-only -->
+</Cinder.Table.table>
+```
+
+### Relationship and Embedded Fields
+
+Filter-only slots work with relationship and embedded fields:
+
+```elixir
+<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
+  <:col :let={order} field="number">{order.number}</:col>
+  <:col :let={order} field="total">${order.total}</:col>
+
+  <!-- Relationship field filters -->
+  <:filter field="customer.company_name" type="text" label="Company" />
+  <:filter field="customer.region" type="select" options={@regions} />
+
+  <!-- Embedded field filters -->
+  <:filter field="billing_address__country" type="select" options={@countries} />
+  <:filter field="shipping_address__postal_code" type="text" label="Shipping ZIP" />
+</Cinder.Table.table>
+```
+
+### When to Use Filter-Only Slots
+
+**Use filter-only slots when:**
+- You want to filter by fields that would clutter the table display
+- You need many filter options but limited column space
+- Filtering fields are for search/discovery but not primary data display
+- You want to keep the table focused on the most important information
+
+**Examples:**
+- **User Management**: Display name/email, filter by registration date, department, role, last login
+- **E-commerce**: Display product name/price, filter by category, brand, stock status, creation date
+- **CRM**: Display contact name/company, filter by lead source, stage, assigned user, activity date
+- **Content Management**: Display title/author, filter by publication date, tags, status, category
 
 ## Searching
 
