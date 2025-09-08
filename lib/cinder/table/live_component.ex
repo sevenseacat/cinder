@@ -52,7 +52,7 @@ defmodule Cinder.Table.LiveComponent do
       <!-- Filter Controls (including search) -->
       <div class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
-          columns={@columns}
+          columns={Map.get(assigns, :filter_columns, @columns)}
           filters={@filters}
           theme={@theme}
           target={@myself}
@@ -254,7 +254,7 @@ defmodule Cinder.Table.LiveComponent do
     # Process filters - use empty map when no "filters" key to handle unchecked checkboxes
     new_filters =
       Map.get(params, "filters", %{})
-      |> Cinder.FilterManager.params_to_filters(socket.assigns.columns)
+      |> Cinder.FilterManager.params_to_filters(Map.get(socket.assigns, :filter_columns, socket.assigns.columns))
 
     # Process search if present
     search_term =
@@ -393,7 +393,7 @@ defmodule Cinder.Table.LiveComponent do
       raw_params = assigns.url_raw_params
 
       # Use raw params with actual columns for proper filter decoding
-      decoded_state = Cinder.UrlManager.decode_state(raw_params, socket.assigns.columns)
+      decoded_state = Cinder.UrlManager.decode_state(raw_params, Map.get(socket.assigns, :filter_columns, socket.assigns.columns))
 
       # Only use extracted query sorts if this is the initial load (no previous user interaction)
       # If URL params are empty after user interaction, preserve the user's choice (empty sort)
@@ -445,7 +445,7 @@ defmodule Cinder.Table.LiveComponent do
       if Enum.empty?(url_params) do
         socket
       else
-        decoded_state = Cinder.UrlManager.decode_state(url_params, socket.assigns.columns)
+        decoded_state = Cinder.UrlManager.decode_state(url_params, Map.get(socket.assigns, :filter_columns, socket.assigns.columns))
 
         final_sort_by =
           cond do
@@ -693,12 +693,27 @@ defmodule Cinder.Table.LiveComponent do
   defp assign_column_definitions(socket) do
     resource = socket.assigns.query
 
-    columns =
+    # Always process display columns for table rendering
+    display_columns =
       socket.assigns.col
       |> Enum.map(&Cinder.Column.parse_column(&1, resource))
       |> Enum.map(&convert_column_to_legacy_format/1)
 
-    assign(socket, :columns, columns)
+    # Use filter_configs for filtering if provided (includes filter-only slots)
+    # Otherwise use the display columns for backward compatibility
+    filter_columns =
+      case Map.get(socket.assigns, :filter_configs) do
+        nil ->
+          display_columns
+
+        filter_configs ->
+          # Convert pre-processed filter configurations to legacy format
+          Enum.map(filter_configs, &convert_filter_config_to_legacy_format/1)
+      end
+
+    socket
+    |> assign(:columns, display_columns)
+    |> assign(:filter_columns, filter_columns)
   end
 
   defp extract_initial_sorts(assigns) do
@@ -842,6 +857,25 @@ defmodule Cinder.Table.LiveComponent do
       search_fn: column.search_fn,
       class: column.class,
       slot: column.slot
+    }
+  end
+
+  # Convert pre-processed filter configuration to legacy format
+  defp convert_filter_config_to_legacy_format(config) when is_map(config) do
+    %{
+      field: config.field,
+      label: config.label,
+      sortable: Map.get(config, :sortable, false),
+      searchable: Map.get(config, :searchable, false),
+      filterable: Map.get(config, :filterable, true),
+      filter_type: config.filter_type,
+      filter_options: Map.get(config, :filter_options, []),
+      filter_fn: Map.get(config, :filter_fn),
+      options: Map.get(config, :options, []),
+      display_field: Map.get(config, :display_field),
+      search_fn: Map.get(config, :search_fn),
+      class: Map.get(config, :class, ""),
+      slot: Map.get(config, :__slot__, :col)
     }
   end
 

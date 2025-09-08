@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* Add filter-only slots for filtering on fields without displaying them as columns (#34)
+
+### Bug fixes
+
+* Fix aggregate field type inference using wrong property name (aggregates now correctly infer as `:number_range` instead of `:text`)
+
 ## v0.6.1 (2025-09-05)
 
 ### Features
