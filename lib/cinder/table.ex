@@ -281,6 +281,24 @@ defmodule Cinder.Table do
     - For boolean fields: defaults to filtering for `true` when checked
     - For non-boolean fields: requires explicit `value` option
 
+  ## Filter Slot
+
+  The `:filter` slot allows filtering on fields that are not displayed in the table:
+
+  ```heex
+  <:filter field="created_at" type="date_range" label="Creation Date" />
+  <:filter field="department" type="select" options={["Sales", "Marketing"]} />
+  ```
+
+  The `:filter` slot supports these attributes:
+
+  - `field` (required) - Field name or relationship path (e.g., "user.name")
+  - `type` (required) - Filter type (e.g., `:select`, `:text`, `:date_range`)
+  - `options` - Filter options for select/multi-select filters
+  - `label` - Filter label (auto-generated from field name if not provided)
+
+  Filter-only slots use the same filter types and options as column filters, but are purely for filtering without displaying the field in the table.
+
   ## Column Labels
 
   Column labels are automatically generated from field names using intelligent humanization:
@@ -402,6 +420,24 @@ defmodule Cinder.Table do
 
     attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
     attr(:class, :string, doc: "CSS classes for this column")
+  end
+
+  slot :filter do
+    attr(:field, :string,
+      required: true,
+      doc: "Field name (supports dot notation for relationships or `__` for embedded attributes)"
+    )
+
+    attr(:type, :atom,
+      required: true,
+      doc: "Filter type (e.g., :select, :text, :date_range, :number_range, etc.)"
+    )
+
+    attr(:options, :list,
+      doc: "Filter options for select/multi-select filters"
+    )
+
+    attr(:label, :string, doc: "Custom filter label (auto-generated if not provided)")
   end
 
   def table(assigns) do
