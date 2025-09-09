@@ -461,9 +461,9 @@ defmodule Cinder.Table do
       doc: "Field name (supports dot notation for relationships or `__` for embedded attributes)"
     )
 
-    attr(:type, :atom,
+    attr(:type, :any,
       required: false,
-      doc: "Filter type (e.g., :select, :text, :date_range, :number_range, etc.) - auto-detected if not provided"
+      doc: "Filter type as atom or string (e.g., :select, \"select\", :text, \"text\", etc.) - auto-detected if not provided"
     )
 
     attr(:options, :list,
