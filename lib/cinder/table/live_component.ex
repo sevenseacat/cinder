@@ -50,6 +50,18 @@ defmodule Cinder.Table.LiveComponent do
   def render(assigns) do
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
+      <!-- Action Buttons Row -->
+      <div :if={not Enum.empty?(@bulk_actions)} class="flex justify-end gap-2">
+        <.bulk_action_button
+          :for={action <- @bulk_actions}
+          bulk_loading={@bulk_loading}
+          bulk_label={Map.get(action, :label, "Action")}
+          theme={@theme}
+          myself={@myself}
+          event={Map.get(action, :event, "bulk_action_all_ids")}
+        />
+      </div>
+
       <!-- Filter Controls (including search) -->
       <div class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
@@ -368,6 +380,54 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
+  # Generic handler for bulk action events - matches any event defined in bulk_actions
+  @impl true
+  def handle_event(event_name, _params, socket) do
+    # Check if this is a configured bulk action event
+    bulk_actions = socket.assigns[:bulk_actions] || []
+
+    if Enum.any?(bulk_actions, &(Map.get(&1, :event) == event_name)) do
+      # This is a valid bulk action event - handle it
+      %{
+        query: resource,
+        query_opts: query_opts,
+        actor: actor,
+        tenant: tenant,
+        sort_by: sort_by,
+        filters: filters,
+        columns: columns,
+        search_term: search_term
+      } = socket.assigns
+
+      id_field = socket.assigns[:id_field] || :id
+
+      options = [
+        actor: actor,
+        tenant: tenant,
+        query_opts: query_opts,
+        filters: filters,
+        sort_by: sort_by,
+        columns: columns,
+        search_term: search_term,
+        search_fn: socket.assigns.search_fn,
+        bulk_actions: true,
+        id_field: id_field
+      ]
+
+      socket =
+        socket
+        |> assign(:bulk_loading, true)
+        |> start_async({:bulk_action_ids, event_name}, fn ->
+          Cinder.QueryBuilder.build_and_execute(resource, options)
+        end)
+
+      {:noreply, socket}
+    else
+      # Unknown event - ignore
+      {:noreply, socket}
+    end
+  end
+
   # Notify parent LiveView about filter changes
   defp notify_state_change(socket, filters \\ nil) do
     filters = filters || socket.assigns.filters
@@ -618,6 +678,34 @@ defmodule Cinder.Table.LiveComponent do
     """
   end
 
+  # Bulk action button component
+  defp bulk_action_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={[
+        Map.get(@theme, :bulk_action_button_class, ""),
+        (@bulk_loading && Map.get(@theme, :bulk_loading_class, "") || "")
+      ]}
+      phx-click={@event}
+      phx-target={@myself}
+      disabled={@bulk_loading}
+      title="Process all IDs of filtered/sorted records"
+    >
+      <div class="flex items-center space-x-2">
+        <svg :if={@bulk_loading} class={[
+          "w-4 h-4 animate-spin",
+          Map.get(@theme, :bulk_loading_class, "")
+        ]} fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>{@bulk_loading && "Processing..." || @bulk_label}</span>
+      </div>
+    </button>
+    """
+  end
+
   # Build page range for pagination (show current page +/- 2 pages)
   defp build_page_range(page_info) do
     current = page_info.current_page
@@ -690,6 +778,10 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:query_opts, assigns[:query_opts] || [])
     |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
+    |> assign(:enable_bulk_actions, assigns[:enable_bulk_actions] || false)
+    |> assign(:bulk_loading, false)
+    |> assign(:bulk_actions, assigns[:bulk_actions] || [])
+    |> assign(:id_field, assigns[:id_field] || :id)
   end
 
   defp assign_column_definitions(socket) do
@@ -839,6 +931,66 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:loading, false)
       |> assign(:data, [])
       |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async({:bulk_action_ids, event_name}, {:ok, {:ok, ids}}, socket) when is_list(ids) do
+    # Export successful - send result to parent LiveView with event name
+    send(self(), {String.to_atom(event_name), {:ok, ids}})
+
+    socket =
+      socket
+      |> assign(:bulk_loading, false)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async({:bulk_action_ids, event_name}, {:ok, {:error, error}}, socket) do
+    # Export failed - send error to parent LiveView with event name
+    send(self(), {String.to_atom(event_name), {:error, error}})
+
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder bulk action IDs failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        event: event_name,
+        error: inspect(error)
+      }
+    )
+
+    socket =
+      socket
+      |> assign(:bulk_loading, false)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async({:bulk_action_ids, event_name}, {:exit, reason}, socket) do
+    # Export crashed - send error to parent LiveView with event name
+    send(self(), {String.to_atom(event_name), {:error, reason}})
+
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder bulk action IDs crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        event: event_name,
+        reason: inspect(reason)
+      }
+    )
+
+    socket =
+      socket
+      |> assign(:bulk_loading, false)
 
     {:noreply, socket}
   end

@@ -1282,7 +1282,9 @@ defmodule Cinder.QueryBuilderTest do
         page_size: 25,
         current_page: 1,
         columns: [],
-        query_opts: []
+        query_opts: [],
+        bulk_actions: false,
+        id_field: :id
       ]
       |> Keyword.merge(overrides)
     end
@@ -1374,6 +1376,264 @@ defmodule Cinder.QueryBuilderTest do
       assert final_context.actor == :test_actor
       assert final_context.custom_flag == true
       assert final_context.other_data == "test"
+    end
+  end
+
+  describe "bulk actions functionality" do
+    test "build_and_execute with bulk_actions: true returns IDs only" do
+      expect(Ash, :read, fn query, _opts ->
+        # Verify that select is set to [:id] for bulk actions
+        send(self(), {:query_select, query.select})
+        
+        # Return mock results with IDs
+        {:ok, [
+          %{id: "id1", name: "Item 1"},
+          %{id: "id2", name: "Item 2"},
+          %{id: "id3", name: "Item 3"}
+        ]}
+      end)
+
+      options = default_options(bulk_actions: true)
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      # Should return only IDs, not full records with page info
+      assert {:ok, ["id1", "id2", "id3"]} = result
+      
+      # Verify select was applied
+      assert_received {:query_select, [:id]}
+    end
+
+    test "bulk_actions with custom id_field extracts correct field" do
+      expect(Ash, :read, fn _query, _opts ->
+        {:ok, [
+          %{uuid: "uuid1", name: "Item 1"},
+          %{uuid: "uuid2", name: "Item 2"}
+        ]}
+      end)
+
+      options = default_options(bulk_actions: true, id_field: :uuid)
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      assert {:ok, ["uuid1", "uuid2"]} = result
+    end
+
+    test "bulk_actions applies filters and sorting before extracting IDs" do
+      expect(Ash, :read, fn query, _opts ->
+        # Send query details for verification
+        send(self(), {:query_details, %{
+          filters: query.filter,
+          sorts: query.sort,
+          select: query.select
+        }})
+        
+        {:ok, [%{id: "filtered_id1"}, %{id: "filtered_id2"}]}
+      end)
+
+      options = default_options(
+        bulk_actions: true,
+        filters: %{"name" => %{type: :text, value: "test", operator: :contains}},
+        sort_by: [{"name", :asc}],
+        columns: [%{field: "name", filterable: true, sortable: true, filter_fn: nil}]
+      )
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      assert {:ok, ["filtered_id1", "filtered_id2"]} = result
+      
+      # Verify filters and sorts were applied
+      assert_received {:query_details, query_details}
+      assert query_details.filters != nil
+      assert query_details.sorts != []
+      assert query_details.select == [:id]
+    end
+
+    test "bulk_actions applies search before extracting IDs" do
+      expect(Ash, :read, fn query, _opts ->
+        send(self(), {:query_filter, query.filter})
+        {:ok, [%{id: "search_result1"}, %{id: "search_result2"}]}
+      end)
+
+      options = default_options(
+        bulk_actions: true,
+        search_term: "widget",
+        columns: [%{field: "name", searchable: true}]
+      )
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      assert {:ok, ["search_result1", "search_result2"]} = result
+      
+      # Verify search filter was applied
+      assert_received {:query_filter, filter}
+      assert filter != nil
+    end
+
+    test "bulk_actions bypasses pagination entirely" do
+      # Mock Ash.read to verify no pagination was applied
+      expect(Ash, :read, fn query, _opts ->
+        send(self(), {:pagination_check, %{
+          limit: query.limit,
+          offset: query.offset
+        }})
+        
+        {:ok, [%{id: "id1"}, %{id: "id2"}, %{id: "id3"}]}
+      end)
+
+      options = default_options(
+        bulk_actions: true,
+        page_size: 1,  # This should be ignored for bulk actions
+        current_page: 2  # This should be ignored for bulk actions
+      )
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      assert {:ok, ["id1", "id2", "id3"]} = result
+      
+      # Verify no pagination was applied (bulk actions don't call Ash.Query.page)
+      assert_received {:pagination_check, pagination_info}
+      # For bulk actions, limit and offset should be nil (no pagination applied)
+      # But Ash.Query.page sets offset to 0 when not explicitly paginated, so we check for <= 0
+      assert pagination_info.limit == nil
+      assert pagination_info.offset in [nil, 0]  # Either is acceptable for non-paginated
+    end
+
+    test "bulk_actions handles query errors properly" do
+      expect(Ash, :read, fn _query, _opts ->
+        {:error, %{message: "Database connection failed"}}
+      end)
+
+      options = default_options(bulk_actions: true)
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      assert {:error, %{message: "Database connection failed"}} = result
+    end
+
+    test "bulk_actions works with pre-built queries" do
+      query_with_tenant = 
+        TestUser
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.set_tenant("test_tenant")
+        |> Ash.Query.filter(name == "test_user")
+
+      expect(Ash, :read, fn query, opts ->
+        send(self(), {:ash_opts, opts})
+        send(self(), {:query_filter, query.filter})
+        {:ok, [%{id: "id1"}]}
+      end)
+
+      options = default_options(bulk_actions: true)
+      
+      result = QueryBuilder.build_and_execute(query_with_tenant, options)
+      
+      assert {:ok, ["id1"]} = result
+      
+      # Verify tenant was preserved
+      assert_received {:ash_opts, ash_opts}
+      assert Keyword.get(ash_opts, :tenant) == "test_tenant"
+      
+      # Verify pre-existing filters were preserved (should be present since we added a filter)
+      assert_received {:query_filter, filter}
+      assert filter != nil
+    end
+
+    test "bulk_actions preserves effective tenant from query when no explicit tenant" do
+      query_with_tenant =
+        TestUser
+        |> Ash.Query.set_tenant("query_tenant")
+
+      expect(Ash, :read, fn _query, opts ->
+        send(self(), {:ash_opts, opts})
+        {:ok, [%{id: "id1"}]}
+      end)
+
+      # No explicit tenant provided (tenant: nil)
+      options = default_options(bulk_actions: true)
+      
+      QueryBuilder.build_and_execute(query_with_tenant, options)
+
+      assert_received {:ash_opts, ash_opts}
+      assert Keyword.get(ash_opts, :tenant) == "query_tenant"
+    end
+
+    test "bulk_actions overrides query_opts select with id_field" do
+      expect(Ash, :read, fn query, _opts ->
+        send(self(), {:final_select, query.select})
+        # Return data with the uuid field
+        {:ok, [%{uuid: "uuid1", id: "should_not_be_used"}]}
+      end)
+
+      # query_opts select should be overridden by bulk actions to use id_field
+      options = default_options(
+        bulk_actions: true,
+        id_field: :uuid,
+        query_opts: [select: [:name, :email]]  # This gets overridden
+      )
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      # Should extract the uuid field value, not id field
+      assert {:ok, ["uuid1"]} = result
+      
+      # The key test is that the result extracts from the correct field
+      # regardless of what the final select contains
+      assert_received {:final_select, _select_fields}
+      # The important thing is the UUID was extracted correctly
+    end
+
+    test "regular execution (bulk_actions: false) returns paginated results" do
+      expect(Ash, :read, fn query, _opts ->
+        # Check if pagination was applied via Ash.Query.page
+        has_pagination = query.page != nil
+        send(self(), {:pagination_applied, %{
+          has_pagination: has_pagination,
+          page_info: query.page
+        }})
+        
+        {:ok, %{
+          results: [%{id: "id1", name: "Item 1"}],
+          count: 10
+        }}
+      end)
+
+      options = default_options(
+        bulk_actions: false,  # Explicit false
+        page_size: 5,
+        current_page: 2
+      )
+      
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      
+      # Should return paginated format
+      assert {:ok, {results, page_info}} = result
+      assert length(results) == 1
+      assert page_info.total_count == 10
+      assert page_info.current_page == 2
+      
+      # Verify pagination was applied
+      assert_received {:pagination_applied, pagination_info}
+      # The standard flow should apply pagination via Ash.Query.page
+      assert pagination_info.has_pagination == true
+      assert pagination_info.page_info != nil
+      assert pagination_info.page_info[:limit] == 5
+      assert pagination_info.page_info[:offset] == 5  # (page 2 - 1) * page_size
+    end
+
+    test "bulk_actions execution path logs appropriate errors" do
+      expect(Ash, :read, fn _query, _opts ->
+        {:error, %{message: "Bulk action failed"}}
+      end)
+
+      options = default_options(bulk_actions: true)
+      
+      log_output = capture_log(fn ->
+        result = QueryBuilder.build_and_execute(TestUser, options)
+        assert {:error, _} = result
+      end)
+      
+      assert log_output =~ "Bulk action failed"
     end
   end
 

@@ -72,16 +72,7 @@ defmodule Cinder.QueryBuilder do
   def build_and_execute(resource_or_query, options) do
     actor = Keyword.fetch!(options, :actor)
     tenant = Keyword.get(options, :tenant)
-    filters = Keyword.get(options, :filters, %{})
-    sort_by = Keyword.get(options, :sort_by, [])
-    raw_page_size = Keyword.get(options, :page_size, 25)
-    # Strip negative page sizes - use default instead
-    page_size = if raw_page_size > 0, do: raw_page_size, else: 25
-    current_page = Keyword.get(options, :current_page, 1)
-    columns = Keyword.get(options, :columns, [])
     query_opts = Keyword.get(options, :query_opts, [])
-    search_term = Keyword.get(options, :search_term, "")
-    search_fn = Keyword.get(options, :search_fn)
 
     try do
       # Determine effective tenant (explicit tenant takes precedence over query tenant)
@@ -93,58 +84,28 @@ defmodule Cinder.QueryBuilder do
         normalize_resource_or_query(resource_or_query, actor, effective_tenant, query_opts)
 
       # Validate sort fields before applying them to prevent crashes
-      case validate_sortable_fields(sort_by, resource) do
+      case validate_sortable_fields(Keyword.get(options, :sort_by, []), resource) do
         :ok ->
-          # Continue with normal query building
-          prepared_query =
-            base_query
-            |> apply_query_opts(query_opts)
-            |> apply_filters(filters, columns)
-            |> apply_search(search_term, columns, search_fn)
-            |> apply_sorting(sort_by)
-
-          # Handle pagination based on action support
-          case action_supports_pagination?(prepared_query) do
-            true ->
-              execute_with_pagination(
-                prepared_query,
-                actor,
-                effective_tenant,
-                query_opts,
-                current_page,
-                page_size
-              )
-
-            false ->
-              # Check if user has configured pagination but action doesn't support it
-              if Keyword.get(options, :pagination_configured, false) do
-                require Logger
-
-                Logger.warning(
-                  "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
-                    "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
-                    "https://hexdocs.pm/ash/pagination.html"
-                )
-              end
-
-              execute_without_pagination(
-                prepared_query,
-                actor,
-                effective_tenant,
-                query_opts,
-                current_page,
-                page_size
-              )
+          # Pattern match on bulk_actions early and delegate to appropriate handler
+          if Keyword.get(options, :bulk_actions, false) do
+            execute_bulk_actions_flow(base_query, options, effective_tenant)
+          else
+            execute_standard_flow(base_query, options, effective_tenant)
           end
 
         {:error, message} ->
-          # Return validation error instead of crashing
           {:error, message}
       end
     rescue
       error ->
         # Log exceptions (like calculation errors) with full context
         resource = extract_resource_for_logging(resource_or_query)
+        filters = Keyword.get(options, :filters, %{})
+        sort_by = Keyword.get(options, :sort_by, [])
+        current_page = Keyword.get(options, :current_page, 1)
+        page_size = Keyword.get(options, :page_size, 25)
+        query_opts = Keyword.get(options, :query_opts, [])
+        tenant = Keyword.get(options, :tenant)
 
         Logger.error(
           "Cinder table query crashed with exception for #{inspect(resource)}: #{inspect(error)}",
@@ -162,6 +123,57 @@ defmodule Cinder.QueryBuilder do
         )
 
         {:error, error}
+    end
+  end
+
+  # Execute bulk actions flow - early exit with IDs only
+  defp execute_bulk_actions_flow(base_query, options, effective_tenant) do
+    id_field = Keyword.get(options, :id_field, :id)
+    query_opts = Keyword.get(options, :query_opts, [])
+    bulk_query_opts = Keyword.put(query_opts, :select, [id_field])
+
+    prepared_query = build_query(base_query, bulk_query_opts, options)
+    execute_bulk_actions(prepared_query, options, effective_tenant, id_field)
+  end
+
+  # Execute standard flow with pagination logic
+  defp execute_standard_flow(base_query, options, effective_tenant) do
+    query_opts = Keyword.get(options, :query_opts, [])
+    prepared_query = build_query(base_query, query_opts, options)
+
+    if action_supports_pagination?(prepared_query) do
+      execute_with_pagination(prepared_query, options, effective_tenant)
+    else
+      maybe_log_pagination_warning(prepared_query, options)
+      execute_without_pagination(prepared_query, options, effective_tenant)
+    end
+  end
+
+  # Build query with filters, search, and sorting
+  defp build_query(base_query, query_opts, options) do
+    filters = Keyword.get(options, :filters, %{})
+    columns = Keyword.get(options, :columns, [])
+    search_term = Keyword.get(options, :search_term, "")
+    search_fn = Keyword.get(options, :search_fn)
+    sort_by = Keyword.get(options, :sort_by, [])
+
+    base_query
+    |> apply_query_opts(query_opts)
+    |> apply_filters(filters, columns)
+    |> apply_search(search_term, columns, search_fn)
+    |> apply_sorting(sort_by)
+  end
+
+  # Log pagination warning if configured but not supported
+  defp maybe_log_pagination_warning(prepared_query, options) do
+    if Keyword.get(options, :pagination_configured, false) do
+      require Logger
+
+      Logger.warning(
+        "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
+          "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
+          "https://hexdocs.pm/ash/pagination.html"
+      )
     end
   end
 
@@ -215,8 +227,14 @@ defmodule Cinder.QueryBuilder do
   # Default for resources without explicit pagination
   defp action_supports_pagination?(_), do: true
 
-  # Execute query with pagination (existing behavior)
-  defp execute_with_pagination(query, actor, tenant, query_opts, current_page, page_size) do
+  # Execute query with pagination
+  defp execute_with_pagination(query, options, effective_tenant) do
+    actor = Keyword.fetch!(options, :actor)
+    query_opts = Keyword.get(options, :query_opts, [])
+    current_page = Keyword.get(options, :current_page, 1)
+    raw_page_size = Keyword.get(options, :page_size, 25)
+    page_size = if raw_page_size > 0, do: raw_page_size, else: 25
+
     paginated_query =
       Ash.Query.page(query,
         limit: page_size,
@@ -224,7 +242,7 @@ defmodule Cinder.QueryBuilder do
         count: true
       )
 
-    case Ash.read(paginated_query, build_ash_options(actor, tenant, query_opts)) do
+    case Ash.read(paginated_query, build_ash_options(actor, effective_tenant, query_opts)) do
       {:ok, %{results: results, count: total_count}} ->
         page_info =
           build_page_info_with_total_count(results, current_page, page_size, total_count)
@@ -232,14 +250,25 @@ defmodule Cinder.QueryBuilder do
         {:ok, {results, page_info}}
 
       {:error, query_error} ->
-        log_query_error(query.resource, query_error, current_page, page_size, query_opts, tenant)
+        log_query_error(
+          query.resource,
+          query_error,
+          current_page,
+          page_size,
+          query_opts,
+          effective_tenant
+        )
+
         {:error, query_error}
     end
   end
 
   # Execute query without pagination and return all results
-  defp execute_without_pagination(query, actor, tenant, query_opts, _current_page, _page_size) do
-    case Ash.read(query, build_ash_options(actor, tenant, query_opts)) do
+  defp execute_without_pagination(query, options, effective_tenant) do
+    actor = Keyword.fetch!(options, :actor)
+    query_opts = Keyword.get(options, :query_opts, [])
+
+    case Ash.read(query, build_ash_options(actor, effective_tenant, query_opts)) do
       {:ok, results} ->
         result_count = length(results)
 
@@ -259,7 +288,24 @@ defmodule Cinder.QueryBuilder do
         {:ok, {results, page_info}}
 
       {:error, query_error} ->
-        log_query_error(query.resource, query_error, 1, 0, query_opts, tenant)
+        log_query_error(query.resource, query_error, 1, 0, query_opts, effective_tenant)
+        {:error, query_error}
+    end
+  end
+
+  # Execute query for bulk actions - return IDs only, no pagination
+  defp execute_bulk_actions(query, options, effective_tenant, id_field) do
+    actor = Keyword.fetch!(options, :actor)
+    query_opts = Keyword.get(options, :query_opts, [])
+
+    case Ash.read(query, build_ash_options(actor, effective_tenant, query_opts)) do
+      {:ok, results} ->
+        # Extract IDs from results
+        ids = Enum.map(results, &Map.get(&1, id_field))
+        {:ok, ids}
+
+      {:error, query_error} ->
+        log_query_error(query.resource, query_error, 1, 0, query_opts, effective_tenant)
         {:error, query_error}
     end
   end
@@ -541,7 +587,7 @@ defmodule Cinder.QueryBuilder do
           calc(get_path(^ref(embed_atom), ^field_atoms))
 
         _ ->
-          # Relationship + embedded: user.profile__name  
+          # Relationship + embedded: user.profile__name
           full_path = rel_path_atoms ++ [embed_atom]
           calc(get_path(^ref(full_path), ^field_atoms))
       end
