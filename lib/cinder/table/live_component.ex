@@ -716,7 +716,6 @@ defmodule Cinder.Table.LiveComponent do
       phx-click={@event}
       phx-target={@myself}
       disabled={@bulk_loading}
-      title="Process all IDs of filtered/sorted records"
     >
       <div class="flex items-center space-x-2">
         <svg :if={@bulk_loading} class={[
