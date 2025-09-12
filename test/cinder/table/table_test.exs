@@ -880,7 +880,8 @@ defmodule Cinder.TableTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
-        bulk_actions: [%{label: "Bulk Action"}],  # No event specified
+        # No event specified
+        bulk_actions: [%{label: "Bulk Action"}],
         col: [%{field: "name", __slot__: :col}]
       }
 
@@ -941,8 +942,10 @@ defmodule Cinder.TableTest do
       html = render_component(&Cinder.Table.table/1, assigns)
 
       # Should use default button classes (partial match from default theme)
-      assert html =~ "px-3 py-2"  # Part of default bulk action button styling
-      assert html =~ "text-sm"    # Part of default bulk action button styling
+      # Part of default bulk action button styling
+      assert html =~ "px-3 py-2"
+      # Part of default bulk action button styling
+      assert html =~ "text-sm"
     end
 
     test "bulk actions work with relationship columns" do
