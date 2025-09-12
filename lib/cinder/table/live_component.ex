@@ -50,7 +50,7 @@ defmodule Cinder.Table.LiveComponent do
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
       <!-- Filter Controls (including search) -->
-      <div class={@theme.controls_class} {@theme.controls_data}>
+      <div :if={@show_filters} class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
           columns={Map.get(assigns, :filter_columns, @columns)}
           filters={@filters}
