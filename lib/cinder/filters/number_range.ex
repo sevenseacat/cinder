@@ -10,6 +10,7 @@ defmodule Cinder.Filters.NumberRange do
 
   require Ash.Query
   import Cinder.Filter
+  alias Cinder.Messages
 
   @impl true
   def render(column, current_value, theme, _assigns) do
@@ -37,7 +38,7 @@ defmodule Cinder.Filters.NumberRange do
         />
       </div>
       <div class={@theme.filter_range_separator_class} {@theme.filter_range_separator_data}>
-        to
+        {Messages.dgettext("cinder", "to")}
       </div>
       <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input

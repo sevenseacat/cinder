@@ -27,10 +27,12 @@ defmodule Cinder.FilterStylingTest do
         theme = Cinder.Theme.merge(theme_name)
 
         # Each theme should include spinner removal CSS
-        assert theme.filter_number_input_class =~ "[&::-webkit-outer-spin-button]:appearance-none",
+        assert theme.filter_number_input_class =~
+                 "[&::-webkit-outer-spin-button]:appearance-none",
                "Theme #{theme_name} missing webkit outer spinner removal"
 
-        assert theme.filter_number_input_class =~ "[&::-webkit-inner-spin-button]:appearance-none",
+        assert theme.filter_number_input_class =~
+                 "[&::-webkit-inner-spin-button]:appearance-none",
                "Theme #{theme_name} missing webkit inner spinner removal"
 
         assert theme.filter_number_input_class =~ "[-moz-appearance:textfield]",

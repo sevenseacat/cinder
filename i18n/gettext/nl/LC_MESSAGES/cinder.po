@@ -1,0 +1,47 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: nl\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Clear all"
+msgstr "Alles wissen"
+
+msgid "Clear filter"
+msgstr "Filter wissen"
+
+msgid "active"
+msgid_plural "active"
+msgstr[0] "actief"
+msgstr[1] "actief"
+
+msgid "Page %{current} of %{total}"
+msgstr "Pagina %{current} van %{total}"
+
+msgid "showing %{start}-%{end} of %{total}"
+msgstr "toont %{start}-%{end} van %{total}"
+
+msgid "to"
+msgstr "tot"
+
+msgid "Next page"
+msgstr "Volgende pagina"
+
+msgid "Previous page"
+msgstr "Vorige pagina"
+
+msgid "First page"
+msgstr "Eerste pagina"
+
+msgid "Last page"
+msgstr "Laatste pagina"
+
+msgid "Go to page %{page}"
+msgstr "Ga naar pagina %{page}"
