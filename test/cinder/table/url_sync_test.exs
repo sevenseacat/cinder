@@ -126,8 +126,6 @@ defmodule Cinder.Table.UrlSyncTest do
       assert state.sort_by == []
     end
 
-
-
     test "preserves invalid page_size in raw params for component validation" do
       params = %{"page_size" => "invalid"}
       state = UrlSync.extract_table_state(params)
@@ -361,7 +359,7 @@ defmodule Cinder.Table.UrlSyncTest do
 
       # Simulate the assigns structure that LiveComponent actually receives
       assigns = %{
-        url_raw_params: %{"page_size" => "5", "page" => "2"},
+        url_raw_params: %{"page_size" => "5", "page" => "2"}
         # Note: NO :url_state key (this was the bug)
       }
 
@@ -375,7 +373,8 @@ defmodule Cinder.Table.UrlSyncTest do
 
       # Verify the fix: decode_url_state should work with url_raw_params
       assert Map.has_key?(assigns, :url_raw_params)
-      refute Map.has_key?(assigns, :url_state)  # This key should NOT exist
+      # This key should NOT exist
+      refute Map.has_key?(assigns, :url_state)
     end
   end
 end
