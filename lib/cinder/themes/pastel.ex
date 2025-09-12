@@ -39,6 +39,12 @@ defmodule Cinder.Themes.Pastel do
         "bg-pink-50 border border-pink-200 rounded-xl p-4 text-pink-800 shadow-sm"
 
     set :error_message_class, "text-sm"
+
+    # Bulk action button styling
+    set :bulk_action_button_class,
+        "px-4 py-2 text-sm font-semibold text-purple-700 bg-white/90 border border-purple-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:ring-offset-1 transition-all duration-200 shadow-sm backdrop-blur-sm"
+
+    set :bulk_loading_class, "animate-pulse bg-purple-100/80"
   end
 
   component Cinder.Components.Filters do

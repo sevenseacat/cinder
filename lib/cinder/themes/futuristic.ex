@@ -39,6 +39,12 @@ defmodule Cinder.Themes.Futuristic do
         "bg-red-950/50 border border-red-500/50 p-4 text-red-200 shadow-lg shadow-red-500/20 backdrop-blur-sm"
 
     set :error_message_class, "text-sm font-light"
+
+    # Bulk action button styling
+    set :bulk_action_button_class,
+        "px-4 py-2 text-sm font-medium text-blue-100 bg-slate-900/70 border border-blue-500/50 rounded-lg hover:bg-gradient-to-r hover:from-blue-900/70 hover:to-green-900/70 hover:border-green-400/70 hover:shadow-lg hover:shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-green-400/60 transition-all duration-300 tracking-wide backdrop-blur-md"
+
+    set :bulk_loading_class, "animate-pulse shadow-green-400/40"
   end
 
   component Cinder.Components.Filters do
