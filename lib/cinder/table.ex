@@ -246,6 +246,8 @@ defmodule Cinder.Table do
   - `filters_label` - Custom label for filtering (default: "🔍 Filters")
   - `empty_message` - Custom empty state message
   - `class` - Additional CSS classes
+  - `bulk_actions` - List of bulk action buttons (default: [])
+  - `id_field` - Field to use as ID for export (default: :id)
 
   ## When to Use Resource vs Query
 
@@ -364,6 +366,53 @@ defmodule Cinder.Table do
   The `row_click` function receives the row item as its argument and should return
   a Phoenix.LiveView.JS command or similar action. When provided, rows will be
   styled to indicate they are clickable with hover effects and cursor changes.
+
+  ## Bulk Actions Functionality
+
+  Tables can provide multiple action buttons that get all IDs of filtered/sorted records for bulk operations:
+
+  ```heex
+  <Cinder.Table.table
+    resource={MyApp.Item}
+    actor={@current_user}
+    bulk_actions={[
+      %{label: "Export Item IDs", event: "export_item_ids"},
+      %{label: "Generate Labels", event: "generate_labels"},
+      %{label: "Create Shipment", event: "create_shipment"}
+    ]}
+    id_field={:uuid}
+  >
+    <:col :let={item} field="name" filter sort>{item.name}</:col>
+    <:col :let={item} field="description">{item.description}</:col>
+  </Cinder.Table.table>
+  ```
+
+  When an action button is clicked, the parent LiveView will receive a message with the event name:
+  `{:export_item_ids, {:ok, list_of_ids}}`, `{:generate_labels, {:ok, list_of_ids}}`, etc.
+
+  Handle these in your LiveView:
+
+  ```elixir
+  def handle_info({:export_item_ids, {:ok, ids}}, socket) do
+    # Export IDs to CSV or similar
+    {:noreply, socket}
+  end
+
+  def handle_info({:generate_labels, {:ok, ids}}, socket) do
+    # Generate PDF labels for these IDs
+    {:noreply, socket}
+  end
+
+  def handle_info({:create_shipment, {:ok, ids}}, socket) do
+    # Create a shipment with these items
+    {:noreply, socket}
+  end
+
+  def handle_info({event_name, {:error, reason}}, socket) do
+    # Handle any bulk action error
+    {:noreply, put_flash(socket, :error, "Action failed: #{inspect(reason)}")}
+  end
+  ```
   """
 
   use Phoenix.Component
@@ -432,6 +481,17 @@ defmodule Cinder.Table do
   attr(:row_click, :any,
     default: nil,
     doc: "Function to call when a row is clicked. Receives the row item as argument."
+  )
+
+  attr(:bulk_actions, :list,
+    default: [],
+    doc:
+      "List of bulk action maps with :label and :event keys, e.g. [%{label: \"Export IDs\", event: \"export_ids\"}, %{label: \"Generate Labels\", event: \"generate_labels\"}]"
+  )
+
+  attr(:id_field, :atom,
+    default: :id,
+    doc: "Field to use as ID for bulk actions (defaults to :id)"
   )
 
   slot :col, required: true do
@@ -594,6 +654,8 @@ defmodule Cinder.Table do
         search_label={@search_label}
         search_placeholder={@search_placeholder}
         search_fn={@search_fn}
+        bulk_actions={@bulk_actions}
+        id_field={@id_field}
       />
     </div>
     """

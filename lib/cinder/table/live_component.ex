@@ -50,6 +50,18 @@ defmodule Cinder.Table.LiveComponent do
   def render(assigns) do
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
+      <!-- Action Buttons Row -->
+      <div :if={not Enum.empty?(@bulk_actions)} class="flex justify-end gap-2">
+        <.bulk_action_button
+          :for={action <- @bulk_actions}
+          bulk_loading={@bulk_loading}
+          bulk_label={Map.get(action, :label, "Action")}
+          theme={@theme}
+          myself={@myself}
+          event={Map.get(action, :event, "bulk_action_all_ids")}
+        />
+      </div>
+
       <!-- Filter Controls (including search) -->
       <div :if={@show_filters} class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
@@ -290,6 +302,132 @@ defmodule Cinder.Table.LiveComponent do
     socket = notify_state_change(socket, new_filters)
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event(
+        "toggle_multiselect_option",
+        %{"field" => field, "option" => value},
+        socket
+      )
+      when value != "" do
+    # Get current filter values for this field
+    current_filter =
+      Map.get(socket.assigns.filters, field, %{type: :multi_select, value: [], operator: :in})
+
+    current_values = Map.get(current_filter, :value, [])
+
+    # Toggle the value - add if not present, remove if present
+    new_values =
+      if value in current_values do
+        Enum.reject(current_values, &(&1 == value))
+      else
+        current_values ++ [value]
+      end
+
+    new_filters =
+      if Enum.empty?(new_values) do
+        # Remove the filter entirely if no values left
+        Map.delete(socket.assigns.filters, field)
+      else
+        # Create proper filter structure
+        new_filter = %{
+          type: :multi_select,
+          value: new_values,
+          operator: :in
+        }
+
+        Map.put(socket.assigns.filters, field, new_filter)
+      end
+
+    socket =
+      socket
+      |> assign(:filters, new_filters)
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("select_option", %{"field" => field, "option" => value}, socket) do
+    current_filters = Map.get(socket.assigns, :filters, %{})
+
+    new_filters =
+      if value == "" do
+        Map.delete(current_filters, field)
+      else
+        # Create proper filter structure for single select
+        new_filter = %{
+          type: :select,
+          value: value,
+          operator: :equals
+        }
+
+        Map.put(current_filters, field, new_filter)
+      end
+
+    socket =
+      socket
+      |> assign(:filters, new_filters)
+      |> assign(:current_page, 1)
+      |> load_data()
+
+    # Notify parent about state changes
+    socket = notify_state_change(socket, new_filters)
+
+    {:noreply, socket}
+  end
+
+  # Generic handler for bulk action events - matches any event defined in bulk_actions
+  @impl true
+  def handle_event(event_name, _params, socket) do
+    # Check if this is a configured bulk action event
+    bulk_actions = socket.assigns[:bulk_actions] || []
+
+    if Enum.any?(bulk_actions, &(Map.get(&1, :event) == event_name)) do
+      # This is a valid bulk action event - handle it
+      %{
+        query: resource,
+        query_opts: query_opts,
+        actor: actor,
+        tenant: tenant,
+        sort_by: sort_by,
+        filters: filters,
+        columns: columns,
+        search_term: search_term
+      } = socket.assigns
+
+      id_field = socket.assigns[:id_field] || :id
+
+      options = [
+        actor: actor,
+        tenant: tenant,
+        query_opts: query_opts,
+        filters: filters,
+        sort_by: sort_by,
+        columns: columns,
+        search_term: search_term,
+        search_fn: socket.assigns.search_fn,
+        bulk_actions: true,
+        id_field: id_field
+      ]
+
+      socket =
+        socket
+        |> assign(:bulk_loading, true)
+        |> start_async({:bulk_action_ids, event_name}, fn ->
+          Cinder.QueryBuilder.build_and_execute(resource, options)
+        end)
+
+      {:noreply, socket}
+    else
+      # Unknown event - ignore
+      {:noreply, socket}
+    end
   end
 
   # Notify parent LiveView about filter changes
@@ -566,6 +704,34 @@ defmodule Cinder.Table.LiveComponent do
     """
   end
 
+  # Bulk action button component
+  defp bulk_action_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={[
+        Map.get(@theme, :bulk_action_button_class, ""),
+        (@bulk_loading && Map.get(@theme, :bulk_loading_class, "") || "")
+      ]}
+      phx-click={@event}
+      phx-target={@myself}
+      disabled={@bulk_loading}
+      title="Process all IDs of filtered/sorted records"
+    >
+      <div class="flex items-center space-x-2">
+        <svg :if={@bulk_loading} class={[
+          "w-4 h-4 animate-spin",
+          Map.get(@theme, :bulk_loading_class, "")
+        ]} fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>{@bulk_loading && "Processing..." || @bulk_label}</span>
+      </div>
+    </button>
+    """
+  end
+
   # Build page range for pagination (show current page +/- 2 pages)
   defp build_page_range(page_info) do
     current = page_info.current_page
@@ -644,6 +810,10 @@ defmodule Cinder.Table.LiveComponent do
     |> assign(:query_opts, assigns[:query_opts] || [])
     |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
+    |> assign(:enable_bulk_actions, assigns[:enable_bulk_actions] || false)
+    |> assign(:bulk_loading, false)
+    |> assign(:bulk_actions, assigns[:bulk_actions] || [])
+    |> assign(:id_field, assigns[:id_field] || :id)
   end
 
   defp assign_column_definitions(socket) do
@@ -801,6 +971,104 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async({:bulk_action_ids, event_name}, {:ok, {:ok, ids}}, socket) when is_list(ids) do
+    # Export successful - send result to parent LiveView with event name
+    send(self(), {String.to_atom(event_name), {:ok, ids}})
+
+    socket =
+      socket
+      |> assign(:bulk_loading, false)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async({:bulk_action_ids, event_name}, {:ok, {:error, error}}, socket) do
+    # Export failed - send error to parent LiveView with event name
+    send(self(), {String.to_atom(event_name), {:error, error}})
+
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder bulk action IDs failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        event: event_name,
+        error: inspect(error)
+      }
+    )
+
+    socket =
+      socket
+      |> assign(:bulk_loading, false)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async({:bulk_action_ids, event_name}, {:exit, reason}, socket) do
+    # Export crashed - send error to parent LiveView with event name
+    send(self(), {String.to_atom(event_name), {:error, reason}})
+
+    # Log error for developer debugging
+    Logger.error(
+      "Cinder bulk action IDs crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        event: event_name,
+        reason: inspect(reason)
+      }
+    )
+
+    socket =
+      socket
+      |> assign(:bulk_loading, false)
+
+    {:noreply, socket}
+  end
+
+  # Convert new Column struct to legacy format for backward compatibility
+  defp convert_column_to_legacy_format(%Cinder.Column{} = column) do
+    %{
+      field: column.field,
+      label: column.label,
+      sortable: column.sortable,
+      searchable: column.searchable,
+      filterable: column.filterable,
+      filter_type: column.filter_type,
+      filter_options: column.filter_options,
+      filter_fn: column.filter_fn,
+      options: column.options,
+      display_field: column.display_field,
+      search_fn: column.search_fn,
+      class: column.class,
+      slot: column.slot
+    }
+  end
+
+  # Convert pre-processed filter configuration to legacy format
+  defp convert_filter_config_to_legacy_format(config) when is_map(config) do
+    %{
+      field: config.field,
+      label: config.label,
+      sortable: Map.get(config, :sortable, false),
+      searchable: Map.get(config, :searchable, false),
+      filterable: Map.get(config, :filterable, true),
+      filter_type: config.filter_type,
+      filter_options: Map.get(config, :filter_options, []),
+      filter_fn: Map.get(config, :filter_fn),
+      options: Map.get(config, :options, []),
+      display_field: Map.get(config, :display_field),
+      search_fn: Map.get(config, :search_fn),
+      class: Map.get(config, :class, ""),
+      slot: Map.get(config, :__slot__, :col)
+    }
   end
 
   # Helper functions for row click functionality

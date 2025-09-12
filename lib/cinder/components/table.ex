@@ -26,7 +26,11 @@ defmodule Cinder.Components.Table do
     :loading_class,
     :empty_class,
     :error_container_class,
-    :error_message_class
+    :error_message_class,
+
+    # Bulk action button
+    :bulk_action_button_class,
+    :bulk_loading_class
   ]
 
   @doc """
@@ -53,7 +57,10 @@ defmodule Cinder.Components.Table do
       loading_class: "text-center py-4",
       empty_class: "text-center py-4",
       error_container_class: "text-red-600 text-sm",
-      error_message_class: ""
+      error_message_class: "",
+      bulk_action_button_class:
+        "px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
+      bulk_loading_class: ""
     }
   end
 
