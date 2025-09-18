@@ -6,33 +6,6 @@ defmodule Cinder.QueryBuilderTest do
   require Ash.Query
   alias Cinder.QueryBuilder
 
-  # Test embedded resources
-  defmodule TestAddress do
-    use Ash.Resource, data_layer: :embedded
-
-    attributes do
-      attribute(:street, :string, public?: true)
-    end
-  end
-
-  defmodule TestSettings do
-    use Ash.Resource, data_layer: :embedded
-
-    attributes do
-      attribute(:theme, :string, public?: true)
-      attribute(:address, TestAddress, public?: true)
-    end
-  end
-
-  defmodule TestProfile do
-    use Ash.Resource, data_layer: :embedded
-
-    attributes do
-      attribute(:first_name, :string, public?: true)
-      attribute(:age, :integer, public?: true)
-    end
-  end
-
   # Test resource for tenant testing
   defmodule TestUser do
     use Ash.Resource,
@@ -48,8 +21,6 @@ defmodule Cinder.QueryBuilderTest do
       uuid_primary_key(:id)
       attribute(:name, :string, public?: true)
       attribute(:email, :string, public?: true)
-      attribute(:profile, TestProfile, public?: true)
-      attribute(:settings, TestSettings, public?: true)
     end
 
     actions do
@@ -839,26 +810,6 @@ defmodule Cinder.QueryBuilderTest do
       assert_raise ArgumentError, fn ->
         QueryBuilder.apply_sorting(query, sort_by)
       end
-    end
-
-    test "supports all embedded field sorting patterns - GitHub issue #51" do
-      query = Ash.Query.new(TestUser)
-
-      # Test basic embedded field
-      basic_result = QueryBuilder.apply_sorting(query, [{"profile__first_name", :asc}])
-      assert length(basic_result.sort) == 1
-
-      # Test nested embedded field  
-      nested_result = QueryBuilder.apply_sorting(query, [{"settings__address__street", :desc}])
-      assert length(nested_result.sort) == 1
-
-      # Test that embedded fields get converted to calc expressions (not rejected)
-      assert length(basic_result.sort) == 1
-      # No NoSuchField errors
-      assert length(basic_result.errors) == 0
-
-      assert length(nested_result.sort) == 1
-      assert length(nested_result.errors) == 0
     end
 
     test "handles invalid sort_by input gracefully without Protocol.UndefinedError" do

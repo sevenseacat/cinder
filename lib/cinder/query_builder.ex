@@ -545,29 +545,9 @@ defmodule Cinder.QueryBuilder do
         end
 
       # Process sorts individually to handle relationship sorts properly
-      # Convert URL-safe field notation and handle embedded fields with calc expressions
+      # Ash supports string format for both regular fields and relationships
       Enum.reduce(sort_by, query, fn {field, direction}, acc_query ->
-        # Convert URL-safe embedded field notation (e.g., "settings__a" -> "settings[:a]")
-        converted_field = Cinder.Filter.Helpers.field_notation_from_url_safe(field)
-
-        # Parse field to determine if it needs special handling for embedded fields
-        case Cinder.Filter.Helpers.parse_field_notation(converted_field) do
-          {:embedded, embed_field, field_name} ->
-            apply_embedded_sort(acc_query, [], embed_field, [field_name], direction)
-
-          {:nested_embedded, embed_field, field_path} ->
-            apply_embedded_sort(acc_query, [], embed_field, field_path, direction)
-
-          {:relationship_embedded, rel_path, embed_field, field_name} ->
-            apply_embedded_sort(acc_query, rel_path, embed_field, [field_name], direction)
-
-          {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
-            apply_embedded_sort(acc_query, rel_path, embed_field, field_path, direction)
-
-          _ ->
-            # Regular fields and relationships - use converted field name directly
-            Ash.Query.sort(acc_query, [{converted_field, direction}])
-        end
+        Ash.Query.sort(acc_query, [{field, direction}])
       end)
     end
   end
