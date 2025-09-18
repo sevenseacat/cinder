@@ -393,7 +393,12 @@ defmodule Cinder.Table.LiveComponent do
       raw_params = assigns.url_raw_params
 
       # Use raw params with actual columns for proper filter decoding
-      decoded_state = Cinder.UrlManager.decode_state(raw_params, Map.get(socket.assigns, :filter_columns, socket.assigns.columns))
+      # Use display columns for sort validation since filter_columns only includes filterable columns
+      decoded_state =
+        Cinder.UrlManager.decode_state(
+          raw_params,
+          socket.assigns.columns
+        )
 
       # Only use extracted query sorts if this is the initial load (no previous user interaction)
       # If URL params are empty after user interaction, preserve the user's choice (empty sort)
@@ -445,7 +450,11 @@ defmodule Cinder.Table.LiveComponent do
       if Enum.empty?(url_params) do
         socket
       else
-        decoded_state = Cinder.UrlManager.decode_state(url_params, Map.get(socket.assigns, :filter_columns, socket.assigns.columns))
+        decoded_state =
+          Cinder.UrlManager.decode_state(
+            url_params,
+            socket.assigns.columns
+          )
 
         final_sort_by =
           cond do
@@ -693,8 +702,7 @@ defmodule Cinder.Table.LiveComponent do
   defp assign_column_definitions(socket) do
     resource = socket.assigns.query
 
-    # Always process display columns for table rendering
-    display_columns =
+    columns =
       socket.assigns.col
       |> Enum.map(&Cinder.Column.parse_column(&1, resource))
       |> Enum.map(&convert_column_to_legacy_format/1)
@@ -704,7 +712,7 @@ defmodule Cinder.Table.LiveComponent do
     filter_columns =
       case Map.get(socket.assigns, :filter_configs) do
         nil ->
-          display_columns
+          columns
 
         filter_configs ->
           # Convert pre-processed filter configurations to legacy format
@@ -712,7 +720,7 @@ defmodule Cinder.Table.LiveComponent do
       end
 
     socket
-    |> assign(:columns, display_columns)
+    |> assign(:columns, columns)
     |> assign(:filter_columns, filter_columns)
   end
 

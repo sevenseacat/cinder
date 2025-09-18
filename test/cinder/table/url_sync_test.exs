@@ -378,4 +378,26 @@ defmodule Cinder.Table.UrlSyncTest do
       refute Map.has_key?(assigns, :url_state)  # This key should NOT exist
     end
   end
+
+  test "regression test: sort-only columns work via URL validation" do
+    # This test verifies the bug fix where sort-only columns (filterable: false)
+    # should be sortable via URL parameters using display_columns for validation
+
+    # Mock display columns that would be in socket.assigns.columns
+    display_columns = [
+      %{field: "name", sortable: true, filterable: false},
+      %{field: "artist.name", sortable: true, filterable: false},
+      %{field: "genre", sortable: false, filterable: true}
+    ]
+
+    # Mock URL parameters with sort on a sort-only column
+    raw_params = %{"sort" => "artist.name"}
+
+    # With the fix: decode_url_state uses display_columns for validation
+    decoded_state = Cinder.UrlManager.decode_state(raw_params, display_columns)
+
+    # The sort should be preserved because artist.name is found in display_columns
+    assert decoded_state.sort_by == [{"artist.name", :asc}],
+           "Sort-only columns should be sortable via URL when using display_columns for validation"
+  end
 end
