@@ -40,6 +40,12 @@ defmodule Cinder.Themes.Retro do
         "bg-red-900 border-2 border-red-400 p-4 text-red-100 shadow-lg shadow-red-400/30"
 
     set :error_message_class, "text-sm font-bold"
+
+    # Bulk action button styling
+    set :bulk_action_button_class,
+        "px-6 py-3 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded-lg hover:bg-magenta-800 hover:border-magenta-400 hover:shadow-xl hover:shadow-magenta-400/40 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 uppercase tracking-wider shadow-lg shadow-cyan-400/20"
+
+    set :bulk_loading_class, "animate-pulse shadow-yellow-400/30"
   end
 
   component Cinder.Components.Filters do

@@ -320,20 +320,26 @@ defmodule Cinder.TableTest do
 
     test "backward compatibility with old filter_options format" do
       # Capture logs to test deprecation warning
-      logs = capture_log(fn ->
-        assigns = %{
-          resource: TestUser,
-          actor: nil,
-          col: [
-            %{field: "name", filter: :text, filter_options: [placeholder: "Old format"], __slot__: :col}
-          ]
-        }
+      logs =
+        capture_log(fn ->
+          assigns = %{
+            resource: TestUser,
+            actor: nil,
+            col: [
+              %{
+                field: "name",
+                filter: :text,
+                filter_options: [placeholder: "Old format"],
+                __slot__: :col
+              }
+            ]
+          }
 
-        html = render_component(&Cinder.Table.table/1, assigns)
+          html = render_component(&Cinder.Table.table/1, assigns)
 
-        # Should still work with old format
-        assert html =~ ~r/placeholder="Old format"/
-      end)
+          # Should still work with old format
+          assert html =~ ~r/placeholder="Old format"/
+        end)
 
       # Should log deprecation warning
       assert logs =~ "[DEPRECATED] Field 'name' uses deprecated filter_options attribute"
@@ -341,24 +347,27 @@ defmodule Cinder.TableTest do
 
     test "unified format takes precedence over legacy filter_options" do
       # Capture logs to test deprecation warning
-      logs = capture_log(fn ->
-        assigns = %{
-          resource: TestUser,
-          actor: nil,
-          col: [
-            %{field: "name",
-              filter: [type: :text, placeholder: "New format"],
-              filter_options: [placeholder: "Old format"],
-              __slot__: :col}
-          ]
-        }
+      logs =
+        capture_log(fn ->
+          assigns = %{
+            resource: TestUser,
+            actor: nil,
+            col: [
+              %{
+                field: "name",
+                filter: [type: :text, placeholder: "New format"],
+                filter_options: [placeholder: "Old format"],
+                __slot__: :col
+              }
+            ]
+          }
 
-        html = render_component(&Cinder.Table.table/1, assigns)
+          html = render_component(&Cinder.Table.table/1, assigns)
 
-        # New format should win
-        assert html =~ ~r/placeholder="New format"/
-        refute html =~ ~r/placeholder="Old format"/
-      end)
+          # New format should win
+          assert html =~ ~r/placeholder="New format"/
+          refute html =~ ~r/placeholder="Old format"/
+        end)
 
       # Should still log deprecation warning
       assert logs =~ "[DEPRECATED] Field 'name' uses deprecated filter_options attribute"
@@ -658,10 +667,6 @@ defmodule Cinder.TableTest do
     end
   end
 
-
-
-
-
   describe "edge cases and error handling" do
     test "handles empty column list" do
       assigns = %{
@@ -773,7 +778,8 @@ defmodule Cinder.TableTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
-        page_size: [default: 25, options: [25]], # Single option
+        # Single option
+        page_size: [default: 25, options: [25]],
         col: [%{field: "name", __slot__: :col}]
       }
 
@@ -789,7 +795,187 @@ defmodule Cinder.TableTest do
       # 3. End-to-end functionality is verified through actual table usage
       assert true
     end
+  end
 
+  describe "bulk actions functionality" do
+    test "renders bulk action buttons when bulk_actions provided" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [
+          %{label: "Export IDs", event: "export_ids"},
+          %{label: "Delete Selected", event: "delete_selected"}
+        ],
+        col: [%{field: "name", __slot__: :col}]
+      }
 
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should contain the action buttons
+      assert html =~ "Export IDs"
+      assert html =~ "Delete Selected"
+      assert html =~ "phx-click=\"export_ids\""
+      assert html =~ "phx-click=\"delete_selected\""
+    end
+
+    test "does not render bulk action section when bulk_actions is empty" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [],
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should not contain bulk action buttons section
+      refute html =~ "phx-click=\"export_ids\""
+      refute html =~ "Processing..."
+    end
+
+    test "bulk actions default to empty list when not provided" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      # Should render without errors even when bulk_actions is not specified
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+      refute html =~ "phx-click="
+    end
+
+    test "uses custom id_field when specified" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [%{label: "Export UUIDs", event: "export_uuids"}],
+        id_field: :uuid,
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      # Should render without errors and pass id_field to live component
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "Export UUIDs"
+    end
+
+    test "id_field defaults to :id when not specified" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [%{label: "Export", event: "export"}],
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      # Should render without errors with default id_field
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "Export"
+    end
+
+    test "bulk action buttons have proper default event name" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        # No event specified
+        bulk_actions: [%{label: "Bulk Action"}],
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should use default event name
+      assert html =~ "phx-click=\"bulk_action_all_ids\""
+    end
+
+    test "bulk action buttons use custom event names when provided" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [
+          %{label: "Custom Action", event: "custom_event"}
+        ],
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should use custom event name
+      assert html =~ "phx-click=\"custom_event\""
+      refute html =~ "bulk_action_all_ids"
+    end
+
+    test "multiple bulk actions render correctly" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [
+          %{label: "Export CSV", event: "export_csv"},
+          %{label: "Export PDF", event: "export_pdf"},
+          %{label: "Delete All", event: "delete_all"}
+        ],
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should render all action buttons
+      assert html =~ "Export CSV"
+      assert html =~ "Export PDF"
+      assert html =~ "Delete All"
+      assert html =~ "phx-click=\"export_csv\""
+      assert html =~ "phx-click=\"export_pdf\""
+      assert html =~ "phx-click=\"delete_all\""
+    end
+
+    test "bulk action button uses default theme classes when no custom theme provided" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [%{label: "Test Action", event: "test"}],
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should use default button classes (partial match from default theme)
+      # Part of default bulk action button styling
+      assert html =~ "px-3 py-2"
+      # Part of default bulk action button styling
+      assert html =~ "text-sm"
+    end
+
+    test "bulk actions work with relationship columns" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [%{label: "Export", event: "export"}],
+        col: [
+          %{field: "name", __slot__: :col},
+          %{field: "department.name", __slot__: :col}
+        ]
+      }
+
+      # Should render without errors even with relationship fields
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "Export"
+      assert html =~ "cinder-table"
+    end
+
+    test "bulk actions work with search configuration" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        bulk_actions: [%{label: "Export Filtered", event: "export_filtered"}],
+        search: [label: "Search Users", placeholder: "Search..."],
+        col: [%{field: "name", search: true, __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Should render both search and bulk actions
+      assert html =~ "Export Filtered"
+      assert html =~ "Search Users"
+    end
   end
 end
