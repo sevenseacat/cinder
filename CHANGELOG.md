@@ -8,6 +8,7 @@
 
 ### Bug fixes
 
+* Fix checkbox filters in filter-only slots not applying on first click when URL sync is enabled
 * Fix sorting regression where sort-only columns were not sortable via URL parameters
 * Fix aggregate field type inference using wrong property name (aggregates now correctly infer as `:number_range` instead of `:text`)
 * Fix `show_filters` option not being respected when rendering table (#56)

@@ -392,13 +392,18 @@ defmodule Cinder.Table.LiveComponent do
     if Map.has_key?(assigns, :url_raw_params) do
       raw_params = assigns.url_raw_params
 
-      # Use raw params with actual columns for proper filter decoding
-      # Use display columns for sort validation since filter_columns only includes filterable columns
-      decoded_state =
-        Cinder.UrlManager.decode_state(
-          raw_params,
-          socket.assigns.columns
-        )
+      # Use raw params with filter_columns for proper filter decoding (includes filter-only slots)
+      # But decode filters and sorts separately to use appropriate column sets
+      decoded_filters = Cinder.UrlManager.decode_filters(raw_params, socket.assigns.filter_columns)
+      decoded_sorts = Cinder.UrlManager.decode_sort(Map.get(raw_params, "sort"), socket.assigns.columns)
+
+      decoded_state = %{
+        filters: decoded_filters,
+        current_page: Cinder.UrlManager.decode_page(Map.get(raw_params, "page")),
+        sort_by: decoded_sorts,
+        page_size: Cinder.UrlManager.decode_page_size(Map.get(raw_params, "page_size")),
+        search_term: Map.get(raw_params, "search", "")
+      }
 
       # Only use extracted query sorts if this is the initial load (no previous user interaction)
       # If URL params are empty after user interaction, preserve the user's choice (empty sort)

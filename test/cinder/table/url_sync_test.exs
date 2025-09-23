@@ -126,8 +126,6 @@ defmodule Cinder.Table.UrlSyncTest do
       assert state.sort_by == []
     end
 
-
-
     test "preserves invalid page_size in raw params for component validation" do
       params = %{"page_size" => "invalid"}
       state = UrlSync.extract_table_state(params)
@@ -375,7 +373,49 @@ defmodule Cinder.Table.UrlSyncTest do
 
       # Verify the fix: decode_url_state should work with url_raw_params
       assert Map.has_key?(assigns, :url_raw_params)
-      refute Map.has_key?(assigns, :url_state)  # This key should NOT exist
+      # This key should NOT exist
+      refute Map.has_key?(assigns, :url_state)
+    end
+
+    test "filter-only slots are properly decoded from URL parameters (regression test)" do
+      # This tests the specific bug where filter-only slots (like <:filter field="track_count" .../>)
+      # were lost during URL state decoding because decode_url_state was using display columns
+      # instead of filter_columns for filter decoding
+
+      # Simulate filter-only slot configuration
+      filter_columns = [
+        %{field: "name", filterable: true, filter_type: :text},
+        %{field: "track_count", filterable: true, filter_type: :checkbox, filter_options: [value: 8]}
+      ]
+
+      # Simulate display columns (no track_count because it's filter-only)
+      display_columns = [
+        %{field: "name", sortable: true, filterable: true, filter_type: :text},
+        %{field: "artist.name", sortable: true, filterable: false}
+      ]
+
+      # Simulate URL parameters that include a filter-only field
+      url_params = %{"track_count" => "8", "name" => "test"}
+
+      # Test that filter_columns can decode the filter-only field
+      filters_with_filter_columns = Cinder.UrlManager.decode_filters(url_params, filter_columns)
+      assert Map.has_key?(filters_with_filter_columns, "track_count")
+      assert filters_with_filter_columns["track_count"] == %{type: :checkbox, value: 8, operator: :equals}
+
+      # Test that display columns cannot decode the filter-only field
+      filters_with_display_columns = Cinder.UrlManager.decode_filters(url_params, display_columns)
+      refute Map.has_key?(filters_with_display_columns, "track_count")
+
+      # Test that sorts still work correctly with display columns
+      sort_params = %{"sort" => "name,-artist.name"}
+      decoded_sorts = Cinder.UrlManager.decode_sort(Map.get(sort_params, "sort"), display_columns)
+      assert decoded_sorts == [{"name", :asc}, {"artist.name", :desc}]
+
+      # Test that invalid sorts are filtered out correctly
+      invalid_sort_params = %{"sort" => "track_count,name"}
+      filtered_sorts = Cinder.UrlManager.decode_sort(Map.get(invalid_sort_params, "sort"), display_columns)
+      # track_count should be filtered out because it's not in display columns (not sortable)
+      assert filtered_sorts == [{"name", :asc}]
     end
   end
 

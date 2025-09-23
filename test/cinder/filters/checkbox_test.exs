@@ -307,4 +307,68 @@ defmodule Cinder.Filters.CheckboxTest do
       refute html_string =~ ~r/checked/
     end
   end
+
+  describe "integration with FilterManager - reproducing bug" do
+    test "checkbox filter processes correctly through full pipeline" do
+      # This test reproduces the bug reported where checkbox filter
+      # doesn't apply on first click
+
+      # Simulate a checkbox filter column for track_count field
+      column = %{
+        field: "track_count",
+        filterable: true,
+        filter_type: :checkbox,
+        filter_options: [label: "Has 8+ tracks", value: 8]
+      }
+
+      # Simulate form parameters from a checked checkbox
+      raw_value = "8"  # This is what comes from the form
+
+      # Process the raw value through the checkbox filter
+      processed = Checkbox.process(raw_value, column)
+
+      # Should return proper filter structure
+      assert processed == %{
+        type: :checkbox,
+        value: 8,
+        operator: :equals
+      }
+
+      # Validate the processed filter
+      assert Checkbox.validate(processed) == true
+
+      # Ensure it's not considered empty
+      assert Checkbox.empty?(processed) == false
+    end
+
+    test "checkbox filter returns nil when unchecked" do
+      column = %{
+        field: "track_count",
+        filterable: true,
+        filter_type: :checkbox,
+        filter_options: [label: "Has 8+ tracks", value: 8]
+      }
+
+      # When checkbox is unchecked, no value is sent
+      processed = Checkbox.process("", column)
+
+      # Should return nil to remove the filter
+      assert processed == nil
+    end
+
+    test "checkbox filter handles mismatched values" do
+      column = %{
+        field: "track_count",
+        filterable: true,
+        filter_type: :checkbox,
+        filter_options: [label: "Has 8+ tracks", value: 8]
+      }
+
+      # If somehow a different value comes through
+      processed = Checkbox.process("5", column)
+
+      # Should return nil since it doesn't match the expected value
+      assert processed == nil
+    end
+  end
 end
