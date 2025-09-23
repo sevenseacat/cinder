@@ -579,7 +579,7 @@ defmodule Cinder.Table do
       |> assign(:search_placeholder, search_placeholder)
       |> assign(:search_enabled, search_enabled)
       |> assign(:search_fn, search_fn)
-      |> assign(:show_filters, fn -> show_filters end)
+      |> assign(:show_filters, show_filters)
 
     ~H"""
     <div class={["cinder-table", @class]}>
