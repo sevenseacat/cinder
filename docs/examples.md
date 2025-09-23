@@ -27,7 +27,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Interactive Tables](#interactive-tables)
 - [Action Columns](#action-columns)
 - [Table Refresh](#table-refresh)
-- **Performance Optimization](#performance-optimization)
+- [Performance Optimization](#performance-optimization)
 - [Testing](#testing)
 
 ## Filter-Only Slots
@@ -1782,17 +1782,14 @@ Only enable filters where users actually need them:
   resource={MyApp.User}
   actor={@current_user}
   query_opts={[
-    # Efficient loading of relationships
+    # Query building options
     load: [:department, :profile],
-
-    # Limit fields for better performance
     select: [:id, :name, :email, :created_at, :is_active],
-
-    # Custom filters for complex queries
-    filter: [is_active: true],
-
-    # Sorting optimization
-    sort: [:name]
+    
+    # Execution options
+    timeout: :timer.seconds(30),
+    authorize?: false,
+    max_concurrency: 10
   ]}
 >
   <:col :let={user} field="name" filter sort>{user.name}</:col>
@@ -1800,6 +1797,61 @@ Only enable filters where users actually need them:
   <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
 </Cinder.Table.table>
 ```
+
+**Supported Query Options:**
+- **Query Building**: `:select`, `:load` 
+- **Execution**: `:timeout`, `:authorize?`, `:max_concurrency`
+
+### Default Filters and Sorting
+
+Use the `query` parameter with pre-built Ash.Query for defaults, but understand how they interact with table UI:
+
+#### Default Base Filters (Additive)
+```elixir
+# Base filters that are ALWAYS applied, invisible to users
+<Cinder.Table.table
+  query={MyApp.User |> Ash.Query.filter(is_active: true, company_id: @company.id)}
+  actor={@current_user}
+>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="department" filter>{user.department}</:col>
+</Cinder.Table.table>
+```
+- Query filters act as **hidden base filters**
+- Table filter UI adds **additional filters** on top
+- Result: `is_active: true AND company_id: X AND [user's table filters]`
+- **Use case**: Security filters, tenant isolation, business rules
+
+#### Default Sort Order (Replaced)
+```elixir
+# Initial sort that users can override
+<Cinder.Table.table
+  query={MyApp.User |> Ash.Query.sort([:name, :created_at])}
+  actor={@current_user}
+>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+</Cinder.Table.table>
+```
+- Query sorts show as **initial table sort indicators**
+- When user clicks any column sort, query sorts are **completely replaced**
+- Result: Either query sorts OR user's table sorts (never both)
+- **Use case**: Sensible default ordering that users can change
+
+#### Important: Don't Mix Filter Sources
+```elixir
+# ❌ AVOID: This creates conflicting filters
+<Cinder.Table.table
+  query={MyApp.User |> Ash.Query.filter(department: "Engineering")}
+  actor={@current_user}
+>
+  <!-- User sees empty department filter, but query already filters by Engineering -->
+  <:col :let={user} field="department" filter>{user.department}</:col>
+</Cinder.Table.table>
+```
+If user sets department filter to "Sales", result is: `department = "Engineering" AND department = "Sales"` (no results).
+
+**Better approach for visible defaults**: Use URL state or LiveView assigns to populate filter UI.
 
 ## Testing
 
