@@ -158,6 +158,9 @@ defmodule Cinder.Theme.DslModule do
       :pastel ->
         Cinder.Themes.Pastel.resolve_theme()
 
+      :smart ->
+        Cinder.Themes.Smart.resolve_theme()
+
       base_module when is_atom(base_module) ->
         if function_exported?(base_module, :resolve_theme, 0) do
           base_module.resolve_theme()

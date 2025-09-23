@@ -87,7 +87,7 @@ Cinder is a powerful, intelligent data table component for Phoenix LiveView appl
 - `actor={@current_user}` - for Ash authorization
 
 ### Key Optional Parameters
-- `theme="modern"` - built-in theme (default, modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel)
+- `theme="modern"` - built-in theme (default, modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel, smart)
 - `page_size={25}` - fixed page size, or `page_size={[default: 25, options: [10, 25, 50]]}` - configurable with dropdown
 - `url_state={@url_state}` - enable URL synchronization
 - `row_click={fn item -> JS.navigate(~p"/path/#{item.id}") end}` - row interactivity

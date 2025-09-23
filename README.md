@@ -39,7 +39,7 @@ That's it! Cinder automatically provides:
 - **📦 Embedded Resource Support**: Double underscore notation for embedded fields (e.g., `user__profile__bio`) with automatic enum detection
 - **🔍 Filter-Only Slots**: Filter on any field without displaying it in the table
 - **🖱️ Interactive Row Actions**: Click handlers with Phoenix LiveView JS commands for navigation, modals, and custom actions
-- **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel) plus powerful DSL for custom themes
+- **🎨 Advanced Theming**: 9 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel, smart) plus powerful DSL for custom themes
 - **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
 - **⚡ Real-time Filtering**: Six filter types with debounced updates
 - **🔐 Ash Integration**: Native support for Ash Framework resources and authorization

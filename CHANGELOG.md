@@ -12,6 +12,12 @@
 * Fix aggregate field type inference using wrong property name (aggregates now correctly infer as `:number_range` instead of `:text`)
 * Fix `show_filters` option not being respected when rendering table (#56)
 
+## v0.7.0 (2025-09-23)
+
+### Features
+
+* Add "smart" theme.
+
 ## v0.6.1 (2025-09-05)
 
 ### Features

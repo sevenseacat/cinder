@@ -6,12 +6,13 @@ Cinder provides a comprehensive theming system that allows complete visual custo
 
 ## Table of Contents
 
-- [Quick Start](#quick-start)
-- [Built-in Theme Presets](#built-in-theme-presets)
-- [Custom Themes with DSL](#custom-themes-with-dsl)
-- [Theme Inheritance](#theme-inheritance)
-- [Developer Tools](#developer-tools)
-- [Component Reference](#component-reference)
+* [Table of Contents](#table-of-contents)
+* [Quick Start](#quick-start)
+* [Built-in Theme Presets](#built-in-theme-presets)
+* [Custom Themes with DSL](#custom-themes-with-dsl)
+* [Theme Inheritance](#theme-inheritance)
+* [Developer Tools](#developer-tools)
+* [Component Reference](#component-reference)
 
 ## Quick Start
 
