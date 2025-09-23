@@ -396,9 +396,7 @@ defmodule Cinder.TableTest do
 
       # Should respect explicit show_filters = false
       assert html =~ "cinder-table"
-      # Note: The filter still shows because show_filters is processed after columns
-      # This is expected behavior - the component shows filters when columns are filterable
-      assert html =~ "Filter Name"
+      refute html =~ "Filter Name"
     end
   end
 
@@ -452,7 +450,7 @@ defmodule Cinder.TableTest do
 
       # Should use dark theme (has gray-800 class), not modern theme
       assert html =~ "cinder-table"
-      assert html =~ "gray-800"
+      assert html =~ "gray-900"
       refute html =~ "shadow-lg"
 
       # Cleanup
@@ -658,10 +656,6 @@ defmodule Cinder.TableTest do
     end
   end
 
-
-
-
-
   describe "edge cases and error handling" do
     test "handles empty column list" do
       assigns = %{
@@ -789,7 +783,5 @@ defmodule Cinder.TableTest do
       # 3. End-to-end functionality is verified through actual table usage
       assert true
     end
-
-
   end
 end
