@@ -712,7 +712,6 @@ defmodule Cinder.Table.LiveComponent do
     columns =
       socket.assigns.col
       |> Enum.map(&Cinder.Column.parse_column(&1, resource))
-      |> Enum.map(&convert_column_to_legacy_format/1)
 
     # Use filter_configs for filtering if provided (includes filter-only slots)
     # Otherwise use the display columns for backward compatibility
@@ -722,8 +721,8 @@ defmodule Cinder.Table.LiveComponent do
           columns
 
         filter_configs ->
-          # Convert pre-processed filter configurations to legacy format
-          Enum.map(filter_configs, &convert_filter_config_to_legacy_format/1)
+          # Use filter configurations directly
+          filter_configs
       end
 
     socket
@@ -856,43 +855,7 @@ defmodule Cinder.Table.LiveComponent do
     {:noreply, socket}
   end
 
-  # Convert new Column struct to legacy format for backward compatibility
-  defp convert_column_to_legacy_format(%Cinder.Column{} = column) do
-    %{
-      field: column.field,
-      label: column.label,
-      sortable: column.sortable,
-      searchable: column.searchable,
-      filterable: column.filterable,
-      filter_type: column.filter_type,
-      filter_options: column.filter_options,
-      filter_fn: column.filter_fn,
-      options: column.options,
-      display_field: column.display_field,
-      search_fn: column.search_fn,
-      class: column.class,
-      slot: column.slot
-    }
-  end
 
-  # Convert pre-processed filter configuration to legacy format
-  defp convert_filter_config_to_legacy_format(config) when is_map(config) do
-    %{
-      field: config.field,
-      label: config.label,
-      sortable: Map.get(config, :sortable, false),
-      searchable: Map.get(config, :searchable, false),
-      filterable: Map.get(config, :filterable, true),
-      filter_type: config.filter_type,
-      filter_options: Map.get(config, :filter_options, []),
-      filter_fn: Map.get(config, :filter_fn),
-      options: Map.get(config, :options, []),
-      display_field: Map.get(config, :display_field),
-      search_fn: Map.get(config, :search_fn),
-      class: Map.get(config, :class, ""),
-      slot: Map.get(config, :__slot__, :col)
-    }
-  end
 
   # Helper functions for row click functionality
   defp get_row_classes(base_classes, row_click) do
