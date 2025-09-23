@@ -12,6 +12,7 @@
 * Fix sorting regression where sort-only columns were not sortable via URL parameters
 * Fix aggregate field type inference using wrong property name (aggregates now correctly infer as `:number_range` instead of `:text`)
 * Fix `show_filters` option not being respected when rendering table (#56)
+* Fix search parameter not being stored in the socket after being decoded (#54)
 
 ## v0.6.1 (2025-09-05)
 

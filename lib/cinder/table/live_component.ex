@@ -441,6 +441,7 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:filters, decoded_state.filters)
       |> assign(:current_page, decoded_state.current_page)
       |> assign(:sort_by, final_sort_by)
+      |> assign(:search_term, decoded_state.search_term)
     else
       # Fallback to old method (for backward compatibility)
       url_params =
@@ -480,6 +481,7 @@ defmodule Cinder.Table.LiveComponent do
         |> assign(:filters, decoded_state.filters)
         |> assign(:current_page, decoded_state.current_page)
         |> assign(:sort_by, final_sort_by)
+        |> assign(:search_term, decoded_state.search_term)
       end
     end
   end
