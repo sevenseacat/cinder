@@ -276,7 +276,7 @@ defmodule Cinder.Table do
     - Supports `match_mode: :any` (default) for OR logic or `match_mode: :all` for AND logic
   - `:multi_checkboxes` - Traditional checkbox interface for multiple selection
     - Supports `match_mode: :any` (default) for OR logic or `match_mode: :all` for AND logic
-  - `:boolean` - Radio buttons for true/false/all selection (default for boolean fields)
+  - `:boolean` - Radio buttons for true/false selection (default for boolean fields)
   - `:checkbox` - Single checkbox for "show only X" filtering
     - For boolean fields: defaults to filtering for `true` when checked
     - For non-boolean fields: requires explicit `value` option
@@ -315,7 +315,7 @@ defmodule Cinder.Table do
   - `prompt` - Prompt text (`:multi_select` only)
 
   **Boolean filters (`:boolean`):**
-  - `labels` - Custom labels (map with `:all`, `:true`, `:false` keys)
+  - `labels` - Custom labels (map with `:true`, `:false` keys)
 
   **Checkbox filters (`:checkbox`):**
   - `value` - Filter value when checked
@@ -487,7 +487,7 @@ defmodule Cinder.Table do
     )
 
     attr(:labels, :map,
-      doc: "Custom labels for boolean filter (map with :all, :true, :false keys)"
+      doc: "Custom labels for boolean filter (map with :true, :false keys)"
     )
 
     attr(:prompt, :string,

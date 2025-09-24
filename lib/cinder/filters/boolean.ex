@@ -2,7 +2,7 @@ defmodule Cinder.Filters.Boolean do
   @moduledoc """
   Boolean filter implementation for Cinder tables.
 
-  Provides boolean filtering with radio button inputs for true/false/all options.
+  Provides boolean filtering with radio button inputs for true/false options.
   """
 
   @behaviour Cinder.Filter
@@ -17,14 +17,12 @@ defmodule Cinder.Filters.Boolean do
     filter_options = Map.get(column, :filter_options, [])
     options = get_option(filter_options, :labels, %{})
 
-    all_label = Map.get(options, :all, "All")
     true_label = Map.get(options, true, "True")
     false_label = Map.get(options, false, "False")
 
     assigns = %{
       column: column,
       current_boolean_value: current_boolean_value,
-      all_label: all_label,
       true_label: true_label,
       false_label: false_label,
       theme: theme
@@ -32,7 +30,6 @@ defmodule Cinder.Filters.Boolean do
 
     ~H"""
     <div class={@theme.filter_boolean_container_class} {@theme.filter_boolean_container_data}>
-      <.option name={field_name(@column.field)} label={@all_label} value="" checked={@current_boolean_value in ["", "all"]} theme={@theme} />
       <.option name={field_name(@column.field)} label={@true_label} value="true" checked={@current_boolean_value == "true"} theme={@theme} />
       <.option name={field_name(@column.field)} label={@false_label} value="false" checked={@current_boolean_value == "false"} theme={@theme} />
     </div>
@@ -67,12 +64,6 @@ defmodule Cinder.Filters.Boolean do
     trimmed = String.trim(raw_value)
 
     case trimmed do
-      "" ->
-        nil
-
-      "all" ->
-        nil
-
       "true" ->
         %{
           type: :boolean,
@@ -109,7 +100,6 @@ defmodule Cinder.Filters.Boolean do
   def default_options do
     [
       labels: %{
-        all: "All",
         true: "True",
         false: "False"
       }
@@ -121,7 +111,6 @@ defmodule Cinder.Filters.Boolean do
     case value do
       nil -> true
       "" -> true
-      "all" -> true
       %{value: nil} -> true
       _ -> false
     end

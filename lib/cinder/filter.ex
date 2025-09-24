@@ -346,7 +346,6 @@ defmodule Cinder.Filter do
     case value do
       "" -> false
       nil -> false
-      "all" -> false
       [] -> false
       %{from: "", to: ""} -> false
       %{min: "", max: ""} -> false

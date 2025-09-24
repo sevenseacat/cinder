@@ -21,7 +21,6 @@ defmodule Cinder.FiltersTest do
 
       assert Cinder.Filter.has_filter_value?("") == false
       assert Cinder.Filter.has_filter_value?(nil) == false
-      assert Cinder.Filter.has_filter_value?("all") == false
       assert Cinder.Filter.has_filter_value?([]) == false
       assert Cinder.Filter.has_filter_value?(%{from: "", to: ""}) == false
       assert Cinder.Filter.has_filter_value?(%{min: "", max: ""}) == false
@@ -135,7 +134,6 @@ defmodule Cinder.FiltersTest do
 
       boolean_defaults = Registry.default_options(:boolean)
       labels = Keyword.get(boolean_defaults, :labels)
-      assert labels[:all] == "All"
       assert labels[true] == "True"
       assert labels[false] == "False"
     end
@@ -194,7 +192,6 @@ defmodule Cinder.FiltersTest do
 
       # Empty values should return nil
       assert Select.process("", column) == nil
-      assert Select.process("all", column) == nil
     end
 
     test "validate/1 validates select filter values" do
@@ -208,10 +205,8 @@ defmodule Cinder.FiltersTest do
     test "empty?/1 correctly identifies empty select values" do
       assert Select.empty?(nil) == true
       assert Select.empty?("") == true
-      assert Select.empty?("all") == true
       assert Select.empty?(%{value: ""}) == true
-      assert Select.empty?(%{value: "all"}) == true
-
+      
       assert Select.empty?("option1") == false
       assert Select.empty?(%{value: "option1"}) == false
     end
@@ -556,9 +551,8 @@ defmodule Cinder.FiltersTest do
                operator: :equals
              }
 
-      # Empty/all values should return nil
+      # Empty values should return nil
       assert Boolean.process("", column) == nil
-      assert Boolean.process("all", column) == nil
     end
 
     test "validate/1 validates boolean filter values" do
@@ -575,7 +569,6 @@ defmodule Cinder.FiltersTest do
     test "empty?/1 correctly identifies empty boolean values" do
       assert Boolean.empty?(nil) == true
       assert Boolean.empty?("") == true
-      assert Boolean.empty?("all") == true
       assert Boolean.empty?(%{value: nil}) == true
 
       assert Boolean.empty?(true) == false

@@ -320,7 +320,12 @@ defmodule Cinder.Table.FilterSlotsTest do
         # Text filter with all options
         %{field: "name", type: :text, operator: :starts_with, case_sensitive: true, placeholder: "Enter name...", __slot__: :filter},
         # Boolean filter with custom labels
-        %{field: "active", type: :boolean, labels: %{all: "All Users", true: "Active Only", false: "Inactive Only"}, __slot__: :filter},
+        %{
+          field: "active",
+          type: :boolean,
+          labels: %{true: "Active Only", false: "Inactive Only"},
+          __slot__: :filter
+        },
         # Select filter with prompt
         %{field: "status", type: :select, options: [{"Active", "active"}], prompt: "Choose status...", __slot__: :filter},
         # Multi-select with match mode
@@ -377,10 +382,6 @@ defmodule Cinder.Table.FilterSlotsTest do
       # The actual filter rendering would contain the placeholder and case sensitivity,
       # but testing that would require more complex HTML parsing
     end
-
-
-
-
 
     test "auto-generates labels from field names" do
       filter_slots = [

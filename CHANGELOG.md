@@ -6,6 +6,10 @@
 
 * Add filter-only slots for filtering on fields without displaying them as columns (#34)
 
+### Changes
+
+* Remove "All" option from boolean filters - this is equivalent to clearing the filter
+
 ### Bug fixes
 
 * Fix checkbox filters in filter-only slots not applying on first click when URL sync is enabled

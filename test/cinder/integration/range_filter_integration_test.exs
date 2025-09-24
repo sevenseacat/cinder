@@ -688,7 +688,7 @@ defmodule Cinder.RangeFilterIntegrationTest do
       assert filters_after_mixed["value"].value == %{min: "100", max: "200"}
       assert filter_values_after_mixed["value"] == %{min: "100", max: "200"}
 
-      # Step 4: User changes boolean back to "all" (empty)
+      # Step 4: User clears boolean filter (empty)
       clear_boolean_params = %{
         "active" => "",
         "value_min" => "100",

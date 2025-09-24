@@ -957,7 +957,7 @@ Each filter type supports different configuration options:
   <:filter field="categories" type="multi_select" options={@category_options} match_mode="all" />
   
   <!-- Boolean with custom labels -->
-  <:filter field="in_stock" type="boolean" labels={%{all: "All Items", true: "In Stock", false: "Out of Stock"}} />
+  <:filter field="in_stock" type="boolean" labels={%{true: "In Stock", false: "Out of Stock"}} />
   
   <!-- Checkbox for featured items -->
   <:filter field="featured" type="checkbox" label="Featured products only" />

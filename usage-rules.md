@@ -123,7 +123,7 @@ end
 Cinder automatically detects filter types from Ash resource attributes:
 - **Text**: `:string`, `:atom` fields → contains/starts_with/ends_with
 - **Select**: enum attributes → dropdown selection
-- **Boolean**: `:boolean` fields → yes/no/all options
+- **Boolean**: `:boolean` fields → yes/no options
 - **Date Range**: `:date`, `:utc_datetime`, `:naive_datetime` → date pickers
 - **Number Range**: `:integer`, `:float`, `:decimal` → min/max inputs
 - **Multi-Select**: array fields → multiple selection with AND/OR logic
