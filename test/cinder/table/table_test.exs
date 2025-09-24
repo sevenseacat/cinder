@@ -109,7 +109,7 @@ defmodule Cinder.TableTest do
   end
 
   defmodule TestStatusEnum do
-    use Ash.Type.Enum, values: [draft: "Draft", published: "Published", archived: "Archived"]
+    use Ash.Type.Enum, values: [draft: [label: "Draft"], published: [label: "Published"], archived: [label: "Archived"]]
   end
 
   describe "table/1 function signature" do

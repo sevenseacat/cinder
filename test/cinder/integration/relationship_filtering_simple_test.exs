@@ -4,7 +4,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
 
   # Define enum first
   defmodule TestGenreEnum do
-    use Ash.Type.Enum, values: [rock: "Rock", pop: "Pop", jazz: "Jazz", classical: "Classical"]
+    use Ash.Type.Enum, values: [rock: [label: "Rock"], pop: [label: "Pop"], jazz: [label: "Jazz"], classical: [label: "Classical"]]
   end
 
   # Test domain

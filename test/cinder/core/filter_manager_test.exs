@@ -517,7 +517,12 @@ defmodule Cinder.FilterManagerRuntimeTest do
     # Real Ash.Type.Enum module with keyword array values (working case)
     defmodule TestKeywordEnum do
       use Ash.Type.Enum,
-        values: [pending: "Pending Status", trading: "Currently Trading", paused: "Paused Status"]
+        values: [
+          # "Pending Status" is actually the description, and won't be used
+          pending: "Pending Status",
+          trading: [label: "Currently Trading"],
+          paused: [label: "Paused Status", description: "This is the paused status"]
+        ]
     end
 
     test "enum_to_options correctly labels atoms from simple array" do
@@ -550,7 +555,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
       result = FilterManager.extract_enum_options(mock_attribute)
 
       expected = [
-        {"Pending Status", :pending},
+        {"Pending", :pending},
         {"Currently Trading", :trading},
         {"Paused Status", :paused}
       ]

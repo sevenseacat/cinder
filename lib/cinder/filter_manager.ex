@@ -813,10 +813,10 @@ defmodule Cinder.FilterManager do
       case value do
         atom when is_atom(atom) ->
           label =
-            if enum_module && function_exported?(enum_module, :description, 1) do
-              case apply(enum_module, :description, [atom]) do
+            if enum_module && function_exported?(enum_module, :label, 1) do
+              case apply(enum_module, :label, [atom]) do
                 nil -> Cinder.Filter.humanize_atom(atom)
-                description -> description
+                label -> label
               end
             else
               Cinder.Filter.humanize_atom(atom)

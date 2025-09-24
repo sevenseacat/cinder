@@ -9,6 +9,7 @@
 ### Changes
 
 * Remove "All" option from boolean filters - this is equivalent to clearing the filter
+* Use labels when generating options from `Ash.Type.Enum` modules, instead of descriptions (#35)
 
 ### Bug fixes
 
