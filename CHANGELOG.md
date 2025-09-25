@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Fix filter-only slots not receiving `options` attribute, causing select filters to show "No options available"
+
 ## v0.7.0 (2025-09-24)
 
 ### Features

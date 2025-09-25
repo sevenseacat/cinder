@@ -157,6 +157,14 @@ defmodule Cinder.Table.FilterSlotsTest do
 
       html = render_component(&Cinder.Table.table/1, assigns)
       assert html =~ "cinder-table"
+      # Verify that the options are actually rendered in the dropdown
+      assert html =~ "Sales"
+      assert html =~ "Marketing"
+      # Verify the values are present
+      assert html =~ "value=\"sales\""
+      assert html =~ "value=\"marketing\""
+      # Ensure it's not showing "No options available"
+      refute html =~ "No options available"
     end
   end
 

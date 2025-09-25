@@ -717,21 +717,23 @@ defmodule Cinder.Table do
       label = Map.get(slot, :label)
 
       # Extract all filter-specific options
-      extra_options = [
-        operator: Map.get(slot, :operator),
-        case_sensitive: Map.get(slot, :case_sensitive),
-        placeholder: Map.get(slot, :placeholder),
-        labels: Map.get(slot, :labels),
-        prompt: Map.get(slot, :prompt),
-        match_mode: Map.get(slot, :match_mode),
-        format: Map.get(slot, :format),
-        include_time: Map.get(slot, :include_time),
-        step: Map.get(slot, :step),
-        min: Map.get(slot, :min),
-        max: Map.get(slot, :max),
-        fn: Map.get(slot, :fn)
-      ]
-      |> Enum.filter(fn {_key, value} -> value != nil end)
+      extra_options =
+        [
+          operator: Map.get(slot, :operator),
+          case_sensitive: Map.get(slot, :case_sensitive),
+          placeholder: Map.get(slot, :placeholder),
+          labels: Map.get(slot, :labels),
+          prompt: Map.get(slot, :prompt),
+          match_mode: Map.get(slot, :match_mode),
+          format: Map.get(slot, :format),
+          include_time: Map.get(slot, :include_time),
+          step: Map.get(slot, :step),
+          min: Map.get(slot, :min),
+          max: Map.get(slot, :max),
+          options: filter_options,
+          fn: Map.get(slot, :fn)
+        ]
+        |> Enum.filter(fn {_key, value} -> value != nil end)
 
       # Validate required attributes
       if is_nil(field) or field == "" do
