@@ -32,8 +32,8 @@ defmodule Cinder.Filters.Select do
         Map.get(option_labels, current_value, current_value)
       end
 
-    # Escape dots in field names to create valid CSS selectors
-    safe_field_name = String.replace(column.field, ".", "_")
+    # Sanitize field name for use in HTML attributes and CSS selectors
+    safe_field_name = Cinder.Filter.sanitized_field_name(column.field)
 
     assigns = %{
       column: column,
@@ -47,7 +47,7 @@ defmodule Cinder.Filters.Select do
     }
 
     ~H"""
-    <div class={@theme.filter_select_container_class} id={"select-dropdown-#{@column.field}"}>
+    <div class={@theme.filter_select_container_class} id={@dropdown_id}>
       <!-- Main dropdown button that looks like a select input -->
       <button
         type="button"

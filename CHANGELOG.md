@@ -5,6 +5,7 @@
 ### Bug fixes
 
 * Fix filter-only slots not receiving `options` attribute, causing select filters to show "No options available"
+* Ensure that field names have special characters stripped before being used in HTML attributes (#62)
 
 ## v0.7.0 (2025-09-24)
 

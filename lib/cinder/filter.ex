@@ -409,4 +409,26 @@ defmodule Cinder.Filter do
       suffix -> "filters[#{column_key}_#{suffix}]"
     end
   end
+
+  @doc """
+  Sanitizes a field name for use in HTML attributes and CSS selectors.
+
+  Replaces all characters that are invalid in CSS selectors with underscores,
+  keeping only letters, numbers, hyphens, and underscores.
+
+  ## Examples
+
+      iex> Cinder.Filter.sanitized_field_name("main_unit?")
+      "main_unit_"
+
+      iex> Cinder.Filter.sanitized_field_name("user.name")
+      "user_name"
+
+      iex> Cinder.Filter.sanitized_field_name("profile[:first_name]")
+      "profile__first_name_"
+  """
+  def sanitized_field_name(field_name) do
+    field_name
+    |> String.replace(~r/[^a-zA-Z0-9_-]/, "_")
+  end
 end
