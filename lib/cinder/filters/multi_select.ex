@@ -116,10 +116,6 @@ defmodule Cinder.Filters.MultiSelect do
             checked={to_string(value) in Enum.map(@selected_values, &to_string/1)}
             class={@theme.filter_multiselect_checkbox_class}
             {@theme.filter_multiselect_checkbox_data}
-            phx-click="toggle_multiselect_option"
-            phx-value-field={@column.field}
-            phx-value-option={value}
-            phx-target={@target}
           />
           <span class={@theme.filter_multiselect_label_class} {@theme.filter_multiselect_label_data}>{label}</span>
         </label>

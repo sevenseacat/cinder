@@ -77,10 +77,7 @@ defmodule Cinder.Filters.Select do
             value=""
             checked={@current_value == ""}
             class="sr-only"
-            phx-value-field={@column.field}
-            phx-value-option=""
-            phx-target={@target}
-            phx-click={JS.push("select_option", target: @target) |> JS.hide(to: "##{@dropdown_id}-options")}
+            phx-click={JS.hide(to: "##{@dropdown_id}-options")}
           />
           <span class={@theme.filter_select_label_class} {@theme.filter_select_label_data}>{@prompt}</span>
         </label>
@@ -92,10 +89,7 @@ defmodule Cinder.Filters.Select do
             value={to_string(value)}
             checked={to_string(value) == @current_value}
             class="sr-only"
-            phx-value-field={@column.field}
-            phx-value-option={value}
-            phx-target={@target}
-            phx-click={JS.push("select_option", target: @target) |> JS.hide(to: "##{@dropdown_id}-options")}
+            phx-click={JS.hide(to: "##{@dropdown_id}-options")}
           />
           <span class={@theme.filter_select_label_class} {@theme.filter_select_label_data}>{label}</span>
         </label>
