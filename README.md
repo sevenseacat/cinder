@@ -42,6 +42,7 @@ That's it! Cinder automatically provides:
 - **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel) plus powerful DSL for custom themes
 - **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
 - **⚡ Real-time Filtering**: Six filter types with debounced updates
+- **🌍 Internationalization**: Built-in translations for multiple languages (English, Dutch, Swedish)
 - **🔐 Ash Integration**: Native support for Ash Framework resources and authorization
 
 ## Installation
@@ -164,6 +165,7 @@ end
 - **`Cinder.Table`** - All the configuration options for `table` components and `col` slots.
 - **[Complete Examples](docs/examples.md)** - Comprehensive usage examples for all features
 - **[Theming Guide](docs/theming.md)** - How to develop and use table themes
+- **[Localization](docs/localization.md)** - Internationalization support and translations
 - **[Module Documentation](https://hexdocs.pm/cinder)** - Full API reference
 - **[Hex Package](https://hex.pm/packages/cinder)** - Package information
 
