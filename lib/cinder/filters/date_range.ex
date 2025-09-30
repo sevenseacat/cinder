@@ -244,16 +244,19 @@ defmodule Cinder.Filters.DateRange do
       %{type: Ash.Type.Date} -> :date
       %{type: Ash.Type.NaiveDatetime} -> :naive_datetime
       %{type: Ash.Type.UtcDatetime} -> :utc_datetime
+      %{type: Ash.Type.UtcDatetimeUsec} -> :utc_datetime
+      %{type: Ash.Type.DateTime} -> :utc_datetime
       _ -> :unknown
     end
   end
 
   defp get_field_type(_, _), do: :unknown
 
-  # Convert date string to datetime string for NaiveDatetime fields
+  # Convert date string to datetime string for datetime fields
   defp convert_date_for_field(value, _field_type) when value in ["", nil], do: value
 
-  defp convert_date_for_field(value, :naive_datetime) when is_binary(value) do
+  defp convert_date_for_field(value, field_type)
+       when field_type in [:naive_datetime, :utc_datetime] and is_binary(value) do
     cond do
       # Already a datetime string
       String.contains?(value, "T") ->
@@ -274,7 +277,8 @@ defmodule Cinder.Filters.DateRange do
   # Convert date string to end-of-day datetime for range end values
   defp convert_date_for_field_end(value, _field_type) when value in ["", nil], do: value
 
-  defp convert_date_for_field_end(value, :naive_datetime) when is_binary(value) do
+  defp convert_date_for_field_end(value, field_type)
+       when field_type in [:naive_datetime, :utc_datetime] and is_binary(value) do
     cond do
       # Already a datetime string
       String.contains?(value, "T") ->

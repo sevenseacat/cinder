@@ -11,6 +11,7 @@ defmodule Cinder.Filters.DateRangeFieldConversionTest do
       uuid_primary_key(:id)
       attribute(:created_at, :naive_datetime)
       attribute(:updated_at, :utc_datetime)
+      attribute(:updated_at_usec, :utc_datetime_usec)
       attribute(:birth_date, :date)
       attribute(:name, :string)
     end
@@ -172,6 +173,76 @@ defmodule Cinder.Filters.DateRangeFieldConversionTest do
       %{filter: filter} = result_query
       assert filter != nil
     end
+
+    test "datetime fields convert date-only 'to' value to end-of-day (23:59:59)", %{
+      query: query
+    } do
+      # When filtering a naive_datetime field with date-only values, the 'to' date should be
+      # converted to end-of-day (23:59:59) to include all records created on that date
+      filter_value = %{
+        type: :date_range,
+        value: %{from: "2025-09-26", to: "2025-09-29"},
+        operator: :between
+      }
+
+      result_query = DateRange.build_query(query, "created_at", filter_value)
+
+      # Verify the filter was applied
+      assert result_query != query
+      %{filter: filter} = result_query
+      assert filter != nil
+
+      # The filter should convert to end-of-day for the 'to' date
+      filter_string = inspect(filter)
+
+      # Must contain the end-of-day time for the 'to' date (NaiveDateTime format uses space not T)
+      assert String.contains?(filter_string, "2025-09-29 23:59:59"),
+             "Expected filter to convert 'to' date to end-of-day (23:59:59), but got: #{filter_string}"
+    end
+
+    test "utc_datetime fields also convert date-only 'to' value to end-of-day", %{
+      query: query
+    } do
+      filter_value = %{
+        type: :date_range,
+        value: %{from: "2025-09-26", to: "2025-09-29"},
+        operator: :between
+      }
+
+      result_query = DateRange.build_query(query, "updated_at", filter_value)
+
+      assert result_query != query
+      %{filter: filter} = result_query
+      assert filter != nil
+
+      filter_string = inspect(filter)
+
+      # Must contain the end-of-day time for the 'to' date
+      assert String.contains?(filter_string, "2025-09-29 23:59:59"),
+             "Expected filter to convert 'to' date to end-of-day (23:59:59) for utc_datetime field, but got: #{filter_string}"
+    end
+
+    test "utc_datetime_usec fields also convert date-only 'to' value to end-of-day", %{
+      query: query
+    } do
+      filter_value = %{
+        type: :date_range,
+        value: %{from: "2025-09-26", to: "2025-09-29"},
+        operator: :between
+      }
+
+      result_query = DateRange.build_query(query, "updated_at_usec", filter_value)
+
+      assert result_query != query
+      %{filter: filter} = result_query
+      assert filter != nil
+
+      filter_string = inspect(filter)
+
+      # Must contain the end-of-day time for the 'to' date
+      assert String.contains?(filter_string, "2025-09-29 23:59:59"),
+             "Expected filter to convert 'to' date to end-of-day (23:59:59) for utc_datetime_usec field, but got: #{filter_string}"
+    end
   end
 
   describe "relationship field conversion" do
@@ -195,19 +266,90 @@ defmodule Cinder.Filters.DateRangeFieldConversionTest do
   end
 
   describe "field type detection helpers" do
-    test "get_field_type/2 detects correct types" do
-      # Use the private function via module attribute access (test-only approach)
-      assert DateRange.__info__(:functions) |> Keyword.has_key?(:build_query)
+    test "date field (non-datetime) should not convert dates to timestamps" do
+      query = Ash.Query.new(TestResource)
 
-      # Test that our resource has the expected field types
-      created_at_attr = Ash.Resource.Info.attribute(TestResource, :created_at)
-      assert created_at_attr.type == Ash.Type.NaiveDatetime
+      filter_value = %{
+        type: :date_range,
+        value: %{from: "2025-09-26", to: "2025-09-29"},
+        operator: :between
+      }
 
-      updated_at_attr = Ash.Resource.Info.attribute(TestResource, :updated_at)
-      assert updated_at_attr.type == Ash.Type.UtcDatetime
+      result_query = DateRange.build_query(query, "birth_date", filter_value)
 
-      birth_date_attr = Ash.Resource.Info.attribute(TestResource, :birth_date)
-      assert birth_date_attr.type == Ash.Type.Date
+      assert result_query != query
+      %{filter: filter} = result_query
+      assert filter != nil
+
+      filter_string = inspect(filter)
+
+      # For :date fields, should NOT add time component
+      refute String.contains?(filter_string, "23:59:59"),
+             "Date fields should not have time component added, but got: #{filter_string}"
+
+      # Should contain just the date
+      assert String.contains?(filter_string, "2025-09-26")
+      assert String.contains?(filter_string, "2025-09-29")
+    end
+
+    test "when user provides explicit datetime in 'to', it should be preserved" do
+      query = Ash.Query.new(TestResource)
+
+      filter_value = %{
+        type: :date_range,
+        value: %{from: "2025-09-26T09:00:00", to: "2025-09-29T17:30:00"},
+        operator: :between
+      }
+
+      result_query = DateRange.build_query(query, "created_at", filter_value)
+
+      assert result_query != query
+      %{filter: filter} = result_query
+      assert filter != nil
+
+      # Should preserve the explicit time provided by user, not convert to 23:59:59
+      filter_string = inspect(filter)
+      assert String.contains?(filter_string, "09:00:00")
+      assert String.contains?(filter_string, "17:30:00")
+      refute String.contains?(filter_string, "23:59:59")
+    end
+
+    test "mixed date and datetime values are handled correctly" do
+      query = Ash.Query.new(TestResource)
+
+      # From is date-only, to is datetime
+      filter_value = %{
+        type: :date_range,
+        value: %{from: "2025-09-26", to: "2025-09-29T17:30:00"},
+        operator: :between
+      }
+
+      result_query = DateRange.build_query(query, "created_at", filter_value)
+
+      assert result_query != query
+      %{filter: filter} = result_query
+      assert filter != nil
+
+      filter_string = inspect(filter)
+      # From should be converted to start of day
+      assert String.contains?(filter_string, "2025-09-26 00:00:00")
+      # To should preserve explicit time
+      assert String.contains?(filter_string, "17:30:00")
+
+      # From is datetime, to is date-only
+      filter_value2 = %{
+        type: :date_range,
+        value: %{from: "2025-09-26T09:00:00", to: "2025-09-29"},
+        operator: :between
+      }
+
+      result_query2 = DateRange.build_query(query, "created_at", filter_value2)
+
+      filter_string2 = inspect(result_query2.filter)
+      # From should preserve explicit time
+      assert String.contains?(filter_string2, "09:00:00")
+      # To should be converted to end of day
+      assert String.contains?(filter_string2, "2025-09-29 23:59:59")
     end
   end
 

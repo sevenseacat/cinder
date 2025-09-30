@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Fix date range filters not converting end dates to end-of-day for datetime fields, causing records on the end date to be excluded
+* Fix filter forms using browser submit when the enter key is pressed (#65)
+
 ## v0.7.1 (2025-09-28)
 
 ### Bug fixes
