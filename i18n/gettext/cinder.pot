@@ -11,37 +11,60 @@
 msgid ""
 msgstr ""
 
+#: lib/cinder/filter_manager.ex:79
+#, elixir-autogen
 msgid "Clear all"
 msgstr ""
 
+#: lib/cinder/filter_manager.ex:224
+#, elixir-autogen
 msgid "Clear filter"
 msgstr ""
 
+#: lib/cinder/filter_manager.ex:69
+#, elixir-autogen
 msgid "active"
 msgid_plural "active"
 msgstr[0] ""
 msgstr[1] ""
 
+#: lib/cinder/table/live_component.ex:423
+#, elixir-autogen
 msgid "Page %{current} of %{total}"
 msgstr ""
 
+#: lib/cinder/table/live_component.ex:425
+#, elixir-autogen
 msgid "showing %{start}-%{end} of %{total}"
 msgstr ""
 
+#: lib/cinder/filters/date_range.ex:51
+#: lib/cinder/filters/number_range.ex:41
+#, elixir-autogen
 msgid "to"
 msgstr ""
 
+#: lib/cinder/table/live_component.ex:489
+#, elixir-autogen
 msgid "Next page"
 msgstr ""
 
+#: lib/cinder/table/live_component.ex:458
+#, elixir-autogen
 msgid "Previous page"
 msgstr ""
 
+#: lib/cinder/table/live_component.ex:446
+#, elixir-autogen
 msgid "First page"
 msgstr ""
 
+#: lib/cinder/table/live_component.ex:501
+#, elixir-autogen
 msgid "Last page"
 msgstr ""
 
+#: lib/cinder/table/live_component.ex:472
+#, elixir-autogen
 msgid "Go to page %{page}"
 msgstr ""

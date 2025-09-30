@@ -9,7 +9,7 @@ defmodule Cinder.Table.LiveComponent do
   require Ash.Query
   require Logger
   alias Phoenix.LiveView.JS
-  alias Cinder.Messages
+  use Cinder.Messages
 
   @impl true
   def mount(socket) do
@@ -255,7 +255,9 @@ defmodule Cinder.Table.LiveComponent do
     # Process filters - use empty map when no "filters" key to handle unchecked checkboxes
     new_filters =
       Map.get(params, "filters", %{})
-      |> Cinder.FilterManager.params_to_filters(Map.get(socket.assigns, :filter_columns, socket.assigns.columns))
+      |> Cinder.FilterManager.params_to_filters(
+        Map.get(socket.assigns, :filter_columns, socket.assigns.columns)
+      )
 
     # Process search if present
     search_term =
@@ -289,8 +291,6 @@ defmodule Cinder.Table.LiveComponent do
 
     {:noreply, socket}
   end
-
-
 
   # Notify parent LiveView about filter changes
   defp notify_state_change(socket, filters \\ nil) do
@@ -420,9 +420,9 @@ defmodule Cinder.Table.LiveComponent do
     <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
       <!-- Left side: Page info -->
       <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
-        {Messages.dgettext("cinder", "Page %{current} of %{total}", current: @page_info.current_page, total: @page_info.total_pages)}
+        {dgettext("cinder", "Page %{current} of %{total}", current: @page_info.current_page, total: @page_info.total_pages)}
         <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
-          ({Messages.dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @page_info.start_index, end: @page_info.end_index, total: @page_info.total_count)})
+          ({dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @page_info.start_index, end: @page_info.end_index, total: @page_info.total_count)})
         </span>
       </div>
 
@@ -443,7 +443,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title={Messages.dgettext("cinder", "First page")}
+          title={dgettext("cinder", "First page")}
         >
           &laquo;
         </button>
@@ -455,7 +455,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title={Messages.dgettext("cinder", "Previous page")}
+          title={dgettext("cinder", "Previous page")}
         >
           &lsaquo;
         </button>
@@ -469,7 +469,7 @@ defmodule Cinder.Table.LiveComponent do
             phx-target={@myself}
             class={@theme.pagination_button_class}
             {@theme.pagination_button_data}
-            title={Messages.dgettext("cinder", "Go to page %{page}", %{page: page})}
+            title={dgettext("cinder", "Go to page %{page}", %{page: page})}
           >
             {page}
           </button>
@@ -486,7 +486,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title={Messages.dgettext("cinder", "Next page")}
+          title={dgettext("cinder", "Next page")}
         >
         &rsaquo;
         </button>
@@ -498,7 +498,7 @@ defmodule Cinder.Table.LiveComponent do
           phx-target={@myself}
           class={@theme.pagination_button_class}
           {@theme.pagination_button_data}
-          title={Messages.dgettext("cinder", "Last page")}
+          title={dgettext("cinder", "Last page")}
         >
           &raquo;
         </button>
@@ -780,8 +780,6 @@ defmodule Cinder.Table.LiveComponent do
 
     {:noreply, socket}
   end
-
-
 
   # Helper functions for row click functionality
   defp get_row_classes(base_classes, row_click) do

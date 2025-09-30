@@ -9,7 +9,7 @@ defmodule Cinder.FilterManager do
   use Phoenix.Component
 
   alias Cinder.Filters.Registry
-  alias Cinder.Messages
+  use Cinder.Messages
 
   @type filter_type ::
           :text
@@ -66,7 +66,7 @@ defmodule Cinder.FilterManager do
         <span class={@theme.filter_title_class} {@theme.filter_title_data}>
           {@filters_label}
           <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} {@theme.filter_count_data}>
-            ({@active_filters} {Messages.dngettext("cinder", "active", "active", @active_filters)})
+            ({@active_filters} {dngettext("cinder", "active", "active", @active_filters)})
           </span>
         </span>
         <button
@@ -76,7 +76,7 @@ defmodule Cinder.FilterManager do
           class={[@theme.filter_clear_all_class, if(@active_filters == 0, do: "invisible", else: "")]}
           {@theme.filter_clear_all_data}
         >
-          {Messages.dgettext("cinder", "Clear all")}
+          {dgettext("cinder", "Clear all")}
         </button>
       </div>
 
@@ -221,7 +221,7 @@ defmodule Cinder.FilterManager do
           unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible", else: "")
         ]}
         {@theme.filter_clear_button_data}
-        title={Messages.dgettext("cinder", "Clear filter")}
+        title={dgettext("cinder", "Clear filter")}
       >
         ×
       </button>
