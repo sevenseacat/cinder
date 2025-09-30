@@ -79,7 +79,7 @@ defmodule Cinder.FilterManager do
         </button>
       </div>
 
-      <form phx-change="filter_change" phx-target={@target}>
+      <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
         <div class={@theme.filter_inputs_class} {@theme.filter_inputs_data}>
           <!-- Search Input (if enabled) - as first filter -->
           <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
