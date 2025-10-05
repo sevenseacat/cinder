@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* Add i18n support with gettext (#53)
+
 ## v0.7.2 (2025-09-30)
 
 ### Bug fixes
