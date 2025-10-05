@@ -91,6 +91,7 @@ defmodule Cinder.MixProject do
         "docs/theming.md",
         "docs/theme-showcase.md",
         "docs/custom-filters.md",
+        "docs/localization.md",
         "CHANGELOG.md"
       ],
       groups_for_modules: [
