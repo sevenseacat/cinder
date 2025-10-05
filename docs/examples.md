@@ -28,6 +28,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Action Columns](#action-columns)
 - [Table Refresh](#table-refresh)
 - [Performance Optimization](#performance-optimization)
+- [Localization](#localization)
 - [Testing](#testing)
 
 ## Filter-Only Slots
@@ -1852,6 +1853,52 @@ Use the `query` parameter with pre-built Ash.Query for defaults, but understand 
 If user sets department filter to "Sales", result is: `department = "Engineering" AND department = "Sales"` (no results).
 
 **Better approach for visible defaults**: Use URL state or LiveView assigns to populate filter UI.
+
+## Localization
+
+Cinder automatically uses your Phoenix app's locale for table UI elements (pagination, filters, etc.).
+
+### Basic Usage
+
+```elixir
+# Set locale in your app (e.g., plug or LiveView mount)
+Gettext.put_locale("nl")  # Dutch
+
+# Cinder tables automatically show Dutch UI text
+<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+</Cinder.Table.table>
+```
+
+### Dynamic Locale Switching
+
+```elixir
+defmodule MyAppWeb.LocaleLive do
+  use MyAppWeb, :live_view
+
+  def render(assigns) do
+    ~H"""
+    <select phx-change="switch_locale">
+      <option value="en">English</option>
+      <option value="nl">Nederlands</option>
+      <option value="sv">Svenska</option>
+    </select>
+
+    <!-- Cinder updates automatically when locale changes -->
+    <Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
+      <:col :let={product} field="name" filter sort>{product.name}</:col>
+    </Cinder.Table.table>
+    """
+  end
+
+  def handle_event("switch_locale", %{"value" => locale}, socket) do
+    Gettext.put_locale(locale)
+    {:noreply, socket}
+  end
+end
+```
+
+Available languages: English (en), Dutch (nl), Swedish (sv). See the [Localization Guide](localization.md) for details.
 
 ## Testing
 
