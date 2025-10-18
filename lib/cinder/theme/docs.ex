@@ -97,8 +97,7 @@ defmodule Cinder.Theme.Docs do
   end
 
   defp format_properties(properties, default_values) do
-    properties
-    |> Enum.map(fn property ->
+    Enum.map_join(properties, "\n", fn property ->
       default_value = Map.get(default_values, property, "\"\"")
 
       formatted_default =
@@ -106,6 +105,5 @@ defmodule Cinder.Theme.Docs do
 
       "  set :#{property}, #{formatted_default}"
     end)
-    |> Enum.join("\n")
   end
 end

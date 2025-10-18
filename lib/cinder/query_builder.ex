@@ -312,14 +312,12 @@ defmodule Cinder.QueryBuilder do
     Enum.reduce(filters, query, fn {field, filter_config}, query ->
       column = Enum.find(columns, &(&1.field == field))
 
-      cond do
-        column && column.filter_fn ->
-          # Use custom filter function
-          column.filter_fn.(query, filter_config)
-
-        true ->
-          # Apply standard filter based on type
-          apply_standard_filter(query, field, filter_config, column)
+      if column && column.filter_fn do
+        # Use custom filter function
+        column.filter_fn.(query, filter_config)
+      else
+        # Apply standard filter based on type
+        apply_standard_filter(query, field, filter_config, column)
       end
     end)
   end
@@ -480,15 +478,7 @@ defmodule Cinder.QueryBuilder do
 
   def apply_sorting(query, sort_by) do
     # Validate sort_by input to prevent Protocol.UndefinedError
-    unless is_list(sort_by) and Enum.all?(sort_by, &valid_sort_tuple?/1) do
-      require Logger
-
-      Logger.warning(
-        "Invalid sort_by format: #{inspect(sort_by)}. Expected list of {field, direction} tuples."
-      )
-
-      query
-    else
+    if is_list(sort_by) and Enum.all?(sort_by, &valid_sort_tuple?/1) do
       # Clear any existing sorts to ensure table sorts take precedence
       # Only call unset on actual Ash.Query structs, not on resources
       query =
@@ -523,6 +513,14 @@ defmodule Cinder.QueryBuilder do
             Ash.Query.sort(acc_query, [{converted_field, direction}])
         end
       end)
+    else
+      require Logger
+
+      Logger.warning(
+        "Invalid sort_by format: #{inspect(sort_by)}. Expected list of {field, direction} tuples."
+      )
+
+      query
     end
   end
 
@@ -541,7 +539,7 @@ defmodule Cinder.QueryBuilder do
           calc(get_path(^ref(embed_atom), ^field_atoms))
 
         _ ->
-          # Relationship + embedded: user.profile__name  
+          # Relationship + embedded: user.profile__name
           full_path = rel_path_atoms ++ [embed_atom]
           calc(get_path(^ref(full_path), ^field_atoms))
       end
@@ -741,20 +739,20 @@ defmodule Cinder.QueryBuilder do
   ## Examples
 
       # Database-level calculation (using expr())
-      is_calculation_sortable?(%{calculation: {Ash.Resource.Calculation.Expression, _}})
+      calculation_sortable?(%{calculation: {Ash.Resource.Calculation.Expression, _}})
       # => true
 
       # In-memory calculation without expression/2
-      is_calculation_sortable?(%{calculation: {MyCalcModule, _}})
+      calculation_sortable?(%{calculation: {MyCalcModule, _}})
       # => false (if MyCalcModule doesn't implement expression/2)
   """
-  def is_calculation_sortable?(%{calculation: {Ash.Resource.Calculation.Expression, _}}), do: true
+  def calculation_sortable?(%{calculation: {Ash.Resource.Calculation.Expression, _}}), do: true
 
-  def is_calculation_sortable?(%{calculation: {module, _opts}}) when is_atom(module) do
+  def calculation_sortable?(%{calculation: {module, _opts}}) when is_atom(module) do
     function_exported?(module, :expression, 2)
   end
 
-  def is_calculation_sortable?(_), do: false
+  def calculation_sortable?(_), do: false
 
   @doc """
   Retrieves calculation information for a given field from an Ash resource.
@@ -855,10 +853,7 @@ defmodule Cinder.QueryBuilder do
     field_string = to_string(field)
 
     # Use comprehensive field validation that handles embedded fields
-    if not validate_field_existence(resource, field_string) do
-      detail = "#{field} (field does not exist on #{inspect(resource)})"
-      {[field | unsortable], [detail | details]}
-    else
+    if validate_field_existence(resource, field_string) do
       # Parse field to handle relationship calculations for sortability check
       {target_resource, target_field} = resolve_field_resource(resource, field_string)
 
@@ -875,13 +870,18 @@ defmodule Cinder.QueryBuilder do
           # It's a calculation - check if sortable
           validate_calculation_sortability(field, calc, {unsortable, details})
       end
+    else
+      detail = "#{field} (field does not exist on #{inspect(resource)})"
+      {[field | unsortable], [detail | details]}
     end
   end
 
   # Validates whether a calculation can be sorted at the database level.
   # Checks if the calculation implements expression/2 for database-level sorting.
   defp validate_calculation_sortability(field, calc, {unsortable, details}) do
-    if not is_calculation_sortable?(calc) do
+    if calculation_sortable?(calc) do
+      {unsortable, details}
+    else
       detail =
         case calc.calculation do
           {module, _} ->
@@ -892,8 +892,6 @@ defmodule Cinder.QueryBuilder do
         end
 
       {[field | unsortable], [detail | details]}
-    else
-      {unsortable, details}
     end
   end
 

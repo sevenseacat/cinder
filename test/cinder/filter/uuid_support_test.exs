@@ -4,8 +4,8 @@ defmodule Cinder.Filter.UuidSupportTest do
   alias Cinder.Filter.Helpers
 
   # Import test resources from support directory
-  alias TestUuidResource
   alias TestUserResource
+  alias TestUuidResource
 
   describe "universal string casting approach" do
     test "string casting is applied to all text operators" do

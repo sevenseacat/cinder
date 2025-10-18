@@ -1,4 +1,5 @@
 defmodule TestProfile do
+  @moduledoc false
   use Ash.Resource, data_layer: :embedded
 
   attributes do
@@ -11,6 +12,7 @@ defmodule TestProfile do
 end
 
 defmodule TestAddress do
+  @moduledoc false
   use Ash.Resource, data_layer: :embedded
 
   attributes do
@@ -22,6 +24,7 @@ defmodule TestAddress do
 end
 
 defmodule TestSettings do
+  @moduledoc false
   use Ash.Resource, data_layer: :embedded
 
   attributes do
@@ -33,6 +36,7 @@ defmodule TestSettings do
 end
 
 defmodule TestResourceForInference do
+  @moduledoc false
   use Ash.Resource, domain: nil
 
   attributes do
@@ -53,10 +57,12 @@ defmodule TestResourceForInference do
 end
 
 defmodule NotAnAshResource do
+  @moduledoc false
   def some_function, do: :ok
 end
 
 defmodule TestUuidResource do
+  @moduledoc false
   use Ash.Resource, domain: nil
 
   attributes do
@@ -74,6 +80,7 @@ defmodule TestUuidResource do
 end
 
 defmodule TestUserResource do
+  @moduledoc false
   use Ash.Resource, domain: nil
 
   attributes do

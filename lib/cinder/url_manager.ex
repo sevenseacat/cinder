@@ -60,19 +60,19 @@ defmodule Cinder.UrlManager do
       end
 
     state_with_sort =
-      if not Enum.empty?(sort_by) do
-        Map.put(state_with_page_size, :sort, encode_sort(sort_by))
-      else
+      if Enum.empty?(sort_by) do
         state_with_page_size
+      else
+        Map.put(state_with_page_size, :sort, encode_sort(sort_by))
       end
 
     # Add search if not empty
     search_term = Map.get(state, :search_term)
 
-    if search_term not in [nil, ""] do
-      Map.put(state_with_sort, :search, search_term)
-    else
+    if search_term in [nil, ""] do
       state_with_sort
+    else
+      Map.put(state_with_sort, :search, search_term)
     end
   end
 
@@ -230,17 +230,8 @@ defmodule Cinder.UrlManager do
   """
   def encode_sort(sort_by) when is_list(sort_by) do
     # Validate sort_by input to prevent Protocol.UndefinedError
-    unless Enum.all?(sort_by, &valid_sort_tuple?/1) do
-      require Logger
-
-      Logger.warning(
-        "Invalid sort_by format in encode_sort: #{inspect(sort_by)}. Expected list of {field, direction} tuples."
-      )
-
-      ""
-    else
-      sort_by
-      |> Enum.map(fn {key, direction} ->
+    if Enum.all?(sort_by, &valid_sort_tuple?/1) do
+      Enum.map_join(sort_by, ",", fn {key, direction} ->
         case direction do
           :asc -> key
           :desc -> "-#{key}"
@@ -250,7 +241,14 @@ defmodule Cinder.UrlManager do
           :desc_nils_last -> "--#{key}"
         end
       end)
-      |> Enum.join(",")
+    else
+      require Logger
+
+      Logger.warning(
+        "Invalid sort_by format in encode_sort: #{inspect(sort_by)}. Expected list of {field, direction} tuples."
+      )
+
+      ""
     end
   end
 
@@ -334,13 +332,13 @@ defmodule Cinder.UrlManager do
       sorts
     else
       Enum.filter(sorts, fn {field, _direction} ->
-        is_field_sortable?(field, columns)
+        field_sortable?(field, columns)
       end)
     end
   end
 
   # Helper function to check if a field is sortable
-  defp is_field_sortable?(field, columns) do
+  defp field_sortable?(field, columns) do
     case Enum.find(columns, &(&1.field == field)) do
       nil -> false
       column when is_map(column) -> Map.get(column, :sortable, true)
@@ -430,10 +428,10 @@ defmodule Cinder.UrlManager do
     |> Enum.filter(&(&1.filterable and &1.filter_type in [:multi_select, :multi_checkboxes]))
     |> Enum.reduce(filter_params, fn column, acc ->
       # If multi-select field is missing (all checkboxes unchecked), add it as empty array
-      if not Map.has_key?(acc, column.field) do
-        Map.put(acc, column.field, [])
-      else
+      if Map.has_key?(acc, column.field) do
         acc
+      else
+        Map.put(acc, column.field, [])
       end
     end)
   end

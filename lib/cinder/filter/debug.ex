@@ -139,7 +139,7 @@ defmodule Cinder.Filter.Debug do
           Logger.error("""
           [Cinder.Filter.Debug] ✗ Filter validation failed: #{module}
           Errors:
-          #{Enum.map(errors, &"  - #{&1}") |> Enum.join("\n")}
+          #{Enum.map_join(errors, "\n", &"  - #{&1}")}
           """)
 
           {:error, errors}

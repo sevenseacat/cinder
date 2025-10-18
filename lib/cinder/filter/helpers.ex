@@ -461,16 +461,32 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
 
       :greater_than ->
-        Ash.Query.filter(query, ^ref(field_atom) > ^value)
+        if is_nil(value) do
+          query
+        else
+          Ash.Query.filter(query, ^ref(field_atom) > ^value)
+        end
 
       :greater_than_or_equal ->
-        Ash.Query.filter(query, ^ref(field_atom) >= ^value)
+        if is_nil(value) do
+          query
+        else
+          Ash.Query.filter(query, ^ref(field_atom) >= ^value)
+        end
 
       :less_than ->
-        Ash.Query.filter(query, ^ref(field_atom) < ^value)
+        if is_nil(value) do
+          query
+        else
+          Ash.Query.filter(query, ^ref(field_atom) < ^value)
+        end
 
       :less_than_or_equal ->
-        Ash.Query.filter(query, ^ref(field_atom) <= ^value)
+        if is_nil(value) do
+          query
+        else
+          Ash.Query.filter(query, ^ref(field_atom) <= ^value)
+        end
 
       :in when is_list(value) ->
         # Detect if this is an array field and handle accordingly
@@ -548,23 +564,23 @@ defmodule Cinder.Filter.Helpers do
 
   ## Examples
 
-      iex> is_empty_value?(nil)
+      iex> empty_value?(nil)
       true
 
-      iex> is_empty_value?("")
+      iex> empty_value?("")
       true
 
-      iex> is_empty_value?([])
+      iex> empty_value?([])
       true
 
-      iex> is_empty_value?(%{value: nil})
+      iex> empty_value?(%{value: nil})
       true
 
-      iex> is_empty_value?("test")
+      iex> empty_value?("test")
       false
 
   """
-  def is_empty_value?(value) do
+  def empty_value?(value) do
     case value do
       nil -> true
       "" -> true
@@ -710,14 +726,12 @@ defmodule Cinder.Filter.Helpers do
 
   # Parses embedded field notation like "profile[:first_name]" or "settings[:address][:street]"
   defp parse_embedded_field_notation(field) do
-    cond do
-      # Check for mixed relationship + embedded: "user.profile[:first_name]"
-      String.contains?(field, ".") and String.contains?(field, "[:") ->
-        parse_mixed_relationship_embedded(field)
-
+    # Check for mixed relationship + embedded: "user.profile[:first_name]"
+    if String.contains?(field, ".") and String.contains?(field, "[:") do
+      parse_mixed_relationship_embedded(field)
+    else
       # Pure embedded field notation
-      true ->
-        parse_pure_embedded_field(field)
+      parse_pure_embedded_field(field)
     end
   end
 

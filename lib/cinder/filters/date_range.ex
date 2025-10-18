@@ -167,24 +167,22 @@ defmodule Cinder.Filters.DateRange do
   defp valid_date_or_datetime?(nil), do: true
 
   defp valid_date_or_datetime?(value) when is_binary(value) do
-    cond do
-      # Try datetime first (ISO8601 with T)
-      String.contains?(value, "T") ->
-        case DateTime.from_iso8601(value) do
-          {:ok, _, _} ->
-            true
+    # Try datetime first (ISO8601 with T)
+    if String.contains?(value, "T") do
+      case DateTime.from_iso8601(value) do
+        {:ok, _, _} ->
+          true
 
-          {:error, _} ->
-            # Try NaiveDateTime if regular DateTime fails
-            case NaiveDateTime.from_iso8601(value) do
-              {:ok, _} -> true
-              {:error, _} -> false
-            end
-        end
-
+        {:error, _} ->
+          # Try NaiveDateTime if regular DateTime fails
+          case NaiveDateTime.from_iso8601(value) do
+            {:ok, _} -> true
+            {:error, _} -> false
+          end
+      end
+    else
       # Try date format
-      true ->
-        valid_date?(value)
+      valid_date?(value)
     end
   end
 

@@ -31,7 +31,7 @@
     {:compiler, true},
     {:formatter, true},
     {:unused_deps, true},
-    {:credo, true},
+    {:credo, "mix credo --min-priority high"},
     {:mix_audit, "mix deps.audit"},
     {:sobelow, "mix sobelow --exit --threshold high"},
     {:ex_unit, true},

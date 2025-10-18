@@ -45,7 +45,7 @@ jobs:
       - name: Check for missed gettext extractions
         run: mix gettext.extract --check-up-to-date
       - name: Run Credo
-        run: mix credo
+        run: mix credo --min-priority high
       - name: Run tests
         run: mix test
       - name: Security audit

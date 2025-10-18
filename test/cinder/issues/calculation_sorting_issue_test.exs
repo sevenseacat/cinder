@@ -360,14 +360,14 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
   """
 
   test "detection correctly identifies calculation types" do
-    # Test the new is_calculation_sortable?/1 function
+    # Test the new calculation_sortable?/1 function
     calculations = Ash.Resource.Info.calculations(TestUser)
 
     expr_calc = Enum.find(calculations, &(&1.name == :full_name_expr))
     module_calc = Enum.find(calculations, &(&1.name == :full_name_module))
 
-    assert QueryBuilder.is_calculation_sortable?(expr_calc)
-    refute QueryBuilder.is_calculation_sortable?(module_calc)
+    assert QueryBuilder.calculation_sortable?(expr_calc)
+    refute QueryBuilder.calculation_sortable?(module_calc)
   end
 
   test "get_calculation_info correctly retrieves calculation details" do

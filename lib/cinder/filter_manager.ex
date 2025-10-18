@@ -393,9 +393,7 @@ defmodule Cinder.FilterManager do
   """
   def infer_filter_config(key, resource, slot) do
     # Skip inference if filterable is false
-    if not Map.get(slot, :filterable, false) do
-      %{filter_type: :text, filter_options: []}
-    else
+    if Map.get(slot, :filterable, false) do
       attribute = get_ash_attribute(resource, key)
 
       # Use explicit filter_type if provided, otherwise infer it
@@ -439,6 +437,8 @@ defmodule Cinder.FilterManager do
         end
 
       %{filter_type: filter_type, filter_options: enhanced_options}
+    else
+      %{filter_type: :text, filter_options: []}
     end
   end
 

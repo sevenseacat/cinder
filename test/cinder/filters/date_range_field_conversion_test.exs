@@ -138,10 +138,8 @@ defmodule Cinder.Filters.DateRangeFieldConversionTest do
 
       result_query = DateRange.build_query(query, "created_at", filter_value)
 
-      # Query should be modified but filter should handle nil values gracefully
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
+      # Query should not be modified when both values are nil - graceful handling means no-op
+      assert result_query == query
     end
 
     test "handles mixed empty and date values", %{query: query} do

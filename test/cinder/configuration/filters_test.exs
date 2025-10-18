@@ -1,17 +1,17 @@
 defmodule Cinder.FiltersTest do
   use ExUnit.Case, async: true
 
-  alias Cinder.Filters.{
-    Registry,
-    Text,
-    Select,
-    MultiSelect,
-    DateRange,
-    NumberRange,
-    Boolean
-  }
-
   alias Cinder.FilterManager
+
+  alias Cinder.Filters.{
+    Boolean,
+    DateRange,
+    MultiSelect,
+    NumberRange,
+    Registry,
+    Select,
+    Text
+  }
 
   describe "Cinder.Filter utilities" do
     test "has_filter_value?/1 correctly identifies empty values" do

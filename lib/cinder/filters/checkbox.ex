@@ -154,7 +154,7 @@ defmodule Cinder.Filters.Checkbox do
     case explicit_value do
       nil ->
         # No explicit value - infer based on field type
-        if is_boolean_field?(column) do
+        if boolean_field?(column) do
           true
         else
           raise ArgumentError, """
@@ -170,7 +170,7 @@ defmodule Cinder.Filters.Checkbox do
   end
 
   # Check if this is a boolean field by looking at filter_type
-  defp is_boolean_field?(column) do
+  defp boolean_field?(column) do
     Map.get(column, :filter_type) == :boolean
   end
 end

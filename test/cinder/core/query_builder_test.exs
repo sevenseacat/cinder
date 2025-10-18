@@ -848,17 +848,17 @@ defmodule Cinder.QueryBuilderTest do
       basic_result = QueryBuilder.apply_sorting(query, [{"profile__first_name", :asc}])
       assert length(basic_result.sort) == 1
 
-      # Test nested embedded field  
+      # Test nested embedded field
       nested_result = QueryBuilder.apply_sorting(query, [{"settings__address__street", :desc}])
       assert length(nested_result.sort) == 1
 
       # Test that embedded fields get converted to calc expressions (not rejected)
       assert length(basic_result.sort) == 1
       # No NoSuchField errors
-      assert length(basic_result.errors) == 0
+      assert Enum.empty?(basic_result.errors)
 
       assert length(nested_result.sort) == 1
-      assert length(nested_result.errors) == 0
+      assert Enum.empty?(nested_result.errors)
     end
 
     test "handles invalid sort_by input gracefully without Protocol.UndefinedError" do

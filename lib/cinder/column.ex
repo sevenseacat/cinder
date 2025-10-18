@@ -206,10 +206,10 @@ defmodule Cinder.Column do
     ]
 
     errors =
-      if column.filter_type not in valid_filter_types do
-        ["Invalid filter type: #{column.filter_type}" | errors]
-      else
+      if column.filter_type in valid_filter_types do
         errors
+      else
+        ["Invalid filter type: #{column.filter_type}" | errors]
       end
 
     case errors do
@@ -284,8 +284,7 @@ defmodule Cinder.Column do
     |> String.replace("_", " ")
     |> String.replace(".", " > ")
     |> String.split()
-    |> Enum.map(&String.capitalize/1)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp humanize_key(field), do: humanize_key(to_string(field))
@@ -330,10 +329,7 @@ defmodule Cinder.Column do
   # Determines sortability based purely on the field's nature (ignoring user overrides)
   defp determine_auto_sortability(resource, field) do
     # Validate field existence first using comprehensive validation
-    if not Cinder.QueryBuilder.validate_field_existence(resource, field) do
-      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
-      {false, warning}
-    else
+    if Cinder.QueryBuilder.validate_field_existence(resource, field) do
       # Parse field to handle relationship calculations
       {target_resource, target_field} =
         Cinder.QueryBuilder.resolve_field_resource(resource, field)
@@ -345,7 +341,7 @@ defmodule Cinder.Column do
           {true, nil}
 
         calc ->
-          if Cinder.QueryBuilder.is_calculation_sortable?(calc) do
+          if Cinder.QueryBuilder.calculation_sortable?(calc) do
             {true, nil}
           else
             warning =
@@ -355,6 +351,9 @@ defmodule Cinder.Column do
             {false, warning}
           end
       end
+    else
+      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
+      {false, warning}
     end
   end
 
@@ -393,10 +392,7 @@ defmodule Cinder.Column do
   # Determines filterability based purely on the field's nature (ignoring user overrides)
   defp determine_auto_filterability(resource, field) do
     # Validate field existence first using comprehensive validation
-    if not Cinder.QueryBuilder.validate_field_existence(resource, field) do
-      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
-      {false, warning}
-    else
+    if Cinder.QueryBuilder.validate_field_existence(resource, field) do
       # Parse field to handle relationship calculations
       {target_resource, target_field} =
         Cinder.QueryBuilder.resolve_field_resource(resource, field)
@@ -408,7 +404,7 @@ defmodule Cinder.Column do
           {true, nil}
 
         calc ->
-          if Cinder.QueryBuilder.is_calculation_sortable?(calc) do
+          if Cinder.QueryBuilder.calculation_sortable?(calc) do
             # Database-level calculations can be filtered
             {true, nil}
           else
@@ -419,6 +415,9 @@ defmodule Cinder.Column do
             {false, warning}
           end
       end
+    else
+      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
+      {false, warning}
     end
   end
 end

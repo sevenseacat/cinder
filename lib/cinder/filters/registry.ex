@@ -211,12 +211,10 @@ defmodule Cinder.Filters.Registry do
   # Internal function for unregistering custom filters.
   # Mainly used for testing scenarios.
   def unregister_filter(filter_type) when is_atom(filter_type) do
-    cond do
-      builtin_filter?(filter_type) ->
-        {:error, "Cannot unregister built-in filter :#{filter_type}"}
-
-      true ->
-        :ok
+    if builtin_filter?(filter_type) do
+      {:error, "Cannot unregister built-in filter :#{filter_type}"}
+    else
+      :ok
     end
   end
 

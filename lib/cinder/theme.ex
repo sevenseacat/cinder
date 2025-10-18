@@ -169,8 +169,10 @@ defmodule Cinder.Theme do
       |> apply_theme_property_mapping()
       |> apply_theme_data_attributes()
     rescue
-      UndefinedFunctionError ->
-        raise ArgumentError, "Theme module #{theme_module} does not implement resolve_theme/0"
+      _e in UndefinedFunctionError ->
+        reraise ArgumentError,
+                [message: "Theme module #{theme_module} does not implement resolve_theme/0"],
+                __STACKTRACE__
     end
   end
 
