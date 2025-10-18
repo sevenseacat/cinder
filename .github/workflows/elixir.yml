@@ -34,7 +34,9 @@ jobs:
       - name: Cache compiled build
         uses: actions/cache@v4
         with:
-          path: _build/test
+          path: |
+            _build/dev
+            _build/test
           key: build-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}-${{ hashFiles('lib/**/*.{ex,eex}', 'config/*.exs', 'mix.exs') }}"
       - name: Install dependencies
         run: mix deps.get
