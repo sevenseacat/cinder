@@ -6,6 +6,10 @@
 
 * Add i18n support with gettext (#53)
 
+### Bug fixes
+
+* Fix custom theme extension with `extends` by using `Code.ensure_loaded/1` to load modules before checking for `resolve_theme/0`
+
 ## v0.7.2 (2025-09-30)
 
 ### Bug fixes

@@ -23,6 +23,8 @@ defmodule Cinder.Theme.DslModule do
 
   ## Theme Inheritance
 
+  You can extend built-in theme presets:
+
       defmodule MyApp.DarkTheme do
         use Cinder.Theme
         extends :modern
@@ -32,6 +34,32 @@ defmodule Cinder.Theme.DslModule do
           set :row_class, "border-gray-700 hover:bg-gray-800"
         end
       end
+
+  Or extend your own custom themes:
+
+      defmodule MyApp.BaseTheme do
+        use Cinder.Theme
+
+        component Cinder.Components.Table do
+          set :container_class, "my-base-container"
+          set :row_class, "my-base-row"
+        end
+      end
+
+      defmodule MyApp.SpecializedTheme do
+        use Cinder.Theme
+        extends MyApp.BaseTheme
+
+        component Cinder.Components.Table do
+          set :container_class, "my-specialized-container"
+          # Inherits :row_class from BaseTheme
+        end
+      end
+
+  **Note**: When extending custom themes, make sure the base theme module is
+  compiled before the extending theme. In Phoenix applications, define your
+  base themes before themes that extend them, or place them in separate files
+  with appropriate compilation order.
 
   """
 
@@ -159,10 +187,25 @@ defmodule Cinder.Theme.DslModule do
         Cinder.Themes.Pastel.resolve_theme()
 
       base_module when is_atom(base_module) ->
-        if function_exported?(base_module, :resolve_theme, 0) do
-          base_module.resolve_theme()
-        else
-          raise ArgumentError, "Unknown base theme: #{base_preset}"
+        # Try to ensure the module is loaded first
+        case Code.ensure_loaded(base_module) do
+          {:module, ^base_module} ->
+            if function_exported?(base_module, :resolve_theme, 0) do
+              base_module.resolve_theme()
+            else
+              raise ArgumentError,
+                    "Module #{inspect(base_module)} does not implement resolve_theme/0. " <>
+                      "Custom themes must use `use Cinder.Theme` to be extended."
+            end
+
+          {:error, :nofile} ->
+            raise ArgumentError,
+                  "Module #{inspect(base_module)} not found. " <>
+                    "Make sure the module is defined and compiled before extending it."
+
+          {:error, reason} ->
+            raise ArgumentError,
+                  "Failed to load module #{inspect(base_module)}: #{inspect(reason)}"
         end
     end
   end

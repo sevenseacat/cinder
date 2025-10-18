@@ -44,6 +44,28 @@ defmodule Cinder.ThemeDslTest do
     end
   end
 
+  defmodule BaseCustomTheme do
+    use Cinder.Theme
+
+    component Cinder.Components.Table do
+      set(:container_class, "base-custom-container")
+      set(:row_class, "base-custom-row")
+    end
+
+    component Cinder.Components.Filters do
+      set(:filter_container_class, "base-custom-filter-container")
+    end
+  end
+
+  defmodule ExtendingCustomTheme do
+    use Cinder.Theme
+    extends(BaseCustomTheme)
+
+    component Cinder.Components.Table do
+      set(:container_class, "extending-custom-container")
+    end
+  end
+
   describe "DSL theme resolution" do
     test "resolves simple theme with overrides" do
       theme = SimpleTestTheme.resolve_theme()
@@ -76,6 +98,50 @@ defmodule Cinder.ThemeDslTest do
       # Should inherit other modern theme properties
       assert String.contains?(theme.th_class, "font-semibold")
       assert String.contains?(theme.pagination_button_class, "transition-all")
+    end
+
+    test "inheritance works with custom themes" do
+      theme = ExtendingCustomTheme.resolve_theme()
+
+      # Should override the base custom theme's container class
+      assert theme.container_class == "extending-custom-container"
+
+      # Should inherit other properties from base custom theme
+      assert theme.row_class == "base-custom-row"
+      assert theme.filter_container_class == "base-custom-filter-container"
+
+      # Should still have default values for non-overridden properties
+      assert String.contains?(theme.table_class, "w-full border-collapse")
+    end
+
+    test "raises helpful error when extending unavailable custom theme" do
+      assert_raise ArgumentError, ~r/Module .*NonExistentCustomTheme not found/, fn ->
+        defmodule InvalidExtendingTheme do
+          use Cinder.Theme
+          extends(NonExistentCustomTheme)
+
+          component Cinder.Components.Table do
+            set(:container_class, "invalid-extending-container")
+          end
+        end
+      end
+    end
+
+    test "raises helpful error when extending module that doesn't implement theme behavior" do
+      assert_raise ArgumentError, ~r/does not implement resolve_theme\/0/, fn ->
+        defmodule NotAThemeModule do
+          def some_function, do: :ok
+        end
+
+        defmodule ThemeExtendingNonTheme do
+          use Cinder.Theme
+          extends(NotAThemeModule)
+
+          component Cinder.Components.Table do
+            set(:container_class, "invalid-extending-container")
+          end
+        end
+      end
     end
 
     test "maintains all required theme keys" do
