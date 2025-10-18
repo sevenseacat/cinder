@@ -55,14 +55,18 @@ defmodule Cinder.MixProject do
       {:ash_phoenix, "~> 2.3"},
       {:phoenix_live_view, "~> 1.0"},
       {:spark, "~> 2.0"},
-      {:gettext, "~> 0.26.2"},
+      {:gettext, "~> 1.0.0"},
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:makeup_eex, "~> 2.0", only: :dev},
       {:makeup_html, ">= 0.0.0", only: :dev},
       {:igniter, "~> 0.5", only: [:dev, :test]},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
-      {:mimic, "~> 1.7", only: :test}
+      {:mimic, "~> 1.7", only: :test},
+      {:ex_check, "~> 0.16", only: [:dev], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 

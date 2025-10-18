@@ -7,33 +7,48 @@ name: Elixir CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
 
 jobs:
   build:
-
     name: Build and test
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Elixir
-      uses: erlef/setup-beam@v1.18.2
-      with:
-        elixir-version: '1.17.3'      # [Required] Define the Elixir version
-        otp-version: '25.3.2.21'      # [Required] Define the Erlang/OTP version
-    - name: Restore dependencies cache
-      uses: actions/cache@v3
-      with:
-        path: deps
-        key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-        restore-keys: ${{ runner.os }}-mix-
-    - name: Install dependencies
-      run: mix deps.get
-    - name: Run tests
-      run: mix test
+      - uses: actions/checkout@v4
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1.18.2
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: deps-${{ runner.os }}-mix-
+      - name: Cache compiled build
+        uses: actions/cache@v4
+        with:
+          path: _build/test
+          key: build-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('**/mix.lock') }}-${{ hashFiles('lib/**/*.{ex,eex}', 'config/*.exs', 'mix.exs') }}"
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Check formatting
+        run: mix format --check-formatted
+      - name: Check unused deps
+        run: mix deps.unlock --check-unused
+      - name: Check for missed gettext extractions
+        run: mix gettext.extract --check-up-to-date
+      - name: Run Credo
+        run: mix credo
+      - name: Run tests
+        run: mix test
+      - name: Security audit
+        run: mix deps.audit
+      - name: Run Sobelow
+        run: mix sobelow --exit --threshold high
