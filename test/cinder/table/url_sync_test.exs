@@ -359,7 +359,7 @@ defmodule Cinder.Table.UrlSyncTest do
 
       # Simulate the assigns structure that LiveComponent actually receives
       assigns = %{
-        url_raw_params: %{"page_size" => "5", "page" => "2"},
+        url_raw_params: %{"page_size" => "5", "page" => "2"}
         # Note: NO :url_state key (this was the bug)
       }
 
@@ -385,7 +385,12 @@ defmodule Cinder.Table.UrlSyncTest do
       # Simulate filter-only slot configuration
       filter_columns = [
         %{field: "name", filterable: true, filter_type: :text},
-        %{field: "track_count", filterable: true, filter_type: :checkbox, filter_options: [value: 8]}
+        %{
+          field: "track_count",
+          filterable: true,
+          filter_type: :checkbox,
+          filter_options: [value: 8]
+        }
       ]
 
       # Simulate display columns (no track_count because it's filter-only)
@@ -400,7 +405,12 @@ defmodule Cinder.Table.UrlSyncTest do
       # Test that filter_columns can decode the filter-only field
       filters_with_filter_columns = Cinder.UrlManager.decode_filters(url_params, filter_columns)
       assert Map.has_key?(filters_with_filter_columns, "track_count")
-      assert filters_with_filter_columns["track_count"] == %{type: :checkbox, value: 8, operator: :equals}
+
+      assert filters_with_filter_columns["track_count"] == %{
+               type: :checkbox,
+               value: 8,
+               operator: :equals
+             }
 
       # Test that display columns cannot decode the filter-only field
       filters_with_display_columns = Cinder.UrlManager.decode_filters(url_params, display_columns)
@@ -413,7 +423,10 @@ defmodule Cinder.Table.UrlSyncTest do
 
       # Test that invalid sorts are filtered out correctly
       invalid_sort_params = %{"sort" => "track_count,name"}
-      filtered_sorts = Cinder.UrlManager.decode_sort(Map.get(invalid_sort_params, "sort"), display_columns)
+
+      filtered_sorts =
+        Cinder.UrlManager.decode_sort(Map.get(invalid_sort_params, "sort"), display_columns)
+
       # track_count should be filtered out because it's not in display columns (not sortable)
       assert filtered_sorts == [{"name", :asc}]
     end
@@ -439,5 +452,84 @@ defmodule Cinder.Table.UrlSyncTest do
     # The sort should be preserved because artist.name is found in display_columns
     assert decoded_state.sort_by == [{"artist.name", :asc}],
            "Sort-only columns should be sortable via URL when using display_columns for validation"
+  end
+
+  describe "update_url/3 query parameter merging" do
+    test "preserves existing custom query parameters when updating table state" do
+      # This test demonstrates the bug where custom query parameters are lost
+      # when table state changes
+
+      # Current URI has custom query parameters
+      current_uri = "http://localhost:4000/users?tab=overview&section=details"
+
+      # New table state (user filtered by name and went to page 2)
+      encoded_state = %{"name" => "john", "page" => "2"}
+
+      # Build the URL using the current implementation
+      result_url = UrlSync.build_url(encoded_state, current_uri)
+
+      # Expected: URL should preserve custom params and merge with table state
+      # /users?tab=overview&section=details&name=john&page=2
+
+      # This will FAIL with current implementation - custom params are lost
+      assert String.contains?(result_url, "tab=overview"),
+             "Expected URL to contain tab=overview but got: #{result_url}"
+
+      assert String.contains?(result_url, "section=details"),
+             "Expected URL to contain section=details but got: #{result_url}"
+
+      assert String.contains?(result_url, "name=john"),
+             "Expected URL to contain name=john but got: #{result_url}"
+
+      assert String.contains?(result_url, "page=2"),
+             "Expected URL to contain page=2 but got: #{result_url}"
+    end
+
+    test "new table parameters override existing table parameters" do
+      # Current URI already has table state (page=1, sort=name) plus custom param
+      current_uri = "http://localhost:4000/users?page=1&sort=name&custom=value"
+
+      # User changes to page 2 and changes sort
+      encoded_state = %{"page" => "2", "sort" => "-created_at"}
+
+      result_url = UrlSync.build_url(encoded_state, current_uri)
+
+      # New table params should override old ones
+      assert String.contains?(result_url, "page=2")
+      assert String.contains?(result_url, "sort=-created_at")
+      refute String.contains?(result_url, "page=1")
+      refute String.contains?(result_url, "sort=name")
+
+      # But custom param should persist - this will FAIL with current implementation
+      assert String.contains?(result_url, "custom=value"),
+             "Expected URL to preserve custom=value but got: #{result_url}"
+    end
+
+    test "handles empty new params without removing existing custom params" do
+      current_uri = "http://localhost:4000/users?tab=overview"
+
+      # No new table state (user cleared all filters)
+      encoded_state = %{}
+
+      result_url = UrlSync.build_url(encoded_state, current_uri)
+
+      # Custom params should remain even when no table state
+      # This will FAIL with current implementation
+      assert String.contains?(result_url, "tab=overview"),
+             "Expected URL to preserve tab=overview but got: #{result_url}"
+    end
+
+    test "handles case with no existing query parameters" do
+      current_uri = "http://localhost:4000/users"
+
+      encoded_state = %{"name" => "john", "page" => "2"}
+
+      result_url = UrlSync.build_url(encoded_state, current_uri)
+
+      # Should just have the new params
+      assert String.contains?(result_url, "name=john")
+      assert String.contains?(result_url, "page=2")
+      assert result_url == "/users?name=john&page=2"
+    end
   end
 end

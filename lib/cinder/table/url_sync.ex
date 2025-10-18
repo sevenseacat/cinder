@@ -102,6 +102,27 @@ defmodule Cinder.Table.UrlSync do
   Updated socket with URL changed via `push_patch/2`
   """
   def update_url(socket, encoded_state, current_uri \\ nil) do
+    new_url = build_url(encoded_state, current_uri, socket)
+    Phoenix.LiveView.push_patch(socket, to: new_url)
+  end
+
+  @doc """
+  Builds a new URL by merging table state with existing query parameters.
+
+  This function is extracted for testing purposes. It builds the URL that
+  would be pushed by `update_url/3`.
+
+  ## Parameters
+
+  - `encoded_state` - Map of URL parameters from table state
+  - `current_uri` - Optional current URI string to use for path resolution
+  - `socket` - Optional socket for fallback path resolution
+
+  ## Returns
+
+  A string representing the new URL with merged query parameters
+  """
+  def build_url(encoded_state, current_uri \\ nil, socket \\ nil) do
     # Convert encoded state to string keys and remove empty params
     new_params =
       encoded_state
@@ -114,18 +135,26 @@ defmodule Cinder.Table.UrlSync do
       uri = URI.parse(current_uri)
       current_path = uri.path || "/"
 
-      new_url =
-        if map_size(new_params) > 0 do
-          query_string = URI.encode_query(new_params)
-          "#{current_path}?#{query_string}"
-        else
-          current_path
-        end
+      # Parse existing query parameters
+      existing_params = URI.decode_query(uri.query || "")
 
-      Phoenix.LiveView.push_patch(socket, to: new_url)
+      # Merge existing params with new params (new params take precedence)
+      merged_params = Map.merge(existing_params, new_params)
+
+      if map_size(merged_params) > 0 do
+        query_string = URI.encode_query(merged_params)
+        "#{current_path}?#{query_string}"
+      else
+        current_path
+      end
     else
       # Fallback: Extract path from socket's url_state or use root
-      fallback_uri = get_in(socket.assigns, [:url_state, :uri]) || "/"
+      fallback_uri =
+        if socket do
+          get_in(socket.assigns, [:url_state, :uri]) || "/"
+        else
+          "/"
+        end
 
       current_path =
         if is_binary(fallback_uri) do
@@ -136,10 +165,10 @@ defmodule Cinder.Table.UrlSync do
 
       if map_size(new_params) > 0 do
         query_string = URI.encode_query(new_params)
-        Phoenix.LiveView.push_patch(socket, to: "#{current_path}?#{query_string}")
+        "#{current_path}?#{query_string}"
       else
         # No parameters - clear query string but keep current path
-        Phoenix.LiveView.push_patch(socket, to: current_path)
+        current_path
       end
     end
   end
