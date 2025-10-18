@@ -319,8 +319,11 @@ defmodule Cinder.Table.LiveComponent do
 
       # Use raw params with filter_columns for proper filter decoding (includes filter-only slots)
       # But decode filters and sorts separately to use appropriate column sets
-      decoded_filters = Cinder.UrlManager.decode_filters(raw_params, socket.assigns.filter_columns)
-      decoded_sorts = Cinder.UrlManager.decode_sort(Map.get(raw_params, "sort"), socket.assigns.columns)
+      decoded_filters =
+        Cinder.UrlManager.decode_filters(raw_params, socket.assigns.filter_columns)
+
+      decoded_sorts =
+        Cinder.UrlManager.decode_sort(Map.get(raw_params, "sort"), socket.assigns.columns)
 
       decoded_state = %{
         filters: decoded_filters,

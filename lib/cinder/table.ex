@@ -463,64 +463,41 @@ defmodule Cinder.Table do
 
     attr(:type, :any,
       required: false,
-      doc: "Filter type as atom or string (e.g., :select, \"select\", :text, \"text\", etc.) - auto-detected if not provided"
+      doc:
+        "Filter type as atom or string (e.g., :select, \"select\", :text, \"text\", etc.) - auto-detected if not provided"
     )
 
-    attr(:options, :list,
-      doc: "Filter options for select/multi-select filters"
-    )
+    attr(:options, :list, doc: "Filter options for select/multi-select filters")
 
-    attr(:value, :any,
-      doc: "Filter value for checkbox filters"
-    )
+    attr(:value, :any, doc: "Filter value for checkbox filters")
 
     attr(:operator, :atom,
       doc: "Text filter operator (:contains, :starts_with, :ends_with, :equals)"
     )
 
-    attr(:case_sensitive, :boolean,
-      doc: "Whether text filter should be case sensitive"
-    )
+    attr(:case_sensitive, :boolean, doc: "Whether text filter should be case sensitive")
 
-    attr(:placeholder, :string,
-      doc: "Placeholder text for input filters"
-    )
+    attr(:placeholder, :string, doc: "Placeholder text for input filters")
 
-    attr(:labels, :map,
-      doc: "Custom labels for boolean filter (map with :true, :false keys)"
-    )
+    attr(:labels, :map, doc: "Custom labels for boolean filter (map with :true, :false keys)")
 
-    attr(:prompt, :string,
-      doc: "Prompt text for select filters ('Choose...' style text)"
-    )
+    attr(:prompt, :string, doc: "Prompt text for select filters ('Choose...' style text)")
 
     attr(:match_mode, :atom,
       doc: "Multi-select match mode (:any for OR logic, :all for AND logic)"
     )
 
-    attr(:format, :atom,
-      doc: "Date range format (:date or :datetime)"
-    )
+    attr(:format, :atom, doc: "Date range format (:date or :datetime)")
 
-    attr(:include_time, :boolean,
-      doc: "Whether date range should include time selection"
-    )
+    attr(:include_time, :boolean, doc: "Whether date range should include time selection")
 
-    attr(:step, :any,
-      doc: "Step value for number range filters"
-    )
+    attr(:step, :any, doc: "Step value for number range filters")
 
-    attr(:min, :any,
-      doc: "Minimum value for number range filters"
-    )
+    attr(:min, :any, doc: "Minimum value for number range filters")
 
-    attr(:max, :any,
-      doc: "Maximum value for number range filters"
-    )
+    attr(:max, :any, doc: "Maximum value for number range filters")
 
-    attr(:fn, :any,
-      doc: "Custom filter function"
-    )
+    attr(:fn, :any, doc: "Custom filter function")
 
     attr(:label, :string, doc: "Custom filter label (auto-generated if not provided)")
   end
@@ -744,13 +721,14 @@ defmodule Cinder.Table do
       base_options = if filter_value, do: [value: filter_value], else: []
       all_options = base_options ++ extra_options ++ (filter_options || [])
 
-      filter_config = if filter_type do
-        # Explicit type provided - build unified config with options
-        [type: filter_type] ++ all_options
-      else
-        # No type specified - use auto-detection
-        true
-      end
+      filter_config =
+        if filter_type do
+          # Explicit type provided - build unified config with options
+          [type: filter_type] ++ all_options
+        else
+          # No type specified - use auto-detection
+          true
+        end
 
       # Let Column module infer filter type if needed, otherwise use explicit type
       {determined_filter_type, filter_options_from_type} =
@@ -802,7 +780,8 @@ defmodule Cinder.Table do
         filter_options: parsed_column.filter_options,
         sortable: false,
         class: "",
-        inner_block: nil,  # Filter slots don't render content
+        # Filter slots don't render content
+        inner_block: nil,
         filter_fn: parsed_column.filter_fn,
         searchable: false,
         sort_cycle: [nil, :asc, :desc],
@@ -832,10 +811,11 @@ defmodule Cinder.Table do
 
     if MapSet.size(conflicts) > 0 do
       conflict_list = MapSet.to_list(conflicts)
+
       raise ArgumentError,
-        "Field conflict detected: #{inspect(conflict_list)}. " <>
-        "Fields cannot be defined in both :col (with filter enabled) and :filter slots. " <>
-        "Use either column filtering or filter-only slots, not both for the same field."
+            "Field conflict detected: #{inspect(conflict_list)}. " <>
+              "Fields cannot be defined in both :col (with filter enabled) and :filter slots. " <>
+              "Use either column filtering or filter-only slots, not both for the same field."
     end
 
     # Merge all filterable configurations

@@ -236,10 +236,11 @@ defmodule Cinder.Table.FilterSlotsTest do
         filter: [%{field: "nonexistent_field", type: :text, __slot__: :filter}]
       }
 
-      logs = capture_log(fn ->
-        html = render_component(&Cinder.Table.table/1, assigns)
-        assert html =~ "cinder-table"
-      end)
+      logs =
+        capture_log(fn ->
+          html = render_component(&Cinder.Table.table/1, assigns)
+          assert html =~ "cinder-table"
+        end)
 
       assert logs =~ "Field 'nonexistent_field' does not exist"
     end
@@ -252,10 +253,11 @@ defmodule Cinder.Table.FilterSlotsTest do
         filter: [%{field: "profile.invalid_field", type: :text, __slot__: :filter}]
       }
 
-      logs = capture_log(fn ->
-        html = render_component(&Cinder.Table.table/1, assigns)
-        assert html =~ "cinder-table"
-      end)
+      logs =
+        capture_log(fn ->
+          html = render_component(&Cinder.Table.table/1, assigns)
+          assert html =~ "cinder-table"
+        end)
 
       assert logs =~ "Field 'profile.invalid_field' does not exist"
     end
@@ -326,7 +328,14 @@ defmodule Cinder.Table.FilterSlotsTest do
     test "supports all filter-specific options" do
       filter_slots = [
         # Text filter with all options
-        %{field: "name", type: :text, operator: :starts_with, case_sensitive: true, placeholder: "Enter name...", __slot__: :filter},
+        %{
+          field: "name",
+          type: :text,
+          operator: :starts_with,
+          case_sensitive: true,
+          placeholder: "Enter name...",
+          __slot__: :filter
+        },
         # Boolean filter with custom labels
         %{
           field: "active",
@@ -335,15 +344,39 @@ defmodule Cinder.Table.FilterSlotsTest do
           __slot__: :filter
         },
         # Select filter with prompt
-        %{field: "status", type: :select, options: [{"Active", "active"}], prompt: "Choose status...", __slot__: :filter},
+        %{
+          field: "status",
+          type: :select,
+          options: [{"Active", "active"}],
+          prompt: "Choose status...",
+          __slot__: :filter
+        },
         # Multi-select with match mode
-        %{field: "tags", type: :multi_select, options: [{"Tag1", "tag1"}], match_mode: :all, __slot__: :filter},
+        %{
+          field: "tags",
+          type: :multi_select,
+          options: [{"Tag1", "tag1"}],
+          match_mode: :all,
+          __slot__: :filter
+        },
         # Date range with time
-        %{field: "created_at", type: :date_range, include_time: true, format: :datetime, __slot__: :filter},
+        %{
+          field: "created_at",
+          type: :date_range,
+          include_time: true,
+          format: :datetime,
+          __slot__: :filter
+        },
         # Number range with constraints
         %{field: "price", type: :number_range, min: 0, max: 1000, step: 10, __slot__: :filter},
         # Checkbox with custom value
-        %{field: "featured", type: :checkbox, value: "yes", label: "Featured Only", __slot__: :filter}
+        %{
+          field: "featured",
+          type: :checkbox,
+          value: "yes",
+          label: "Featured Only",
+          __slot__: :filter
+        }
       ]
 
       processed = Cinder.Table.process_filter_slots(filter_slots, TestUser)
@@ -381,7 +414,13 @@ defmodule Cinder.Table.FilterSlotsTest do
         actor: nil,
         col: [%{field: "name", __slot__: :col}],
         filter: [
-          %{field: "email", type: :text, placeholder: "Enter email...", case_sensitive: true, __slot__: :filter}
+          %{
+            field: "email",
+            type: :text,
+            placeholder: "Enter email...",
+            case_sensitive: true,
+            __slot__: :filter
+          }
         ]
       }
 
@@ -635,10 +674,11 @@ defmodule Cinder.Table.FilterSlotsTest do
       }
 
       # Should log warning but continue rendering
-      logs = capture_log(fn ->
-        html = render_component(&Cinder.Table.table/1, assigns)
-        assert html =~ "cinder-table"
-      end)
+      logs =
+        capture_log(fn ->
+          html = render_component(&Cinder.Table.table/1, assigns)
+          assert html =~ "cinder-table"
+        end)
 
       assert logs =~ "Field 'profile.first_name' does not exist"
     end
@@ -678,7 +718,13 @@ defmodule Cinder.Table.FilterSlotsTest do
         actor: nil,
         col: [%{field: "name", __slot__: :col}],
         filter: [
-          %{field: "age", type: :checkbox, value: "21", label: "Legal drinking age", __slot__: :filter}
+          %{
+            field: "age",
+            type: :checkbox,
+            value: "21",
+            label: "Legal drinking age",
+            __slot__: :filter
+          }
         ]
       }
 

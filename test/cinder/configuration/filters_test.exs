@@ -206,7 +206,7 @@ defmodule Cinder.FiltersTest do
       assert Select.empty?(nil) == true
       assert Select.empty?("") == true
       assert Select.empty?(%{value: ""}) == true
-      
+
       assert Select.empty?("option1") == false
       assert Select.empty?(%{value: "option1"}) == false
     end

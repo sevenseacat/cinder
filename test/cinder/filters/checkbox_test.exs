@@ -322,17 +322,18 @@ defmodule Cinder.Filters.CheckboxTest do
       }
 
       # Simulate form parameters from a checked checkbox
-      raw_value = "8"  # This is what comes from the form
+      # This is what comes from the form
+      raw_value = "8"
 
       # Process the raw value through the checkbox filter
       processed = Checkbox.process(raw_value, column)
 
       # Should return proper filter structure
       assert processed == %{
-        type: :checkbox,
-        value: 8,
-        operator: :equals
-      }
+               type: :checkbox,
+               value: 8,
+               operator: :equals
+             }
 
       # Validate the processed filter
       assert Checkbox.validate(processed) == true

@@ -109,7 +109,12 @@ defmodule Cinder.TableTest do
   end
 
   defmodule TestStatusEnum do
-    use Ash.Type.Enum, values: [draft: [label: "Draft"], published: [label: "Published"], archived: [label: "Archived"]]
+    use Ash.Type.Enum,
+      values: [
+        draft: [label: "Draft"],
+        published: [label: "Published"],
+        archived: [label: "Archived"]
+      ]
   end
 
   describe "table/1 function signature" do
@@ -320,20 +325,26 @@ defmodule Cinder.TableTest do
 
     test "backward compatibility with old filter_options format" do
       # Capture logs to test deprecation warning
-      logs = capture_log(fn ->
-        assigns = %{
-          resource: TestUser,
-          actor: nil,
-          col: [
-            %{field: "name", filter: :text, filter_options: [placeholder: "Old format"], __slot__: :col}
-          ]
-        }
+      logs =
+        capture_log(fn ->
+          assigns = %{
+            resource: TestUser,
+            actor: nil,
+            col: [
+              %{
+                field: "name",
+                filter: :text,
+                filter_options: [placeholder: "Old format"],
+                __slot__: :col
+              }
+            ]
+          }
 
-        html = render_component(&Cinder.Table.table/1, assigns)
+          html = render_component(&Cinder.Table.table/1, assigns)
 
-        # Should still work with old format
-        assert html =~ ~r/placeholder="Old format"/
-      end)
+          # Should still work with old format
+          assert html =~ ~r/placeholder="Old format"/
+        end)
 
       # Should log deprecation warning
       assert logs =~ "[DEPRECATED] Field 'name' uses deprecated filter_options attribute"
@@ -341,24 +352,27 @@ defmodule Cinder.TableTest do
 
     test "unified format takes precedence over legacy filter_options" do
       # Capture logs to test deprecation warning
-      logs = capture_log(fn ->
-        assigns = %{
-          resource: TestUser,
-          actor: nil,
-          col: [
-            %{field: "name",
-              filter: [type: :text, placeholder: "New format"],
-              filter_options: [placeholder: "Old format"],
-              __slot__: :col}
-          ]
-        }
+      logs =
+        capture_log(fn ->
+          assigns = %{
+            resource: TestUser,
+            actor: nil,
+            col: [
+              %{
+                field: "name",
+                filter: [type: :text, placeholder: "New format"],
+                filter_options: [placeholder: "Old format"],
+                __slot__: :col
+              }
+            ]
+          }
 
-        html = render_component(&Cinder.Table.table/1, assigns)
+          html = render_component(&Cinder.Table.table/1, assigns)
 
-        # New format should win
-        assert html =~ ~r/placeholder="New format"/
-        refute html =~ ~r/placeholder="Old format"/
-      end)
+          # New format should win
+          assert html =~ ~r/placeholder="New format"/
+          refute html =~ ~r/placeholder="Old format"/
+        end)
 
       # Should still log deprecation warning
       assert logs =~ "[DEPRECATED] Field 'name' uses deprecated filter_options attribute"
@@ -767,7 +781,8 @@ defmodule Cinder.TableTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
-        page_size: [default: 25, options: [25]], # Single option
+        # Single option
+        page_size: [default: 25, options: [25]],
         col: [%{field: "name", __slot__: :col}]
       }
 
