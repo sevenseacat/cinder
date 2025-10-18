@@ -487,7 +487,7 @@ defmodule Cinder.Table.UrlSyncTest do
 
     test "new table parameters override existing table parameters" do
       # Current URI already has table state (page=1, sort=name) plus custom param
-      current_uri = "http://localhost:4000/users?page=1&sort=name&custom=value"
+      current_uri = "http://localhost:4000/users?page=1&sort=name&tab=overview"
 
       # User changes to page 2 and changes sort
       encoded_state = %{"page" => "2", "sort" => "-created_at"}
@@ -501,8 +501,8 @@ defmodule Cinder.Table.UrlSyncTest do
       refute String.contains?(result_url, "sort=name")
 
       # But custom param should persist - this will FAIL with current implementation
-      assert String.contains?(result_url, "custom=value"),
-             "Expected URL to preserve custom=value but got: #{result_url}"
+      assert String.contains?(result_url, "tab=overview"),
+             "Expected URL to preserve tab=overview but got: #{result_url}"
     end
 
     test "handles empty new params without removing existing custom params" do
@@ -530,6 +530,58 @@ defmodule Cinder.Table.UrlSyncTest do
       assert String.contains?(result_url, "name=john")
       assert String.contains?(result_url, "page=2")
       assert result_url == "/users?name=john&page=2"
+    end
+
+    test "removes cleared filters from URL while preserving custom params" do
+      # This test demonstrates the critical bug: when a filter is cleared,
+      # it should be removed from the URL, but custom params should remain
+
+      # URL has a filter and a custom param
+      current_uri = "http://localhost:4000/users?name=john&tab=overview"
+
+      # User clears the name filter - encoded_state no longer has "name"
+      # but includes filter field names metadata so we know "name" was a filter
+      encoded_state = %{"_filter_fields" => "name"}
+
+      result_url = UrlSync.build_url(encoded_state, current_uri)
+
+      # BUG: The name filter persists in the URL because we're merging
+      # Expected: /users?tab=overview
+      # Actual: /users?name=john&tab=overview
+      refute String.contains?(result_url, "name=john"),
+             "Expected cleared filter to be removed but got: #{result_url}"
+
+      # Custom param should still be there
+      assert String.contains?(result_url, "tab=overview"),
+             "Expected custom param to persist but got: #{result_url}"
+    end
+
+    test "removes cleared filters while keeping other filters and custom params" do
+      # URL has multiple filters and a custom param
+      current_uri =
+        "http://localhost:4000/users?name=john&email=test@example.com&page=2&tab=overview"
+
+      # User clears name filter but keeps email filter, resets to page 1
+      # Include filter field names metadata to identify which params are filters
+      encoded_state = %{"email" => "test@example.com", "_filter_fields" => "name,email"}
+
+      result_url = UrlSync.build_url(encoded_state, current_uri)
+
+      # Cleared filter should be gone
+      refute String.contains?(result_url, "name=john"),
+             "Expected cleared name filter to be removed but got: #{result_url}"
+
+      # Cleared page should be gone (page=1 is default, so not in encoded_state)
+      refute String.contains?(result_url, "page="),
+             "Expected page to be removed when back to default but got: #{result_url}"
+
+      # Active filter should remain
+      assert String.contains?(result_url, "email=test"),
+             "Expected active filter to remain but got: #{result_url}"
+
+      # Custom param should remain
+      assert String.contains?(result_url, "tab=overview"),
+             "Expected custom param to remain but got: #{result_url}"
     end
   end
 end

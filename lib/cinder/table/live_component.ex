@@ -300,13 +300,18 @@ defmodule Cinder.Table.LiveComponent do
     page_size_config = socket.assigns.page_size_config
     search_term = socket.assigns.search_term
 
+    # Use pre-computed filter field names from socket assigns
+    # These were computed once during column setup
+    filter_field_names = socket.assigns.filter_field_names
+
     state = %{
       filters: filters,
       current_page: current_page,
       sort_by: sort_by,
       page_size: page_size_config.selected_page_size,
       default_page_size: page_size_config.default_page_size,
-      search_term: search_term
+      search_term: search_term,
+      filter_field_names: filter_field_names
     }
 
     Cinder.UrlManager.notify_state_change(socket, state)
@@ -654,9 +659,17 @@ defmodule Cinder.Table.LiveComponent do
           filter_configs
       end
 
+    # Compute filter field names once during setup for URL sync
+    # This avoids recomputing on every state change
+    filter_field_names =
+      filter_columns
+      |> Enum.filter(& &1.filterable)
+      |> Enum.map(& &1.field)
+
     socket
     |> assign(:columns, columns)
     |> assign(:filter_columns, filter_columns)
+    |> assign(:filter_field_names, filter_field_names)
   end
 
   defp extract_initial_sorts(assigns) do

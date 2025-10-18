@@ -60,6 +60,28 @@ defmodule Cinder.Table.UrlSync do
   - Updates the URL with new table state
   - Preserves other URL parameters
   - Works with any number of Table components on the same page
+
+  ## Custom URL Parameters
+
+  The URL sync helper automatically preserves custom (non-table) query parameters
+  while managing table state. The table component knows which parameters it manages
+  (filters, page, sort, page_size, search) and will preserve any other parameters
+  in the URL.
+
+  For example:
+
+      # URL with custom params and table state
+      /users?tab=overview&view=grid&name=john&page=2
+
+      # When "name" filter is cleared, custom params are preserved
+      /users?tab=overview&view=grid&page=2
+
+      # When navigating to a different page, custom params remain
+      /users?tab=overview&view=grid&page=3
+
+  You can use any parameter names for custom state without worrying about conflicts
+  with table parameters. The table automatically tracks which filter fields it manages
+  and will only remove those when filters are cleared.
   """
 
   import Phoenix.Component, only: [assign: 3]
@@ -138,8 +160,36 @@ defmodule Cinder.Table.UrlSync do
       # Parse existing query parameters
       existing_params = URI.decode_query(uri.query || "")
 
-      # Merge existing params with new params (new params take precedence)
-      merged_params = Map.merge(existing_params, new_params)
+      # The table manages these specific parameter keys
+      known_table_keys = MapSet.new(["page", "sort", "page_size", "search"])
+
+      # Extract filter field names from encoded state (if provided)
+      # This tells us exactly which parameters are table-managed filter fields
+      filter_field_names =
+        case Map.get(new_params, "_filter_fields") do
+          nil -> []
+          fields_str -> String.split(fields_str, ",")
+        end
+
+      # Remove the metadata key from new_params
+      new_params = Map.delete(new_params, "_filter_fields")
+
+      # Build set of all table-managed parameter keys
+      table_managed_keys =
+        known_table_keys
+        |> MapSet.union(MapSet.new(filter_field_names))
+        |> MapSet.union(MapSet.new(Map.keys(new_params)))
+
+      # Preserve only custom params (those NOT in table_managed_keys)
+      custom_params =
+        existing_params
+        |> Enum.reject(fn {key, _value} ->
+          MapSet.member?(table_managed_keys, key)
+        end)
+        |> Enum.into(%{})
+
+      # Merge custom params with new table state
+      merged_params = Map.merge(custom_params, new_params)
 
       if map_size(merged_params) > 0 do
         query_string = URI.encode_query(merged_params)

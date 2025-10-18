@@ -8,7 +8,7 @@
 
 ### Bug fixes
 
-* Fix URL sync overwriting existing query parameters instead of merging them (#67)
+* Fix URL sync overwriting existing query parameters instead of merging them - custom query parameters (like `?tab=overview`) are now preserved when table state changes while allowing filters to be properly cleared (#67)
 * Fix custom theme extension with `extends` by using `Code.ensure_loaded/1` to load modules before checking for `resolve_theme/0` (#64)
 
 ## v0.7.2 (2025-09-30)

@@ -69,10 +69,20 @@ defmodule Cinder.UrlManager do
     # Add search if not empty
     search_term = Map.get(state, :search_term)
 
-    if search_term in [nil, ""] do
-      state_with_sort
+    state_with_search =
+      if search_term in [nil, ""] do
+        state_with_sort
+      else
+        Map.put(state_with_sort, :search, search_term)
+      end
+
+    # Add filter field names for UrlSync to know which params are table-managed
+    filter_field_names = Map.get(state, :filter_field_names, [])
+
+    if Enum.empty?(filter_field_names) do
+      state_with_search
     else
-      Map.put(state_with_sort, :search, search_term)
+      Map.put(state_with_search, :_filter_fields, Enum.join(filter_field_names, ","))
     end
   end
 

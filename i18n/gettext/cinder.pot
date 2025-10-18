@@ -28,12 +28,12 @@ msgid_plural "active"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/cinder/table/live_component.ex:426
+#: lib/cinder/table/live_component.ex:431
 #, elixir-autogen
 msgid "Page %{current} of %{total}"
 msgstr ""
 
-#: lib/cinder/table/live_component.ex:428
+#: lib/cinder/table/live_component.ex:433
 #, elixir-autogen
 msgid "showing %{start}-%{end} of %{total}"
 msgstr ""
@@ -44,27 +44,27 @@ msgstr ""
 msgid "to"
 msgstr ""
 
-#: lib/cinder/table/live_component.ex:492
+#: lib/cinder/table/live_component.ex:497
 #, elixir-autogen
 msgid "Next page"
 msgstr ""
 
-#: lib/cinder/table/live_component.ex:461
+#: lib/cinder/table/live_component.ex:466
 #, elixir-autogen
 msgid "Previous page"
 msgstr ""
 
-#: lib/cinder/table/live_component.ex:449
+#: lib/cinder/table/live_component.ex:454
 #, elixir-autogen
 msgid "First page"
 msgstr ""
 
-#: lib/cinder/table/live_component.ex:504
+#: lib/cinder/table/live_component.ex:509
 #, elixir-autogen
 msgid "Last page"
 msgstr ""
 
-#: lib/cinder/table/live_component.ex:475
+#: lib/cinder/table/live_component.ex:480
 #, elixir-autogen
 msgid "Go to page %{page}"
 msgstr ""
