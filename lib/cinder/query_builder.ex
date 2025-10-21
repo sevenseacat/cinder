@@ -293,8 +293,12 @@ defmodule Cinder.QueryBuilder do
 
   @doc """
   Applies query options like load and select to an Ash query.
+
+  Warns if unsupported options are provided.
   """
   def apply_query_opts(query, opts) do
+    validate_query_opts(opts)
+
     Enum.reduce(opts, query, fn
       {:load, load_opts}, query ->
         Ash.Query.load(query, load_opts)
@@ -308,6 +312,24 @@ defmodule Cinder.QueryBuilder do
       _other, query ->
         query
     end)
+  end
+
+  @supported_query_opts [:load, :select, :tenant, :timeout, :authorize?, :max_concurrency]
+
+  defp validate_query_opts(opts) do
+    unsupported_opts =
+      opts
+      |> Keyword.keys()
+      |> Enum.uniq()
+      |> Enum.reject(&(&1 in @supported_query_opts))
+
+    if unsupported_opts != [] do
+      Logger.warning("""
+      Unsupported query_opts provided: #{inspect(unsupported_opts)}
+
+      Supported query_opts are: #{inspect(@supported_query_opts)}
+      """)
+    end
   end
 
   @doc """

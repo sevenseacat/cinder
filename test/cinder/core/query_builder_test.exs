@@ -546,7 +546,12 @@ defmodule Cinder.QueryBuilderTest do
       query = %MockQueryOpts{resource: TestResource}
       opts = [filter: %{title: "test"}]
 
-      result = QueryBuilder.apply_query_opts(query, opts)
+      # Suppress expected warning about unsupported option
+      {result, _logs} =
+        ExUnit.CaptureLog.with_log(fn ->
+          QueryBuilder.apply_query_opts(query, opts)
+        end)
+
       assert result == query
     end
 
@@ -554,7 +559,12 @@ defmodule Cinder.QueryBuilderTest do
       query = %MockQueryOpts{resource: TestResource}
       opts = [unknown: "value", another: "test"]
 
-      result = QueryBuilder.apply_query_opts(query, opts)
+      # Suppress expected warning about unsupported options
+      {result, _logs} =
+        ExUnit.CaptureLog.with_log(fn ->
+          QueryBuilder.apply_query_opts(query, opts)
+        end)
+
       assert result == query
     end
 
@@ -567,6 +577,45 @@ defmodule Cinder.QueryBuilderTest do
 
       # Verify the tenant was set (checking the query struct)
       assert result.tenant == "test_tenant"
+    end
+
+    test "warns when unsupported query_opts are provided" do
+      query = Ash.Query.new(TestUser)
+      opts = [filter: %{status: :active}, unknown_option: "value", load: [:posts]]
+
+      log =
+        capture_log(fn ->
+          QueryBuilder.apply_query_opts(query, opts)
+        end)
+
+      # Should warn about unsupported options
+      assert log =~ "Unsupported query_opts provided: [:filter, :unknown_option]"
+    end
+
+    test "does not warn when only supported query_opts are provided" do
+      query = Ash.Query.new(TestUser)
+      opts = [load: [:posts], select: [:id, :name], tenant: "test", timeout: 5000]
+
+      log =
+        capture_log(fn ->
+          QueryBuilder.apply_query_opts(query, opts)
+        end)
+
+      # Should not contain any warnings
+      refute log =~ "Unsupported query_opts"
+    end
+
+    test "does not warn when no query_opts are provided" do
+      query = Ash.Query.new(TestUser)
+      opts = []
+
+      log =
+        capture_log(fn ->
+          QueryBuilder.apply_query_opts(query, opts)
+        end)
+
+      # Should not contain any warnings
+      refute log =~ "Unsupported query_opts"
     end
   end
 
@@ -1226,7 +1275,10 @@ defmodule Cinder.QueryBuilderTest do
         {:ok, %{results: [], count: 0}}
       end)
 
-      QueryBuilder.build_and_execute(TestUser, options)
+      # Suppress expected warnings about unsupported options
+      ExUnit.CaptureLog.with_log(fn ->
+        QueryBuilder.build_and_execute(TestUser, options)
+      end)
 
       assert_received {:ash_read_called, ash_opts}
       assert Keyword.get(ash_opts, :timeout) == :timer.seconds(10)
