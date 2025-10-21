@@ -18,7 +18,14 @@ defmodule Cinder.QueryBuilder do
           filter_type: atom(),
           filter_fn: function() | nil
         }
-  @type query_opts :: keyword()
+  @type query_opts :: [
+          {:load, term()}
+          | {:select, list()}
+          | {:tenant, term()}
+          | {:timeout, timeout()}
+          | {:authorize?, boolean()}
+          | {:max_concurrency, pos_integer()}
+        ]
 
   @doc """
   Builds a complete query with filters, sorting, and pagination.

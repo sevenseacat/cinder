@@ -235,7 +235,10 @@ defmodule Cinder.Table do
   - `page_size` - Number of items per page (default: 25)
   - `theme` - Theme preset or custom theme map (default: "default")
   - `url_state` - URL state object from UrlSync.handle_params, or false to disable URL synchronization
-  - `query_opts` - Additional query options for Ash (default: [])
+  - `query_opts` - Additional Ash query options (default: [])
+    - Query building: `:load`, `:select`, `:tenant`
+    - Execution: `:timeout`, `:authorize?`, `:max_concurrency`
+    - Note: For base filters, use `query={Resource |> Ash.Query.filter(...)}` instead
   - `on_state_change` - Callback for state changes
   - `show_filters` - Show filter controls (default: auto-detect from columns)
   - `show_pagination` - Show pagination controls (default: true)
@@ -392,7 +395,12 @@ defmodule Cinder.Table do
     doc: "URL state object from UrlSync.handle_params, or false to disable"
   )
 
-  attr(:query_opts, :list, default: [], doc: "Additional query options (load, select, etc.)")
+  attr(:query_opts, :list,
+    default: [],
+    doc:
+      "Additional Ash query options. Query building: :load, :select, :tenant. Execution: :timeout, :authorize?, :max_concurrency. For base filters, use query parameter with Ash.Query.filter/2 instead."
+  )
+
   attr(:on_state_change, :any, default: nil, doc: "Custom state change handler")
   attr(:show_pagination, :boolean, default: true, doc: "Whether to show pagination controls")
 
