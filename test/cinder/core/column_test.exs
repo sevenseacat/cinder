@@ -486,6 +486,114 @@ defmodule Cinder.ColumnTest do
     end
   end
 
+  describe "global attributes" do
+    test "extracts global attributes from slot" do
+      slot = %{
+        field: "name",
+        label: "Name",
+        "data-label": "User Name",
+        "data-id": "user-name-col"
+      }
+
+      resource = nil
+
+      column = Column.parse_column(slot, resource)
+
+      assert column.field == "name"
+      assert column.label == "Name"
+      assert Keyword.get(column.global_attrs, :"data-label") == "User Name"
+      assert Keyword.get(column.global_attrs, :"data-id") == "user-name-col"
+    end
+
+    test "does not include known slot attributes in global_attrs" do
+      slot = %{
+        field: "email",
+        label: "Email",
+        class: "w-1/4",
+        filter: true,
+        sort: true,
+        search: true,
+        filter_options: [],
+        "data-test": "email-column"
+      }
+
+      resource = nil
+
+      column = Column.parse_column(slot, resource)
+
+      # Known attributes should not be in global_attrs
+      assert Keyword.get(column.global_attrs, :field) == nil
+      assert Keyword.get(column.global_attrs, :label) == nil
+      assert Keyword.get(column.global_attrs, :class) == nil
+      assert Keyword.get(column.global_attrs, :filter) == nil
+      assert Keyword.get(column.global_attrs, :sort) == nil
+      assert Keyword.get(column.global_attrs, :search) == nil
+      assert Keyword.get(column.global_attrs, :filter_options) == nil
+
+      # Global attribute should be present
+      assert Keyword.get(column.global_attrs, :"data-test") == "email-column"
+    end
+
+    test "handles slot with no global attributes" do
+      slot = %{
+        field: "name",
+        label: "Name"
+      }
+
+      resource = nil
+
+      column = Column.parse_column(slot, resource)
+
+      assert column.global_attrs == []
+    end
+
+    test "handles action column with global attributes" do
+      slot = %{
+        label: "Actions",
+        "data-column": "actions",
+        "aria-label": "Action buttons"
+      }
+
+      resource = nil
+
+      column = Column.parse_column(slot, resource)
+
+      assert column.field == nil
+      assert column.label == "Actions"
+      assert Keyword.get(column.global_attrs, :"data-column") == "actions"
+      assert Keyword.get(column.global_attrs, :"aria-label") == "Action buttons"
+    end
+
+    test "supports multiple data attributes" do
+      slot = %{
+        field: "status",
+        "data-test-id": "status-col",
+        "data-sortable": "true",
+        "data-filterable": "true",
+        "aria-label": "Status column"
+      }
+
+      resource = nil
+
+      column = Column.parse_column(slot, resource)
+
+      assert length(column.global_attrs) == 4
+      assert Keyword.get(column.global_attrs, :"data-test-id") == "status-col"
+      assert Keyword.get(column.global_attrs, :"data-sortable") == "true"
+      assert Keyword.get(column.global_attrs, :"data-filterable") == "true"
+      assert Keyword.get(column.global_attrs, :"aria-label") == "Status column"
+    end
+
+    test "global_attrs is empty list by default in struct" do
+      column = %Column{
+        field: "test",
+        label: "Test"
+      }
+
+      assert column.global_attrs == []
+    end
+  end
+
   # Mock functions for testing
 
   defp custom_filter(_query, _value), do: nil
