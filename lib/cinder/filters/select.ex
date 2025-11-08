@@ -55,7 +55,7 @@ defmodule Cinder.Filters.Select do
         {@theme.filter_select_input_data}
         phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
-        <span class={[if(@current_value == "", do: "text-gray-400", else: ""), "truncate"]}>{@display_text}</span>
+        <span class={[if(@current_value == "", do: @theme.filter_placeholder_class, else: ""), "truncate"]}>{@display_text}</span>
         <svg :if={@theme.filter_select_arrow_class != ""} class={@theme.filter_select_arrow_class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
