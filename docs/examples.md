@@ -280,7 +280,7 @@ Cinder supports multiple filter specification formats:
 
 The unified format is recommended as it keeps all filter configuration in one place and is consistent with other table options like `page_size`.
 
-## Legacy Format
+### Legacy Format
 
 For backward compatibility, the old separate parameter format is still supported but will log a deprecation warning:
 
