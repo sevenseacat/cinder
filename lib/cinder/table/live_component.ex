@@ -623,11 +623,17 @@ defmodule Cinder.Table.LiveComponent do
           configurable: false
         }
 
-    selected_page_size = page_size_config.selected_page_size
+    # Preserve existing page_size if it exists (user has already selected one)
+    # Otherwise use the selected_page_size from the incoming config
+    selected_page_size =
+      Map.get(socket.assigns, :page_size) || page_size_config.selected_page_size
+
+    # Update page_size_config to reflect the preserved page_size
+    updated_page_size_config = %{page_size_config | selected_page_size: selected_page_size}
 
     socket
     |> assign(:page_size, selected_page_size)
-    |> assign(:page_size_config, page_size_config)
+    |> assign(:page_size_config, updated_page_size_config)
     |> assign(:current_page, assigns[:current_page] || 1)
     |> assign(:loading, false)
     |> assign(:data, assigns[:data] || [])

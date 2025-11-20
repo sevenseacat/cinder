@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased 
+
+### Bug fixes 
+
+* Fix page size resetting to default when parent LiveView re-renders - user-selected page size now persists across parent state changes
+
 ## v0.8.0 (2025-11-08)
 
 ### Features
