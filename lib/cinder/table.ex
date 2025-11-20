@@ -543,12 +543,12 @@ defmodule Cinder.Table do
     # Merge columns and filter slots, checking for field conflicts
     all_filter_configs = merge_filter_configurations(processed_columns, processed_filter_slots)
 
-    # Determine if filters should be shown
-    show_filters = determine_show_filters(assigns, all_filter_configs)
-
     # Process unified search configuration after columns are processed
     {search_label, search_placeholder, search_enabled, search_fn} =
       process_search_config(assigns.search, processed_columns)
+
+    # Determine if filters should be shown (after search config is processed)
+    show_filters = determine_show_filters(assigns, all_filter_configs, search_enabled)
 
     # Parse page_size configuration
     page_size_config = parse_page_size_config(assigns.page_size)
@@ -932,11 +932,11 @@ defmodule Cinder.Table do
   defp get_field_value(item, field), do: get_in(item, [Access.key(field)])
 
   # Determine if filters should be shown automatically
-  defp determine_show_filters(assigns, processed_columns) do
+  defp determine_show_filters(assigns, processed_columns, search_enabled) do
     case Map.get(assigns, :show_filters) do
       nil ->
-        # Auto-detect: show filters if any column is filterable
-        Enum.any?(processed_columns, & &1.filterable)
+        # Auto-detect: show filters if any column is filterable OR search is enabled
+        search_enabled || Enum.any?(processed_columns, & &1.filterable)
 
       show_filters ->
         show_filters

@@ -5,6 +5,7 @@
 ### Bug fixes 
 
 * Fix page size resetting to default when parent LiveView re-renders - user-selected page size now persists across parent state changes
+* Fix filters section not showing automatically when search is enabled but no filterable columns exist (#70)
 
 ## v0.8.0 (2025-11-08)
 
