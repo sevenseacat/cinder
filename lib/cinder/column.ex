@@ -23,7 +23,8 @@ defmodule Cinder.Column do
           searchable: boolean(),
           options: list(),
           sort_warning: String.t() | nil,
-          filter_warning: String.t() | nil
+          filter_warning: String.t() | nil,
+          global_attrs: keyword()
         }
 
   defstruct [
@@ -42,7 +43,21 @@ defmodule Cinder.Column do
     :searchable,
     :options,
     :sort_warning,
-    :filter_warning
+    :filter_warning,
+    global_attrs: []
+  ]
+
+  # Known slot attributes that are handled explicitly
+  @known_slot_attrs [
+    :field,
+    :label,
+    :filter,
+    :filter_options,
+    :sort,
+    :search,
+    :class,
+    :__slot__,
+    :inner_block
   ]
 
   @doc """
@@ -86,7 +101,8 @@ defmodule Cinder.Column do
         searchable: false,
         options: [],
         sort_warning: nil,
-        filter_warning: nil
+        filter_warning: nil,
+        global_attrs: extract_global_attrs(slot)
       }
     else
       # Parse relationship information if field contains dots
@@ -131,7 +147,8 @@ defmodule Cinder.Column do
         searchable: Map.get(merged_config, :searchable, false),
         options: Map.get(merged_config, :options, []),
         sort_warning: sort_warning,
-        filter_warning: filter_warning
+        filter_warning: filter_warning,
+        global_attrs: extract_global_attrs(slot)
       }
     end
   end
@@ -256,6 +273,19 @@ defmodule Cinder.Column do
   end
 
   # Private helper functions
+
+  defp extract_global_attrs(slot) when is_map(slot) do
+    slot
+    |> Map.drop(@known_slot_attrs)
+    |> Enum.filter(fn {key, _value} ->
+      key_str = to_string(key)
+
+      String.starts_with?(key_str, "data-") or
+        String.starts_with?(key_str, "aria-") or
+        key in [:role, :title]
+    end)
+    |> Enum.to_list()
+  end
 
   defp parse_relationship_key(field) when is_binary(field) do
     case String.split(field, ".", parts: 2) do
