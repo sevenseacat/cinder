@@ -73,6 +73,7 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_select_label_class, "text-sm cursor-pointer select-none flex-1"
     set :filter_select_empty_class, "px-3 py-2 text-base-content/50 italic text-sm"
     set :filter_select_arrow_class, ""
+    set :filter_select_placeholder_class, "text-base-content/40"
 
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-4 h-[36px] items-center"
