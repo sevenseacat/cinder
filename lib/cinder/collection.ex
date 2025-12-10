@@ -182,6 +182,17 @@ defmodule Cinder.Collection do
     doc: "Function to call when a row/item is clicked. Receives the item as argument."
   )
 
+  attr(:id_field, :atom,
+    default: :id,
+    doc: "Field to use as ID for visible ID tracking (defaults to :id)"
+  )
+
+  attr(:emit_visible_ids, :boolean,
+    default: false,
+    doc:
+      "When true, emits {:cinder_visible_ids, collection_id, [id]} to parent after each data load"
+  )
+
   slot :col do
     attr(:field, :string,
       required: false,
@@ -361,6 +372,8 @@ defmodule Cinder.Collection do
         search_placeholder={@search_placeholder}
         search_fn={@search_fn}
         pagination_mode={@pagination_mode}
+        id_field={@id_field}
+        emit_visible_ids={@emit_visible_ids}
       />
     </div>
     """

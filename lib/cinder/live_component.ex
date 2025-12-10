@@ -288,6 +288,7 @@ defmodule Cinder.LiveComponent do
       |> assign(:page, page)
       # Update keyset cursors for navigation (only relevant in keyset mode)
       |> maybe_update_keyset_cursors(page)
+      |> maybe_emit_visible_ids(page.results)
 
     {:noreply, socket}
   end
@@ -348,6 +349,18 @@ defmodule Cinder.LiveComponent do
   end
 
   defp maybe_update_keyset_cursors(socket, _page), do: socket
+
+  # Emit visible IDs to parent LiveView for selective refresh optimization
+  defp maybe_emit_visible_ids(socket, results) do
+    if socket.assigns[:emit_visible_ids] do
+      id_field = socket.assigns[:id_field] || :id
+      collection_id = socket.assigns[:id]
+      visible_ids = Enum.map(results, &Map.get(&1, id_field))
+      send(self(), {:cinder_visible_ids, collection_id, visible_ids})
+    end
+
+    socket
+  end
 
   defp get_keyset_from_result(nil), do: nil
 
