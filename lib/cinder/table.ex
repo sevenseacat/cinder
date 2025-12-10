@@ -494,6 +494,11 @@ defmodule Cinder.Table do
     doc: "Field to use as ID for bulk actions (defaults to :id)"
   )
 
+  attr(:emit_visible_ids, :boolean,
+    default: false,
+    doc: "When true, emits {:cinder_visible_ids, table_id, [id]} to parent after each data load"
+  )
+
   slot :col, required: true do
     attr(:field, :string,
       required: false,
@@ -656,6 +661,7 @@ defmodule Cinder.Table do
         search_fn={@search_fn}
         bulk_actions={@bulk_actions}
         id_field={@id_field}
+        emit_visible_ids={@emit_visible_ids}
       />
     </div>
     """

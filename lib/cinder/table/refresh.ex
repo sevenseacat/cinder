@@ -26,6 +26,27 @@ defmodule Cinder.Table.Refresh do
         {:noreply, refresh_table(socket)}
       end
 
+  ## Tracking Visible Records
+
+  Tables can emit the IDs of currently visible records to the parent LiveView.
+  Enable this with `emit_visible_ids={true}`:
+
+      <Cinder.Table.table emit_visible_ids={true} ...>
+
+  Then handle the message in your LiveView:
+
+      def handle_info({:cinder_visible_ids, table_id, ids}, socket) do
+        visible_ids = socket.assigns[:cinder_visible_ids] || %{}
+        {:noreply, assign(socket, :cinder_visible_ids, Map.put(visible_ids, table_id, MapSet.new(ids)))}
+      end
+
+  This is useful when you need to know which records the user is looking at,
+  for example to conditionally refresh on external events:
+
+      def handle_info({:record_changed, id}, socket) do
+        {:noreply, refresh_if_visible(socket, "my-table", id)}
+      end
+
   ## Refresh Behavior
 
   When a table is refreshed:
@@ -98,5 +119,56 @@ defmodule Cinder.Table.Refresh do
     end)
 
     socket
+  end
+
+  @doc """
+  Refreshes a table only if any of the given IDs are currently visible.
+
+  Checks if the provided ID(s) are in the set of visible records for the table.
+  If any match, the table is refreshed; otherwise, the socket is returned unchanged.
+
+  Requires the table to have `emit_visible_ids={true}` and the parent LiveView
+  to store visible IDs via handling `{:cinder_visible_ids, table_id, ids}`.
+
+  ## Parameters
+
+  - `socket` - The LiveView socket (must have `:cinder_visible_ids` in assigns)
+  - `table_id` - The ID of the table to conditionally refresh
+  - `ids` - A single ID or list of IDs to check against visible set
+
+  ## Returns
+
+  Updated socket with refresh message sent if any ID is visible, unchanged otherwise.
+
+  ## Examples
+
+      # In parent LiveView, store visible IDs
+      def handle_info({:cinder_visible_ids, table_id, ids}, socket) do
+        visible_ids = socket.assigns[:cinder_visible_ids] || %{}
+        {:noreply, assign(socket, :cinder_visible_ids, Map.put(visible_ids, table_id, MapSet.new(ids)))}
+      end
+
+      # Refresh only if the changed record is visible
+      def handle_info({:record_updated, record}, socket) do
+        {:noreply, refresh_if_visible(socket, "my-table", record.id)}
+      end
+
+      # With multiple IDs
+      def handle_info({:records_updated, records}, socket) do
+        {:noreply, refresh_if_visible(socket, "my-table", Enum.map(records, & &1.id))}
+      end
+  """
+  def refresh_if_visible(socket, table_id, ids) when is_binary(table_id) and is_list(ids) do
+    visible_ids = get_in(socket.assigns, [:cinder_visible_ids, table_id])
+
+    if visible_ids && Enum.any?(ids, &(&1 in visible_ids)) do
+      refresh_table(socket, table_id)
+    else
+      socket
+    end
+  end
+
+  def refresh_if_visible(socket, table_id, id) when is_binary(table_id) do
+    refresh_if_visible(socket, table_id, [id])
   end
 end

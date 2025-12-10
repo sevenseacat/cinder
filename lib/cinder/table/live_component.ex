@@ -922,6 +922,7 @@ defmodule Cinder.Table.LiveComponent do
       |> assign(:loading, false)
       |> assign(:data, results)
       |> assign(:page_info, page_info)
+      |> maybe_emit_visible_ids(results)
 
     {:noreply, socket}
   end
@@ -1077,5 +1078,17 @@ defmodule Cinder.Table.LiveComponent do
     else
       base_classes
     end
+  end
+
+  # Emit visible IDs to parent LiveView for selective refresh optimization
+  defp maybe_emit_visible_ids(socket, results) do
+    if socket.assigns[:emit_visible_ids] do
+      id_field = socket.assigns[:id_field] || :id
+      table_id = socket.assigns[:id]
+      visible_ids = Enum.map(results, &Map.get(&1, id_field))
+      send(self(), {:cinder_visible_ids, table_id, visible_ids})
+    end
+
+    socket
   end
 end
