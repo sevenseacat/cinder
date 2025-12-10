@@ -111,9 +111,9 @@ defmodule Cinder.Themes.Flowbite do
     set :filter_select_placeholder_class,
         "text-gray-500 dark:text-gray-400"
 
-    # Boolean filter - radio buttons
-    set :filter_boolean_container_class, "flex items-center space-x-6 min-h-[42px]"
-    set :filter_boolean_option_class, "flex items-center"
+    # Boolean filter
+    set :filter_boolean_container_class, "flex items-center space-x-6 h-[42px]"
+    set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
         "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
