@@ -39,6 +39,7 @@ defmodule Cinder.Components.Filters do
     :filter_select_label_class,
     :filter_select_empty_class,
     :filter_select_arrow_class,
+    :filter_select_placeholder_class,
 
     # Boolean filter
     :filter_boolean_container_class,
@@ -114,6 +115,7 @@ defmodule Cinder.Components.Filters do
       filter_select_label_class: "",
       filter_select_empty_class: "",
       filter_select_arrow_class: "w-4 h-4 ml-2 flex-shrink-0",
+      filter_select_placeholder_class: "text-gray-400",
 
       # Boolean filter
       filter_boolean_container_class: "",
