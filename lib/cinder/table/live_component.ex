@@ -92,7 +92,7 @@ defmodule Cinder.Table.LiveComponent do
                 class={get_row_classes(@theme.row_class, @row_click)}
                 {@theme.row_data}
                 phx-click={@row_click && @row_click.(item)}>
-              <td :for={column <- @columns} class={[@theme.td_class, column.class]} {@theme.td_data}>
+              <td :for={column <- @columns} class={[@theme.td_class, column.class]} {@theme.td_data} {column.global_attrs}>
                 {render_slot(column.slot, item)}
               </td>
             </tr>
