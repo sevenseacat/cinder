@@ -99,6 +99,9 @@ defmodule Cinder.Themes.Flowbite do
     set :filter_select_empty_class,
         "px-3 py-2 text-gray-500 dark:text-gray-400 italic text-sm"
 
+    set :filter_select_placeholder_class,
+        "text-gray-500 dark:text-gray-400"
+
     # Boolean filter
     set :filter_boolean_container_class, "flex items-center space-x-6 h-[42px]"
     set :filter_boolean_option_class, "flex items-center space-x-2"
