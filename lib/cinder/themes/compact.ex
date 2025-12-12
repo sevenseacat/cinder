@@ -39,6 +39,12 @@ defmodule Cinder.Themes.Compact do
         "bg-red-50 border border-red-200 p-3 text-red-700 text-sm"
 
     set :error_message_class, "text-sm"
+
+    # Bulk action button styling
+    set :bulk_action_button_class,
+        "px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-150"
+
+    set :bulk_loading_class, "animate-pulse opacity-60"
   end
 
   component Cinder.Components.Filters do

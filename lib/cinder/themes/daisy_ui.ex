@@ -27,6 +27,10 @@ defmodule Cinder.Themes.DaisyUI do
     set :empty_class, "text-center py-8 text-base-content/60"
     set :error_container_class, "alert alert-error"
     set :error_message_class, ""
+
+    # Bulk action button styling
+    set :bulk_action_button_class, "btn btn-primary btn-sm"
+    set :bulk_loading_class, "loading loading-spinner loading-sm"
   end
 
   component Cinder.Components.Filters do
