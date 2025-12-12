@@ -434,6 +434,22 @@ defmodule Cinder.Table do
     doc: "Function to call when a row is clicked. Receives the row item as argument."
   )
 
+  attr(:bulk_actions, :list,
+    default: [],
+    doc:
+      "List of bulk action maps with :label and :event keys, e.g. [%{label: \"Export IDs\", event: \"export_ids\"}, %{label: \"Generate Labels\", event: \"generate_labels\"}]"
+  )
+
+  attr(:id_field, :atom,
+    default: :id,
+    doc: "Field to use as ID for bulk actions (defaults to :id)"
+  )
+
+  attr(:emit_visible_ids, :boolean,
+    default: false,
+    doc: "When true, emits {:cinder_visible_ids, table_id, [id]} to parent after each data load"
+  )
+
   slot :col, required: true do
     attr(:field, :string,
       required: false,
@@ -594,6 +610,9 @@ defmodule Cinder.Table do
         search_label={@search_label}
         search_placeholder={@search_placeholder}
         search_fn={@search_fn}
+        bulk_actions={@bulk_actions}
+        id_field={@id_field}
+        emit_visible_ids={@emit_visible_ids}
       />
     </div>
     """
