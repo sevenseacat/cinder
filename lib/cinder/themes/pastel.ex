@@ -210,4 +210,32 @@ defmodule Cinder.Themes.Pastel do
     set :loading_spinner_circle_class, "opacity-25"
     set :loading_spinner_path_class, "opacity-75"
   end
+
+  component Cinder.Components.List do
+    set :list_container_class, "divide-y divide-pink-200"
+    set :list_item_class, ""
+
+    set :list_item_clickable_class,
+        "cursor-pointer hover:bg-pink-50 transition-colors duration-150"
+
+    # Sort controls
+    set :sort_controls_class,
+        "flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-200"
+
+    set :sort_controls_label_class, "text-sm font-medium text-purple-700"
+    set :sort_buttons_class, "flex gap-2"
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-medium border rounded-full transition-all duration-150"
+
+    set :sort_button_active_class,
+        "bg-purple-500 border-purple-500 text-white shadow-sm"
+
+    set :sort_button_inactive_class,
+        "bg-white border-pink-300 text-purple-600 hover:bg-pink-50 hover:border-pink-400"
+
+    set :sort_icon_class, "ml-1"
+    set :sort_asc_icon, "↑"
+    set :sort_desc_icon, "↓"
+  end
 end

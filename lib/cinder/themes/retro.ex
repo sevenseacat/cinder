@@ -216,4 +216,32 @@ defmodule Cinder.Themes.Retro do
     set :loading_spinner_circle_class, "opacity-25"
     set :loading_spinner_path_class, "opacity-75"
   end
+
+  component Cinder.Components.List do
+    set :list_container_class, "divide-y divide-pink-500/30"
+    set :list_item_class, ""
+
+    set :list_item_clickable_class,
+        "cursor-pointer hover:bg-pink-500/10 transition-colors duration-150"
+
+    # Sort controls
+    set :sort_controls_class,
+        "flex items-center gap-3 p-4 bg-gradient-to-r from-purple-900 to-indigo-900 border-b-2 border-pink-500"
+
+    set :sort_controls_label_class, "text-sm font-bold text-pink-300 uppercase tracking-wider"
+    set :sort_buttons_class, "flex gap-2"
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-bold border-2 transition-all duration-150"
+
+    set :sort_button_active_class,
+        "bg-pink-500 border-pink-400 text-white shadow-lg shadow-pink-500/50"
+
+    set :sort_button_inactive_class,
+        "bg-purple-900/50 border-cyan-500/50 text-cyan-300 hover:border-pink-400 hover:text-pink-300"
+
+    set :sort_icon_class, "ml-1"
+    set :sort_asc_icon, "↑"
+    set :sort_desc_icon, "↓"
+  end
 end

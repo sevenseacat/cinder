@@ -191,4 +191,31 @@ defmodule Cinder.Themes.Modern do
     # Now uses filter_label_class from filter theme
     set :search_label_class, ""
   end
+
+  component Cinder.Components.List do
+    set :list_container_class, "divide-y divide-gray-100"
+    set :list_item_class, ""
+
+    set :list_item_clickable_class,
+        "cursor-pointer hover:bg-blue-50/30 transition-colors duration-150"
+
+    # Sort controls
+    set :sort_controls_class,
+        "flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100"
+
+    set :sort_controls_label_class, "text-sm font-medium text-gray-700"
+    set :sort_buttons_class, "flex gap-2"
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-medium border rounded-lg transition-all duration-150"
+
+    set :sort_button_active_class, "bg-blue-600 border-blue-600 text-white shadow-sm"
+
+    set :sort_button_inactive_class,
+        "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+
+    set :sort_icon_class, "ml-1"
+    set :sort_asc_icon, "↑"
+    set :sort_desc_icon, "↓"
+  end
 end

@@ -218,4 +218,32 @@ defmodule Cinder.Themes.Futuristic do
     set :loading_spinner_circle_class, "opacity-25"
     set :loading_spinner_path_class, "opacity-75"
   end
+
+  component Cinder.Components.List do
+    set :list_container_class, "divide-y divide-cyan-500/20"
+    set :list_item_class, ""
+
+    set :list_item_clickable_class,
+        "cursor-pointer hover:bg-cyan-500/10 transition-colors duration-200"
+
+    # Sort controls
+    set :sort_controls_class,
+        "flex items-center gap-3 p-4 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-cyan-500/30"
+
+    set :sort_controls_label_class, "text-sm font-medium text-cyan-300 tracking-wide"
+    set :sort_buttons_class, "flex gap-2"
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-medium border rounded transition-all duration-200"
+
+    set :sort_button_active_class,
+        "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg shadow-cyan-500/20"
+
+    set :sort_button_inactive_class,
+        "bg-slate-800/50 border-slate-600 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-400"
+
+    set :sort_icon_class, "ml-1"
+    set :sort_asc_icon, "↑"
+    set :sort_desc_icon, "↓"
+  end
 end

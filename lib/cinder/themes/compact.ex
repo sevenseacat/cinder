@@ -201,4 +201,23 @@ defmodule Cinder.Themes.Compact do
     set :loading_spinner_circle_class, "opacity-25"
     set :loading_spinner_path_class, "opacity-75"
   end
+
+  component Cinder.Components.List do
+    set :list_container_class, "divide-y divide-gray-200"
+    set :list_item_class, ""
+
+    set :list_item_clickable_class,
+        "cursor-pointer hover:bg-gray-50 transition-colors duration-100"
+
+    # Sort controls
+    set :sort_controls_class, "flex items-center gap-2 p-3 bg-gray-50 border-b border-gray-300"
+    set :sort_controls_label_class, "text-xs font-medium text-gray-700"
+    set :sort_buttons_class, "flex gap-1"
+    set :sort_button_class, "px-2 py-1 text-xs font-medium border transition-all duration-100"
+    set :sort_button_active_class, "bg-blue-600 border-blue-600 text-white"
+    set :sort_button_inactive_class, "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+    set :sort_icon_class, "ml-1"
+    set :sort_asc_icon, "↑"
+    set :sort_desc_icon, "↓"
+  end
 end

@@ -217,4 +217,32 @@ defmodule Cinder.Themes.Flowbite do
     set :loading_spinner_circle_class, ""
     set :loading_spinner_path_class, ""
   end
+
+  component Cinder.Components.List do
+    set :list_container_class, "divide-y divide-gray-200 dark:divide-gray-700"
+    set :list_item_class, ""
+
+    set :list_item_clickable_class,
+        "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+
+    # Sort controls
+    set :sort_controls_class,
+        "flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+
+    set :sort_controls_label_class, "text-sm font-medium text-gray-700 dark:text-gray-300"
+    set :sort_buttons_class, "flex gap-2"
+
+    set :sort_button_class,
+        "px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
+
+    set :sort_button_active_class,
+        "bg-blue-700 border-blue-700 text-white hover:bg-blue-800"
+
+    set :sort_button_inactive_class,
+        "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+
+    set :sort_icon_class, "ml-1"
+    set :sort_asc_icon, "↑"
+    set :sort_desc_icon, "↓"
+  end
 end

@@ -162,4 +162,23 @@ defmodule Cinder.Themes.DaisyUI do
     set :loading_spinner_circle_class, ""
     set :loading_spinner_path_class, ""
   end
+
+  component Cinder.Components.List do
+    set :list_container_class, "divide-y divide-base-200"
+    set :list_item_class, ""
+
+    set :list_item_clickable_class,
+        "cursor-pointer hover:bg-base-200 transition-colors"
+
+    # Sort controls
+    set :sort_controls_class, "flex items-center gap-3 p-4 bg-base-200 border-b border-base-300"
+    set :sort_controls_label_class, "text-sm font-medium"
+    set :sort_buttons_class, "flex gap-2"
+    set :sort_button_class, "btn btn-sm"
+    set :sort_button_active_class, "btn-primary"
+    set :sort_button_inactive_class, "btn-ghost"
+    set :sort_icon_class, "ml-1"
+    set :sort_asc_icon, "↑"
+    set :sort_desc_icon, "↓"
+  end
 end
