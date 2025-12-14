@@ -1,6 +1,6 @@
 # Cinder
 
-A powerful, intelligent data table component for Ash Framework resources, in your Phoenix LiveView applications.
+A powerful, intelligent data table and list component for Ash Framework resources, in your Phoenix LiveView applications.
 
 ## What is Cinder?
 
@@ -32,6 +32,7 @@ That's it! Cinder automatically provides:
 
 ## Key Features
 
+- **📋 Multiple Layouts**: Table and List/Card layouts with shared filtering, sorting, and pagination
 - **🧠 Intelligent Defaults**: Automatic filter type detection from Ash resource attributes
 - **⚡ Minimal Configuration**: 70% fewer attributes required compared to traditional table components
 - **🔗 Complete URL State Management**: Filters, pagination, and sorting synchronized with browser URL
@@ -92,6 +93,35 @@ The installer will automatically update your Tailwind configuration to include C
   <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
   <:col :let={user} field="created_at" sort>{user.created_at}</:col>
 </Cinder.Table.table>
+```
+
+### List/Card Layout
+
+For non-tabular displays, use `Cinder.List` with custom item templates:
+
+```heex
+<Cinder.List.list resource={MyApp.User} actor={@current_user}>
+  <:col field="name" filter sort search />
+  <:col field="status" filter={:select} />
+
+  <:item :let={user}>
+    <div class="p-4 border-b hover:bg-gray-50">
+      <h3 class="font-bold">{user.name}</h3>
+      <p class="text-gray-600">{user.email}</p>
+    </div>
+  </:item>
+</Cinder.List.list>
+```
+
+For grid layouts, override the container class:
+
+```heex
+<Cinder.List.list resource={MyApp.Product} container_class="grid grid-cols-3 gap-4">
+  <:col field="name" filter sort />
+  <:item :let={product}>
+    <div class="p-4 border rounded">{product.name}</div>
+  </:item>
+</Cinder.List.list>
 ```
 
 ### Advanced Query Usage
