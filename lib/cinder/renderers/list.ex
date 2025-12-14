@@ -1,23 +1,22 @@
 defmodule Cinder.Renderers.List do
   @moduledoc """
-  Renderer for list/card layout.
+  Renderer for list layout.
 
-  This module contains the render function and helper components for
-  displaying data in a flexible list or grid format. The layout is
-  controlled purely through CSS - the same renderer can display as
-  a vertical list, grid, or cards by changing the container class.
+  This module contains the render function for displaying data in a
+  vertical list format with sort controls rendered as a button group.
   """
 
   use Phoenix.Component
-  alias Phoenix.LiveView.JS
   use Cinder.Messages
   require Logger
+
+  alias Cinder.Renderers.Pagination
+  alias Cinder.Renderers.SortControls
 
   @doc """
   Renders the list layout.
   """
   def render(assigns) do
-    # Check if item slot is provided
     has_item_slot = Map.get(assigns, :item_slot, []) != []
 
     unless has_item_slot do
@@ -29,7 +28,7 @@ defmodule Cinder.Renderers.List do
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
       <!-- Controls Area (filters + sort) -->
-      <div :if={@show_filters or (@show_sort && has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} {@theme.controls_data}>
+      <div :if={@show_filters or (@show_sort && SortControls.has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} {@theme.controls_data}>
         <!-- Filter Controls (including search) -->
         <Cinder.FilterManager.render_filter_controls
           :if={@show_filters}
@@ -45,26 +44,14 @@ defmodule Cinder.Renderers.List do
         />
 
         <!-- Sort Controls (button group since no table headers) -->
-        <div :if={@show_sort && has_sortable_columns?(@columns)} class={get_sort_container_class(@theme)}>
-          <div class={get_sort_controls_class(@theme)}>
-            <span class={get_sort_label_class(@theme)}>{@sort_label}</span>
-            <div class={get_sort_buttons_class(@theme)}>
-              <button
-                :for={column <- get_sortable_columns(@columns)}
-                type="button"
-                class={get_sort_button_class(column, @sort_by, @theme)}
-                phx-click="toggle_sort"
-                phx-value-key={column.field}
-                phx-target={@myself}
-              >
-                {column.label}
-                <span :if={get_sort_direction(@sort_by, column.field)} class={get_sort_icon_class(@theme)}>
-                  {get_sort_icon(get_sort_direction(@sort_by, column.field), @theme)}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <SortControls.render
+          :if={@show_sort}
+          columns={@columns}
+          sort_by={@sort_by}
+          sort_label={@sort_label}
+          theme={@theme}
+          myself={@myself}
+        />
       </div>
 
       <!-- List Items Container -->
@@ -103,7 +90,7 @@ defmodule Cinder.Renderers.List do
 
       <!-- Pagination -->
       <div :if={@show_pagination and @page_info.total_pages > 1} class={@theme.pagination_wrapper_class} {@theme.pagination_wrapper_data}>
-        <.pagination_controls
+        <Pagination.render
           page_info={@page_info}
           page_size_config={@page_size_config}
           theme={@theme}
@@ -113,71 +100,6 @@ defmodule Cinder.Renderers.List do
     </div>
     """
   end
-
-  # ============================================================================
-  # SORT CONTROL HELPERS
-  # ============================================================================
-
-  defp has_sortable_columns?(columns) do
-    Enum.any?(columns, & &1.sortable)
-  end
-
-  defp get_sortable_columns(columns) do
-    Enum.filter(columns, & &1.sortable)
-  end
-
-  defp get_sort_direction(sort_by, field) when is_list(sort_by) do
-    case Enum.find(sort_by, fn {f, _dir} -> f == field end) do
-      {_, dir} -> dir
-      nil -> nil
-    end
-  end
-
-  defp get_sort_direction(_, _), do: nil
-
-  defp get_sort_container_class(theme) do
-    Map.get(
-      theme,
-      :sort_container_class,
-      "bg-white border border-gray-200 rounded-lg shadow-sm mt-4"
-    )
-  end
-
-  defp get_sort_controls_class(theme) do
-    Map.get(theme, :sort_controls_class, "flex items-center gap-2 p-3")
-  end
-
-  defp get_sort_label_class(theme) do
-    Map.get(theme, :sort_controls_label_class, "text-sm text-gray-600 font-medium")
-  end
-
-  defp get_sort_buttons_class(theme) do
-    Map.get(theme, :sort_buttons_class, "flex gap-1")
-  end
-
-  defp get_sort_button_class(column, sort_by, theme) do
-    base =
-      Map.get(theme, :sort_button_class, "px-3 py-1 text-sm border rounded transition-colors")
-
-    active = Map.get(theme, :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700")
-
-    inactive =
-      Map.get(theme, :sort_button_inactive_class, "bg-white border-gray-300 hover:bg-gray-50")
-
-    if get_sort_direction(sort_by, column.field) do
-      [base, active]
-    else
-      [base, inactive]
-    end
-  end
-
-  defp get_sort_icon_class(theme) do
-    Map.get(theme, :sort_icon_class, "ml-1")
-  end
-
-  defp get_sort_icon(:asc, theme), do: Map.get(theme, :sort_asc_icon, "↑")
-  defp get_sort_icon(:desc, theme), do: Map.get(theme, :sort_desc_icon, "↓")
-  defp get_sort_icon(_, _), do: ""
 
   # ============================================================================
   # CONTAINER AND ITEM HELPERS
@@ -204,164 +126,5 @@ defmodule Cinder.Renderers.List do
     else
       base
     end
-  end
-
-  # ============================================================================
-  # PAGINATION COMPONENT
-  # ============================================================================
-
-  defp pagination_controls(assigns) do
-    page_range = build_page_range(assigns.page_info)
-    assigns = assign(assigns, :page_range, page_range)
-
-    ~H"""
-    <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
-      <!-- Left side: Page info -->
-      <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
-        {dgettext("cinder", "Page %{current} of %{total}", current: @page_info.current_page, total: @page_info.total_pages)}
-        <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
-          ({dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @page_info.start_index, end: @page_info.end_index, total: @page_info.total_count)})
-        </span>
-      </div>
-
-      <!-- Right side: Page size selector and navigation -->
-      <div class="flex items-center space-x-6">
-        <!-- Page size selector (if configurable) -->
-        <div :if={@page_size_config.configurable} class={@theme.page_size_container_class} {@theme.page_size_container_data}>
-          <.page_size_selector page_size_config={@page_size_config} theme={@theme} myself={@myself} />
-        </div>
-
-        <!-- Page navigation -->
-        <div class={@theme.pagination_nav_class} {@theme.pagination_nav_data}>
-          <!-- First page and previous -->
-          <button
-            :if={@page_info.current_page > 2}
-            phx-click="goto_page"
-            phx-value-page="1"
-            phx-target={@myself}
-            class={@theme.pagination_button_class}
-            {@theme.pagination_button_data}
-            title={dgettext("cinder", "First page")}
-          >
-            &laquo;
-          </button>
-
-          <button
-            :if={@page_info.has_previous_page}
-            phx-click="goto_page"
-            phx-value-page={@page_info.current_page - 1}
-            phx-target={@myself}
-            class={@theme.pagination_button_class}
-            {@theme.pagination_button_data}
-            title={dgettext("cinder", "Previous page")}
-          >
-            &lsaquo;
-          </button>
-
-          <!-- Page numbers -->
-          <span :for={page <- @page_range} class="inline-flex">
-            <button
-              :if={page != @page_info.current_page}
-              phx-click="goto_page"
-              phx-value-page={page}
-              phx-target={@myself}
-              class={@theme.pagination_button_class}
-              {@theme.pagination_button_data}
-              title={dgettext("cinder", "Go to page %{page}", %{page: page})}
-            >
-              {page}
-            </button>
-            <span :if={page == @page_info.current_page} class={@theme.pagination_current_class} {@theme.pagination_current_data}>
-              {page}
-            </span>
-          </span>
-
-          <!-- Next and last page -->
-          <button
-            :if={@page_info.has_next_page}
-            phx-click="goto_page"
-            phx-value-page={@page_info.current_page + 1}
-            phx-target={@myself}
-            class={@theme.pagination_button_class}
-            {@theme.pagination_button_data}
-            title={dgettext("cinder", "Next page")}
-          >
-            &rsaquo;
-          </button>
-
-          <button
-            :if={@page_info.current_page < @page_info.total_pages - 1}
-            phx-click="goto_page"
-            phx-value-page={@page_info.total_pages}
-            phx-target={@myself}
-            class={@theme.pagination_button_class}
-            {@theme.pagination_button_data}
-            title={dgettext("cinder", "Last page")}
-          >
-            &raquo;
-          </button>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp page_size_selector(assigns) do
-    ~H"""
-    <div class="flex items-center space-x-2">
-      <span class={@theme.page_size_label_class} {@theme.page_size_label_data}>
-        Show
-      </span>
-      <div class="relative">
-        <button
-          type="button"
-          class={@theme.page_size_dropdown_class}
-          {@theme.page_size_dropdown_data}
-          phx-click={JS.toggle(to: "#page-size-options")}
-          aria-haspopup="true"
-          aria-expanded="false"
-        >
-          {@page_size_config.selected_page_size}
-          <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-          </svg>
-        </button>
-        <div
-          id="page-size-options"
-          class={["absolute top-full right-0 mt-1 z-50 hidden", @theme.page_size_dropdown_container_class]}
-          {@theme.page_size_dropdown_container_data}
-          phx-click-away={JS.hide(to: "#page-size-options")}
-        >
-          <button
-            :for={option <- @page_size_config.page_size_options}
-            type="button"
-            class={[
-              @theme.page_size_option_class,
-              (@page_size_config.selected_page_size == option && @theme.page_size_selected_class || "")
-            ]}
-            {@theme.page_size_option_data}
-            phx-click={JS.push("change_page_size") |> JS.hide(to: "#page-size-options")}
-            phx-value-page_size={option}
-            phx-target={@myself}
-          >
-            {option}
-          </button>
-        </div>
-      </div>
-      <span class={@theme.page_size_label_class} {@theme.page_size_label_data}>
-        per page
-      </span>
-    </div>
-    """
-  end
-
-  defp build_page_range(page_info) do
-    current = page_info.current_page
-    total = page_info.total_pages
-
-    range_start = max(1, current - 2)
-    range_end = min(total, current + 2)
-
-    Enum.to_list(range_start..range_end)
   end
 end
