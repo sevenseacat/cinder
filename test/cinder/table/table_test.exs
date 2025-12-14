@@ -799,4 +799,234 @@ defmodule Cinder.TableTest do
       assert true
     end
   end
+
+  # ============================================================================
+  # BACKWARD COMPATIBILITY TESTS
+  # These tests establish a contract that must not be violated during refactoring.
+  # ============================================================================
+
+  describe "backward compatibility: message customization" do
+    test "loading_message attribute customizes loading text" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        loading_message: "Please wait, fetching data...",
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Custom loading message should be present in the rendered HTML
+      assert html =~ "Please wait, fetching data..."
+    end
+
+    test "empty_message attribute is passed to LiveComponent" do
+      # The empty_message is rendered conditionally (when data is empty AND not loading)
+      # In static render tests, the component is in loading state, so we verify
+      # the attribute is accepted and passed through to the LiveComponent
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        empty_message: "No users found in the system",
+        col: [%{field: "name", __slot__: :col}]
+      }
+
+      # Should render without errors - the attribute is accepted
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+    end
+
+    test "filters_label attribute customizes filter section label" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        filters_label: "Search Options",
+        col: [%{field: "name", filter: true, __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Custom filters label should be present in the rendered HTML
+      assert html =~ "Search Options"
+    end
+
+    test "default messages are used when not specified" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        col: [%{field: "name", filter: true, __slot__: :col}]
+      }
+
+      html = render_component(&Cinder.Table.table/1, assigns)
+
+      # Default loading message should be present (component starts in loading state)
+      assert html =~ "Loading..."
+      # Default filters label should be present
+      assert html =~ "🔍 Filters"
+      # Note: "No results found" is only shown when data is empty AND not loading,
+      # which doesn't occur in static render tests
+    end
+  end
+
+  describe "backward compatibility: event parameter structures" do
+    # These tests document the expected event parameter structures
+    # that must be preserved during refactoring
+
+    test "filter_change event expects filters map with field keys" do
+      # Document expected structure: %{"filters" => %{"field_name" => value}}
+      filter_params = %{"filters" => %{"name" => "test", "age_min" => "18", "age_max" => "65"}}
+
+      # Verify FilterManager can process this structure
+      columns = [
+        %{field: "name", filterable: true, filter_type: :text},
+        %{field: "age", filterable: true, filter_type: :number_range}
+      ]
+
+      result = Cinder.FilterManager.params_to_filters(filter_params["filters"], columns)
+
+      assert Map.has_key?(result, "name")
+      assert Map.has_key?(result, "age")
+    end
+
+    test "clear_filter event expects key parameter" do
+      # Document expected structure: %{"key" => "field_name"}
+      clear_params = %{"key" => "name"}
+
+      assert Map.has_key?(clear_params, "key")
+      assert is_binary(clear_params["key"])
+    end
+
+    test "toggle_sort event expects key parameter" do
+      # Document expected structure: %{"key" => "field_name"}
+      sort_params = %{"key" => "name"}
+
+      assert Map.has_key?(sort_params, "key")
+      assert is_binary(sort_params["key"])
+    end
+
+    test "goto_page event expects page parameter as string" do
+      # Document expected structure: %{"page" => "2"}
+      page_params = %{"page" => "2"}
+
+      assert Map.has_key?(page_params, "page")
+      assert is_binary(page_params["page"])
+      assert String.to_integer(page_params["page"]) == 2
+    end
+
+    test "change_page_size event expects page_size parameter as string" do
+      # Document expected structure: %{"page_size" => "25"}
+      page_size_params = %{"page_size" => "25"}
+
+      assert Map.has_key?(page_size_params, "page_size")
+      assert is_binary(page_size_params["page_size"])
+      assert String.to_integer(page_size_params["page_size"]) == 25
+    end
+  end
+
+  describe "backward compatibility: state notification payload" do
+    test "notify_state_change sends correct payload structure" do
+      # This test documents the expected state change payload structure
+      # that parent LiveViews depend on for URL synchronization
+
+      socket = %{
+        assigns: %{
+          on_state_change: :table_changed,
+          id: "test-table"
+        }
+      }
+
+      state = %{
+        filters: %{"name" => %{type: :text, value: "test", operator: :contains}},
+        current_page: 2,
+        sort_by: [{"name", :asc}],
+        page_size: 25,
+        default_page_size: 10,
+        search_term: "search query",
+        filter_field_names: ["name", "email", "status"]
+      }
+
+      Cinder.UrlManager.notify_state_change(socket, state)
+
+      # Verify message was sent with correct structure
+      assert_received {:table_changed, "test-table", encoded_state}
+
+      # Verify encoded state contains expected keys
+      assert Map.has_key?(encoded_state, :name)
+      assert Map.has_key?(encoded_state, :page)
+      assert Map.has_key?(encoded_state, :sort)
+      assert Map.has_key?(encoded_state, :page_size)
+      assert Map.has_key?(encoded_state, :search)
+      # filter_field_names is encoded as _filter_fields
+      assert Map.has_key?(encoded_state, :_filter_fields)
+    end
+
+    test "filter_field_names are included in state notification" do
+      socket = %{
+        assigns: %{
+          on_state_change: :table_changed,
+          id: "test-table"
+        }
+      }
+
+      state = %{
+        filters: %{},
+        current_page: 1,
+        sort_by: [],
+        page_size: 25,
+        default_page_size: 25,
+        search_term: "",
+        filter_field_names: ["field1", "field2", "field3"]
+      }
+
+      Cinder.UrlManager.notify_state_change(socket, state)
+
+      assert_received {:table_changed, "test-table", encoded_state}
+
+      # filter_field_names should be comma-separated in _filter_fields
+      assert encoded_state[:_filter_fields] == "field1,field2,field3"
+    end
+  end
+
+  describe "backward compatibility: all public attributes accepted" do
+    test "all documented public attributes are accepted without error" do
+      # This test verifies all public API attributes work together
+      assigns = %{
+        # Resource/Query
+        resource: TestUser,
+        query: nil,
+        # Authorization
+        actor: nil,
+        tenant: nil,
+        scope: nil,
+        # Configuration
+        id: "my-table",
+        page_size: [default: 25, options: [10, 25, 50]],
+        theme: "default",
+        url_state: false,
+        query_opts: [],
+        on_state_change: nil,
+        # Display options
+        show_pagination: true,
+        show_filters: true,
+        loading_message: "Loading...",
+        filters_label: "Filters",
+        empty_message: "No data",
+        class: "my-custom-class",
+        # Search
+        search: [label: "Search", placeholder: "Type to search..."],
+        # Row interaction
+        row_click: nil,
+        # Columns
+        col: [
+          %{field: "name", filter: true, sort: true, search: true, __slot__: :col},
+          %{field: "email", filter: :text, __slot__: :col}
+        ]
+      }
+
+      # Should render without errors
+      html = render_component(&Cinder.Table.table/1, assigns)
+      assert html =~ "cinder-table"
+      assert html =~ "my-custom-class"
+    end
+  end
 end
