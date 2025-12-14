@@ -28,9 +28,11 @@ defmodule Cinder.Renderers.List do
 
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
-      <!-- Filter Controls (including search) -->
-      <div :if={@show_filters} class={@theme.controls_class} {@theme.controls_data}>
+      <!-- Controls Area (filters + sort) -->
+      <div :if={@show_filters or (@show_sort && has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} {@theme.controls_data}>
+        <!-- Filter Controls (including search) -->
         <Cinder.FilterManager.render_filter_controls
+          :if={@show_filters}
           columns={Map.get(assigns, :filter_columns, @columns)}
           filters={@filters}
           theme={@theme}
@@ -41,25 +43,27 @@ defmodule Cinder.Renderers.List do
           search_label={@search_label}
           search_placeholder={@search_placeholder}
         />
-      </div>
 
-      <!-- Sort Controls (button group since no table headers) -->
-      <div :if={@show_sort && has_sortable_columns?(@columns)} class={get_sort_controls_class(@theme)}>
-        <span class={get_sort_label_class(@theme)}>{@sort_label}</span>
-        <div class={get_sort_buttons_class(@theme)}>
-          <button
-            :for={column <- get_sortable_columns(@columns)}
-            type="button"
-            class={get_sort_button_class(column, @sort_by, @theme)}
-            phx-click="toggle_sort"
-            phx-value-key={column.field}
-            phx-target={@myself}
-          >
-            {column.label}
-            <span :if={get_sort_direction(@sort_by, column.field)} class={get_sort_icon_class(@theme)}>
-              {get_sort_icon(get_sort_direction(@sort_by, column.field), @theme)}
-            </span>
-          </button>
+        <!-- Sort Controls (button group since no table headers) -->
+        <div :if={@show_sort && has_sortable_columns?(@columns)} class={get_sort_container_class(@theme)}>
+          <div class={get_sort_controls_class(@theme)}>
+            <span class={get_sort_label_class(@theme)}>{@sort_label}</span>
+            <div class={get_sort_buttons_class(@theme)}>
+              <button
+                :for={column <- get_sortable_columns(@columns)}
+                type="button"
+                class={get_sort_button_class(column, @sort_by, @theme)}
+                phx-click="toggle_sort"
+                phx-value-key={column.field}
+                phx-target={@myself}
+              >
+                {column.label}
+                <span :if={get_sort_direction(@sort_by, column.field)} class={get_sort_icon_class(@theme)}>
+                  {get_sort_icon(get_sort_direction(@sort_by, column.field), @theme)}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -131,8 +135,16 @@ defmodule Cinder.Renderers.List do
 
   defp get_sort_direction(_, _), do: nil
 
+  defp get_sort_container_class(theme) do
+    Map.get(
+      theme,
+      :sort_container_class,
+      "bg-white border border-gray-200 rounded-lg shadow-sm mt-4"
+    )
+  end
+
   defp get_sort_controls_class(theme) do
-    Map.get(theme, :sort_controls_class, "flex items-center gap-2 p-3 border-b bg-gray-50")
+    Map.get(theme, :sort_controls_class, "flex items-center gap-2 p-3")
   end
 
   defp get_sort_label_class(theme) do

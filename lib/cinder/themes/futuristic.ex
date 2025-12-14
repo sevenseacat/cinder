@@ -17,7 +17,7 @@ defmodule Cinder.Themes.Futuristic do
         "bg-slate-950 border border-blue-500/30 shadow-2xl shadow-blue-500/10 backdrop-blur-sm"
 
     set :controls_class,
-        "p-6 bg-gradient-to-r from-slate-900/80 to-blue-900/20 border-b border-blue-500/30 backdrop-blur-sm"
+        "p-6 bg-gradient-to-r from-slate-900/80 to-blue-900/20 border-b border-blue-500/30 backdrop-blur-sm relative z-10"
 
     set :table_wrapper_class, "overflow-x-auto bg-slate-900/50"
     set :table_class, "w-full border-collapse"
@@ -43,7 +43,7 @@ defmodule Cinder.Themes.Futuristic do
 
   component Cinder.Components.Filters do
     set :filter_container_class,
-        "bg-slate-950/80 border border-green-500/30 p-6 shadow-2xl shadow-green-500/10 backdrop-blur-sm"
+        "bg-slate-950/80 border border-green-500/30 p-6 shadow-2xl shadow-green-500/10 backdrop-blur-sm relative z-10"
 
     set :filter_header_class,
         "flex items-center justify-between mb-4 pb-3 border-b border-green-500/30"
@@ -84,10 +84,10 @@ defmodule Cinder.Themes.Futuristic do
         "w-48 px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light backdrop-blur-sm"
 
     # Select filter (dropdown interface)
-    set :filter_select_container_class, "relative"
+    set :filter_select_container_class, "relative z-20"
 
     set :filter_select_dropdown_class,
-        "absolute z-50 w-full mt-1 bg-slate-900/95 border border-blue-500/40 shadow-2xl shadow-blue-500/20 backdrop-blur-sm max-h-60 overflow-auto"
+        "absolute z-50 w-full mt-1 bg-slate-950 border border-blue-500/40 shadow-2xl shadow-blue-500/20 max-h-60 overflow-auto"
 
     set :filter_select_option_class,
         "px-3 py-2 hover:bg-blue-950/60 border-b border-blue-500/20 last:border-b-0 cursor-pointer"
@@ -114,16 +114,16 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_checkbox_container_class, "flex items-center h-[48px]"
 
     set :filter_checkbox_input_class,
-        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60 rounded mr-2"
+        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60 mr-2"
 
     set :filter_checkbox_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
 
     # Multi-select filter (dropdown interface)
-    set :filter_multiselect_container_class, "relative"
+    set :filter_multiselect_container_class, "relative z-20"
 
     set :filter_multiselect_dropdown_class,
-        "absolute z-50 w-full mt-1 bg-slate-900/95 border border-blue-500/40 shadow-2xl shadow-blue-500/20 backdrop-blur-sm max-h-60 overflow-auto"
+        "absolute z-50 w-full mt-1 bg-slate-950 border border-blue-500/40 shadow-2xl shadow-blue-500/20 max-h-60 overflow-auto"
 
     set :filter_multiselect_option_class,
         "px-3 py-2 hover:bg-blue-950/60 border-b border-blue-500/20 last:border-b-0 cursor-pointer"
@@ -220,27 +220,30 @@ defmodule Cinder.Themes.Futuristic do
   end
 
   component Cinder.Components.List do
-    set :list_container_class, "divide-y divide-cyan-500/20"
-    set :list_item_class, ""
+    set :list_container_class, "divide-y divide-green-500/20"
+    set :list_item_class, "py-3 px-4 text-blue-100"
 
     set :list_item_clickable_class,
-        "cursor-pointer hover:bg-cyan-500/10 transition-colors duration-200"
+        "cursor-pointer hover:bg-green-500/10 transition-colors duration-200"
 
-    # Sort controls
-    set :sort_controls_class,
-        "flex items-center gap-3 p-4 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-cyan-500/30"
+    # Sort container - card-like panel matching filter styling (relative z-0 so dropdowns appear above)
+    set :sort_container_class,
+        "bg-slate-950/80 border border-green-500/30 shadow-2xl shadow-green-500/10 backdrop-blur-sm mt-4 relative z-0"
 
-    set :sort_controls_label_class, "text-sm font-medium text-cyan-300 tracking-wide"
+    # Sort controls - inner flex layout
+    set :sort_controls_class, "flex items-center gap-3 p-6"
+
+    set :sort_controls_label_class, "text-sm font-light text-green-100 tracking-wide"
     set :sort_buttons_class, "flex gap-2"
 
     set :sort_button_class,
-        "px-4 py-2 text-sm font-medium border rounded transition-all duration-200"
+        "px-4 py-2 text-sm font-light border tracking-wide transition-all duration-300 backdrop-blur-sm"
 
     set :sort_button_active_class,
-        "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-lg shadow-cyan-500/20"
+        "bg-green-500/20 border-green-400/60 text-green-300 shadow-lg shadow-green-500/20"
 
     set :sort_button_inactive_class,
-        "bg-slate-800/50 border-slate-600 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-400"
+        "bg-slate-900/60 border-blue-500/40 text-blue-100 hover:border-green-400/60 hover:text-green-400"
 
     set :sort_icon_class, "ml-1"
     set :sort_asc_icon, "↑"

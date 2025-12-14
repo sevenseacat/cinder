@@ -128,7 +128,7 @@ defmodule Cinder.Themes.Pastel do
         "px-3 py-2 hover:bg-purple-50 border-b border-purple-200 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-4 w-4 text-purple-600 focus:ring-purple-500 focus:ring-2 rounded mr-2"
+        "h-4 w-4 text-purple-600 focus:ring-purple-500 focus:ring-2 rounded mr-2 border-pink-300"
 
     set :filter_multiselect_label_class,
         "text-sm font-medium text-purple-700 cursor-pointer select-none flex-1"
@@ -140,7 +140,7 @@ defmodule Cinder.Themes.Pastel do
     set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-4 w-4 text-pink-500 focus:ring-pink-400 focus:ring-2 rounded border border-pink-300 bg-white/80"
+        "h-4 w-4 text-pink-500 focus:ring-pink-400 focus:ring-2 rounded border border-pink-300"
 
     set :filter_multicheckboxes_label_class,
         "text-sm font-medium text-purple-700 cursor-pointer"
@@ -213,14 +213,17 @@ defmodule Cinder.Themes.Pastel do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-pink-200"
-    set :list_item_class, ""
+    set :list_item_class, "py-3 px-4 text-gray-700"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-pink-50 transition-colors duration-150"
 
-    # Sort controls
-    set :sort_controls_class,
-        "flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-200"
+    # Sort container - card-like panel matching filter styling
+    set :sort_container_class,
+        "bg-gradient-to-br from-blue-50 to-green-50 border border-blue-200 rounded-2xl shadow-lg mt-4"
+
+    # Sort controls - inner flex layout
+    set :sort_controls_class, "flex items-center gap-3 p-6"
 
     set :sort_controls_label_class, "text-sm font-medium text-purple-700"
     set :sort_buttons_class, "flex gap-2"
@@ -229,10 +232,10 @@ defmodule Cinder.Themes.Pastel do
         "px-4 py-2 text-sm font-medium border rounded-full transition-all duration-150"
 
     set :sort_button_active_class,
-        "bg-purple-500 border-purple-500 text-white shadow-sm"
+        "bg-purple-600 border-purple-600 text-white shadow-md"
 
     set :sort_button_inactive_class,
-        "bg-white border-pink-300 text-purple-600 hover:bg-pink-50 hover:border-pink-400"
+        "bg-white border-blue-200 text-purple-600 hover:bg-pink-50 hover:border-purple-300"
 
     set :sort_icon_class, "ml-1"
     set :sort_asc_icon, "↑"

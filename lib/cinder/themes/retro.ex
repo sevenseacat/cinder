@@ -4,7 +4,7 @@ defmodule Cinder.Themes.Retro do
 
   Features:
   - Dark backgrounds with neon accent colors
-  - Bright cyan, magenta, and yellow highlights
+  - Bright cyan, fuchsia, and yellow highlights
   - Bold typography with strong contrast
   - Glowing effects and sharp corners
   - Classic 80s color palette
@@ -44,7 +44,7 @@ defmodule Cinder.Themes.Retro do
 
   component Cinder.Components.Filters do
     set :filter_container_class,
-        "bg-gray-900 border-2 border-magenta-400 p-6 shadow-2xl shadow-magenta-400/20"
+        "bg-gray-900 border-2 border-fuchsia-400 p-6 shadow-2xl shadow-fuchsia-400/20"
 
     set :filter_header_class,
         "flex items-center justify-between mb-4 pb-3 border-b-2 border-cyan-400"
@@ -55,7 +55,7 @@ defmodule Cinder.Themes.Retro do
         "text-xs text-black bg-yellow-400 px-3 py-1 font-bold uppercase tracking-wide"
 
     set :filter_clear_all_class,
-        "text-xs text-cyan-100 bg-magenta-600 hover:bg-magenta-500 font-bold uppercase tracking-wide transition-colors border-2 border-cyan-400 hover:border-yellow-400 px-4 py-2 shadow-lg shadow-magenta-400/30"
+        "text-xs text-cyan-100 bg-fuchsia-600 hover:bg-fuchsia-500 font-bold uppercase tracking-wide transition-colors border-2 border-cyan-400 hover:border-yellow-400 px-4 py-2 shadow-lg shadow-fuchsia-400/30"
 
     set :filter_inputs_class,
         "flow-root -mb-6"
@@ -73,16 +73,16 @@ defmodule Cinder.Themes.Retro do
 
     # Input styling
     set :filter_text_input_class,
-        "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold placeholder-gray-500"
+        "w-full px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-fuchsia-400 focus:shadow-lg focus:shadow-fuchsia-400/30 transition-all duration-200 font-bold placeholder-gray-500"
 
     set :filter_date_input_class,
-        "w-40 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
+        "w-40 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-fuchsia-400 focus:shadow-lg focus:shadow-fuchsia-400/30 transition-all duration-200 font-bold"
 
     set :filter_number_input_class,
-        "w-20 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+        "w-20 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-fuchsia-400 focus:shadow-lg focus:shadow-fuchsia-400/30 transition-all duration-200 font-bold [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
 
     set :filter_select_input_class,
-        "w-48 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold"
+        "w-48 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-fuchsia-400 focus:shadow-lg focus:shadow-fuchsia-400/30 transition-all duration-200 font-bold"
 
     # Select filter (dropdown interface)
     set :filter_select_container_class, "relative"
@@ -91,13 +91,13 @@ defmodule Cinder.Themes.Retro do
         "absolute z-50 w-full mt-1 bg-gray-800 border-2 border-cyan-400 shadow-2xl shadow-cyan-400/20 max-h-60 overflow-auto"
 
     set :filter_select_option_class,
-        "px-3 py-2 hover:bg-magenta-800 hover:shadow-lg hover:shadow-magenta-400/30 border-b border-cyan-400/50 last:border-b-0 cursor-pointer"
+        "px-3 py-2 hover:bg-fuchsia-800 hover:shadow-lg hover:shadow-fuchsia-400/30 border-b border-cyan-400/50 last:border-b-0 cursor-pointer"
 
     set :filter_select_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide select-none flex-1"
 
     set :filter_select_empty_class,
-        "px-3 py-2 text-magenta-300 italic font-bold uppercase tracking-wide text-sm"
+        "px-3 py-2 text-fuchsia-300 italic font-bold uppercase tracking-wide text-sm"
 
     set :filter_select_placeholder_class, "text-gray-400"
 
@@ -106,7 +106,7 @@ defmodule Cinder.Themes.Retro do
     set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
-        "h-5 w-5 text-magenta-400 focus:ring-magenta-400 focus:ring-2 border-2 border-cyan-400"
+        "h-5 w-5 text-fuchsia-400 focus:ring-fuchsia-400 focus:ring-2 border-2 border-cyan-400"
 
     set :filter_boolean_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
@@ -115,7 +115,7 @@ defmodule Cinder.Themes.Retro do
     set :filter_checkbox_container_class, "flex items-center h-[48px]"
 
     set :filter_checkbox_input_class,
-        "h-5 w-5 text-magenta-400 focus:ring-magenta-400 focus:ring-2 border-2 border-cyan-400 rounded mr-2"
+        "h-5 w-5 text-fuchsia-400 focus:ring-fuchsia-400 focus:ring-2 border-2 border-cyan-400 bg-gray-800 mr-2"
 
     set :filter_checkbox_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
@@ -127,7 +127,7 @@ defmodule Cinder.Themes.Retro do
         "absolute z-50 w-full mt-1 bg-gray-800 border-2 border-cyan-400 shadow-2xl shadow-cyan-400/20 max-h-60 overflow-auto"
 
     set :filter_multiselect_option_class,
-        "px-3 py-2 hover:bg-magenta-800 hover:shadow-lg hover:shadow-magenta-400/30 border-b border-cyan-400/50 last:border-b-0 cursor-pointer"
+        "px-3 py-2 hover:bg-fuchsia-800 hover:shadow-lg hover:shadow-fuchsia-400/30 border-b border-cyan-400/50 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
         "h-4 w-4 text-yellow-400 focus:ring-yellow-400/50 focus:ring-2 border-2 border-cyan-400 bg-gray-800 mr-2"
@@ -136,14 +136,14 @@ defmodule Cinder.Themes.Retro do
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide select-none flex-1"
 
     set :filter_multiselect_empty_class,
-        "px-3 py-2 text-magenta-300 italic font-bold uppercase tracking-wide text-sm"
+        "px-3 py-2 text-fuchsia-300 italic font-bold uppercase tracking-wide text-sm"
 
     # Multi-checkboxes filter
     set :filter_multicheckboxes_container_class, "space-y-4"
     set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-5 w-5 text-magenta-400 focus:ring-magenta-400 focus:ring-2 border-2 border-cyan-400 bg-gray-800"
+        "h-5 w-5 text-fuchsia-400 focus:ring-fuchsia-400 focus:ring-2 border-2 border-cyan-400 bg-gray-800"
 
     set :filter_multicheckboxes_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
@@ -166,24 +166,24 @@ defmodule Cinder.Themes.Retro do
     set :pagination_nav_class, "flex items-center space-x-1"
 
     set :pagination_button_class,
-        "px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded hover:bg-magenta-800 hover:border-magenta-400 hover:shadow-lg hover:shadow-magenta-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+        "px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded hover:bg-fuchsia-800 hover:border-fuchsia-400 hover:shadow-lg hover:shadow-fuchsia-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
 
     set :pagination_current_class,
-        "px-4 py-2 text-sm font-bold text-black bg-gradient-to-r from-cyan-400 to-magenta-400 border-2 border-yellow-400 rounded shadow-lg shadow-yellow-400/30 uppercase tracking-wide"
+        "px-4 py-2 text-sm font-bold text-black bg-gradient-to-r from-cyan-400 to-fuchsia-400 border-2 border-yellow-400 rounded shadow-lg shadow-yellow-400/30 uppercase tracking-wide"
 
     set :page_size_container_class, "flex items-center space-x-2"
     set :page_size_label_class, "text-sm text-cyan-100 font-bold uppercase tracking-wide"
 
     set :page_size_dropdown_class,
-        "flex items-center px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded hover:bg-magenta-800 hover:border-magenta-400 hover:shadow-lg hover:shadow-magenta-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 cursor-pointer uppercase tracking-wide"
+        "flex items-center px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded hover:bg-fuchsia-800 hover:border-fuchsia-400 hover:shadow-lg hover:shadow-fuchsia-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 cursor-pointer uppercase tracking-wide"
 
     set :page_size_dropdown_container_class,
         "bg-gray-800 border-2 border-cyan-400 rounded shadow-lg shadow-cyan-400/20"
 
     set :page_size_option_class,
-        "w-full text-left px-4 py-2 text-sm font-bold text-cyan-100 hover:bg-magenta-800 hover:border-magenta-400 hover:text-yellow-400 cursor-pointer uppercase tracking-wide"
+        "w-full text-left px-4 py-2 text-sm font-bold text-cyan-100 hover:bg-fuchsia-800 hover:border-fuchsia-400 hover:text-yellow-400 cursor-pointer uppercase tracking-wide"
 
-    set :page_size_selected_class, "bg-gradient-to-r from-cyan-800 to-magenta-800 text-yellow-400"
+    set :page_size_selected_class, "bg-gradient-to-r from-cyan-800 to-fuchsia-800 text-yellow-400"
   end
 
   component Cinder.Components.Search do
@@ -191,7 +191,7 @@ defmodule Cinder.Themes.Retro do
     set :search_wrapper_class, ""
 
     set :search_input_class,
-        "w-full pl-10 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-magenta-400 focus:shadow-lg focus:shadow-magenta-400/30 transition-all duration-200 font-bold placeholder-gray-500"
+        "w-full pl-10 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-fuchsia-400 focus:shadow-lg focus:shadow-fuchsia-400/30 transition-all duration-200 font-bold placeholder-gray-500"
 
     set :search_icon_class, "w-4 h-4 text-cyan-400"
 
@@ -202,7 +202,7 @@ defmodule Cinder.Themes.Retro do
     set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
     set :sort_arrow_wrapper_class, "inline-flex items-center"
     set :sort_asc_icon_class, "w-3 h-3 text-cyan-400 drop-shadow-lg"
-    set :sort_desc_icon_class, "w-3 h-3 text-magenta-400 drop-shadow-lg"
+    set :sort_desc_icon_class, "w-3 h-3 text-fuchsia-400 drop-shadow-lg"
     set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-75"
   end
 
@@ -219,26 +219,29 @@ defmodule Cinder.Themes.Retro do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-pink-500/30"
-    set :list_item_class, ""
+    set :list_item_class, "py-3 px-4 text-cyan-100"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-pink-500/10 transition-colors duration-150"
 
-    # Sort controls
-    set :sort_controls_class,
-        "flex items-center gap-3 p-4 bg-gradient-to-r from-purple-900 to-indigo-900 border-b-2 border-pink-500"
+    # Sort container - card-like panel matching filter styling
+    set :sort_container_class,
+        "bg-gray-900 border-2 border-fuchsia-400 shadow-2xl shadow-fuchsia-400/20 mt-4"
 
-    set :sort_controls_label_class, "text-sm font-bold text-pink-300 uppercase tracking-wider"
+    # Sort controls - inner flex layout
+    set :sort_controls_class, "flex items-center gap-3 p-6"
+
+    set :sort_controls_label_class, "text-sm font-bold text-cyan-100 uppercase tracking-wider"
     set :sort_buttons_class, "flex gap-2"
 
     set :sort_button_class,
-        "px-4 py-2 text-sm font-bold border-2 transition-all duration-150"
+        "px-4 py-2 text-sm font-bold border-2 uppercase tracking-wide transition-all duration-150"
 
     set :sort_button_active_class,
-        "bg-pink-500 border-pink-400 text-white shadow-lg shadow-pink-500/50"
+        "bg-fuchsia-600 border-yellow-400 text-cyan-100 shadow-lg shadow-fuchsia-400/30"
 
     set :sort_button_inactive_class,
-        "bg-purple-900/50 border-cyan-500/50 text-cyan-300 hover:border-pink-400 hover:text-pink-300"
+        "bg-gray-800 border-cyan-400 text-cyan-100 hover:bg-fuchsia-800 hover:border-fuchsia-400 hover:shadow-lg hover:shadow-fuchsia-400/30"
 
     set :sort_icon_class, "ml-1"
     set :sort_asc_icon, "↑"

@@ -100,10 +100,10 @@ defmodule Cinder.SortIconAlignmentTest do
       assert pastel.sort_asc_icon_class =~ "text-purple-500"
       assert pastel.sort_desc_icon_class =~ "text-pink-500"
 
-      # Retro theme - cyan/magenta
+      # Retro theme - cyan/fuchsia
       retro = Cinder.Theme.merge("retro")
       assert retro.sort_asc_icon_class =~ "text-cyan-400"
-      assert retro.sort_desc_icon_class =~ "text-magenta-400"
+      assert retro.sort_desc_icon_class =~ "text-fuchsia-400"
 
       # Futuristic theme - green/blue with effects
       futuristic = Cinder.Theme.merge("futuristic")

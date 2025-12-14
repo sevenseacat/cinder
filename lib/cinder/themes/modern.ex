@@ -97,7 +97,7 @@ defmodule Cinder.Themes.Modern do
     set :filter_checkbox_container_class, "flex items-center h-[42px]"
 
     set :filter_checkbox_input_class,
-        "h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 rounded mr-2"
+        "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-2 rounded mr-2"
 
     set :filter_checkbox_label_class, "text-sm font-medium text-gray-700 cursor-pointer"
 
@@ -111,7 +111,7 @@ defmodule Cinder.Themes.Modern do
         "px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 flex items-center space-x-2 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 rounded"
+        "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-2 rounded"
 
     set :filter_multiselect_label_class,
         "text-sm font-medium text-gray-700 cursor-pointer select-none flex-1"
@@ -123,7 +123,7 @@ defmodule Cinder.Themes.Modern do
     set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-4 w-4 text-blue-600 focus:ring-blue-500 focus:ring-2 rounded"
+        "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-2 rounded"
 
     set :filter_multicheckboxes_label_class, "text-sm font-medium text-gray-700 cursor-pointer"
 
@@ -193,15 +193,16 @@ defmodule Cinder.Themes.Modern do
   end
 
   component Cinder.Components.List do
-    set :list_container_class, "divide-y divide-gray-100"
-    set :list_item_class, ""
+    set :list_container_class, "divide-y divide-gray-200"
+    set :list_item_class, "py-3 px-4 text-gray-900"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-blue-50/30 transition-colors duration-150"
 
-    # Sort controls
-    set :sort_controls_class,
-        "flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100"
+    # Sort container - card-like panel matching filter styling
+    set :sort_container_class, "bg-white border border-gray-200 rounded-lg shadow-sm mt-4"
+    # Sort controls - inner flex layout
+    set :sort_controls_class, "flex items-center gap-3 p-6"
 
     set :sort_controls_label_class, "text-sm font-medium text-gray-700"
     set :sort_buttons_class, "flex gap-2"

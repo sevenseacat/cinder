@@ -165,13 +165,15 @@ defmodule Cinder.Themes.DaisyUI do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-base-200"
-    set :list_item_class, ""
+    set :list_item_class, "py-3 px-4 text-base-content"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-base-200 transition-colors"
 
-    # Sort controls
-    set :sort_controls_class, "flex items-center gap-3 p-4 bg-base-200 border-b border-base-300"
+    # Sort container - card-like panel matching filter styling
+    set :sort_container_class, "card bg-base-100 shadow-lg mt-4"
+    # Sort controls - inner flex layout (card-body for consistent padding)
+    set :sort_controls_class, "card-body py-4 flex flex-row items-center gap-3"
     set :sort_controls_label_class, "text-sm font-medium"
     set :sort_buttons_class, "flex gap-2"
     set :sort_button_class, "btn btn-sm"

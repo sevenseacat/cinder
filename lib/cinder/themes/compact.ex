@@ -109,7 +109,7 @@ defmodule Cinder.Themes.Compact do
     set :filter_checkbox_container_class, "flex items-center h-[34px]"
 
     set :filter_checkbox_input_class,
-        "h-3 w-3 text-blue-600 focus:ring-blue-500 focus:ring-1 rounded mr-1"
+        "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-1 mr-1"
 
     set :filter_checkbox_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 
@@ -123,7 +123,7 @@ defmodule Cinder.Themes.Compact do
         "px-2 py-1.5 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 cursor-pointer text-xs"
 
     set :filter_multiselect_checkbox_class,
-        "h-3 w-3 text-blue-600 focus:ring-blue-500 focus:ring-1 rounded mr-2"
+        "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-1 mr-2"
 
     set :filter_multiselect_label_class,
         "text-xs font-medium text-gray-700 cursor-pointer select-none flex-1"
@@ -135,7 +135,7 @@ defmodule Cinder.Themes.Compact do
     set :filter_multicheckboxes_option_class, "flex items-center space-x-1"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-3 w-3 text-blue-600 focus:ring-blue-500 focus:ring-1"
+        "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-1"
 
     set :filter_multicheckboxes_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 
@@ -204,13 +204,16 @@ defmodule Cinder.Themes.Compact do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-gray-200"
-    set :list_item_class, ""
+    set :list_item_class, "py-2 px-3 text-gray-900"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-gray-50 transition-colors duration-100"
 
-    # Sort controls
-    set :sort_controls_class, "flex items-center gap-2 p-3 bg-gray-50 border-b border-gray-300"
+    # Sort container - card-like panel matching filter styling
+    set :sort_container_class, "bg-white border border-gray-300 shadow-sm mt-3"
+    # Sort controls - inner flex layout
+    set :sort_controls_class, "flex items-center gap-2 p-4"
+
     set :sort_controls_label_class, "text-xs font-medium text-gray-700"
     set :sort_buttons_class, "flex gap-1"
     set :sort_button_class, "px-2 py-1 text-xs font-medium border transition-all duration-100"
