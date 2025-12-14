@@ -109,6 +109,10 @@ defmodule Cinder.Renderers.Grid do
     Map.get(theme, :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4")
   end
 
+  defp get_container_class(custom_class, _theme) when is_list(custom_class) do
+    Enum.reject(custom_class, &is_nil/1)
+  end
+
   defp get_container_class(custom_class, _theme), do: custom_class
 
   defp get_item_classes(theme, item_click) do

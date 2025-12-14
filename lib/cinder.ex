@@ -4,7 +4,36 @@ defmodule Cinder do
 
   ## Quick Start
 
-  The simplest table requires only a resource (or query) and actor:
+  The simplest way to display a collection is with `Cinder.collection`:
+
+  ```heex
+  <Cinder.collection resource={MyApp.User} actor={@current_user}>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+    <:col :let={user} field="email" filter>{user.email}</:col>
+  </Cinder.collection>
+  ```
+
+  You can also use different layouts:
+
+  ```heex
+  <!-- List layout -->
+  <Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list}>
+    <:col field="name" filter sort />
+    <:item :let={user}>
+      <div class="p-4">{user.name}</div>
+    </:item>
+  </Cinder.collection>
+
+  <!-- Grid layout -->
+  <Cinder.collection resource={MyApp.User} actor={@current_user} layout={:grid}>
+    <:col field="name" filter sort />
+    <:item :let={user}>
+      <div class="p-4 border rounded">{user.name}</div>
+    </:item>
+  </Cinder.collection>
+  ```
+
+  The `Cinder.Table.table` component is also available for table-specific usage:
 
   ```heex
   # Using resource parameter
@@ -88,7 +117,8 @@ defmodule Cinder do
 
   ## Main Components
 
-  - `Cinder.Table` - The main table component
+  - `Cinder.collection/1` - Unified collection component (table, list, or grid layouts)
+  - `Cinder.Table` - The table component
   - `Cinder.Table.UrlSync` - URL state management helper
   - `Cinder.Table.Refresh` - Table refresh helpers
   - `Cinder.Filter` - Base behavior for custom filters
@@ -108,6 +138,9 @@ defmodule Cinder do
 
   For comprehensive examples and documentation, see the [README](readme.html) and [Examples](examples.html).
   """
+
+  # Unified collection component
+  defdelegate collection(assigns), to: Cinder.Collection
 
   # Import refresh functions for convenience
   defdelegate refresh_table(socket, table_id), to: Cinder.Table.Refresh

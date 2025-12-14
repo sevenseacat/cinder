@@ -33,11 +33,12 @@ defmodule Cinder.ListTest do
     end
   end
 
-  describe "list/1 function signature" do
+  describe "collection with layout={:list}" do
     test "renders basic list with minimal configuration" do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         col: [
           %{field: "name", __slot__: :col}
         ],
@@ -46,7 +47,7 @@ defmodule Cinder.ListTest do
         ]
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "cinder-list"
     end
@@ -55,11 +56,12 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render successfully with default configuration
       assert html =~ "cinder-list"
@@ -69,12 +71,13 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         id: "my-custom-list",
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "cinder-list"
     end
@@ -83,30 +86,45 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         class: "my-custom-class",
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "my-custom-class"
     end
 
-    test "accepts container_class for grid layouts" do
+    test "accepts container_class for custom layouts" do
       assigns = %{
         resource: TestUser,
         actor: nil,
-        container_class: "grid grid-cols-3 gap-4",
+        layout: :list,
+        container_class: "custom-container-class",
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "cinder-list"
-      # Verify the custom container class is rendered (overrides theme default)
-      assert html =~ "grid grid-cols-3 gap-4"
+      assert html =~ "custom-container-class"
+    end
+
+    test "accepts string layout" do
+      assigns = %{
+        resource: TestUser,
+        actor: nil,
+        layout: "list",
+        col: [%{field: "name", __slot__: :col}],
+        item: []
+      }
+
+      html = render_component(&Cinder.collection/1, assigns)
+
+      assert html =~ "cinder-list"
     end
   end
 
@@ -115,6 +133,7 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         col: [
           %{field: "name", sort: true, __slot__: :col},
           %{field: "email", sort: true, __slot__: :col}
@@ -122,7 +141,7 @@ defmodule Cinder.ListTest do
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should have sort controls
       assert html =~ "Sort by:"
@@ -132,6 +151,7 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         col: [
           %{field: "name", __slot__: :col},
           %{field: "email", __slot__: :col}
@@ -139,7 +159,7 @@ defmodule Cinder.ListTest do
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should not have sort controls
       refute html =~ "Sort by:"
@@ -149,6 +169,7 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         sort_label: "Order by:",
         col: [
           %{field: "name", sort: true, __slot__: :col}
@@ -156,7 +177,7 @@ defmodule Cinder.ListTest do
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "Order by:"
     end
@@ -165,6 +186,7 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         show_sort: false,
         col: [
           %{field: "name", sort: true, __slot__: :col}
@@ -172,7 +194,7 @@ defmodule Cinder.ListTest do
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       refute html =~ "Sort by:"
     end
@@ -183,13 +205,14 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         col: [
           %{field: "name", filter: true, __slot__: :col}
         ],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should have filter controls
       assert html =~ "filter_container_class"
@@ -199,13 +222,14 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         col: [
           %{field: "name", __slot__: :col}
         ],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should not have filter controls
       refute html =~ "filter_container_class"
@@ -215,6 +239,7 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         show_filters: false,
         col: [
           %{field: "name", filter: true, __slot__: :col}
@@ -222,7 +247,7 @@ defmodule Cinder.ListTest do
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       refute html =~ "filter_container_class"
     end
@@ -233,12 +258,13 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         loading_message: "Please wait...",
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "Please wait..."
     end
@@ -247,13 +273,14 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         empty_message: "No items found",
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
       # empty_message is passed to component but only rendered when data is empty and not loading
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-list"
     end
 
@@ -261,12 +288,13 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         filters_label: "Search Options",
         col: [%{field: "name", filter: true, __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "Search Options"
     end
@@ -279,13 +307,14 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
       log =
         capture_log(fn ->
-          render_component(&Cinder.List.list/1, assigns)
+          render_component(&Cinder.collection/1, assigns)
         end)
 
       # Should log a warning about missing item slot
@@ -293,21 +322,22 @@ defmodule Cinder.ListTest do
     end
   end
 
-  describe "item_click attribute" do
-    test "accepts item_click function" do
-      item_click_fn = fn item -> Phoenix.LiveView.JS.navigate("/users/#{item.id}") end
+  describe "click attribute" do
+    test "accepts click function" do
+      click_fn = fn item -> Phoenix.LiveView.JS.navigate("/users/#{item.id}") end
 
       assigns = %{
         resource: TestUser,
         actor: nil,
-        item_click: item_click_fn,
+        layout: :list,
+        click: click_fn,
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
-      # Should render list successfully with item_click attribute
+      # Should render list successfully with click attribute
       assert html =~ "cinder-list"
     end
   end
@@ -317,12 +347,13 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         page_size: 50,
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "cinder-list"
     end
@@ -331,12 +362,13 @@ defmodule Cinder.ListTest do
       assigns = %{
         resource: TestUser,
         actor: nil,
+        layout: :list,
         page_size: [default: 25, options: [10, 25, 50]],
         col: [%{field: "name", __slot__: :col}],
         item: []
       }
 
-      html = render_component(&Cinder.List.list/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "cinder-list"
     end

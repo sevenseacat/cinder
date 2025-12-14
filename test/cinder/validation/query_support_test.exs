@@ -106,11 +106,13 @@ defmodule Cinder.QuerySupportTest do
       }
 
       assert_raise ArgumentError,
-                   "Either :resource or :query must be provided to Cinder.Table.table",
+                   "Either :resource or :query must be provided",
                    fn -> render_component(&Cinder.Table.table/1, assigns) end
     end
 
-    test "raises error when both resource and query are provided" do
+    test "logs warning when both resource and query are provided" do
+      import ExUnit.CaptureLog
+
       assigns = %{
         resource: TestUser,
         query: TestUser,
@@ -118,9 +120,14 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      assert_raise ArgumentError,
-                   "Cannot provide both :resource and :query to Cinder.Table.table. Use one or the other.",
-                   fn -> render_component(&Cinder.Table.table/1, assigns) end
+      # Collection now warns instead of raising, and uses the query
+      log =
+        capture_log(fn ->
+          html = render_component(&Cinder.Table.table/1, assigns)
+          assert html =~ "cinder-table"
+        end)
+
+      assert log =~ "Both :resource and :query provided"
     end
 
     test "raises error when resource is explicitly nil but query is not provided" do
@@ -131,7 +138,7 @@ defmodule Cinder.QuerySupportTest do
       }
 
       assert_raise ArgumentError,
-                   "Either :resource or :query must be provided to Cinder.Table.table",
+                   "Either :resource or :query must be provided",
                    fn -> render_component(&Cinder.Table.table/1, assigns) end
     end
   end
