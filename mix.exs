@@ -1,7 +1,7 @@
 defmodule Cinder.MixProject do
   use Mix.Project
 
-  @version "0.8.1"
+  @version "0.9.0-beta.1"
   @source_url "https://github.com/sevenseacat/cinder"
 
   def project do
