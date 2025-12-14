@@ -14,7 +14,7 @@ defmodule Cinder.Themes.Dark do
 
   component Cinder.Components.Table do
     set :container_class,
-        "bg-gray-900 shadow-2xl rounded-xl border border-gray-700"
+        "bg-gray-900 shadow-2xl rounded-xl border border-gray-700 [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl"
 
     set :controls_class,
         "p-6 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700"
@@ -144,7 +144,7 @@ defmodule Cinder.Themes.Dark do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class, "p-6 mt-4"
+    set :pagination_wrapper_class, "p-6"
     set :pagination_container_class, "flex items-center justify-between"
 
     set :pagination_info_class, "text-sm text-gray-300 font-medium"
@@ -205,7 +205,7 @@ defmodule Cinder.Themes.Dark do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-gray-700"
-    set :list_item_class, "py-3 px-4 text-gray-200"
+    set :list_item_class, "py-3 px-6 text-gray-200"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-gray-700/50 transition-colors duration-150"
@@ -233,8 +233,10 @@ defmodule Cinder.Themes.Dark do
   end
 
   component Cinder.Components.Grid do
-    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-    set :grid_item_class, "p-4 bg-gray-800 border border-gray-600 rounded-lg shadow-xl"
+    set :grid_container_class, "grid gap-4 p-6"
+
+    set :grid_item_class,
+        "p-4 bg-gray-800 border border-gray-600 rounded-lg shadow-xl text-gray-200"
 
     set :grid_item_clickable_class,
         "cursor-pointer hover:bg-gray-700/50 hover:shadow-2xl transition-all duration-150"

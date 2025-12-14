@@ -183,9 +183,6 @@ defmodule Cinder.Theme.DslModule do
       :compact ->
         Cinder.Themes.Compact.resolve_theme()
 
-      :pastel ->
-        Cinder.Themes.Pastel.resolve_theme()
-
       base_module when is_atom(base_module) ->
         # Try to ensure the module is loaded first
         case Code.ensure_loaded(base_module) do

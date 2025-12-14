@@ -156,7 +156,7 @@ defmodule Cinder.Themes.Futuristic do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class, "p-6 mt-4"
+    set :pagination_wrapper_class, "p-6"
     set :pagination_container_class, "flex items-center justify-between"
 
     set :pagination_info_class, "text-sm text-blue-100 font-light tracking-wide"
@@ -220,8 +220,8 @@ defmodule Cinder.Themes.Futuristic do
   end
 
   component Cinder.Components.List do
-    set :list_container_class, "divide-y divide-green-500/20"
-    set :list_item_class, "py-3 px-4 text-blue-100"
+    set :list_container_class, "divide-y divide-green-500/20 border-b border-blue-500/30"
+    set :list_item_class, "py-3 px-6 text-blue-100"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-green-500/10 transition-colors duration-200"
@@ -251,10 +251,10 @@ defmodule Cinder.Themes.Futuristic do
   end
 
   component Cinder.Components.Grid do
-    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    set :grid_container_class, "grid gap-4 p-6"
 
     set :grid_item_class,
-        "p-4 bg-slate-950/80 border border-green-500/30 shadow-2xl shadow-green-500/10 backdrop-blur-sm"
+        "p-4 bg-slate-950/80 text-blue-100 border border-green-500/30 shadow-2xl shadow-green-500/10 backdrop-blur-sm"
 
     set :grid_item_clickable_class,
         "cursor-pointer hover:border-green-400/60 hover:shadow-green-500/20 transition-all duration-300"

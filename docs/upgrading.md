@@ -78,12 +78,24 @@ use Cinder.UrlSync
 Cinder.UrlSync.handle_params(params, uri, socket)
 ```
 
+### Removed: `pastel` Theme
+
+The `pastel` theme has been removed. If you were using it, switch to another theme or create a custom theme with similar styling.
+
+```elixir
+# If you were using pastel, switch to another theme
+theme="modern"  # or any other available theme
+```
+
+Available themes: `default`, `modern`, `retro`, `futuristic`, `dark`, `daisy_ui`, `flowbite`, `compact`
+
 ### Migration Checklist
 
 1. [ ] Replace `<Cinder.Table.table>` with `<Cinder.collection>`
 2. [ ] Update `import Cinder.Table.Refresh` to `import Cinder.Refresh`
 3. [ ] Update `use Cinder.Table.UrlSync` to `use Cinder.UrlSync`
-4. [ ] Run your test suite and fix any deprecation warnings
+4. [ ] Replace `theme="pastel"` with another theme
+5. [ ] Run your test suite and fix any deprecation warnings
 
 ## Upgrading to 0.5.4
 
@@ -119,5 +131,5 @@ All deprecated features will be removed in version 1.0. To prepare:
 | Version | Changes |
 |---------|---------|
 | 0.5.4 | `filter_options` deprecated |
-| 0.9.0 | `Cinder.Table.table` deprecated, module relocations |
+| 0.9.0 | `Cinder.Table.table` deprecated, module relocations, `pastel` theme removed |
 | 1.0.0 | All deprecated features removed |

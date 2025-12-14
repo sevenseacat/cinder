@@ -1,15 +1,40 @@
 defmodule Cinder.Components.List do
   @moduledoc """
-  Default theme configuration for the List component.
+  Theme properties for the List component.
 
-  These defaults provide styling for list/card layouts including:
-  - List container (controls layout via CSS)
-  - Sort controls (button group for sorting since no table headers)
-  - Item styling
+  This module defines all the theme properties that can be customized
+  for list layouts including the list container, item styling, and
+  sort controls (button group for sorting since lists don't have table headers).
   """
 
+  @theme_properties [
+    # List container
+    :list_container_class,
+
+    # List item styling
+    :list_item_class,
+    :list_item_clickable_class,
+
+    # Sort controls
+    :sort_container_class,
+    :sort_controls_class,
+    :sort_controls_label_class,
+    :sort_buttons_class,
+    :sort_button_class,
+    :sort_button_active_class,
+    :sort_button_inactive_class,
+    :sort_icon_class,
+    :sort_asc_icon,
+    :sort_desc_icon
+  ]
+
   @doc """
-  Returns the default theme map for List components.
+  Returns all theme properties available for the list component.
+  """
+  def theme_properties, do: @theme_properties
+
+  @doc """
+  Returns the default theme values for list properties.
   """
   def default_theme do
     %{
@@ -34,4 +59,13 @@ defmodule Cinder.Components.List do
       sort_desc_icon: "↓"
     }
   end
+
+  @doc """
+  Validates that a theme property key is valid for this component.
+  """
+  def valid_property?(key) when is_atom(key) do
+    key in @theme_properties
+  end
+
+  def valid_property?(_), do: false
 end

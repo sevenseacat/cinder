@@ -15,7 +15,7 @@ defmodule Cinder.Themes.Flowbite do
 
   component Cinder.Components.Table do
     set :container_class,
-        "relative bg-white shadow-md dark:bg-gray-800 sm:rounded-lg border border-gray-200 dark:border-gray-700"
+        "relative bg-white shadow-md dark:bg-gray-800 sm:rounded-lg border border-gray-200 dark:border-gray-700 [&>*:first-child]:sm:rounded-t-lg [&>*:last-child]:sm:rounded-b-lg"
 
     set :controls_class,
         "p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-20"
@@ -161,7 +161,8 @@ defmodule Cinder.Themes.Flowbite do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class, "p-4 border-t border-gray-200 dark:border-gray-700"
+    set :pagination_wrapper_class,
+        "p-4 border-t border-gray-200 dark:border-gray-700"
 
     set :pagination_container_class,
         "flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0"
@@ -232,7 +233,7 @@ defmodule Cinder.Themes.Flowbite do
 
     # Sort container - card matching the overall style
     set :sort_container_class,
-        "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md mt-4"
+        "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md"
 
     # Sort controls - inner layout
     set :sort_controls_class, "flex items-center gap-3 p-4"
@@ -255,10 +256,10 @@ defmodule Cinder.Themes.Flowbite do
   end
 
   component Cinder.Components.Grid do
-    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    set :grid_container_class, "grid gap-4 p-4"
 
     set :grid_item_class,
-        "p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md"
+        "p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md text-gray-900 dark:text-white"
 
     set :grid_item_clickable_class,
         "cursor-pointer hover:shadow-lg transition-shadow"

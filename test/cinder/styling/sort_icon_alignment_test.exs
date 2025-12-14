@@ -11,7 +11,6 @@ defmodule Cinder.SortIconAlignmentTest do
         "daisy_ui",
         "flowbite",
         "futuristic",
-        "pastel",
         "retro"
       ]
 
@@ -65,7 +64,6 @@ defmodule Cinder.SortIconAlignmentTest do
         "daisy_ui",
         "flowbite",
         "futuristic",
-        "pastel",
         "retro"
       ]
 
@@ -94,11 +92,6 @@ defmodule Cinder.SortIconAlignmentTest do
       dark = Cinder.Theme.merge("dark")
       assert dark.sort_asc_icon_class =~ "text-purple-400"
       assert dark.sort_desc_icon_class =~ "text-purple-400"
-
-      # Pastel theme - purple/pink
-      pastel = Cinder.Theme.merge("pastel")
-      assert pastel.sort_asc_icon_class =~ "text-purple-500"
-      assert pastel.sort_desc_icon_class =~ "text-pink-500"
 
       # Retro theme - cyan/fuchsia
       retro = Cinder.Theme.merge("retro")
@@ -162,7 +155,6 @@ defmodule Cinder.SortIconAlignmentTest do
         "daisy_ui",
         "flowbite",
         "futuristic",
-        "pastel",
         "retro"
       ]
 

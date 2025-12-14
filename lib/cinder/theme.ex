@@ -153,12 +153,6 @@ defmodule Cinder.Theme do
       |> apply_theme_property_mapping()
       |> apply_theme_data_attributes()
 
-  def merge("pastel"),
-    do:
-      Cinder.Themes.Pastel.resolve_theme()
-      |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
-
   def merge(nil),
     do: default() |> apply_theme_property_mapping() |> apply_theme_data_attributes()
 
@@ -198,8 +192,7 @@ defmodule Cinder.Theme do
       "dark",
       "daisy_ui",
       "flowbite",
-      "compact",
-      "pastel"
+      "compact"
     ]
   end
 

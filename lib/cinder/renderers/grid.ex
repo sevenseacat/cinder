@@ -55,7 +55,7 @@ defmodule Cinder.Renderers.Grid do
       </div>
 
       <!-- Grid Items Container -->
-      <div class={get_container_class(@container_class, @theme)}>
+      <div class={get_container_class(@container_class, @grid_columns, @theme)}>
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data}
@@ -105,15 +105,42 @@ defmodule Cinder.Renderers.Grid do
   # CONTAINER AND ITEM HELPERS
   # ============================================================================
 
-  defp get_container_class(nil, theme) do
-    Map.get(theme, :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4")
+  # Explicit container_class override takes precedence
+  defp get_container_class(custom_class, _grid_columns, _theme) when is_binary(custom_class) do
+    custom_class
   end
 
-  defp get_container_class(custom_class, _theme) when is_list(custom_class) do
-    Enum.reject(custom_class, &is_nil/1)
+  # Build from theme base + grid_columns
+  defp get_container_class(nil, grid_columns, theme) do
+    base = Map.get(theme, :grid_container_class, "grid gap-4")
+    cols = build_grid_cols(grid_columns)
+    [base, cols]
   end
 
-  defp get_container_class(custom_class, _theme), do: custom_class
+  defp build_grid_cols(cols) when is_binary(cols) do
+    build_grid_cols(String.to_integer(cols))
+  end
+
+  defp build_grid_cols(cols) when is_integer(cols) and cols in 1..12 do
+    "grid-cols-#{cols}"
+  end
+
+  # If an invalid number is provided, default to 3
+  defp build_grid_cols(cols) when is_integer(cols), do: "grid-cols-3"
+
+  defp build_grid_cols(cols) when is_list(cols) do
+    Enum.map(cols, &breakpoint_class/1)
+  end
+
+  defp build_grid_cols(_), do: "grid-cols-3"
+
+  defp breakpoint_class({:xs, cols}), do: "grid-cols-#{cols}"
+  defp breakpoint_class({:sm, cols}), do: "sm:grid-cols-#{cols}"
+  defp breakpoint_class({:md, cols}), do: "md:grid-cols-#{cols}"
+  defp breakpoint_class({:lg, cols}), do: "lg:grid-cols-#{cols}"
+  defp breakpoint_class({:xl, cols}), do: "xl:grid-cols-#{cols}"
+  defp breakpoint_class({:"2xl", cols}), do: "2xl:grid-cols-#{cols}"
+  defp breakpoint_class(_), do: nil
 
   defp get_item_classes(theme, item_click) do
     base =
@@ -132,4 +159,12 @@ defmodule Cinder.Renderers.Grid do
       base
     end
   end
+
+  # Tailwind safelist - these classes are dynamically generated, keep them here for purge detection:
+  # grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7 grid-cols-8 grid-cols-9 grid-cols-10 grid-cols-11 grid-cols-12
+  # sm:grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 sm:grid-cols-4 sm:grid-cols-5 sm:grid-cols-6
+  # md:grid-cols-1 md:grid-cols-2 md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6
+  # lg:grid-cols-1 lg:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5 lg:grid-cols-6
+  # xl:grid-cols-1 xl:grid-cols-2 xl:grid-cols-3 xl:grid-cols-4 xl:grid-cols-5 xl:grid-cols-6
+  # 2xl:grid-cols-1 2xl:grid-cols-2 2xl:grid-cols-3 2xl:grid-cols-4 2xl:grid-cols-5 2xl:grid-cols-6
 end

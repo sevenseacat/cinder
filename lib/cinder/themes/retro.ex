@@ -157,7 +157,7 @@ defmodule Cinder.Themes.Retro do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class, "p-6 mt-4"
+    set :pagination_wrapper_class, "p-6"
     set :pagination_container_class, "flex items-center justify-between"
 
     set :pagination_info_class, "text-sm text-cyan-100 font-bold uppercase tracking-wide"
@@ -218,8 +218,8 @@ defmodule Cinder.Themes.Retro do
   end
 
   component Cinder.Components.List do
-    set :list_container_class, "divide-y divide-pink-500/30"
-    set :list_item_class, "py-3 px-4 text-cyan-100"
+    set :list_container_class, "divide-y divide-pink-500/30 border-b-2 border-cyan-400 "
+    set :list_item_class, "py-3 px-6 text-cyan-100"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-pink-500/10 transition-colors duration-150"
@@ -249,10 +249,10 @@ defmodule Cinder.Themes.Retro do
   end
 
   component Cinder.Components.Grid do
-    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    set :grid_container_class, "grid gap-4 p-6"
 
     set :grid_item_class,
-        "p-4 bg-gray-900 border-2 border-fuchsia-400 shadow-2xl shadow-fuchsia-400/20"
+        "p-4 bg-gray-900 text-cyan-100 border-2 border-fuchsia-400 shadow-2xl shadow-fuchsia-400/20"
 
     set :grid_item_clickable_class,
         "cursor-pointer hover:border-yellow-400 hover:shadow-yellow-400/30 transition-all duration-150"

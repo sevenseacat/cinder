@@ -1,70 +1,96 @@
 # Cinder Usage Rules
 
-Cinder is a data table component for Phoenix LiveView with Ash Framework integration.
+Cinder is a data collection component for Phoenix LiveView with Ash Framework integration. It supports table, list, and grid layouts with shared filtering, sorting, and pagination.
 
 ## Basic Usage
 
 ```heex
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
   <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-</Cinder.Table.table>
+</Cinder.collection>
+```
+
+## Layouts
+
+```heex
+<!-- Table (default) -->
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+</Cinder.collection>
+
+<!-- List -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list}>
+  <:col field="name" filter sort />
+  <:item :let={user}>
+    <div class="p-4">{user.name}</div>
+  </:item>
+</Cinder.collection>
+
+<!-- Grid -->
+<Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid} grid_columns={[xs: 1, md: 2, lg: 3]}>
+  <:col field="name" filter sort />
+  <:item :let={product}>
+    <div class="p-4 border rounded">{product.name}</div>
+  </:item>
+</Cinder.collection>
 ```
 
 ## Data Sources
 
 ```heex
 <!-- Resource -->
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
 
 <!-- Pre-configured query -->
-<Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
+<Cinder.collection query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
 
 <!-- Custom read action -->
-<Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
+<Cinder.collection query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
 ```
 
 ## Field Notation
 
 - **Direct fields**: `field="name"`
-- **Relationships**: `field="department.name"`
+- **Relationships**: `field="department.name"` (dot notation)
 - **Embedded resources**: `field="settings__country"` (double underscore)
 
 ## Column Configuration
 
 ### Data Columns
 - `field` - required for data columns
-- `filter` - enables filtering (auto-detects type)
+- `filter` - enables filtering (auto-detects type from Ash attribute)
 - `sort` - enables sorting
-- `search` - includes field in table search
+- `search` - includes field in global search
 - `label="Custom"` - override column header
 
 ### Filter Configuration
 ```heex
-<!-- Auto-detected -->
-<:col field="status" filter>Status</:col>
+<!-- Auto-detected from Ash attribute type -->
+<:col field="status" filter />
 
 <!-- Specify type -->
-<:col field="status" filter={:select}>Status</:col>
+<:col field="status" filter={:select} />
 
-<!-- Unified syntax with options -->
-<:col field="status" filter={[type: :select, prompt: "All Statuses", options: @statuses]}>Status</:col>
-<:col field="price" filter={[type: :number_range, min: 0, max: 1000]}>Price</:col>
-<:col field="tags" filter={[type: :multi_select, match_mode: :any, prompt: "Select tags"]}>Tags</:col>
-<:col field="active" filter={[type: :boolean, labels: %{true: "Active", false: "Inactive"}]}>Status</:col>
+<!-- Full configuration -->
+<:col field="status" filter={[type: :select, prompt: "All Statuses", options: @statuses]} />
+<:col field="price" filter={[type: :number_range, min: 0, max: 1000]} />
+<:col field="tags" filter={[type: :multi_select, match_mode: :any]} />
+<:col field="active" filter={[type: :boolean, labels: %{true: "Active", false: "Inactive"}]} />
 
 <!-- Custom filter function -->
-<:col field="name" filter={[type: :text, fn: &custom_name_filter/2]}>Name</:col>
+<:col field="name" filter={[type: :text, fn: &custom_name_filter/2]} />
 ```
 
 ### Sorting Configuration
 ```heex
-<!-- Basic sorting -->
-<:col field="name" sort>Name</:col>
+<!-- Basic sorting (cycle: nil → asc → desc → nil) -->
+<:col field="name" sort />
 
 <!-- Custom sort cycles -->
-<:col field="priority" sort={[cycle: [nil, :desc_nils_first, :asc_nils_last]]}>Priority</:col>
+<:col field="priority" sort={[cycle: [:desc, :asc]]} />
+<:col field="created_at" sort={[cycle: [:desc, :asc, nil]]} />
 ```
 
 ### Action Columns
@@ -80,30 +106,32 @@ Cinder is a data table component for Phoenix LiveView with Ash Framework integra
 Filter on fields without displaying them as columns:
 
 ```heex
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
+  
   <!-- Filter-only fields -->
   <:filter field="department.name" type="select" options={@departments} />
   <:filter field="active" type="boolean" />
   <:filter field="created_at" type="date_range" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
-## Table Configuration
+## Collection Configuration
 
 ### Required
 - `resource={Resource}` or `query={query}` - data source
 - `actor={@current_user}` - required for Ash authorization
 
 ### Key Options
-- `theme="modern"` - built-in themes: default, modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel
+- `layout={:table | :list | :grid}` - layout type (default: `:table`)
+- `grid_columns={4}` or `grid_columns={[xs: 1, md: 2, lg: 3]}` - grid column count
+- `theme="modern"` - built-in themes: default, modern, retro, futuristic, dark, daisy_ui, flowbite, compact
 - `page_size={25}` - fixed page size
 - `page_size={[default: 25, options: [10, 25, 50, 100]]}` - configurable with dropdown
 - `url_state={@url_state}` - enable URL synchronization
-- `row_click={fn item -> JS.navigate(~p"/path/#{item.id}") end}` - row interactivity
-- `query_opts={[timeout: 30_000, authorize?: false]}` - Ash query options
-- `scope={scope}` - Ash authorization scope
-- `tenant={tenant}` - multi-tenancy support
+- `click={fn item -> JS.navigate(~p"/path/#{item.id}") end}` - row/item click handler
+- `query_opts={[timeout: 30_000, load: [:association]]}` - Ash query options
+- `tenant={@tenant}` - multi-tenancy support
 
 ### Search Configuration
 ```heex
@@ -111,10 +139,10 @@ Filter on fields without displaying them as columns:
 <:col :let={user} field="name" search filter>{user.name}</:col>
 
 <!-- Custom search configuration -->
-<Cinder.Table.table search={[label: "Search users", placeholder: "Enter name or email"]}>
+<Cinder.collection search={[label: "Search users", placeholder: "Enter name or email"]}>
 
-<!-- Explicitly disable search -->
-<Cinder.Table.table search={false}>
+<!-- Disable search -->
+<Cinder.collection search={false}>
 ```
 
 ### Display Options
@@ -122,50 +150,72 @@ Filter on fields without displaying them as columns:
 - `loading_message="Loading..."` - custom loading state
 - `show_filters={true}` - show/hide filter UI
 - `filters_label="🔍 Filters"` - customize filter section label
+- `sort_label="Sort by:"` - label for sort controls (list/grid layouts)
 
 ## Built-in Filter Types
 
 Auto-detected from Ash resource attributes:
 
-- **Text** (`:text`) - string/atom fields → contains/starts_with/ends_with
-  - Options: `operator`, `case_sensitive`, `placeholder`
-- **Select** (`:select`) - enum attributes → dropdown
-  - Options: `options`, `prompt`
-- **Boolean** (`:boolean`) - boolean fields → true/false radio buttons
-  - Options: `labels` map with `true`/`false` keys
-- **Date Range** (`:date_range`) - date/datetime fields → date pickers
-  - Options: `include_time`, `format`
-- **Number Range** (`:number_range`) - numeric fields → min/max inputs
-  - Options: `min`, `max`, `step`
-- **Multi-Select** (`:multi_select`) - array fields → tag-based selection
-  - Options: `options`, `prompt`, `match_mode` (:any/:all)
-- **Multi-Checkboxes** (`:multi_checkboxes`) - array fields → checkbox interface
-  - Options: `options`, `match_mode` (:any/:all)
-- **Checkbox** (`:checkbox`) - single checkbox for "show only X"
-  - Options: `value`, `label`
+| Ash Type | Filter Type | UI |
+|----------|-------------|-----|
+| `:string` | `:text` | Text input with contains search |
+| `:boolean` | `:boolean` | Radio buttons (Yes/No) |
+| `:date`, `:datetime` | `:date_range` | From/To date pickers |
+| `:integer`, `:decimal` | `:number_range` | Min/Max inputs |
+| `Ash.Type.Enum` | `:select` | Dropdown with enum values |
+| `{:array, _}` | `:multi_select` | Multi-select dropdown |
+
+### Filter Type Options
+
+- **Text**: `operator`, `case_sensitive`, `placeholder`
+- **Select**: `options`, `prompt`
+- **Boolean**: `labels` map with `true`/`false` keys
+- **Date Range**: `include_time`
+- **Number Range**: `min`, `max`, `step`
+- **Multi-Select**: `options`, `prompt`, `match_mode` (`:any`/`:all`)
+- **Checkbox**: `value`, `label`
 
 ## URL State Management
 
-Enable bookmarkable, shareable table states:
+Enable bookmarkable, shareable collection states:
 
 ```elixir
 defmodule MyAppWeb.UsersLive do
   use MyAppWeb, :live_view
-  use Cinder.Table.UrlSync
+  use Cinder.UrlSync
 
   def handle_params(params, uri, socket) do
-    socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
+    socket = Cinder.UrlSync.handle_params(params, uri, socket)
     {:noreply, socket}
   end
 
   def render(assigns) do
     ~H"""
-    <Cinder.Table.table resource={MyApp.User} actor={@current_user} url_state={@url_state}>
+    <Cinder.collection resource={MyApp.User} actor={@current_user} url_state={@url_state} id="users">
       <:col :let={user} field="name" filter sort>{user.name}</:col>
-    </Cinder.Table.table>
+    </Cinder.collection>
     """
   end
 end
+```
+
+## Collection Refresh
+
+Refresh data while preserving filters, sorting, and pagination:
+
+```elixir
+import Cinder.Refresh
+
+def handle_event("delete", %{"id" => id}, socket) do
+  # ... delete logic ...
+  {:noreply, refresh_table(socket, "collection-id")}
+end
+
+# Refresh multiple collections
+{:noreply, refresh_tables(socket, ["collection1", "collection2"])}
+
+# Or use top-level delegates
+Cinder.refresh_table(socket, "collection-id")
 ```
 
 ## Custom Filters
@@ -174,8 +224,7 @@ end
 ```elixir
 # config/config.exs
 config :cinder, :filters, [
-  slider: MyApp.Filters.Slider,
-  color_picker: MyApp.Filters.ColorPicker
+  slider: MyApp.Filters.Slider
 ]
 ```
 
@@ -195,15 +244,10 @@ defmodule MyApp.Filters.Slider do
   use Phoenix.Component
 
   @impl true
-  def render(column, current_value, theme, assigns) do
-    # Return HEEx template
-  end
+  def render(column, current_value, theme, assigns), do: # HEEx template
 
   @impl true
-  def process(raw_value, column) do
-    # Transform form input to filter value struct
-    %{type: :slider, value: raw_value, operator: :between}
-  end
+  def process(raw_value, column), do: %{type: :slider, value: raw_value}
 
   @impl true
   def validate(filter_value), do: true
@@ -215,31 +259,13 @@ defmodule MyApp.Filters.Slider do
   def empty?(value), do: is_nil(value)
 
   @impl true
-  def build_query(query, field, filter_value) do
-    # Build Ash query filter
-  end
+  def build_query(query, field, filter_value), do: # Ash query filter
 end
 ```
 
 ### 4. Usage
 ```heex
-<:col field="price" filter={[type: :slider, min: 0, max: 1000, step: 10]}>Price</:col>
-```
-
-## Table Refresh
-
-Refresh table data while preserving state:
-
-```elixir
-import Cinder.Table.Refresh
-
-def handle_event("delete", %{"id" => id}, socket) do
-  # ... delete logic ...
-  {:noreply, refresh_table(socket, "table-id")}
-end
-
-# Refresh multiple tables
-{:noreply, refresh_tables(socket, ["table1", "table2"])}
+<:col field="price" filter={[type: :slider, min: 0, max: 1000]} />
 ```
 
 ## Theming
@@ -250,21 +276,32 @@ end
 config :cinder, default_theme: "modern"
 ```
 
-### Per-Table Themes
+### Per-Collection Theme
 ```heex
-<Cinder.Table.table theme="dark" resource={MyApp.User}>
+<Cinder.collection theme="dark" resource={MyApp.User} actor={@current_user}>
 ```
 
 ### Available Themes
 - `"default"` - minimal styling
 - `"modern"` - clean, contemporary design
 - `"dark"` - dark mode styling
-- `"retro"` - vintage appearance
+- `"retro"` - cyberpunk aesthetic
 - `"futuristic"` - sci-fi inspired
 - `"daisy_ui"` - DaisyUI component styles
 - `"flowbite"` - Flowbite design system
 - `"compact"` - dense layout
-- `"pastel"` - soft color palette
+
+### Custom Theme Module
+```elixir
+defmodule MyApp.CustomTheme do
+  use Cinder.Theme
+
+  component Cinder.Components.Table do
+    set :container_class, "bg-white shadow rounded-lg"
+    set :th_class, "px-4 py-2 text-left font-semibold"
+  end
+end
+```
 
 ## Testing
 

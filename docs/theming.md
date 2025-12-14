@@ -63,7 +63,6 @@ Available themes:
 - **`"retro"`** - Cyberpunk-inspired with bright accent colors
 - **`"futuristic"`** - Sci-fi aesthetic with glowing effects
 - **`"compact"`** - High-density layout for data-heavy applications
-- **`"pastel"`** - Soft, friendly colors for approachable interfaces
 
 ### Usage
 
@@ -232,6 +231,38 @@ component Cinder.Components.Table do
   set :empty_class, "text-center py-4"
   set :error_container_class, "text-red-600 text-sm"
   set :error_message_class, ""
+end
+```
+
+### List Component
+Theme properties for the List component.
+
+```elixir
+component Cinder.Components.List do
+  set :list_container_class, "divide-y divide-gray-200"
+  set :list_item_class, "py-3 px-4 text-gray-900"
+  set :list_item_clickable_class, "cursor-pointer hover:bg-gray-50 transition-colors"
+  set :sort_container_class, "bg-white border border-gray-200 rounded-lg shadow-sm mt-4"
+  set :sort_controls_class, "flex items-center gap-2 p-4"
+  set :sort_controls_label_class, "text-sm text-gray-600 font-medium"
+  set :sort_buttons_class, "flex gap-1"
+  set :sort_button_class, "px-3 py-1 text-sm border rounded transition-colors"
+  set :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700"
+  set :sort_button_inactive_class, "bg-white border-gray-300 hover:bg-gray-50"
+  set :sort_icon_class, "ml-1"
+  set :sort_asc_icon, "↑"
+  set :sort_desc_icon, "↓"
+end
+```
+
+### Grid Component
+Theme properties for the Grid component.
+
+```elixir
+component Cinder.Components.Grid do
+  set :grid_container_class, "grid gap-4"
+  set :grid_item_class, "p-4 bg-white border border-gray-200 rounded-lg shadow-sm"
+  set :grid_item_clickable_class, "cursor-pointer hover:shadow-md transition-shadow"
 end
 ```
 

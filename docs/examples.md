@@ -712,7 +712,6 @@ Available themes:
 - `"compact"` - Dense layout for data-heavy views
 - `"dark"` - Dark mode styling
 - `"retro"` - Nostalgic cyberpunk aesthetic
-- `"pastel"` - Soft, muted colors
 - `"futuristic"` - Bold, tech-forward design
 - `"flowbite"` - Flowbite-compatible styling
 - `"daisy_ui"` - DaisyUI-compatible styling

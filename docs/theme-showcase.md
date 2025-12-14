@@ -197,31 +197,6 @@ High-density design with minimal spacing for maximum information display.
 
 ![Screenshot of compact theme](./screenshots/compact.png)
 
-## Pastel Theme
-
-Soft, gentle design with pastel colors for a calming interface.
-
-```elixir
-<Cinder.collection
-  resource={User}
-  actor={@current_user}
-  theme="pastel"
->
-  <:col field="name" />
-  <:col field="email" />
-  <:col field="role" />
-</Cinder.collection>
-```
-
-**Visual Features**:
-- Soft pastel color palette (pinks, blues, purples, greens)
-- Gentle gradients and rounded corners
-- Light, airy feeling with whitespace
-- Smooth transitions and subtle shadows
-- Soothing design for comfortable viewing
-
-![Screenshot of pastel theme](./screenshots/pastel.png)
-
 ## Custom Themes with DSL
 
 Create your own themes using the powerful DSL:
@@ -284,7 +259,7 @@ theme="dark"        # Elegant dark mode
 theme="daisy_ui"    # daisyUI compatibility
 theme="flowbite"    # Flowbite compatibility
 theme="compact"     # High-density minimal
-theme="pastel"      # Soft gentle colors
+
 
 # Or use theme modules directly
 theme={Cinder.Themes.Modern}

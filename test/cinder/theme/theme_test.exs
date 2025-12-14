@@ -209,8 +209,7 @@ defmodule Cinder.ThemeTest do
       assert "flowbite" in presets
 
       assert "compact" in presets
-      assert "pastel" in presets
-      assert length(presets) == 9
+      assert length(presets) == 8
     end
 
     test "all presets can be loaded" do

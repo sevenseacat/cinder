@@ -146,7 +146,7 @@ defmodule Cinder.Themes.Compact do
   end
 
   component Cinder.Components.Pagination do
-    set :pagination_wrapper_class, "p-3 mt-3"
+    set :pagination_wrapper_class, "p-3"
     set :pagination_container_class, "flex items-center justify-between"
 
     set :pagination_info_class, "text-xs text-gray-600 font-medium"
@@ -225,8 +225,8 @@ defmodule Cinder.Themes.Compact do
   end
 
   component Cinder.Components.Grid do
-    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
-    set :grid_item_class, "p-3 bg-white border border-gray-300 shadow-sm"
+    set :grid_container_class, "grid gap-3 p-3"
+    set :grid_item_class, "p-3 bg-white border border-gray-300 shadow-sm text-gray-900"
 
     set :grid_item_clickable_class,
         "cursor-pointer hover:shadow transition-shadow duration-100"

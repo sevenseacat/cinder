@@ -8,7 +8,6 @@ defmodule Cinder.ThemeVerificationTest do
     Cinder.Themes.Dark,
     Cinder.Themes.Flowbite,
     Cinder.Themes.Futuristic,
-    Cinder.Themes.Pastel,
     Cinder.Themes.Retro
   ]
 

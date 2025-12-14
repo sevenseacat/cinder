@@ -167,9 +167,8 @@ defmodule Cinder.Collection do
   )
 
   attr(:grid_columns, :any,
-    default: nil,
-    doc:
-      "Number of grid columns. Integer (e.g., 4) or keyword list (e.g., [sm: 1, md: 2, lg: 3, xl: 4])"
+    default: [xs: 1, md: 2, lg: 3],
+    doc: "Number of grid columns. Integer (e.g., 4) or keyword list (e.g., [xs: 1, md: 2, lg: 3])"
   )
 
   attr(:click, :any,
@@ -277,12 +276,8 @@ defmodule Cinder.Collection do
     # Get the item slot for list/grid layouts
     item_slot = Map.get(assigns, :item, [])
 
-    # Resolve theme for container class building
+    # Resolve theme
     resolved_theme = resolve_theme(assigns.theme)
-
-    # Build grid container class if grid_columns specified
-    container_class =
-      build_container_class(assigns.container_class, assigns.grid_columns, layout, resolved_theme)
 
     # Map click to layout-specific attributes
     {row_click, item_click} = map_click_to_layout(assigns.click, layout)
@@ -305,7 +300,6 @@ defmodule Cinder.Collection do
       |> assign(:item_slot, item_slot)
       |> assign(:row_click, row_click)
       |> assign(:item_click, item_click)
-      |> assign(:container_class, container_class)
       |> assign(:resolved_theme, resolved_theme)
       |> assign(:layout, layout)
 
@@ -339,6 +333,7 @@ defmodule Cinder.Collection do
         item_click={@item_click}
         item_slot={@item_slot}
         container_class={@container_class}
+        grid_columns={@grid_columns}
         search_enabled={@search_enabled}
         search_label={@search_label}
         search_placeholder={@search_placeholder}
@@ -637,45 +632,6 @@ defmodule Cinder.Collection do
   defp map_click_to_layout(click, _), do: {click, nil}
 
   # ============================================================================
-  # PRIVATE HELPERS - Grid Container
-  # ============================================================================
-
-  defp build_container_class(explicit_class, _grid_columns, _layout, _theme)
-       when is_binary(explicit_class) do
-    explicit_class
-  end
-
-  defp build_container_class(nil, nil, _layout, _theme), do: nil
-
-  defp build_container_class(nil, columns, :grid, theme) when is_binary(columns) do
-    build_container_class(nil, String.to_integer(columns), :grid, theme)
-  end
-
-  defp build_container_class(nil, columns, :grid, theme) when is_integer(columns) do
-    base = Map.get(theme, :grid_container_base_class, "grid gap-4")
-    [base, grid_cols_class(columns)]
-  end
-
-  defp build_container_class(nil, columns, :grid, theme) when is_list(columns) do
-    base = Map.get(theme, :grid_container_base_class, "grid gap-4")
-    responsive_classes = Enum.map(columns, &breakpoint_class/1)
-    [base | responsive_classes]
-  end
-
-  defp build_container_class(nil, _columns, _layout, _theme), do: nil
-
-  defp grid_cols_class(cols) when cols in 1..12, do: "grid-cols-#{cols}"
-  defp grid_cols_class(_), do: "grid-cols-3"
-
-  defp breakpoint_class({:xs, cols}), do: grid_cols_class(cols)
-  defp breakpoint_class({:sm, cols}), do: "sm:grid-cols-#{cols}"
-  defp breakpoint_class({:md, cols}), do: "md:grid-cols-#{cols}"
-  defp breakpoint_class({:lg, cols}), do: "lg:grid-cols-#{cols}"
-  defp breakpoint_class({:xl, cols}), do: "xl:grid-cols-#{cols}"
-  defp breakpoint_class({:"2xl", cols}), do: "2xl:grid-cols-#{cols}"
-  defp breakpoint_class(_), do: nil
-
-  # ============================================================================
   # PRIVATE HELPERS - Query and Resource
   # ============================================================================
 
@@ -920,12 +876,4 @@ defmodule Cinder.Collection do
   end
 
   defp get_field_value(item, field), do: get_in(item, [Access.key(field)])
-
-  # Tailwind safelist - these classes are dynamically generated, keep them here for purge detection:
-  # grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7 grid-cols-8 grid-cols-9 grid-cols-10 grid-cols-11 grid-cols-12
-  # sm:grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 sm:grid-cols-4 sm:grid-cols-5 sm:grid-cols-6
-  # md:grid-cols-1 md:grid-cols-2 md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6
-  # lg:grid-cols-1 lg:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5 lg:grid-cols-6
-  # xl:grid-cols-1 xl:grid-cols-2 xl:grid-cols-3 xl:grid-cols-4 xl:grid-cols-5 xl:grid-cols-6
-  # 2xl:grid-cols-1 2xl:grid-cols-2 2xl:grid-cols-3 2xl:grid-cols-4 2xl:grid-cols-5 2xl:grid-cols-6
 end

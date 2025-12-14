@@ -9,6 +9,8 @@ defmodule Cinder.Theme.Docs do
 
   @component_modules [
     Cinder.Components.Table,
+    Cinder.Components.List,
+    Cinder.Components.Grid,
     Cinder.Components.Filters,
     Cinder.Components.Pagination,
     Cinder.Components.Search,

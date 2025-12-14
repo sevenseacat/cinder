@@ -171,7 +171,7 @@ defmodule Cinder.Themes.DaisyUI do
         "cursor-pointer hover:bg-base-200 transition-colors"
 
     # Sort container - card-like panel matching filter styling
-    set :sort_container_class, "card bg-base-100 shadow-lg mt-4"
+    set :sort_container_class, "card bg-base-100 shadow-lg"
     # Sort controls - inner flex layout (card-body for consistent padding)
     set :sort_controls_class, "card-body py-4 flex flex-row items-center gap-3"
     set :sort_controls_label_class, "text-sm font-medium"
@@ -185,8 +185,8 @@ defmodule Cinder.Themes.DaisyUI do
   end
 
   component Cinder.Components.Grid do
-    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-    set :grid_item_class, "card bg-base-100 shadow-md"
+    set :grid_container_class, "grid gap-4 px-4"
+    set :grid_item_class, "card bg-base-100 shadow-md text-base-content"
 
     set :grid_item_clickable_class,
         "cursor-pointer hover:shadow-lg transition-shadow"

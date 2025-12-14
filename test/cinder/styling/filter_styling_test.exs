@@ -19,7 +19,6 @@ defmodule Cinder.FilterStylingTest do
         "daisy_ui",
         "flowbite",
         "futuristic",
-        "pastel",
         "retro"
       ]
 
@@ -68,7 +67,6 @@ defmodule Cinder.FilterStylingTest do
         "daisy_ui",
         "flowbite",
         "futuristic",
-        "pastel",
         "retro"
       ]
 
@@ -145,12 +143,6 @@ defmodule Cinder.FilterStylingTest do
       dark_html_string = dark_html |> Phoenix.HTML.Safe.to_iodata() |> IO.iodata_to_binary()
       assert dark_html_string =~ "text-gray-400"
 
-      # Test pastel theme (purple)
-      pastel_theme = Cinder.Theme.merge("pastel")
-      pastel_html = NumberRange.render(column, current_value, pastel_theme, assigns)
-      pastel_html_string = pastel_html |> Phoenix.HTML.Safe.to_iodata() |> IO.iodata_to_binary()
-      assert pastel_html_string =~ "text-purple-400"
-
       # Test retro theme (cyan)
       retro_theme = Cinder.Theme.merge("retro")
       retro_html = NumberRange.render(column, current_value, retro_theme, assigns)
@@ -211,7 +203,6 @@ defmodule Cinder.FilterStylingTest do
         "daisy_ui",
         "flowbite",
         "futuristic",
-        "pastel",
         "retro"
       ]
 
