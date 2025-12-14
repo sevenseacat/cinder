@@ -256,6 +256,7 @@ defmodule Cinder.Theme do
     sorting_theme = Cinder.Components.Sorting.default_theme()
     loading_theme = Cinder.Components.Loading.default_theme()
     search_theme = Cinder.Components.Search.default_theme()
+    list_theme = Cinder.Components.List.default_theme()
 
     [
       table_theme,
@@ -263,7 +264,8 @@ defmodule Cinder.Theme do
       pagination_theme,
       sorting_theme,
       loading_theme,
-      search_theme
+      search_theme,
+      list_theme
     ]
     |> Enum.reduce(%{}, &Map.merge/2)
   end
