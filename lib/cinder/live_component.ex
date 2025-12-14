@@ -1,4 +1,4 @@
-defmodule Cinder.Data.LiveComponent do
+defmodule Cinder.LiveComponent do
   @moduledoc """
   Shared LiveComponent for all Cinder data layouts (Table, List, etc.).
 

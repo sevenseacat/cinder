@@ -142,9 +142,9 @@ defmodule Cinder do
   # Unified collection component
   defdelegate collection(assigns), to: Cinder.Collection
 
-  # Import refresh functions for convenience
-  defdelegate refresh_table(socket, table_id), to: Cinder.Table.Refresh
-  defdelegate refresh_tables(socket, table_ids), to: Cinder.Table.Refresh
+  # Refresh functions
+  defdelegate refresh_table(socket, table_id), to: Cinder.Refresh
+  defdelegate refresh_tables(socket, table_ids), to: Cinder.Refresh
 
   @doc """
   Sets up Cinder with configured custom filters.

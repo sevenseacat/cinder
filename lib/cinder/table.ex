@@ -2,8 +2,16 @@ defmodule Cinder.Table do
   @moduledoc """
   Table component for displaying data in a traditional HTML table layout.
 
-  This module is a convenience wrapper around `Cinder.Collection` with `layout={:table}`.
-  For new code, consider using `Cinder.collection` directly which supports multiple layouts.
+  **DEPRECATED:** Use `Cinder.collection` instead. This module will be removed in version 1.0.
+
+  ```heex
+  <!-- Use this instead -->
+  <Cinder.collection resource={MyApp.User} actor={@current_user}>
+    <:col :let={user} field="name" filter sort>{user.name}</:col>
+  </Cinder.collection>
+  ```
+
+  See the [Upgrading Guide](upgrading.html) for migration instructions.
 
   ## Basic Usage
 
@@ -72,8 +80,11 @@ defmodule Cinder.Table do
   @doc """
   Renders a data table.
 
+  **DEPRECATED:** Use `Cinder.collection` instead.
+
   This is equivalent to calling `Cinder.collection` with `layout={:table}`.
   """
+  @doc deprecated: "Use Cinder.collection instead"
   def table(assigns) do
     # Map row_click to click for Collection
     assigns =

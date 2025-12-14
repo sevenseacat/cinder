@@ -312,7 +312,7 @@ defmodule Cinder.Collection do
     ~H"""
     <div class={[layout_class(@layout), @class]}>
       <.live_component
-        module={Cinder.Data.LiveComponent}
+        module={Cinder.LiveComponent}
         id={@id}
         renderer={@renderer}
         query={@normalized_query}

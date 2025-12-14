@@ -11,7 +11,7 @@ defmodule Cinder.Table.PageSizePreservationTest do
   """
   use ExUnit.Case, async: true
 
-  alias Cinder.Data.LiveComponent
+  alias Cinder.LiveComponent
 
   defmodule TestResource do
     @moduledoc false

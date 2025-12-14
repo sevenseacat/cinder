@@ -14,7 +14,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
       }
 
       # Call extract_table_state directly
-      state = Cinder.Table.UrlSync.extract_table_state(params)
+      state = Cinder.UrlSync.extract_table_state(params)
 
       # Verify state was extracted correctly
       assert state.current_page == 2
@@ -68,7 +68,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
         "page" => "3"
       }
 
-      state = Cinder.Table.UrlSync.extract_table_state(params)
+      state = Cinder.UrlSync.extract_table_state(params)
 
       # Verify relationship filters are in the state
       assert state.current_page == 3
@@ -79,7 +79,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
     test "URL sync macro injection" do
       # Test that the UrlSync macro properly injects handle_info
       defmodule TestUrlSyncView do
-        use Cinder.Table.UrlSync
+        use Cinder.UrlSync
       end
 
       # Verify the function exists
@@ -89,7 +89,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
     test "edge case handling" do
       # Test with minimal params
       minimal_params = %{}
-      state = Cinder.Table.UrlSync.extract_table_state(minimal_params)
+      state = Cinder.UrlSync.extract_table_state(minimal_params)
 
       assert state.filters == %{}
       assert state.current_page == 1
@@ -97,7 +97,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
 
       # Test with invalid page number
       invalid_params = %{"page" => "invalid"}
-      state2 = Cinder.Table.UrlSync.extract_table_state(invalid_params)
+      state2 = Cinder.UrlSync.extract_table_state(invalid_params)
 
       # Should default to page 1 for invalid page numbers
       assert state2.current_page == 1
@@ -111,7 +111,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
         "page" => "3"
       }
 
-      state = Cinder.Table.UrlSync.extract_table_state(params)
+      state = Cinder.UrlSync.extract_table_state(params)
 
       # Standard page parameter should be handled
       assert state.current_page == 3
@@ -146,7 +146,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
       }
 
       # Should not crash and should handle gracefully
-      state = Cinder.Table.UrlSync.extract_table_state(params)
+      state = Cinder.UrlSync.extract_table_state(params)
 
       # Should default to empty sort
       assert state.sort_by == []
@@ -162,7 +162,7 @@ defmodule Cinder.UrlSyncIntegrationTest do
         "sort" => "email"
       }
 
-      state = Cinder.Table.UrlSync.extract_table_state(params)
+      state = Cinder.UrlSync.extract_table_state(params)
 
       assert is_map(state.filters)
       assert state.current_page == 5

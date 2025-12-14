@@ -80,7 +80,7 @@ defmodule Cinder.UrlStateRestorationTest do
       }
 
       # This is what currently happens - extract_table_state uses empty columns
-      table_state = Cinder.Table.UrlSync.extract_table_state(url_params)
+      table_state = Cinder.UrlSync.extract_table_state(url_params)
 
       # The problem: all filters are lost because there are no columns to match against
       assert table_state.filters == %{}
@@ -364,7 +364,7 @@ defmodule Cinder.UrlStateRestorationTest do
 
       # 2. Parent LiveView handle_params calls extract_table_state
       # This still uses empty columns but now also stores raw params
-      table_state = Cinder.Table.UrlSync.extract_table_state(incoming_url_params)
+      table_state = Cinder.UrlSync.extract_table_state(incoming_url_params)
 
       # 3. Parent assigns state and raw params to socket (fixed version)
       parent_assigns = %{
@@ -415,7 +415,7 @@ defmodule Cinder.UrlStateRestorationTest do
 
       # 2. Parent LiveView handle_params calls extract_table_state
       # This uses empty columns, so filters are lost
-      broken_table_state = Cinder.Table.UrlSync.extract_table_state(incoming_url_params)
+      broken_table_state = Cinder.UrlSync.extract_table_state(incoming_url_params)
 
       # 3. Parent assigns the broken state to socket
       parent_assigns = %{

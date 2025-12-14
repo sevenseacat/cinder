@@ -1,4 +1,4 @@
-defmodule Cinder.Table.RefreshTest do
+defmodule Cinder.RefreshTest do
   use ExUnit.Case, async: true
 
   describe "refresh_table/2" do
@@ -7,7 +7,7 @@ defmodule Cinder.Table.RefreshTest do
         assigns: %{}
       }
 
-      result = Cinder.Table.Refresh.refresh_table(socket, "test-table")
+      result = Cinder.Refresh.refresh_table(socket, "test-table")
       assert result == socket
     end
 
@@ -17,7 +17,7 @@ defmodule Cinder.Table.RefreshTest do
       }
 
       # Should not raise an error
-      result = Cinder.Table.Refresh.refresh_table(socket, "my-table-id")
+      result = Cinder.Refresh.refresh_table(socket, "my-table-id")
       assert result == socket
     end
   end
@@ -29,7 +29,7 @@ defmodule Cinder.Table.RefreshTest do
       }
 
       table_ids = ["table-1", "table-2", "table-3"]
-      result = Cinder.Table.Refresh.refresh_tables(socket, table_ids)
+      result = Cinder.Refresh.refresh_tables(socket, table_ids)
 
       # Should return the socket unchanged
       assert result == socket
@@ -40,7 +40,7 @@ defmodule Cinder.Table.RefreshTest do
         assigns: %{}
       }
 
-      result = Cinder.Table.Refresh.refresh_tables(socket, [])
+      result = Cinder.Refresh.refresh_tables(socket, [])
       assert result == socket
     end
   end

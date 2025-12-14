@@ -1,7 +1,7 @@
-defmodule Cinder.Table.UrlSyncTest do
+defmodule Cinder.UrlSyncTest do
   use ExUnit.Case, async: true
 
-  alias Cinder.Table.UrlSync
+  alias Cinder.UrlSync
 
   describe "extract_table_state/1" do
     test "extracts empty state from empty params" do
@@ -58,7 +58,7 @@ defmodule Cinder.Table.UrlSyncTest do
 
   describe "__using__ macro" do
     defmodule TestLiveView do
-      use Cinder.Table.UrlSync
+      use Cinder.UrlSync
 
       # Simulate a minimal LiveView for testing
       def test_handle_info_exists?, do: function_exported?(__MODULE__, :handle_info, 2)
@@ -220,7 +220,7 @@ defmodule Cinder.Table.UrlSyncTest do
     test "URL sync helper macro injection works correctly" do
       # Test that the injected handle_info can process the expected message format
       defmodule TestUrlSyncLiveView do
-        use Cinder.Table.UrlSync
+        use Cinder.UrlSync
 
         # Test helper to check if handle_info exists and accepts the right format
         def test_message_handling do
