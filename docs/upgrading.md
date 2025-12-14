@@ -2,7 +2,7 @@
 
 This guide covers breaking changes, deprecations, and migration paths for Cinder.
 
-## Upgrading to 0.9.x
+## Upgrading to 0.9.0
 
 ### New Unified Collection API
 
@@ -119,5 +119,5 @@ All deprecated features will be removed in version 1.0. To prepare:
 | Version | Changes |
 |---------|---------|
 | 0.5.4 | `filter_options` deprecated |
-| 0.9.x | `Cinder.Table.table` deprecated, module relocations |
+| 0.9.0 | `Cinder.Table.table` deprecated, module relocations |
 | 1.0.0 | All deprecated features removed |

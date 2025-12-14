@@ -96,45 +96,73 @@ defmodule Cinder.MixProject do
         "docs/theme-showcase.md",
         "docs/custom-filters.md",
         "docs/localization.md",
+        "docs/upgrading.md",
         "CHANGELOG.md"
       ],
       groups_for_modules: [
         "Core Components": [
           Cinder,
-          Cinder.Table,
-          Cinder.Table.LiveComponent
+          Cinder.Collection,
+          Cinder.LiveComponent
+        ],
+        "URL State Management": [
+          Cinder.UrlSync,
+          Cinder.UrlManager
+        ],
+        Refresh: [
+          Cinder.Refresh
         ],
         "Filter Types": [
           Cinder.Filter,
           Cinder.Filter.Helpers,
-          Cinder.Filter.Debug,
           Cinder.Filters.Registry,
           Cinder.Filters.Text,
           Cinder.Filters.Select,
           Cinder.Filters.MultiSelect,
           Cinder.Filters.MultiCheckboxes,
           Cinder.Filters.Boolean,
+          Cinder.Filters.Checkbox,
           Cinder.Filters.DateRange,
           Cinder.Filters.NumberRange
         ],
+        Renderers: [
+          Cinder.Renderers.Table,
+          Cinder.Renderers.List,
+          Cinder.Renderers.Grid,
+          Cinder.Renderers.Pagination,
+          Cinder.Renderers.SortControls
+        ],
         "Theming System": [
           Cinder.Theme,
-          ~r/Cinder.Theme/,
-          ~r/Cinder.Themes/,
+          ~r/Cinder\.Theme\./,
+          ~r/Cinder\.Themes\./,
           Cinder.Components.Table,
           Cinder.Components.Filters,
           Cinder.Components.Pagination,
           Cinder.Components.Sorting,
-          Cinder.Components.Loading
+          Cinder.Components.Search,
+          Cinder.Components.Loading,
+          Cinder.Components.List,
+          Cinder.Components.Grid
         ],
-        "URL Management": [
-          Cinder.Table.UrlSync,
-          Cinder.UrlManager
+        Localization: [
+          Cinder.Gettext,
+          Cinder.Messages
         ],
-        "Internal Systems": [
+        "Mix Tasks": [
+          Mix.Tasks.Cinder.Install,
+          Mix.Tasks.Cinder.Gen.Filter
+        ],
+        Internal: [
           Cinder.QueryBuilder,
           Cinder.Column,
-          Cinder.FilterManager
+          Cinder.FilterManager,
+          Cinder.Filter.Debug
+        ],
+        Deprecated: [
+          Cinder.Table,
+          Cinder.Table.UrlSync,
+          Cinder.Table.Refresh
         ]
       ]
     ]

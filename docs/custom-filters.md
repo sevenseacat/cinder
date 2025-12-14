@@ -260,13 +260,12 @@ end
 
 Use your custom filter in column definitions:
 
-```elixir
-<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <:col :let={product} field="price" filter={:slider}
-        filter_options={[min: 0, max: 1000, step: 10]} sort>
+```heex
+<Cinder.collection resource={MyApp.Product} actor={@current_user}>
+  <:col :let={product} field="price" filter={[type: :slider, min: 0, max: 1000, step: 10]} sort>
     ${product.price}
   </:col>
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 ## The Cinder.Filter Behaviour
@@ -621,7 +620,7 @@ This is the most critical callback - without it, your filter won't actually filt
 - Run `Cinder.Filters.Registry.validate_custom_filters()`
 
 ### URL State Not Persisting
-- Ensure using `Cinder.Table.UrlSync`
+- Ensure using `Cinder.UrlSync`
 - Check `handle_params/3` implementation
 - Verify `url_state={@url_state}` attribute
 

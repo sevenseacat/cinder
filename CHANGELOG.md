@@ -1,10 +1,17 @@
 # Changelog
 
-## Unreleased 
+## v0.9.0 (Unreleased)
 
 ### Features
 
-* Add `Cinder.List` component for flexible list and grid layouts (#9)
+* Add unified `Cinder.collection` component supporting table, list, and grid layouts (#9)
+
+### Deprecations
+
+* `Cinder.Table.table` is deprecated in favor of `Cinder.collection`
+* `Cinder.Table.UrlSync` and `Cinder.Table.Refresh` are deprecated in favor of `Cinder.UrlSync` and `Cinder.Refresh`
+
+See the [Upgrading Guide](docs/upgrading.md) for migration instructions.
 
 ## v0.8.1 (2025-12-04)
 

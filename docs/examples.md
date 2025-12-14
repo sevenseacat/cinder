@@ -1,1150 +1,89 @@
 # Examples
 
-This document provides comprehensive examples and detailed reference for all Cinder table features. For a quick start, see the [README](../README.md).
+This document provides comprehensive examples and detailed reference for all Cinder collection features. For a quick start, see the [README](../README.md).
 
-## Overview
-
-Cinder supports two parameter styles:
-- **`resource`** - Simple usage with Ash resource modules
-- **`query`** - Advanced usage with pre-configured Ash queries
-
-Choose `resource` for most cases, `query` for complex requirements like custom read actions, base filters, or admin interfaces.
+> **Note:** This documentation uses the unified `Cinder.collection` API. If you're upgrading from an older version, see the [Upgrading Guide](upgrading.md) for migration instructions.
 
 ## Table of Contents
 
 - [Basic Usage](#basic-usage)
+- [Layouts](#layouts)
 - [Resource vs Query](#resource-vs-query)
 - [Column Configuration](#column-configuration)
 - [Filter Types](#filter-types)
 - [Filter-Only Slots](#filter-only-slots)
-- [Searching](#searching)
+- [Global Search](#global-search)
 - [Sorting](#sorting)
 - [Custom Filter Functions](#custom-filter-functions)
-- [List Layout](#list-layout)
 - [Theming](#theming)
 - [URL State Management](#url-state-management)
 - [Relationship Fields](#relationship-fields)
 - [Embedded Resources](#embedded-resources)
-- [Interactive Tables](#interactive-tables)
 - [Action Columns](#action-columns)
-- [Table Refresh](#table-refresh)
+- [Collection Refresh](#collection-refresh)
 - [Performance Optimization](#performance-optimization)
 - [Localization](#localization)
 - [Testing](#testing)
 
 ## Basic Usage
 
-### Minimal Table
+### Minimal Collection
 
-The simplest possible table:
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name">{user.name}</:col>
-  <:col :let={user} field="email">{user.email}</:col>
-</Cinder.Table.table>
-```
-
-### With Filter-Only Fields
-
-Add filtering on fields without displaying them in the table:
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email">{user.email}</:col>
-
-  <!-- Filter on these fields without showing them as columns -->
-  <:filter field="created_at" type="date_range" label="Registration Date" />
-  <:filter field="department" type="select" options={["Engineering", "Sales", "Marketing"]} />
-  <:filter field="last_login" />  <!-- Auto-detects as date_range -->
-</Cinder.Table.table>
-```
-
-## Resource vs Query
-
-Cinder supports two ways to specify what data to query: `resource` parameter (simple) or `query` parameter (advanced).
-
-### When to Use Resource
-
-Use the `resource` parameter for straightforward tables:
-
-```elixir
-<!-- Simple table with default read action -->
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-</Cinder.Table.table>
-```
-
-**Best for:**
-- Getting started quickly
-- Standard use cases without custom requirements
-- Default read actions
-- Simple authorization scenarios
-
-### When to Use Query
-
-Use the `query` parameter for advanced scenarios:
-
-```elixir
-<!-- Custom read action -->
-<Cinder.Table.table query={Ash.Query.for_read(MyApp.User, :active_users)} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-</Cinder.Table.table>
-
-<!-- Pre-filtered data -->
-<Cinder.Table.table query={MyApp.User |> Ash.Query.filter(department: "Engineering")} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="department.name" filter>{user.department.name}</:col>
-</Cinder.Table.table>
-
-<!-- Admin interface with complex authorization -->
-<Cinder.Table.table
-  query={MyApp.User
-    |> Ash.Query.for_read(:admin_read, %{}, actor: @actor, authorize?: @authorizing)
-    |> Ash.Query.set_tenant(@tenant)
-    |> Ash.Query.filter(active: true)}
-  actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-  <:col :let={user} field="last_login" sort>{user.last_login}</:col>
-</Cinder.Table.table>
-```
-
-**Best for:**
-- Custom read actions (e.g., `:active_users`, `:admin_only`)
-- Pre-filtering data with base filters
-- Custom authorization settings
-- Tenant-specific queries
-- Admin interfaces with complex requirements
-- Integration with existing Ash query pipelines
-
-### Automatic Label Generation
-
-Cinder automatically generates human-readable labels from field names:
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="first_name">{user.first_name}</:col>      <!-- "First Name" -->
-  <:col :let={user} field="email_address">{user.email_address}</:col>   <!-- "Email Address" -->
-  <:col :let={user} field="created_at">{user.created_at}</:col>      <!-- "Created At" -->
-  <:col :let={user} field="is_active">{user.is_active}</:col>       <!-- "Is Active" -->
-  <:col :let={user} field="phone_number">{user.phone_number}</:col>    <!-- "Phone Number" -->
-</Cinder.Table.table>
-```
-
-### Custom Labels
-
-Override auto-generated labels when needed:
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" label="Full Name">{user.name}</:col>
-  <:col :let={user} field="email" label="Email Address">{user.email}</:col>
-  <:col :let={user} field="created_at" label="Joined">{user.created_at}</:col>
-  <:col :let={user} field="is_active" label="Status">{user.is_active}</:col>
-</Cinder.Table.table>
-```
-
-## Column Configuration
-
-### All Column Attributes
-
-Demonstration of every available column attribute:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <!-- Basic column with all common attributes -->
-  <:col
-    :let={product}
-    field="name"
-    label="Product Name"
-    filter={:text}
-    sort={true}
-    class="w-1/4 font-semibold"
-  >
-    {product.name}
-  </:col>
-
-  <!-- Column with custom filter options -->
-  <:col
-    :let={product}
-    field="category"
-    filter={[
-      type: :select,
-      options: [{"Electronics", "electronics"}, {"Books", "books"}, {"Clothing", "clothing"}],
-      prompt: "All Categories"
-    ]}
-  >
-    {product.category}
-  </:col>
-
-  <!-- Number column with range filter -->
-  <:col
-    :let={product}
-    field="price"
-    filter={[
-      type: :number_range,
-      min: 0,
-      max: 1000,
-      step: 0.01
-    ]}
-    sort
-    class="text-right"
-  >
-    ${product.price}
-  </:col>
-
-  <!-- Boolean column with custom labels -->
-  <:col
-    :let={product}
-    field="in_stock"
-    filter={[
-      type: :boolean,
-      labels: %{
-        all: "Any Stock Status",
-        true: "In Stock",
-        false: "Out of Stock"
-      }
-    ]}
-  >
-    {if product.in_stock, do: "In Stock", else: "Out of Stock"}
-  </:col>
-
-  <!-- Column with custom sort cycle -->
-  <:col
-    :let={product}
-    field="updated_at"
-    sort={[cycle: [nil, :desc_nils_last, :asc_nils_first]]}
-    label="Last Updated"
-  >
-    {product.updated_at}
-  </:col>
-
-  <!-- Column with standard filter function -->
-  <:col
-    :let={product}
-    field="status"
-    filter={[
-      type: :select,
-      options: [{"Active", "active"}, {"Discontinued", "discontinued"}],
-      fn: &filter_product_status/2
-    ]}
-  >
-    {product.status}
-  </:col>
-
-  <!-- Column with both custom sort and filter -->
-  <:col
-    :let={product}
-    field="priority"
-    sort={&sort_by_business_priority/2}
-    filter={[type: :select, fn: &filter_by_priority_level/2]}
-  >
-    {product.priority}
-  </:col>
-</Cinder.Table.table>
-```
-
-## Filter Types
-
-Cinder automatically detects the right filter type based on your Ash resource attributes:
-
-- **String fields** → Text search
-- **Enum fields** → Select dropdown
-- **Boolean fields** → True/false/any radio buttons
-- **Date/DateTime fields** → Date range picker
-- **Integer/Decimal fields** → Number range inputs
-- **Array fields** → Multi-select tag interface
-
-You can also explicitly specify filter types: `:text`, `:select`, `:multi_select`, `:multi_checkboxes`, `:boolean`, `:checkbox`, `:date_range`, `:number_range`
-
-> **💡 Advanced Filtering:** For complex filtering logic (like business rules or custom operators), see [Custom Filter Functions](#custom-filter-functions) for examples of custom filter functions.
-
-### Filter Format Options
-
-Cinder supports multiple filter specification formats:
-
-**Simple formats:**
-- `filter={:select}` (atom format)
-- `filter="select"` (string format)
-
-**Unified format with options (recommended):**
-- `filter={[type: :select, options: [...], prompt: "Choose..."]}` (atom type)
-- `filter={[type: "select", options: [...], prompt: "Choose..."]}` (string type)
-- `filter={[type: :select, options: [...], fn: &custom_filter/2]}` (with filter function)
-
-**Legacy format (deprecated):**
-- `filter={:select} filter_options={[options: [...]]}`
-
-The unified format is recommended as it keeps all filter configuration in one place and is consistent with other table options like `page_size`.
-
-### Legacy Format
-
-For backward compatibility, the old separate parameter format is still supported but will log a deprecation warning:
-
-```elixir
-<!-- This still works but logs a deprecation warning -->
-<:col field="status" filter={:select} filter_options={[options: [{"A", "a"}]]} />
-
-<!-- Use this instead -->
-<:col field="status" filter={[type: :select, options: [{"A", "a"}]]} />
-```
-
-### Multi-Select Options
-
-For multiple selection filtering, choose between:
-
-- **`:multi_select`** - Modern tag-based interface with dropdown (default for arrays)
-- **`:multi_checkboxes`** - Traditional checkbox interface
-
-### Text Filter
-
-```elixir
-<Cinder.Table.table resource={MyApp.Article} actor={@current_user}>
-  <!-- Basic text filter -->
-  <:col :let={article} field="title" filter>{article.title}</:col>
-
-  <!-- Text filter with custom placeholder -->
-  <:col
-    :let={article}
-    field="content"
-    filter={[type: :text, placeholder: "Search article content..."]}
-  >
-    {String.slice(article.content, 0, 100)}...
-  </:col>
-
-  <!-- Text filter with case sensitivity -->
-  <:col
-    :let={article}
-    field="author_name"
-    filter={[type: :text, placeholder: "Author name...", case_sensitive: true]}
-  >
-    {article.author_name}
-  </:col>
-
-  <!-- Checkbox filter for boolean field -->
-  <:col :let={article} field="published" filter={[type: :checkbox, label: "Published only"]}>
-    {if article.published, do: "✓", else: "✗"}
-  </:col>
-
-  <!-- Checkbox filter for non-boolean field -->
-  <:col :let={article} field="priority" filter={[type: :checkbox, value: "high", label: "High priority only"]}>
-    {article.priority}
-  </:col>
-</Cinder.Table.table>
-```
-
-### Select Filter
-
-```elixir
-<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <!-- Basic select filter (auto-detects enum options) -->
-  <:col :let={order} field="status" filter>{String.capitalize(order.status)}</:col>
-
-  <!-- Select filter with custom options -->
-  <:col
-    :let={order}
-    field="priority"
-    filter={[
-      type: :select,
-      options: [
-        {"Low Priority", "low"},
-        {"Normal Priority", "normal"},
-        {"High Priority", "high"},
-        {"Urgent", "urgent"}
-      ],
-      prompt: "Any Priority"
-    ]}
-  >
-    <span class={[
-      "px-2 py-1 text-xs font-semibold rounded-full",
-      order.priority == "urgent" && "bg-red-100 text-red-800",
-      order.priority == "high" && "bg-orange-100 text-orange-800",
-      order.priority == "normal" && "bg-blue-100 text-blue-800",
-      order.priority == "low" && "bg-gray-100 text-gray-800"
-    ]}>
-      {String.capitalize(order.priority)}
-    </span>
-  </:col>
-
-  <!-- Select with boolean options -->
-  <:col
-    :let={order}
-    field="is_paid"
-    filter={[
-      type: :select,
-      options: [{"Paid", true}, {"Unpaid", false}],
-      prompt: "Payment Status"
-    ]}
-  >
-    {if order.is_paid, do: "Paid", else: "Unpaid"}
-  </:col>
-</Cinder.Table.table>
-```
-
-### Multi-Select Filter
-
-#### Basic Multi-Select (ANY Logic)
-
-By default, multi-select filters use "ANY" logic - records are shown if they contain at least one of the selected values:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Book} actor={@current_user}>
-  <!-- Multi-select for tags with default ANY logic -->
-  <:col
-    field="tags"
-    filter={[
-      type: :multi_select,
-      options: [
-        {"Fiction", "fiction"},
-        {"Non-Fiction", "non_fiction"},
-        {"Science Fiction", "sci_fi"},
-        {"Romance", "romance"},
-        {"Biography", "biography"}
-      ]
-    ]}
-  />
-  >
-    {Enum.join(book.tags, ", ")}
-  </:col>
-</Cinder.Table.table>
-```
-
-#### Multi-Select with ALL Logic
-
-Use `match_mode: :all` to show only records that contain ALL selected values:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Book} actor={@current_user}>
-  <!-- Multi-select requiring ALL selected tags -->
-  <:col
-    field="tags"
-    filter={[
-      type: :multi_select,
-      options: [
-        {"Fiction", "fiction"},
-        {"Bestseller", "bestseller"},
-        {"Award Winner", "award_winner"},
-        {"New Release", "new_release"}
-      ],
-      match_mode: :all
-    ]}
-  />
-  >
-    <div class="flex flex-wrap gap-1">
-      {for tag <- book.tags do}
-        <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-          {String.capitalize(String.replace(tag, "_", " "))}
-        </span>
-      {/for}
-    </div>
-  </:col>
-
-  <!-- Multi-select for categories with ANY logic (explicit) -->
-  <:col
-    :let={book}
-    field="categories"
-    filter={[
-      type: :multi_select,
-      options: [
-        {"Bestseller", "bestseller"},
-        {"New Release", "new_release"},
-        {"Award Winner", "award_winner"}
-      ],
-      match_mode: :any
-    ]}
-  >
-    <div class="flex flex-wrap gap-1">
-      {for category <- book.categories do}
-        <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-          {String.capitalize(String.replace(category, "_", " "))}
-        </span>
-      {/for}
-    </div>
-  </:col>
-</Cinder.Table.table>
-```
-
-#### Multi-Checkboxes with Match Mode
-
-The `multi_checkboxes` filter also supports the same `match_mode` options:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Book} actor={@current_user}>
-  <!-- Multi-checkboxes with ANY logic (default) -->
-  <:col
-    field="genres"
-    filter={[
-      type: :multi_checkboxes,
-      options: [
-        {"Science Fiction", "sci_fi"},
-        {"Fantasy", "fantasy"},
-        {"Mystery", "mystery"},
-        {"Romance", "romance"}
-      ]
-    ]}
-  >
-    {Enum.join(book.genres, ", ")}
-  </:col>
-
-  <!-- Multi-checkboxes with ALL logic -->
-  <:col
-    field="awards"
-    filter={[
-      type: :multi_checkboxes,
-      options: [
-        {"Hugo Award", "hugo"},
-        {"Nebula Award", "nebula"},
-        {"World Fantasy Award", "wfa"}
-      ],
-      match_mode: :all
-    ]}
-  >
-    <div class="flex flex-wrap gap-1">
-      {for award <- book.awards do}
-        <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-          {award}
-        </span>
-      {/for}
-    </div>
-  </:col>
-</Cinder.Table.table>
-```
-
-#### Match Mode Comparison
-
-Both `multi_select` and `multi_checkboxes` support the same match mode options:
-
-- **`match_mode: :any`** (default): Shows records containing **at least one** of the selected values
-  - Example: Selecting "Fiction" and "Romance" shows books tagged with either "Fiction" OR "Romance" (or both)
-
-- **`match_mode: :all`**: Shows records containing **all** of the selected values
-  - Example: Selecting "Fiction" and "Bestseller" shows only books tagged with both "Fiction" AND "Bestseller"
-
-This is particularly useful for:
-- **ANY mode**: Finding books in multiple genres or categories
-- **ALL mode**: Finding books that meet multiple criteria (e.g., "Fiction" AND "Award Winner")
-
-### Boolean Filter
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <!-- Basic boolean filter -->
-  <:col :let={user} field="is_active" filter>
-    {if user.is_active, do: "Active", else: "Inactive"}
-  </:col>
-
-  <!-- Boolean filter with custom labels -->
-  <:col
-    :let={user}
-    field="email_verified"
-    filter={[
-      type: :boolean,
-      labels: %{
-        all: "Any Verification Status",
-        true: "Verified",
-        false: "Unverified"
-      }
-    ]}
-  >
-    <span class={[
-      "px-2 py-1 text-xs font-semibold rounded-full",
-      user.email_verified && "bg-green-100 text-green-800",
-      !user.email_verified && "bg-red-100 text-red-800"
-    ]}>
-      {if user.email_verified, do: "Verified", else: "Not Verified"}
-    </span>
-  </:col>
-
-  <!-- Boolean filter for subscription -->
-  <:col
-    :let={user}
-    field="has_subscription"
-    filter={[
-      type: :boolean,
-      labels: %{
-        all: "All Users",
-        true: "Subscribers",
-        false: "Non-subscribers"
-      }
-    ]}
-  >
-    {if user.has_subscription, do: "Subscriber", else: "Free User"}
-  </:col>
-</Cinder.Table.table>
-```
-
-### Date Range Filter
-
-```elixir
-<Cinder.Table.table resource={MyApp.Event} actor={@current_user}>
-  <!-- Basic date range filter -->
-  <:col :let={event} field="created_at" filter={:date_range}>
-    {Calendar.strftime(event.created_at, "%B %d, %Y")}
-  </:col>
-
-  <!-- Date range with custom format -->
-  <:col
-    :let={event}
-    field="event_date"
-    filter={[
-      type: :date_range,
-      format: "YYYY-MM-DD",
-      placeholder_from: "Start date",
-      placeholder_to: "End date"
-    ]}
-  >
-    {Calendar.strftime(event.event_date, "%Y-%m-%d")}
-  </:col>
-
-  <!-- DateTime range filter -->
-  <:col
-    :let={event}
-    field="updated_at"
-    filter={[type: :date_range, include_time: true]}
-  >
-    {Calendar.strftime(event.updated_at, "%B %d, %Y at %I:%M %p")}
-  </:col>
-</Cinder.Table.table>
-```
-
-### Number Range Filter
-
-```elixir
-<Cinder.Table.table resource={MyApp.Property} actor={@current_user}>
-  <!-- Basic number range -->
-  <:col :let={property} field="price" filter={:number_range}>
-    ${Number.Currency.number_to_currency(property.price)}
-  </:col>
-
-  <!-- Number range with min/max limits -->
-  <:col
-    :let={property}
-    field="square_feet"
-    filter={[
-      type: :number_range,
-      min: 500,
-      max: 10000,
-      step: 100
-    ]}
-  >
-    {Number.Delimit.number_to_delimited(property.square_feet)} sq ft
-  </:col>
-
-  <!-- Decimal number range -->
-  <:col
-    :let={product}
-    field="rating"
-    filter={[
-      type: :number_range,
-      min: 0.0,
-      max: 5.0,
-      step: 0.5
-    ]}
-  >
-    <div class="flex items-center">
-      {for i <- 1..5 do}
-        <svg class={[
-          "w-4 h-4",
-          i <= property.rating && "text-yellow-400",
-          i > property.rating && "text-gray-300"
-        ]} fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-        </svg>
-      {/for}
-      <span class="ml-1 text-sm text-gray-600">{property.rating}</span>
-    </div>
-  </:col>
-</Cinder.Table.table>
-```
-
-## Filter-Only Slots
-
-Filter-only slots allow you to add filtering capabilities for fields that you don't want to display as columns in your table. This keeps your table clean and focused while providing powerful filtering options.
-
-### Basic Filter-Only Slots
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <!-- Display columns -->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email">{user.email}</:col>
-
-  <!-- Filter-only slots - appear in filter controls but not as columns -->
-  <:filter field="created_at" type="date_range" label="Registration Date" />
-  <:filter field="department" type="select" options={["Engineering", "Sales", "Marketing"]} />
-  <:filter field="last_login" type="date_range" />
-</Cinder.Table.table>
-```
-
-### Auto-Detection of Filter Types
-
-When you don't specify a `type`, Cinder automatically detects the appropriate filter based on the field's Ash resource type:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <:col :let={product} field="name">{product.name}</:col>
-  <:col :let={product} field="price">${product.price}</:col>
-
-  <!-- Auto-detected filter types -->
-  <:filter field="created_at" />          <!-- becomes :date_range -->
-  <:filter field="stock_count" />         <!-- becomes :number_range -->
-  <:filter field="is_featured" />         <!-- becomes :boolean -->
-  <:filter field="tags" />                <!-- becomes :multi_select for arrays -->
-</Cinder.Table.table>
-```
-
-### Custom Labels
-
-Provide custom labels for better UX:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <:col :let={order} field="number">{order.number}</:col>
-  <:col :let={order} field="total">${order.total}</:col>
-
-  <!-- Custom labels for filter-only slots -->
-  <:filter field="created_at" type="date_range" label="Order Date" />
-  <:filter field="customer_id" type="select" label="Customer" options={@customer_options} />
-  <:filter field="status" label="Order Status" />  <!-- Auto-detects type, uses custom label -->
-</Cinder.Table.table>
-```
-
-### Filter Type Specific Options
-
-Each filter type supports different configuration options:
-
-#### Text Filters
-
-```elixir
-<:filter 
-  field="description" 
-  type="text"
-  operator="starts_with"        <!-- :contains (default), :starts_with, :ends_with, :equals -->
-  case_sensitive={true}         <!-- default: false -->
-  placeholder="Search text..."  <!-- custom placeholder -->
-/>
-```
-
-#### Select Filters
-
-```elixir
-<:filter 
-  field="status" 
-  type="select"
-  options={[{"Active", "active"}, {"Inactive", "inactive"}]}  <!-- required -->
-  prompt="Choose status..."     <!-- optional "Choose..." text -->
-/>
-```
-
-#### Multi-Select Filters
-
-```elixir
-<!-- Dropdown interface -->
-<:filter 
-  field="tags" 
-  type="multi_select"
-  options={["urgent", "backend", "frontend"]}
-  match_mode="any"              <!-- :any (OR logic, default) or :all (AND logic) -->
-  prompt="Select tags..."       <!-- optional prompt text -->
-/>
-
-<!-- Checkbox list interface -->
-<:filter 
-  field="categories" 
-  type="multi_checkboxes"
-  options={[{"Category A", "cat_a"}, {"Category B", "cat_b"}]}
-  match_mode="all"              <!-- :any (OR logic, default) or :all (AND logic) -->
-/>
-```
-
-#### Boolean Filters
-
-```elixir
-<:filter 
-  field="is_published" 
-  type="boolean"
-  labels={%{                    <!-- custom labels for radio buttons -->
-    all: "All Articles", 
-    true: "Published Only", 
-    false: "Drafts Only"
-  }}
-/>
-```
-
-#### Checkbox Filters
-
-```elixir
-<!-- Boolean field -->
-<:filter 
-  field="featured" 
-  type="checkbox" 
-  label="Featured items only"   <!-- required label text -->
-/>
-
-<!-- Non-boolean field with custom value -->
-<:filter 
-  field="priority" 
-  type="checkbox"
-  value="high"                  <!-- value to filter by when checked -->
-  label="High priority only"    <!-- required label text -->
-/>
-```
-
-#### Date Range Filters
-
-```elixir
-<:filter 
-  field="created_at" 
-  type="date_range"
-  format="date"                 <!-- :date (default) or :datetime -->
-  include_time={false}          <!-- default: false -->
-/>
-
-<!-- With time selection -->
-<:filter 
-  field="event_datetime" 
-  type="date_range"
-  format="datetime"
-  include_time={true}
-/>
-```
-
-#### Number Range Filters
-
-```elixir
-<:filter 
-  field="price" 
-  type="number_range"
-  step={0.01}                   <!-- step increment (default: 1) -->
-  min={0}                       <!-- minimum allowed value -->
-  max={9999.99}                 <!-- maximum allowed value -->
-/>
-```
-
-#### Complete Example with Mixed Filter Types
-
-```elixir
-<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <:col :let={product} field="name">{product.name}</:col>
-  <:col :let={product} field="price">${product.price}</:col>
-  
-  <!-- Text search with custom operator -->
-  <:filter field="description" type="text" operator="contains" placeholder="Search descriptions..." />
-  
-  <!-- Multi-select categories with AND logic -->
-  <:filter field="categories" type="multi_select" options={@category_options} match_mode="all" />
-  
-  <!-- Boolean with custom labels -->
-  <:filter field="in_stock" type="boolean" labels={%{true: "In Stock", false: "Out of Stock"}} />
-  
-  <!-- Checkbox for featured items -->
-  <:filter field="featured" type="checkbox" label="Featured products only" />
-  
-  <!-- Date range for creation date -->
-  <:filter field="created_at" type="date_range" label="Created Date" />
-  
-  <!-- Number range for price with constraints -->
-  <:filter field="price" type="number_range" min={0} max={10000} step={10} />
-</Cinder.Table.table>
-```
-
-### Field Conflict Prevention
-
-You cannot use the same field in both a column filter and a filter-only slot:
-
-```elixir
-<!-- This will raise an error -->
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter>{user.name}</:col>  <!-- Filter enabled -->
-  <:filter field="name" type="text" />                      <!-- Conflict! -->
-</Cinder.Table.table>
-
-<!-- Instead, choose one approach -->
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <!-- Option 1: Column with filter -->
-  <:col :let={user} field="name" filter>{user.name}</:col>
-
-  <!-- Option 2: Display column + filter-only slot -->
-  <:col :let={user} field="name">{user.name}</:col>  <!-- No filter -->
-  <:filter field="name" type="text" />               <!-- Filter-only -->
-</Cinder.Table.table>
-```
-
-### Relationship and Embedded Fields
-
-Filter-only slots work with relationship and embedded fields:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <:col :let={order} field="number">{order.number}</:col>
-  <:col :let={order} field="total">${order.total}</:col>
-
-  <!-- Relationship field filters -->
-  <:filter field="customer.company_name" type="text" label="Company" />
-  <:filter field="customer.region" type="select" options={@regions} />
-
-  <!-- Embedded field filters -->
-  <:filter field="billing_address__country" type="select" options={@countries} />
-  <:filter field="shipping_address__postal_code" type="text" label="Shipping ZIP" />
-</Cinder.Table.table>
-```
-
-### When to Use Filter-Only Slots
-
-**Use filter-only slots when:**
-- You want to filter by fields that would clutter the table display
-- You need many filter options but limited column space
-- Filtering fields are for search/discovery but not primary data display
-- You want to keep the table focused on the most important information
-
-**Examples:**
-- **User Management**: Display name/email, filter by registration date, department, role, last login
-- **E-commerce**: Display product name/price, filter by category, brand, stock status, creation date
-- **CRM**: Display contact name/company, filter by lead source, stage, assigned user, activity date
-- **Content Management**: Display title/author, filter by publication date, tags, status, category
-
-## Searching
-
-Cinder provides global search functionality that automatically enables when columns have the `search` attribute. This allows searching across multiple columns from a single field.
-
-### Auto-Enable Search
-
-Search automatically appears when any column has `search`:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
-  <:col :let={album} field="title" filter search>{album.title}</:col>
-  <:col :let={album} field="artist.name" filter search>{album.artist.name}</:col>
-  <:col :let={album} field="genre" filter>{album.genre}</:col>
-</Cinder.Table.table>
-```
-
-### Custom Search Configuration
-
-Customize search label and placeholder:
-
-```elixir
-<Cinder.Table.table
-  resource={MyApp.Product}
-  search={[label: "Find Products", placeholder: "Search by name or SKU..."]}
-  actor={@current_user}
->
-  <:col :let={product} field="name" search>{product.name}</:col>
-  <:col :let={product} field="sku" search>{product.sku}</:col>
-  <:col :let={product} field="price" filter>{product.price}</:col>
-</Cinder.Table.table>
-```
-
-### Search with Relationships
-
-Search works across relationship fields:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <:col :let={order} field="number" search>{order.number}</:col>
-  <:col :let={order} field="customer.name" search>{order.customer.name}</:col>
-  <:col :let={order} field="customer.email" search>{order.customer.email}</:col>
-</Cinder.Table.table>
-```
-
-### Custom Search Functions
-
-For advanced search requirements, provide a custom search function as part of the search configuration:
-
-```elixir
-defmodule MyApp.CustomSearch do
-  def advanced_search(query, searchable_columns, search_term) do
-    # Any logic here to filter the query and return the updated query
-  end
-end
-
-<Cinder.Table.table
-  resource={MyApp.User}
-  search={[
-    label: "Find Users",
-    placeholder: "Search by name, email, or role...",
-    fn: &MyApp.CustomSearch.advanced_search/3
-  ]}
-  actor={@current_user}
->
-  <:col :let={user} field="name" search>{user.name}</:col>
-  <:col :let={user} field="email" search>{user.email}</:col>
-  <:col :let={user} field="role">{user.role}</:col>
-</Cinder.Table.table>
-```
-
-## Sorting
-
-### Basic Sorting
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <!-- Sortable columns -->
-  <:col :let={user} field="name" sort>{user.name}</:col>
-  <:col :let={user} field="email" sort>{user.email}</:col>
-  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-
-  <!-- Non-sortable column -->
-  <:col :let={user} field="bio">{user.bio}</:col>
-</Cinder.Table.table>
-```
-
-### Combined Filter and Sort
-
-```elixir
-<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <:col :let={product} field="name" filter sort>{product.name}</:col>
-  <:col :let={product} field="price" filter={:number_range} sort>${product.price}</:col>
-  <:col :let={product} field="category" filter={:select} sort>{product.category}</:col>
-  <:col :let={product} field="created_at" filter={:date_range} sort>{product.created_at}</:col>
-</Cinder.Table.table>
-```
-
-### Custom Sort Cycles
-
-You can define custom sort cycles that control the order of sort states when clicking column headers:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Invoice} actor={@current_user}>
-  <!-- Most recent first when clicked -->
-  <:col :let={invoice} field="created_at" sort={[cycle: [nil, :desc_nils_last, :asc_nils_first]]}>
-    {invoice.created_at}
-  </:col>
-
-  <!-- Standard Ash sort directions with custom cycle -->
-  <:col :let={invoice} field="priority" sort={[cycle: [nil, :desc_nils_first, :asc_nils_last]]}>
-    {invoice.priority}
-  </:col>
-
-  <!-- Standard Ash sort directions -->
-  <:col :let={invoice} field="payment_date" sort={[cycle: [nil, :desc_nils_first, :asc]]}>
-    {invoice.payment_date}
-  </:col>
-</Cinder.Table.table>
-```
-
-**Default Cycle:** `[nil, :asc, :desc]` (unsorted → ascending → descending → unsorted)
-
-**Ash Built-in Directions:** `:asc_nils_first`, `:desc_nils_first`, `:asc_nils_last`, `:desc_nils_last`
-
-Sort cycles work perfectly with Ash's built-in null handling directions, providing intuitive UI with standard up/down arrow indicators.
-
-> **💡 Advanced Sorting:** Sort cycles with Ash built-in directions cover most sorting needs. For complex business logic, consider using Ash calculations or pre-sorting your queries.
-
-## Custom Filter Functions
-
-Custom filter functions enable complex filtering logic:
-
-```elixir
-defmodule MyAppWeb.InvoicesLive do
-  require Ash.Query
-
-  # Custom filter with business logic
-  def filter_invoice_status(query, filter_config) do
-    %{value: status} = filter_config
-
-    case status do
-      "overdue" ->
-        # Complex business rule: overdue = past due date AND unpaid
-        today = Date.utc_today()
-        query
-        |> Ash.Query.filter(due_date < ^today)
-        |> Ash.Query.filter(payment_status == :unpaid)
-
-      "pending_approval" ->
-        # Another business rule: needs manager approval
-        query
-        |> Ash.Query.filter(status == :draft)
-        |> Ash.Query.filter(approval_required == true)
-
-      _ ->
-        # Standard equality for other statuses
-        Ash.Query.filter(query, status == ^status)
-    end
-  end
-
-  def render(assigns) do
-    ~H"""
-    <Cinder.Table.table resource={MyApp.Invoice} actor={@current_user}>
-      <!-- Custom filter function -->
-      <:col :let={invoice} field="status" filter={[
-        type: :select,
-        options: [
-          {"Active", "active"},
-          {"Overdue", "overdue"},
-          {"Pending Approval", "pending_approval"}
-        ],
-        fn: &filter_invoice_status/2
-      ]}>
-        {invoice.status}
-      </:col>
-
-      <!-- Standard filters still work -->
-      <:col :let={invoice} field="customer_name" filter>
-        {invoice.customer_name}
-      </:col>
-    </Cinder.Table.table>
-    """
-  end
-end
-```
-
-### Function Signatures
-
-Custom filter functions must follow this signature:
-
-- **Filter functions:** `filter_fn(query :: Ash.Query.t(), filter_config :: map()) :: Ash.Query.t()`
-
-The functions receive actual `Ash.Query` structs and should use `Ash.Query` functions like `Ash.Query.filter/2` to modify the query.
-
-### Mixed Standard and Custom
-
-You can mix standard sorting, sort cycles, and custom filter functions:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <!-- Standard sort and filter -->
-  <:col :let={order} field="order_number" sort filter>
-    {order.order_number}
-  </:col>
-
-  <!-- Custom sort cycle with null handling -->
-  <:col :let={order} field="priority" sort={[cycle: [nil, :desc_nils_first, :asc_nils_last]]}>
-    {order.priority}
-  </:col>
-
-  <!-- Custom filter function -->
-  <:col :let={order} field="status" filter={[type: :select, fn: &filter_complex_status/2]}>
-    {order.status}
-  </:col>
-
-  <!-- Sort cycle with custom filter -->
-  <:col :let={order} field="created_at"
-        sort={[cycle: [nil, :desc_nils_last, :asc_nils_first]]}
-        filter={[type: :date_range, fn: &filter_business_dates/2]}>
-    {order.created_at}
-  </:col>
-</Cinder.Table.table>
-```
-
-## List Layout
-
-The `Cinder.List` component provides a flexible alternative to tables for displaying collections. It shares all the same filtering, sorting, pagination, and URL sync capabilities as `Cinder.Table`, but renders items using a customizable `<:item>` slot instead of table rows.
-
-### Basic List
+The simplest possible collection displays data in a table (the default layout):
 
 ```heex
-<Cinder.List.list resource={MyApp.User} actor={@current_user}>
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name">{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+</Cinder.collection>
+```
+
+### With Filtering and Sorting
+
+Add `filter` and `sort` attributes to enable interactive filtering and sorting:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+</Cinder.collection>
+```
+
+Cinder automatically detects the appropriate filter type based on your Ash resource's field types:
+- String fields → text filter
+- Boolean fields → boolean filter (radio buttons)
+- Date/datetime fields → date range filter
+- Integer/decimal fields → number range filter
+- Enum fields → select filter with options from the enum
+
+## Layouts
+
+Cinder supports three layouts: **table** (default), **list**, and **grid**. All layouts share the same filtering, sorting, search, and pagination functionality.
+
+### Table Layout
+
+Traditional HTML table with sortable column headers. This is the default when no `layout` is specified:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+</Cinder.collection>
+```
+
+### List Layout
+
+Vertical list for custom item rendering. Requires an `<:item>` slot to define how each record is displayed:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list}>
   <:col field="name" filter sort search />
   <:col field="email" filter />
   <:col field="status" filter={:select} />
 
   <:item :let={user}>
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between p-4 border-b">
       <div>
         <h3 class="font-bold">{user.name}</h3>
         <p class="text-gray-600">{user.email}</p>
@@ -1152,227 +91,709 @@ The `Cinder.List` component provides a flexible alternative to tables for displa
       <span class="px-2 py-1 text-sm bg-gray-100 rounded">{user.status}</span>
     </div>
   </:item>
-</Cinder.List.list>
+</Cinder.collection>
 ```
 
-The `<:col>` slots define which fields can be filtered, sorted, and searched - they don't render anything visible. The `<:item>` slot controls how each record is displayed.
+In list and grid layouts, `<:col>` slots define which fields can be filtered, sorted, and searched—they don't render visible content. The `<:item>` slot controls the visual presentation of each record.
 
-Since lists don't have table headers, sort controls render as a button group. Customize the label with `sort_label="Order by:"`.
+Since lists and grids don't have table headers, **sort controls render as a button group above the content**. Customize the label with `sort_label`:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list} sort_label="Order by:">
+  ...
+</Cinder.collection>
+```
 
 ### Grid Layout
 
-Transform a list into a grid by overriding the `container_class`:
+Responsive card grid for visual layouts like product catalogs:
 
 ```heex
-<Cinder.List.list
-  resource={MyApp.Product}
-  actor={@current_user}
-  container_class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
->
+<Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid}>
   <:col field="name" filter sort search />
   <:col field="category" filter={:select} />
   <:col field="price" sort />
 
   <:item :let={product}>
-    <div class="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+    <div class="p-4 border rounded-lg">
       <h3 class="font-bold text-lg">{product.name}</h3>
       <p class="text-gray-600">{product.category}</p>
       <p class="text-xl font-semibold mt-2">${product.price}</p>
     </div>
   </:item>
-</Cinder.List.list>
+</Cinder.collection>
 ```
 
-### Interactive Items
+### Grid Columns
 
-Add click handlers to make items interactive:
+Control the number of columns with `grid_columns`:
 
 ```heex
-<Cinder.List.list
-  resource={MyApp.Topic}
-  actor={@current_user}
-  item_click={fn topic -> JS.navigate(~p"/topics/#{topic.id}") end}
->
-  <:col field="name" filter sort />
-  <:col field="type" filter={:select} />
+<!-- Fixed 4 columns -->
+<Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid} grid_columns={4}>
+  ...
+</Cinder.collection>
 
-  <:item :let={topic}>
-    <div class="p-4">
-      <h3 class="font-bold">{topic.name}</h3>
-      <p class="text-sm text-gray-500">{topic.type}</p>
-    </div>
-  </:item>
-</Cinder.List.list>
+<!-- Responsive columns -->
+<Cinder.collection
+  resource={MyApp.Product}
+  actor={@current_user}
+  layout={:grid}
+  grid_columns={[xs: 1, sm: 2, md: 3, lg: 4]}
+>
+  ...
+</Cinder.collection>
 ```
 
-When `item_click` is provided, the theme's hover and cursor styles are automatically applied to each item.
+Available breakpoints: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`
+
+### Custom Container Class
+
+For full control over the container styling, use `container_class`:
+
+```heex
+<Cinder.collection
+  resource={MyApp.Product}
+  actor={@current_user}
+  layout={:grid}
+  container_class="grid grid-cols-2 lg:grid-cols-4 gap-8"
+>
+  ...
+</Cinder.collection>
+```
+
+### Click Handlers
+
+Make rows (table) or items (list/grid) clickable with the `click` attribute:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
+>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+</Cinder.collection>
+```
+
+The `click` function receives the record and should return a `Phoenix.LiveView.JS` command. Rows/items with click handlers automatically get hover effects and pointer cursor styling.
+
+For more complex interactions:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  click={fn user ->
+    JS.push("select_user", value: %{id: user.id})
+    |> JS.add_class("selected", to: "#user-#{user.id}")
+  end}
+>
+  ...
+</Cinder.collection>
+```
+
+## Resource vs Query
+
+Cinder supports two ways to specify data: `resource` for simple cases, `query` for advanced requirements.
+
+### When to Use Resource
+
+Use `resource` for straightforward collections:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+</Cinder.collection>
+```
+
+### When to Use Query
+
+Use `query` when you need custom read actions, base filters, or tenant isolation:
+
+```heex
+<!-- Custom read action -->
+<Cinder.collection
+  query={Ash.Query.for_read(MyApp.User, :active_users)}
+  actor={@current_user}
+>
+  ...
+</Cinder.collection>
+
+<!-- Pre-filtered data (filters are additive with user filters) -->
+<Cinder.collection
+  query={MyApp.User |> Ash.Query.filter(department: "Engineering")}
+  actor={@current_user}
+>
+  ...
+</Cinder.collection>
+
+<!-- Multi-tenant admin interface -->
+<Cinder.collection
+  query={Ash.Query.for_read(MyApp.User, :admin_read)}
+  actor={@current_user}
+  tenant={@tenant}
+>
+  ...
+</Cinder.collection>
+```
+
+**Important:** Query filters act as hidden base filters—user filters from the UI are added on top. If you filter by `department: "Engineering"` in the query and the user selects "Sales" in a department filter, the result will be empty (both conditions must match).
+
+### Automatic Label Generation
+
+Column labels are automatically generated from field names:
+
+- `name` → "Name"
+- `email_address` → "Email Address"
+- `user.name` → "User Name"
+- `created_at` → "Created At"
+
+Override with `label`:
+
+```heex
+<:col :let={user} field="name" label="Full Name">{user.name}</:col>
+```
+
+## Column Configuration
+
+### All Column Attributes
+
+```heex
+<:col
+  :let={item}
+  field="field_name"           # Field name (required for filter/sort)
+  label="Custom Label"         # Override auto-generated label
+  filter                       # Enable filtering (true, type atom, or config)
+  sort                         # Enable sorting (true or config)
+  search                       # Include in global search
+  class="custom-class"         # CSS class for table cells
+>
+  {item.field_name}
+</:col>
+```
+
+### Filter Configuration Formats
+
+```heex
+<!-- Auto-detect filter type from Ash field type -->
+<:col field="status" filter />
+
+<!-- Explicit filter type -->
+<:col field="status" filter={:select} />
+
+<!-- Full configuration with options -->
+<:col field="status" filter={[type: :select, options: [{"Active", "active"}, {"Inactive", "inactive"}]]} />
+```
+
+### Sort Configuration
+
+```heex
+<!-- Basic sorting (cycle: nil → asc → desc → nil) -->
+<:col field="name" sort />
+
+<!-- No neutral state (always sorted) -->
+<:col field="name" sort={[cycle: [:asc, :desc]]} />
+
+<!-- Start with descending -->
+<:col field="created_at" sort={[cycle: [:desc, :asc, nil]]} />
+```
+
+## Filter Types
+
+Cinder automatically detects the appropriate filter type based on your Ash resource's field types. You can also explicitly specify filter types when needed.
+
+### Automatic Type Detection
+
+When you use `filter` without specifying a type, Cinder inspects your Ash resource:
+
+| Ash Field Type | Filter Type | UI Component |
+|---------------|-------------|--------------|
+| `:string`, `:ci_string` | `:text` | Text input with contains search |
+| `:boolean` | `:boolean` | Radio buttons (Yes/No) |
+| `:date`, `:datetime`, `:utc_datetime` | `:date_range` | From/To date pickers |
+| `:integer`, `:decimal`, `:float` | `:number_range` | Min/Max number inputs |
+| `Ash.Type.Enum` | `:select` | Dropdown with enum values |
+| `{:array, _}` | `:multi_select` | Multi-select for array fields |
+
+### Text Filter
+
+Default for string fields. Performs case-insensitive contains search:
+
+```heex
+<!-- Basic text filter (auto-detected for string fields) -->
+<:col :let={article} field="title" filter>{article.title}</:col>
+
+<!-- With custom placeholder -->
+<:col
+  :let={article}
+  field="content"
+  filter={[type: :text, placeholder: "Search content..."]}
+>
+  {String.slice(article.content, 0, 100)}...
+</:col>
+
+<!-- Case-sensitive search -->
+<:col
+  :let={article}
+  field="author_name"
+  filter={[type: :text, case_sensitive: true]}
+>
+  {article.author_name}
+</:col>
+```
+
+### Select Filter
+
+Dropdown for single-value selection. **Automatically populated for Ash enum fields:**
+
+```heex
+<!-- Enum field: options auto-populated from MyApp.UserRole enum -->
+<:col :let={user} field="role" filter>{user.role}</:col>
+
+<!-- Explicit options for non-enum fields -->
+<:col
+  :let={user}
+  field="status"
+  filter={[type: :select, options: [
+    {"Active", "active"},
+    {"Pending", "pending"},
+    {"Suspended", "suspended"}
+  ]]}
+>
+  {user.status}
+</:col>
+
+<!-- With custom prompt text -->
+<:col
+  :let={user}
+  field="department"
+  filter={[type: :select, options: @departments, prompt: "All Departments"]}
+>
+  {user.department}
+</:col>
+```
+
+### Multi-Select Filter
+
+For filtering by multiple values. Two UI styles available:
+
+**Tag-based dropdown (`:multi_select`):**
+
+```heex
+<:col
+  :let={product}
+  field="tags"
+  filter={[type: :multi_select, options: @available_tags]}
+>
+  {Enum.join(product.tags, ", ")}
+</:col>
+```
+
+**Checkbox list (`:multi_checkboxes`):**
+
+```heex
+<:col
+  :let={user}
+  field="roles"
+  filter={[type: :multi_checkboxes, options: [
+    {"Admin", "admin"},
+    {"Editor", "editor"},
+    {"Viewer", "viewer"}
+  ]]}
+>
+  {Enum.join(user.roles, ", ")}
+</:col>
+```
+
+**Match Mode:** Control AND vs OR logic for multiple selections:
+
+```heex
+<!-- Match ANY selected value (default) - records with tag A OR tag B -->
+<:col field="tags" filter={[type: :multi_select, options: @tags, match_mode: :any]} />
+
+<!-- Match ALL selected values - records with tag A AND tag B -->
+<:col field="tags" filter={[type: :multi_select, options: @tags, match_mode: :all]} />
+```
+
+### Boolean Filter
+
+Radio buttons for true/false filtering:
+
+```heex
+<!-- Basic boolean filter -->
+<:col :let={user} field="is_active" filter={:boolean}>
+  {if user.is_active, do: "Active", else: "Inactive"}
+</:col>
+
+<!-- Custom labels -->
+<:col
+  :let={user}
+  field="verified"
+  filter={[type: :boolean, labels: %{true: "Verified", false: "Unverified"}]}
+>
+  {if user.verified, do: "✓", else: "✗"}
+</:col>
+```
+
+### Checkbox Filter
+
+Single checkbox for "show only X" filtering:
+
+```heex
+<!-- Boolean field: filters for true when checked -->
+<:col :let={article} field="published" filter={[type: :checkbox, label: "Published only"]}>
+  {if article.published, do: "✓", else: "✗"}
+</:col>
+
+<!-- Non-boolean field: filters for specific value when checked -->
+<:col :let={article} field="priority" filter={[type: :checkbox, value: "high", label: "High priority only"]}>
+  {article.priority}
+</:col>
+```
+
+### Date Range Filter
+
+From/To date pickers for date filtering:
+
+```heex
+<!-- Auto-detected for date/datetime fields -->
+<:col :let={order} field="created_at" filter sort>{order.created_at}</:col>
+
+<!-- Include time selection -->
+<:col
+  :let={order}
+  field="shipped_at"
+  filter={[type: :date_range, include_time: true]}
+>
+  {order.shipped_at}
+</:col>
+```
+
+### Number Range Filter
+
+Min/Max inputs for numeric filtering:
+
+```heex
+<!-- Auto-detected for integer/decimal fields -->
+<:col :let={product} field="price" filter sort>{product.price}</:col>
+
+<!-- With constraints -->
+<:col
+  :let={product}
+  field="quantity"
+  filter={[type: :number_range, min: 0, max: 10000, step: 10]}
+>
+  {product.quantity}
+</:col>
+```
+
+## Filter-Only Slots
+
+Add filtering capability for fields without displaying them as columns. Useful for filtering by metadata or keeping tables focused:
+
+```heex
+<Cinder.collection resource={MyApp.Order} actor={@current_user}>
+  <:col :let={order} field="order_number">{order.order_number}</:col>
+  <:col :let={order} field="total">${order.total}</:col>
+
+  <!-- Filter-only slots: filter UI appears, but no column in table -->
+  <:filter field="created_at" type="date_range" label="Order Date" />
+  <:filter field="status" type="select" options={["pending", "shipped", "delivered"]} />
+  <:filter field="customer_name" type="text" placeholder="Customer name..." />
+</Cinder.collection>
+```
+
+### Filter Slot Attributes
+
+```heex
+<:filter
+  field="field_name"           # Required
+  type="filter_type"           # Optional, auto-detected if not provided
+  label="Custom Label"         # Optional
+  options={[...]}              # For select/multi-select
+  placeholder="..."            # For text filters
+  operator={:contains}         # For text filters
+  case_sensitive={true}        # For text filters
+  match_mode={:any}            # For multi-select
+  min={0}                      # For number range
+  max={100}                    # For number range
+  step={1}                     # For number range
+  include_time={true}          # For date range
+  fn={&custom_filter/2}        # Custom filter function
+/>
+```
+
+### When to Use Filter-Only Slots
+
+- Filter by metadata (created_at, updated_at) without cluttering the display
+- Add filters for fields shown elsewhere on the page
+- Create admin interfaces with many filter options
+- Keep tables focused on essential information
+
+## Global Search
+
+Search provides a single text input that filters across multiple columns simultaneously. This is different from individual column filters—search queries all marked columns at once using OR logic.
+
+### How Search Works
+
+When a user types in the search box, Cinder filters records where **any** of the searchable columns contain the search term. For example, searching "smith" might match:
+- A user named "John Smith"
+- A user with email "smith@example.com"
+- A user in the "Blacksmith" department
+
+### Enabling Search
+
+Search automatically appears when any column has the `search` attribute:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <!-- These columns are searchable -->
+  <:col :let={user} field="name" filter search>{user.name}</:col>
+  <:col :let={user} field="email" filter search>{user.email}</:col>
+
+  <!-- This column is filterable but NOT searchable -->
+  <:col :let={user} field="role" filter>{user.role}</:col>
+</Cinder.collection>
+```
+
+### Custom Search Configuration
+
+Customize the search UI:
+
+```heex
+<Cinder.collection
+  resource={MyApp.Album}
+  actor={@current_user}
+  search={[label: "Find Albums", placeholder: "Search by title or artist..."]}
+>
+  <:col :let={album} field="title" search>{album.title}</:col>
+  <:col :let={album} field="artist.name" search>{album.artist.name}</:col>
+</Cinder.collection>
+```
+
+### Disable Search
+
+Even if columns have `search`, you can disable the search UI:
+
+```heex
+<Cinder.collection resource={MyApp.Album} actor={@current_user} search={false}>
+  <:col :let={album} field="title" search>{album.title}</:col>
+</Cinder.collection>
+```
+
+### Custom Search Function
+
+For advanced search logic (fuzzy matching, weighted results, etc.):
+
+```heex
+<Cinder.collection
+  resource={MyApp.Album}
+  actor={@current_user}
+  search={[fn: &MyApp.CustomSearch.advanced_search/3]}
+>
+  ...
+</Cinder.collection>
+```
+
+```elixir
+defmodule MyApp.CustomSearch do
+  require Ash.Query
+
+  def advanced_search(query, searchable_columns, search_term) do
+    # searchable_columns is a list of column configs with :field keys
+    # Return a modified Ash.Query
+    Ash.Query.filter(query, fragment("? ILIKE ?", name, ^"%#{search_term}%"))
+  end
+end
+```
+
+## Sorting
+
+### Basic Sorting
+
+Add `sort` to make columns sortable. Click column headers to cycle through sort states:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" sort>{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+</Cinder.collection>
+```
+
+### Sort Cycles
+
+The default cycle is: unsorted → ascending → descending → unsorted
+
+Customize with `cycle`:
+
+```heex
+<!-- No neutral state: always sorted one way or the other -->
+<:col field="name" sort={[cycle: [:asc, :desc]]} />
+
+<!-- Start descending (good for dates where newest-first is common) -->
+<:col field="created_at" sort={[cycle: [:desc, :asc, nil]]} />
+
+<!-- Ash null-handling directions -->
+<:col field="completed_at" sort={[cycle: [:desc_nils_last, :asc_nils_first, nil]]} />
+```
+
+### Default Sort Order
+
+Provide a default sort via the `query` parameter. User sorting replaces (not adds to) the default:
+
+```heex
+<Cinder.collection
+  query={MyApp.User |> Ash.Query.sort(created_at: :desc)}
+  actor={@current_user}
+>
+  <:col :let={user} field="name" sort>{user.name}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+</Cinder.collection>
+```
+
+## Custom Filter Functions
+
+For complex filtering logic that goes beyond simple field matching:
+
+```heex
+<Cinder.collection resource={MyApp.Invoice} actor={@current_user}>
+  <:col
+    :let={invoice}
+    field="status"
+    filter={[type: :select, options: @statuses, fn: &filter_invoice_status/2]}
+  >
+    {invoice.status}
+  </:col>
+</Cinder.collection>
+```
+
+```elixir
+require Ash.Query
+
+def filter_invoice_status(query, %{value: "overdue"}) do
+  # Custom business logic: "overdue" means pending AND past due date
+  today = Date.utc_today()
+  Ash.Query.filter(query, status == "pending" and due_date < ^today)
+end
+
+def filter_invoice_status(query, %{value: status}) do
+  # Standard equality for other values
+  Ash.Query.filter(query, status == ^status)
+end
+```
+
+### Function Signature
+
+Custom filter functions receive:
+1. `query` - The current `Ash.Query`
+2. `filter_config` - Map containing `:value` and other filter options
+
+Return a modified `Ash.Query`.
 
 ## Theming
 
 ### Built-in Themes
 
-```elixir
-<!-- Default theme -->
-<Cinder.Table.table
-  resource={MyApp.User}
-  actor={@current_user}
-  theme="default"
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-</Cinder.Table.table>
+Cinder includes 9 built-in themes:
 
-<!-- Modern theme -->
-<Cinder.Table.table
-  resource={MyApp.User}
-  actor={@current_user}
-  theme="modern"
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-</Cinder.Table.table>
-
-<!-- Minimal theme -->
-<Cinder.Table.table
-  resource={MyApp.User}
-  actor={@current_user}
-  theme="minimal"
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-</Cinder.Table.table>
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} theme="modern">
+  ...
+</Cinder.collection>
 ```
 
-### Custom Theme - Complete Example
+Available themes:
+- `"default"` - Clean, minimal styling
+- `"modern"` - Contemporary look with shadows and rounded corners
+- `"compact"` - Dense layout for data-heavy views
+- `"dark"` - Dark mode styling
+- `"retro"` - Nostalgic cyberpunk aesthetic
+- `"pastel"` - Soft, muted colors
+- `"futuristic"` - Bold, tech-forward design
+- `"flowbite"` - Flowbite-compatible styling
+- `"daisy_ui"` - DaisyUI-compatible styling
+
+Set a default theme in your config:
 
 ```elixir
-<Cinder.Table.table
-  resource={MyApp.User}
-  actor={@current_user}
-  theme={%{
-    # Container styling
-    container_class: "bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-200",
-
-    # Table structure
-    table_class: "w-full border-collapse",
-    thead_class: "bg-gradient-to-r from-blue-600 to-blue-700",
-    tbody_class: "divide-y divide-gray-100",
-
-    # Header styling
-    th_class: "px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider",
-    th_sortable_class: "px-6 py-4 text-left text-sm font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-blue-800 transition-colors",
-
-    # Cell styling
-    td_class: "px-6 py-4 whitespace-nowrap text-sm text-gray-900",
-    tr_class: "hover:bg-gray-50 transition-colors",
-
-    # Filter styling
-    filter_container_class: "bg-blue-50 border-b border-blue-200 p-6",
-    filter_row_class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
-    filter_col_class: "flex flex-col space-y-2",
-    filter_label_class: "text-sm font-semibold text-blue-900",
-    filter_text_input_class: "w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-    filter_select_input_class: "w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-    filter_clear_button_class: "text-sm text-blue-600 hover:text-blue-800 font-medium",
-
-    # Pagination styling
-    pagination_wrapper_class: "flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200",
-    pagination_info_class: "text-sm text-gray-700",
-    pagination_nav_class: "flex space-x-2",
-    pagination_button_class: "px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50",
-    pagination_button_active_class: "px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md",
-    pagination_button_disabled_class: "px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed",
-
-    # Loading and empty states
-    loading_class: "text-center py-12 text-gray-500",
-    empty_class: "text-center py-12 text-gray-500",
-
-    # Sort indicators
-    sort_asc_class: "inline-block w-4 h-4 ml-1 text-white",
-    sort_desc_class: "inline-block w-4 h-4 ml-1 text-white"
-  }}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter sort>{user.email}</:col>
-</Cinder.Table.table>
+# config/config.exs
+config :cinder, default_theme: "modern"
 ```
 
-## URL State Management
+### Custom Themes
 
-### Complete LiveView Setup
+Create reusable custom themes as modules:
 
 ```elixir
-defmodule MyAppWeb.UsersLive do
-  use MyAppWeb, :live_view
-  use Cinder.Table.UrlSync
+defmodule MyApp.Theme.Corporate do
+  use Cinder.Theme
 
-  def mount(_params, _session, socket) do
-    current_user = get_current_user(socket)
-    {:ok, assign(socket, :current_user, current_user)}
+  component Cinder.Components.Table do
+    set :container_class, "bg-white shadow-lg rounded-lg border border-gray-200"
+    set :th_class, "px-6 py-4 bg-blue-50 text-left font-semibold text-blue-900"
+    set :td_class, "px-6 py-4 border-b border-gray-100"
+    set :row_class, "hover:bg-blue-50 transition-colors"
   end
 
-  def handle_params(params, uri, socket) do
-    socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
-    {:noreply, socket}
+  component Cinder.Components.Filters do
+    set :filter_container_class, "bg-gray-50 p-4 rounded-lg mb-4"
+    set :filter_text_input_class, "w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
   end
 
-  def render(assigns) do
-    ~H"""
-    <div class="container mx-auto px-4 py-8">
-      <h1 class="text-3xl font-bold mb-8">Users</h1>
-
-      <Cinder.Table.table
-        resource={MyApp.User}
-        actor={@current_user}
-        url_state={@url_state}
-        id="users-table"
-        page_size={25}
-      >
-        <:col :let={user} field="name" filter sort>{user.name}</:col>
-        <:col :let={user} field="email" filter>{user.email}</:col>
-        <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
-        <:col :let={user} field="is_active" filter={:boolean}>
-          {if user.is_active, do: "Active", else: "Inactive"}
-        </:col>
-      </Cinder.Table.table>
-    </div>
-    """
+  component Cinder.Components.Pagination do
+    set :pagination_button_class, "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
   end
 end
 ```
 
-### URL State Management with Query Parameter
+Use your custom theme:
 
-You can also use pre-configured queries with URL sync:
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} theme={MyApp.Theme.Corporate}>
+  ...
+</Cinder.collection>
+```
+
+See [Theming Guide](theming.md) for complete theme customization options and all available theme properties.
+
+## URL State Management
+
+Synchronize collection state (filters, sorting, pagination) with the browser URL for bookmarkable, shareable views.
+
+### Setup
 
 ```elixir
-defmodule MyAppWeb.ActiveUsersLive do
+defmodule MyAppWeb.UsersLive do
   use MyAppWeb, :live_view
-  use Cinder.Table.UrlSync
+  use Cinder.UrlSync
 
   def mount(_params, _session, socket) do
-    current_user = get_current_user(socket)
-    {:ok, assign(socket, :current_user, current_user)}
+    {:ok, assign(socket, :current_user, get_current_user(socket))}
   end
 
   def handle_params(params, uri, socket) do
-    socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
+    socket = Cinder.UrlSync.handle_params(params, uri, socket)
     {:noreply, socket}
   end
 
   def render(assigns) do
     ~H"""
-    <div class="container mx-auto px-4 py-8">
-      <h1 class="text-3xl font-bold mb-8">Active Users</h1>
-
-      <Cinder.Table.table
-        query={MyApp.User |> Ash.Query.filter(active: true)}
-        actor={@current_user}
-        url_state={@url_state}
-        id="active-users-table"
-      >
-        <:col :let={user} field="name" filter sort>{user.name}</:col>
-        <:col :let={user} field="email" filter>{user.email}</:col>
-        <:col :let={user} field="last_login" sort>{user.last_login}</:col>
-      </Cinder.Table.table>
-    </div>
+    <Cinder.collection
+      resource={MyApp.User}
+      actor={@current_user}
+      url_state={@url_state}
+      id="users-table"
+    >
+      <:col :let={user} field="name" filter sort>{user.name}</:col>
+      <:col :let={user} field="email" filter>{user.email}</:col>
+      <:col :let={user} field="is_active" filter={:boolean}>
+        {if user.is_active, do: "Active", else: "Inactive"}
+      </:col>
+    </Cinder.collection>
     """
   end
 end
@@ -1380,256 +801,126 @@ end
 
 ### URL Examples
 
-With URL sync enabled, your table state is preserved in the URL:
-
 ```
 # Basic filtering
-/users?name=john&department.name=engineering
+/users?name=john&email=gmail
 
-# With date range
-/users?name=smith&created_at_from=2024-01-01&created_at_to=2024-12-31
+# Date range
+/users?created_at_from=2024-01-01&created_at_to=2024-12-31
 
-# With pagination and sorting
-/users?email=gmail&page=3&sort=-created_at
+# Pagination and sorting
+/users?page=3&sort=-created_at
 
 # Complex state
-/users?name=admin&department.name=IT&is_active=true&page=2&sort=name,-created_at
+/users?name=admin&is_active=true&page=2&sort=name
 ```
 
 ## Relationship Fields
 
-### Basic Relationships
+Use dot notation to filter and sort by related resource fields:
 
-```elixir
-<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
-  <:col :let={album} field="title" filter sort>{album.title}</:col>
-  <:col :let={album} field="artist.name" filter sort>{album.artist.name}</:col>
-  <:col :let={album} field="artist.country" filter>{album.artist.country}</:col>
-  <:col :let={album} field="record_label.name" filter>{album.record_label.name}</:col>
-</Cinder.Table.table>
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
+  <:col :let={user} field="manager.email" filter>{user.manager.email}</:col>
+</Cinder.collection>
 ```
 
 ### Deep Relationships
 
-```elixir
-<Cinder.Table.table resource={MyApp.Employee} actor={@current_user}>
-  <:col :let={employee} field="name" filter sort>{employee.name}</:col>
-  <:col :let={employee} field="department.name" filter sort>{employee.department.name}</:col>
-  <:col :let={employee} field="department.manager.name" filter>{employee.department.manager.name}</:col>
-  <:col :let={employee} field="office.building.address" filter>{employee.office.building.address}</:col>
-</Cinder.Table.table>
+```heex
+<:col :let={user} field="office.building.address" filter>
+  {user.office.building.address}
+</:col>
 ```
 
-### Relationship Filters with Custom Options
+### Custom Options for Relationship Fields
 
-```elixir
-<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <:col :let={order} field="number" filter sort>#{order.number}</:col>
-  <:col :let={order} field="customer.name" filter sort>{order.customer.name}</:col>
-
-  <!-- Select filter on relationship enum -->
-  <:col
-    :let={order}
-    field="customer.tier"
-    filter={[
-      type: :select,
-      options: [{"Bronze", "bronze"}, {"Silver", "silver"}, {"Gold", "gold"}],
-      prompt: "All Tiers"
-    ]}
-  >
-    <span class={[
-      "px-2 py-1 text-xs font-semibold rounded-full",
-      order.customer.tier == "gold" && "bg-yellow-100 text-yellow-800",
-      order.customer.tier == "silver" && "bg-gray-100 text-gray-800",
-      order.customer.tier == "bronze" && "bg-orange-100 text-orange-800"
-    ]}>
-      {String.capitalize(order.customer.tier)}
-    </span>
-  </:col>
-
-  <!-- Date range on relationship -->
-  <:col
-    :let={order}
-    field="customer.created_at"
-    filter={:date_range}
-    sort
-  >
-    {Calendar.strftime(order.customer.created_at, "%B %Y")}
-  </:col>
-</Cinder.Table.table>
+```heex
+<:col
+  :let={user}
+  field="department.name"
+  filter={[type: :select, options: @department_names]}
+>
+  {user.department.name}
+</:col>
 ```
 
 ## Embedded Resources
 
-Cinder provides full support for embedded resources using double underscore notation (`__`). Embedded fields are automatically detected and typed, including automatic enum detection for select filters.
+Use double underscore notation (`__`) for embedded resource fields:
 
-### Basic Embedded Fields
-
-```elixir
-<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
-  <:col :let={album} field="title" filter sort>{album.title}</:col>
-
-  <!-- Embedded resource fields use __ notation -->
-  <:col :let={album} field="publisher__name" filter>{album.publisher.name}</:col>
-  <:col :let={album} field="publisher__country" filter>{album.publisher.country}</:col>
-  <:col :let={album} field="metadata__genre" filter>{album.metadata.genre}</:col>
-</Cinder.Table.table>
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name">{user.name}</:col>
+  <:col :let={user} field="profile__bio" filter>{user.profile.bio}</:col>
+  <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
+</Cinder.collection>
 ```
 
 ### Nested Embedded Fields
 
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-
-  <!-- Deep nested embedded fields -->
-  <:col :let={user} field="settings__notifications__email" filter>
-    {if user.settings.notifications.email, do: "✓", else: "✗"}
-  </:col>
-  <:col :let={user} field="profile__address__country" filter>{user.profile.address.country}</:col>
-  <:col :let={user} field="preferences__theme__color" filter>{user.preferences.theme.color}</:col>
-</Cinder.Table.table>
+```heex
+<:col :let={user} field="settings__address__city" filter>
+  {user.settings.address.city}
+</:col>
 ```
 
 ### Automatic Enum Detection
 
-When embedded fields use `Ash.Type.Enum`, Cinder automatically detects them and creates select filters:
+Embedded enum fields are automatically detected and rendered as select filters with the enum values:
 
-```elixir
-# In your embedded resource
-defmodule MyApp.Publisher do
-  use Ash.Resource, data_layer: :embedded
-
-  attributes do
-    attribute :name, :string
-    attribute :country, MyApp.Country  # Enum type
-  end
-end
-
-defmodule MyApp.Country do
-  use Ash.Type.Enum, values: ["Australia", "India", "Japan", "England", "Canada"]
-end
+```heex
+<!-- If profile.country is an Ash.Type.Enum, options are auto-populated -->
+<:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
 ```
-
-```elixir
-<!-- This automatically becomes a select filter with enum values -->
-<Cinder.Table.table resource={MyApp.Album} actor={@current_user}>
-  <:col :let={album} field="title" filter sort>{album.title}</:col>
-  <:col :let={album} field="publisher__country" filter>{album.publisher.country}</:col>
-</Cinder.Table.table>
-```
-
-### Mixed Relationships and Embedded Fields
-
-You can combine relationship navigation (dot notation) with embedded fields (double underscore):
-
-```elixir
-<Cinder.Table.table resource={MyApp.Order} actor={@current_user}>
-  <:col :let={order} field="number" filter sort>#{order.number}</:col>
-
-  <!-- Relationship + embedded field -->
-  <:col :let={order} field="customer.profile__country" filter>
-    {order.customer.profile.country}
-  </:col>
-  <:col :let={order} field="shipping.address__postal_code" filter>
-    {order.shipping.address.postal_code}
-  </:col>
-</Cinder.Table.table>
-```
-
-## Interactive Tables
-
-### Row Click Functionality
-
-Make entire rows clickable for navigation or actions. When `row_click` is provided, rows will be styled as clickable with hover effects and cursor changes.
-
-#### Basic Navigation
-
-```elixir
-<Cinder.Table.table
-  resource={MyApp.User}
-  actor={@current_user}
-  row_click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-  <:col :let={user} field="role" filter={:select}>{user.role}</:col>
-</Cinder.Table.table>
-```
-
-#### Custom JavaScript Actions
-
-```elixir
-<Cinder.Table.table
-  resource={MyApp.Product}
-  actor={@current_user}
-  row_click={fn product -> JS.push("select_product") |> JS.push_focus() end}
->
-  <:col :let={product} field="name" filter sort>{product.name}</:col>
-  <:col :let={product} field="price" filter={:number_range} sort>${product.price}</:col>
-</Cinder.Table.table>
-```
-
-**Note:** The `row_click` function receives the row item as its argument and should return a Phoenix.LiveView.JS command. When provided, rows automatically receive `cursor-pointer` styling to indicate they are interactive.
 
 ## Action Columns
 
-Action columns allow you to add buttons, links, and other interactive elements to your tables without requiring a database field. Simply omit the `field` attribute to create an action column.
+Add columns without a `field` attribute for custom actions:
 
-### Basic Action Column
-
-```elixir
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
-  <:col :let={user} field="role" filter={:select}>{user.role}</:col>
 
-  <!-- Action column - no field required -->
-  <:col :let={user} label="Actions" class="text-right">
-    <.link patch={~p"/users/#{user.id}"} class="text-blue-600 hover:text-blue-800 mr-3">
-      Edit
-    </.link>
-    <.link
-      href={~p"/users/#{user.id}"}
-      method="delete"
-      class="text-red-600 hover:text-red-800"
-      data-confirm="Are you sure?"
-    >
-      Delete
-    </.link>
+  <!-- Action column: no field, just custom content -->
+  <:col :let={user} label="Actions">
+    <div class="flex gap-2">
+      <.link navigate={~p"/users/#{user.id}"} class="text-blue-600 hover:underline">
+        View
+      </.link>
+      <.link navigate={~p"/users/#{user.id}/edit"} class="text-green-600 hover:underline">
+        Edit
+      </.link>
+      <button phx-click="delete" phx-value-id={user.id} class="text-red-600 hover:underline">
+        Delete
+      </button>
+    </div>
   </:col>
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
-**Note:** Action columns cannot have `filter` or `sort` attributes since they don't correspond to database fields. If you try to add these attributes without a `field`, you'll get a validation error.
+Action columns cannot have `filter` or `sort` since they don't correspond to data fields.
 
-## Table Refresh
+## Collection Refresh
 
-Refresh table data after CRUD operations while maintaining filters, sorting, and pagination state. This is essential when performing operations that modify the data displayed in your tables.
-
-### Basic Refresh
-
-After deleting, updating, or creating records, refresh the specific table:
+After CRUD operations, refresh collection data while preserving filters, sorting, and pagination:
 
 ```elixir
 defmodule MyAppWeb.UsersLive do
   use MyAppWeb, :live_view
-  import Cinder.Table.Refresh # <--
+  import Cinder.Refresh
 
   def render(assigns) do
     ~H"""
-    <Cinder.Table.table id="users-table" resource={MyApp.User} actor={@current_user}>
+    <Cinder.collection id="users-table" resource={MyApp.User} actor={@current_user}>
       <:col :let={user} field="name" filter sort>{user.name}</:col>
-      <:col :let={user} field="email" filter>{user.email}</:col>
-      <:col :let={user} field="active" filter>{if user.active, do: "Active", else: "Inactive"}</:col>
-
-      <!-- Action column with refresh functionality -->
       <:col :let={user} label="Actions">
-        <button phx-click="delete_user" phx-value-id={user.id}>
-          Delete
-        </button>
+        <button phx-click="delete_user" phx-value-id={user.id}>Delete</button>
       </:col>
-    </Cinder.Table.table>
+    </Cinder.collection>
     """
   end
 
@@ -1638,236 +929,103 @@ defmodule MyAppWeb.UsersLive do
     |> Ash.get!(id, actor: socket.assigns.current_user)
     |> Ash.destroy!(actor: socket.assigns.current_user)
 
-    # Refresh the specific table - maintains filters, sorting, pagination
+    # Refresh maintains current filters, sorting, and page
     {:noreply, refresh_table(socket, "users-table")}
   end
 end
 ```
 
-### Multiple Table Refresh
-
-When operations affect multiple tables, refresh them all by providing a list of table IDs:
+### Multiple Collections
 
 ```elixir
-refresh_tables(socket, ["users-table", "audit-logs-table"])
+{:noreply, refresh_tables(socket, ["users-table", "audit-logs-table"])}
 ```
 
 ## Performance Optimization
 
 ### Efficient Data Loading
 
-```elixir
-<Cinder.Table.table
-  resource={MyApp.Order}
+Use `query_opts` to load only needed data:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
   actor={@current_user}
-  # Preload only what you need
   query_opts={[
-    load: [
-      :customer,
-      :order_items,
-      items: [:product]
-    ],
-    # Select only required fields for better performance
-    select: [
-      :id, :number, :status, :total_amount, :created_at,
-      customer: [:name, :email],
-      order_items: [:quantity, product: [:name, :price]]
-    ]
+    load: [:department, :manager],
+    select: [:id, :name, :email, :created_at]
   ]}
-  # Optimize page size for your data
-  page_size={25}
 >
-  <:col field="number" filter sort>Order #</:col>
-  <:col field="customer.name" filter sort>Customer</:col>
-  <:col field="total_amount" filter={:number_range} sort>Total</:col>
-</Cinder.Table.table>
+  ...
+</Cinder.collection>
 ```
 
-### Pagination Configuration
+### Pagination
 
-When using configurable page sizes, ensure your Ash action supports pagination to prevent memory issues:
+```heex
+<!-- Fixed page size -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} page_size={50}>
+  ...
+</Cinder.collection>
+
+<!-- User-selectable page size -->
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  page_size={[default: 25, options: [10, 25, 50, 100]]}
+>
+  ...
+</Cinder.collection>
+```
+
+**Important:** Ensure your Ash action has pagination configured to prevent loading all records into memory:
 
 ```elixir
 # In your resource
-defmodule MyApp.User do
-  use Ash.Resource
-
-  actions do
-    read :read do
-      pagination offset?: true, default_limit: 25
-    end
+actions do
+  read :read do
+    pagination offset?: true, default_limit: 25
   end
 end
 ```
 
-```elixir
-<Cinder.Table.table
-  resource={MyApp.User}
+### Query Timeout
+
+For slow queries, configure a timeout:
+
+```heex
+<Cinder.collection
+  resource={MyApp.LargeDataset}
   actor={@current_user}
-  # Configurable page sizes - requires action with pagination
-  page_size={[default: 25, options: [10, 25, 50, 100]]}
+  query_opts={[timeout: 30_000]}
 >
-  <:col field="name" filter sort>Name</:col>
-  <:col field="email" filter sort>Email</:col>
-</Cinder.Table.table>
+  ...
+</Cinder.collection>
 ```
-
-**Important**: Without pagination configured in your Ash action, Cinder will load ALL records into memory, potentially causing out-of-memory crashes with large datasets. See the [Ash pagination guide](https://hexdocs.pm/ash/pagination.html) for complete documentation.
-
-### Strategic Filtering
-
-Only enable filters where users actually need them:
-
-```elixir
-<Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-  <!-- Internal ID - no filter needed -->
-  <:col :let={product} field="id" sort>{product.id}</:col>
-
-  <!-- User-searchable fields -->
-  <:col :let={product} field="name" filter sort>{product.name}</:col>
-  <:col :let={product} field="category" filter sort>{product.category}</:col>
-  <:col :let={product} field="price" filter={:number_range} sort>${product.price}</:col>
-
-  <!-- Display-only field -->
-  <:col :let={product} field="sku">{product.sku}</:col>
-</Cinder.Table.table>
-```
-
-### Custom Query Optimization
-
-```elixir
-<Cinder.Table.table
-  resource={MyApp.User}
-  actor={@current_user}
-  query_opts={[
-    # Query building options
-    load: [:department, :profile],
-    select: [:id, :name, :email, :created_at, :is_active],
-    
-    # Execution options
-    timeout: :timer.seconds(30),
-    authorize?: false,
-    max_concurrency: 10
-  ]}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-  <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
-</Cinder.Table.table>
-```
-
-**Supported Query Options:**
-- **Query Building**: `:select`, `:load` 
-- **Execution**: `:timeout`, `:authorize?`, `:max_concurrency`
-
-### Default Filters and Sorting
-
-Use the `query` parameter with pre-built Ash.Query for defaults, but understand how they interact with table UI:
-
-#### Default Base Filters (Additive)
-```elixir
-# Base filters that are ALWAYS applied, invisible to users
-<Cinder.Table.table
-  query={MyApp.User |> Ash.Query.filter(is_active: true, company_id: @company.id)}
-  actor={@current_user}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="department" filter>{user.department}</:col>
-</Cinder.Table.table>
-```
-- Query filters act as **hidden base filters**
-- Table filter UI adds **additional filters** on top
-- Result: `is_active: true AND company_id: X AND [user's table filters]`
-- **Use case**: Security filters, tenant isolation, business rules
-
-#### Default Sort Order (Replaced)
-```elixir
-# Initial sort that users can override
-<Cinder.Table.table
-  query={MyApp.User |> Ash.Query.sort([:name, :created_at])}
-  actor={@current_user}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-</Cinder.Table.table>
-```
-- Query sorts show as **initial table sort indicators**
-- When user clicks any column sort, query sorts are **completely replaced**
-- Result: Either query sorts OR user's table sorts (never both)
-- **Use case**: Sensible default ordering that users can change
-
-#### Important: Don't Mix Filter Sources
-```elixir
-# ❌ AVOID: This creates conflicting filters
-<Cinder.Table.table
-  query={MyApp.User |> Ash.Query.filter(department: "Engineering")}
-  actor={@current_user}
->
-  <!-- User sees empty department filter, but query already filters by Engineering -->
-  <:col :let={user} field="department" filter>{user.department}</:col>
-</Cinder.Table.table>
-```
-If user sets department filter to "Sales", result is: `department = "Engineering" AND department = "Sales"` (no results).
-
-**Better approach for visible defaults**: Use URL state or LiveView assigns to populate filter UI.
 
 ## Localization
 
-Cinder automatically uses your Phoenix app's locale for table UI elements (pagination, filters, etc.).
-
-### Basic Usage
+Cinder automatically uses your Phoenix app's locale for UI elements (pagination, filter labels, buttons, etc.). See the [Localization Guide](localization.md) for complete internationalization support.
 
 ```elixir
-# Set locale in your app (e.g., plug or LiveView mount)
-Gettext.put_locale("nl")  # Dutch
+# Set locale in mount or plug
+Gettext.put_locale("nl")
 
-# Cinder tables automatically show Dutch UI text
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-</Cinder.Table.table>
+# Cinder UI automatically shows Dutch text
 ```
 
-### Dynamic Locale Switching
-
-```elixir
-defmodule MyAppWeb.LocaleLive do
-  use MyAppWeb, :live_view
-
-  def render(assigns) do
-    ~H"""
-    <select phx-change="switch_locale">
-      <option value="en">English</option>
-      <option value="nl">Nederlands</option>
-      <option value="sv">Svenska</option>
-    </select>
-
-    <!-- Cinder updates automatically when locale changes -->
-    <Cinder.Table.table resource={MyApp.Product} actor={@current_user}>
-      <:col :let={product} field="name" filter sort>{product.name}</:col>
-    </Cinder.Table.table>
-    """
-  end
-
-  def handle_event("switch_locale", %{"value" => locale}, socket) do
-    Gettext.put_locale(locale)
-    {:noreply, socket}
-  end
-end
-```
-
-Available languages: English (en), Dutch (nl), Swedish (sv). See the [Localization Guide](localization.md) for details.
+Available languages: English (en), Dutch (nl), Swedish (sv).
 
 ## Testing
 
-When creating LiveView tests for pages with Cinder tables use [`render_async`](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveViewTest.html#render_async/2) to wait for data to load before checking for the data on page.
+Use `render_async/1` to wait for async data loading in tests:
 
 ```elixir
-test "lists all user", %{conn: conn} do
+test "lists all users", %{conn: conn} do
   user = insert(:user)
 
   {:ok, index_live, html} = live(conn, ~p"/users")
 
-  assert html =~ "Listing Users"
   assert html =~ "Loading..."
   assert render_async(index_live) =~ user.name
 end

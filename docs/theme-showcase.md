@@ -10,14 +10,14 @@ The default theme provides only essential usability classes - no styling, perfec
 
 ```elixir
 # No theme specified = minimal default
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
 >
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Classes applied**: Only `overflow-x-auto`, `w-full border-collapse`, `text-left whitespace-nowrap`
@@ -27,7 +27,7 @@ The default theme provides only essential usability classes - no styling, perfec
 Professional, clean design with subtle shadows and blue accents.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="modern"
@@ -35,7 +35,7 @@ Professional, clean design with subtle shadows and blue accents.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -52,7 +52,7 @@ Professional, clean design with subtle shadows and blue accents.
 Bold 80s-inspired design with neon colors and cyberpunk aesthetics.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="retro"
@@ -60,7 +60,7 @@ Bold 80s-inspired design with neon colors and cyberpunk aesthetics.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -77,7 +77,7 @@ Bold 80s-inspired design with neon colors and cyberpunk aesthetics.
 Sci-fi inspired with holographic effects and translucent elements.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="futuristic"
@@ -85,7 +85,7 @@ Sci-fi inspired with holographic effects and translucent elements.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -102,7 +102,7 @@ Sci-fi inspired with holographic effects and translucent elements.
 Elegant dark mode with purple accents and smooth gradients.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="dark"
@@ -110,7 +110,7 @@ Elegant dark mode with purple accents and smooth gradients.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -127,7 +127,7 @@ Elegant dark mode with purple accents and smooth gradients.
 Complete compatibility with daisyUI component library.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="daisy_ui"
@@ -135,7 +135,7 @@ Complete compatibility with daisyUI component library.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -152,7 +152,7 @@ Complete compatibility with daisyUI component library.
 Matches Flowbite's advanced table design system.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="flowbite"
@@ -160,7 +160,7 @@ Matches Flowbite's advanced table design system.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -177,7 +177,7 @@ Matches Flowbite's advanced table design system.
 High-density design with minimal spacing for maximum information display.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="compact"
@@ -185,7 +185,7 @@ High-density design with minimal spacing for maximum information display.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -202,7 +202,7 @@ High-density design with minimal spacing for maximum information display.
 Soft, gentle design with pastel colors for a calming interface.
 
 ```elixir
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme="pastel"
@@ -210,7 +210,7 @@ Soft, gentle design with pastel colors for a calming interface.
   <:col field="name" />
   <:col field="email" />
   <:col field="role" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 **Visual Features**:
@@ -244,13 +244,13 @@ defmodule MyApp.CustomTheme do
 end
 
 # Use in template
-<Cinder.Table.table
+<Cinder.collection
   resource={User}
   actor={@current_user}
   theme={MyApp.CustomTheme}
 >
   <:col field="name" />
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 ## Theme Inheritance

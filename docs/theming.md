@@ -19,11 +19,11 @@ Cinder provides a comprehensive theming system that allows complete visual custo
 
 The fastest way to style your table is with one of the 10 built-in themes:
 
-```elixir
-<Cinder.Table.table theme="modern" resource={MyApp.User} actor={@current_user}>
+```heex
+<Cinder.collection theme="modern" resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 ### Custom Theme Module
@@ -42,9 +42,9 @@ defmodule MyApp.CustomTheme do
 end
 
 # Use in your template
-<Cinder.Table.table theme={MyApp.CustomTheme} resource={MyApp.User} actor={@current_user}>
+<Cinder.collection theme={MyApp.CustomTheme} resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 ## Built-in Theme Presets
@@ -67,12 +67,12 @@ Available themes:
 
 ### Usage
 
-```elixir
+```heex
 <!-- Use any theme by name -->
-<Cinder.Table.table theme="modern" resource={MyApp.User} actor={@current_user}>
+<Cinder.collection theme="modern" resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
 ## Custom Themes with DSL

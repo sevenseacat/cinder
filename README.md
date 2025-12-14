@@ -1,75 +1,52 @@
 # Cinder
 
-A powerful, intelligent data table and list component for Ash Framework resources, in your Phoenix LiveView applications.
+A powerful, intelligent data collection component for Ash Framework resources in Phoenix LiveView.
 
 ## What is Cinder?
 
-Cinder transforms complex data table requirements into simple, declarative markup. With automatic type inference and intelligent defaults, you can build feature-rich tables for Ash resources and queries, with minimal configuration.
+Cinder transforms complex data table requirements into simple, declarative markup. With automatic type inference and intelligent defaults, you can build feature-rich tables, lists, and grids with minimal configuration.
 
 ```heex
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
   <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
   <:col :let={user} field="settings__country" filter>{user.settings.country}</:col>
-</Cinder.Table.table>
+</Cinder.collection>
 ```
 
-That's it! Cinder automatically provides:
-- ✅ Intelligent filter types based on your Ash resource
+Cinder automatically provides:
+- ✅ Intelligent filter types based on your Ash resource (enums become selects, dates become range pickers, etc.)
 - ✅ Interactive sorting with visual indicators
 - ✅ Pagination with efficient queries
-- ✅ Relationship support via dot notation
-- ✅ Embedded resource support with automatic enum detection
+- ✅ Relationship and embedded resource support
 - ✅ URL state management for bookmarkable views
-
-<video controls width="100%">
-  <source src="./docs/screenshots/demo.mp4" type="video/mp4">
-  <source src="./screenshots/demo.mp4" type="video/mp4">
-</video>
-
-*Sort and filter by calculations, aggregates, attributes, or even relationship data!*
 
 ## Key Features
 
-- **📋 Multiple Layouts**: Table and List/Card layouts with shared filtering, sorting, and pagination
-- **🧠 Intelligent Defaults**: Automatic filter type detection from Ash resource attributes
-- **⚡ Minimal Configuration**: 70% fewer attributes required compared to traditional table components
-- **🔗 Complete URL State Management**: Filters, pagination, and sorting synchronized with browser URL
-- **🌐 Relationship Support**: Dot notation for related fields (e.g., `user.department.name`)
-- **📦 Embedded Resource Support**: Double underscore notation for embedded fields (e.g., `user__profile__bio`) with automatic enum detection
-- **🔍 Filter-Only Slots**: Filter on any field without displaying it in the table
-- **🖱️ Interactive Row Actions**: Click handlers with Phoenix LiveView JS commands for navigation, modals, and custom actions
-- **🎨 Advanced Theming**: 8 built-in themes (modern, retro, futuristic, dark, daisy_ui, flowbite, compact, pastel) plus powerful DSL for custom themes
-- **🔧 Developer Experience**: Data attributes on every element make theme development and debugging effortless
-- **⚡ Real-time Filtering**: Six filter types with debounced updates
-- **🌍 Internationalization**: Built-in translations for multiple languages (English, Dutch, Swedish)
-- **🔐 Ash Integration**: Native support for Ash Framework resources and authorization
+- **📋 Multiple Layouts**: Table, List, and Grid with shared filtering, sorting, and pagination
+- **🧠 Intelligent Defaults**: Automatic filter type detection from Ash attributes
+- **🔗 URL State Management**: Filters, pagination, and sorting synchronized with browser URL
+- **🌐 Relationship Support**: Dot notation for related fields (`user.department.name`)
+- **📦 Embedded Resources**: Double underscore notation (`profile__country`) with automatic enum detection
+- **🎨 Theming**: 9 built-in themes plus DSL for custom themes
+- **🌍 Internationalization**: Built-in translations (English, Dutch, Swedish)
 
 ## Installation
 
 ### Using Igniter (Recommended)
 
-If you're using [Igniter](https://hexdocs.pm/igniter) in your project:
-
 ```bash
 mix igniter.install cinder
 ```
 
-This will automatically:
-- Add Cinder to your dependencies
-- Configure Tailwind CSS to include Cinder's styles
-- Provide setup instructions and examples
-
 ### Manual Installation
 
-Add `cinder` to your list of dependencies in `mix.exs`:
+Add to `mix.exs`:
 
 ```elixir
 def deps do
-  [
-    {:cinder, "~> 0.6"}
-  ]
+  [{:cinder, "~> 0.9"}]
 end
 ```
 
@@ -80,126 +57,34 @@ mix deps.get
 mix cinder.install  # Configure Tailwind CSS
 ```
 
-The installer will automatically update your Tailwind configuration to include Cinder's CSS classes. If automatic configuration fails, it will provide manual setup instructions.
-
 ## Quick Start
 
-### Basic Table
-
 ```heex
-<Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
-  <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
-  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-</Cinder.Table.table>
+  <:col :let={user} field="role" filter>{user.role}</:col>
+</Cinder.collection>
 ```
 
-### List/Card Layout
-
-For non-tabular displays, use `Cinder.List` with custom item templates:
+For list or grid layouts:
 
 ```heex
-<Cinder.List.list resource={MyApp.User} actor={@current_user}>
-  <:col field="name" filter sort search />
-  <:col field="status" filter={:select} />
-
-  <:item :let={user}>
-    <div class="p-4 border-b hover:bg-gray-50">
-      <h3 class="font-bold">{user.name}</h3>
-      <p class="text-gray-600">{user.email}</p>
-    </div>
-  </:item>
-</Cinder.List.list>
-```
-
-For grid layouts, override the container class:
-
-```heex
-<Cinder.List.list resource={MyApp.Product} container_class="grid grid-cols-3 gap-4">
+<Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid} grid_columns={3}>
   <:col field="name" filter sort />
   <:item :let={product}>
     <div class="p-4 border rounded">{product.name}</div>
   </:item>
-</Cinder.List.list>
-```
-
-### Advanced Query Usage
-
-For complex requirements, use the `query` parameter:
-
-```heex
-<Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-</Cinder.Table.table>
-```
-
-### Interactive Features
-
-Add interactivity with row clicks or action columns:
-
-```heex
-<Cinder.Table.table
-  resource={MyApp.User}
-  actor={@current_user}
-  row_click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-
-  <!-- Action column - no field required -->
-  <:col :let={user} label="Actions">
-    <.link patch={~p"/users/#{user.id}/edit"}>Edit</.link>
-  </:col>
-</Cinder.Table.table>
-```
-
-### Theming
-
-Configure a default theme:
-
-```elixir
-# config/config.exs
-config :cinder, default_theme: "modern"
-```
-
-Available themes: `"default"`, `"modern"`, `"retro"`, `"futuristic"`, `"dark"`, `"daisy_ui"`, `"flowbite"`, `"compact"`, `"pastel"`
-
-### URL State Management
-
-Enable bookmarkable URLs by adding URL sync to your LiveView:
-
-```elixir
-defmodule MyAppWeb.UsersLive do
-  use MyAppWeb, :live_view
-  use Cinder.Table.UrlSync
-
-  def handle_params(params, uri, socket) do
-    socket = Cinder.Table.UrlSync.handle_params(params, uri, socket)
-    {:noreply, socket}
-  end
-
-  def render(assigns) do
-    ~H"""
-    <Cinder.Table.table resource={MyApp.User} actor={@current_user} url_state={@url_state}>
-      <:col :let={user} field="name" filter sort>{user.name}</:col>
-    </Cinder.Table.table>
-    """
-  end
-end
+</Cinder.collection>
 ```
 
 ## Documentation
 
-- **`Cinder.Table`** - All the configuration options for `table` components and `col` slots.
-- **[Complete Examples](docs/examples.md)** - Comprehensive usage examples for all features
-- **[Theming Guide](docs/theming.md)** - How to develop and use table themes
-- **[Localization](docs/localization.md)** - Internationalization support and translations
-- **[Module Documentation](https://hexdocs.pm/cinder)** - Full API reference
-- **[Hex Package](https://hex.pm/packages/cinder)** - Package information
-
-For detailed examples of filters, sorting, theming, relationships, and advanced query usage, see the [examples documentation](docs/examples.md).
+- **[Examples Guide](docs/examples.md)** - Comprehensive usage examples for all features
+- **[Theming Guide](docs/theming.md)** - Built-in themes and custom theme creation
+- **[Localization Guide](docs/localization.md)** - Internationalization support
+- **[Upgrading Guide](docs/upgrading.md)** - Migration instructions from older versions
+- **[HexDocs](https://hexdocs.pm/cinder)** - Full API reference
 
 ## Requirements
 
@@ -207,10 +92,6 @@ For detailed examples of filters, sorting, theming, relationships, and advanced 
 - Ash Framework 3.0+
 - Elixir 1.17+
 
-## Contributing
-
-Contributions are welcome! Please submit pull requests to our GitHub repository.
-
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see LICENSE file for details.
