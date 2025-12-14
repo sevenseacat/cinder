@@ -69,7 +69,7 @@ defmodule Cinder.Table.Refresh do
       end
   """
   def refresh_table(socket, table_id) when is_binary(table_id) do
-    send_update(Cinder.Table.LiveComponent, id: table_id, refresh: true)
+    send_update(Cinder.Data.LiveComponent, id: table_id, refresh: true)
     socket
   end
 
@@ -94,7 +94,7 @@ defmodule Cinder.Table.Refresh do
   """
   def refresh_tables(socket, table_ids) when is_list(table_ids) do
     Enum.each(table_ids, fn table_id ->
-      send_update(Cinder.Table.LiveComponent, id: table_id, refresh: true)
+      send_update(Cinder.Data.LiveComponent, id: table_id, refresh: true)
     end)
 
     socket

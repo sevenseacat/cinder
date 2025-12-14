@@ -569,8 +569,9 @@ defmodule Cinder.Table do
     ~H"""
     <div class={["cinder-table", @class]}>
       <.live_component
-        module={Cinder.Table.LiveComponent}
+        module={Cinder.Data.LiveComponent}
         id={@id}
+        renderer={Cinder.Renderers.Table}
         query={@normalized_query}
         actor={@resolved_options.actor}
         tenant={@resolved_options.tenant}
