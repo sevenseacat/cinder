@@ -165,7 +165,7 @@ defmodule Cinder.Themes.DaisyUI do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-base-200"
-    set :list_item_class, "py-3 px-4 text-base-content"
+    set :list_item_class, ""
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-base-200 transition-colors"

@@ -213,7 +213,7 @@ defmodule Cinder.Themes.Pastel do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-pink-200"
-    set :list_item_class, "py-3 px-4 text-gray-700"
+    set :list_item_class, ""
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-pink-50 transition-colors duration-150"

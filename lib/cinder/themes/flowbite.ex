@@ -225,7 +225,7 @@ defmodule Cinder.Themes.Flowbite do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-gray-200 dark:divide-gray-700"
-    set :list_item_class, "py-4 px-4 text-gray-900 dark:text-white"
+    set :list_item_class, ""
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

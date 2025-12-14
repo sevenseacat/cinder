@@ -194,7 +194,7 @@ defmodule Cinder.Themes.Modern do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-gray-200"
-    set :list_item_class, "py-3 px-4 text-gray-900"
+    set :list_item_class, ""
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-blue-50/30 transition-colors duration-150"

@@ -221,7 +221,7 @@ defmodule Cinder.Themes.Futuristic do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-green-500/20"
-    set :list_item_class, "py-3 px-4 text-blue-100"
+    set :list_item_class, ""
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-green-500/10 transition-colors duration-200"

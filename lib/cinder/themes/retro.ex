@@ -219,7 +219,7 @@ defmodule Cinder.Themes.Retro do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-pink-500/30"
-    set :list_item_class, "py-3 px-4 text-cyan-100"
+    set :list_item_class, ""
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-pink-500/10 transition-colors duration-150"

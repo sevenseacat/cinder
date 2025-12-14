@@ -205,7 +205,7 @@ defmodule Cinder.Themes.Dark do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-gray-700"
-    set :list_item_class, "py-3 px-4 text-gray-200"
+    set :list_item_class, ""
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-gray-700/50 transition-colors duration-150"
