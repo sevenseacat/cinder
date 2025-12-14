@@ -11,8 +11,9 @@ defmodule Cinder.Data.State do
   to maintain its own event handlers while delegating the actual logic to shared code.
   """
 
-  import Phoenix.Component, only: [assign: 2, assign: 3]
+  import Phoenix.Component, only: [assign: 3]
   require Logger
+  require Phoenix.LiveView
 
   # ============================================================================
   # FILTER STATE MANAGEMENT

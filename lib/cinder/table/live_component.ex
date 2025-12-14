@@ -9,6 +9,7 @@ defmodule Cinder.Table.LiveComponent do
   require Ash.Query
   require Logger
   alias Phoenix.LiveView.JS
+  alias Cinder.Data.State, as: DataState
   use Cinder.Messages
 
   @impl true
@@ -131,11 +132,9 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_event("goto_page", %{"page" => page}, socket) do
-    page = String.to_integer(page)
-
     socket =
       socket
-      |> assign(:current_page, page)
+      |> DataState.goto_page(page)
       |> notify_state_change()
       |> load_data()
 
@@ -144,17 +143,9 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_event("change_page_size", %{"page_size" => page_size}, socket) do
-    page_size = String.to_integer(page_size)
-
-    # Update the page size config with the new selected size
-    updated_config = %{socket.assigns.page_size_config | selected_page_size: page_size}
-
     socket =
       socket
-      |> assign(:page_size, page_size)
-      |> assign(:page_size_config, updated_config)
-      # Reset to page 1 when changing page size
-      |> assign(:current_page, 1)
+      |> DataState.change_page_size(page_size)
       |> notify_state_change()
       |> load_data()
 
@@ -163,64 +154,37 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_event("clear_filter", %{"key" => "search"}, socket) do
-    # Handle search clearing
     socket =
       socket
-      |> assign(:search_term, "")
-      |> assign(:current_page, 1)
+      |> DataState.clear_search()
       |> load_data()
-
-    # Notify parent about state changes
-    socket = notify_state_change(socket)
+      |> notify_state_change()
 
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("clear_filter", %{"key" => key}, socket) do
-    new_filters = Cinder.FilterManager.clear_filter(socket.assigns.filters, key)
-
     socket =
       socket
-      |> assign(:filters, new_filters)
-      |> assign(:current_page, 1)
+      |> DataState.clear_filter(key)
       |> load_data()
 
-    # Notify parent about state changes
-    socket = notify_state_change(socket, new_filters)
+    socket = notify_state_change(socket, socket.assigns.filters)
 
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("toggle_sort", %{"key" => key}, socket) do
-    current_sort = socket.assigns.sort_by
-
-    # Find the column to get its sort cycle configuration
-    column = Enum.find(socket.assigns.col, &(&1.field == key))
-    sort_cycle = if column, do: column.sort_cycle, else: nil
-
-    # Use cycle-aware sort toggling
-    new_sort = Cinder.QueryBuilder.toggle_sort_with_cycle(current_sort, key, sort_cycle)
+    socket = DataState.toggle_sort(socket, key)
 
     # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
-    url_sync_enabled = !!socket.assigns[:on_state_change]
-
     socket =
-      if url_sync_enabled do
-        # URL sync enabled: update state but don't load data yet
-        # Data will be loaded via handle_params when URL updates
+      if DataState.url_sync_enabled?(socket) do
         socket
-        |> assign(:sort_by, new_sort)
-        |> assign(:current_page, 1)
-        |> assign(:user_has_interacted, true)
       else
-        # URL sync disabled: load data immediately
-        socket
-        |> assign(:sort_by, new_sort)
-        |> assign(:current_page, 1)
-        |> assign(:user_has_interacted, true)
-        |> load_data()
+        load_data(socket)
       end
 
     notify_state_change(socket)
@@ -236,58 +200,29 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_event("clear_all_filters", _params, socket) do
-    new_filters = Cinder.FilterManager.clear_all_filters(socket.assigns.filters)
-
     socket =
       socket
-      |> assign(:filters, new_filters)
-      |> assign(:current_page, 1)
+      |> DataState.clear_all_filters()
       |> load_data()
-
-    # Notify parent about state changes
-    socket = notify_state_change(socket)
+      |> notify_state_change()
 
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("filter_change", params, socket) do
-    # Process filters - use empty map when no "filters" key to handle unchecked checkboxes
-    new_filters =
-      Map.get(params, "filters", %{})
-      |> Cinder.FilterManager.params_to_filters(
-        Map.get(socket.assigns, :filter_columns, socket.assigns.columns)
-      )
-
-    # Process search if present
-    search_term =
-      case Map.get(params, "search") do
-        nil -> socket.assigns.search_term
-        term -> term
-      end
+    socket = DataState.apply_filter_change(socket, params)
 
     # Check if URL sync is enabled - if so, skip data loading and let handle_params do it
-    url_sync_enabled = !!socket.assigns[:on_state_change]
-
     socket =
-      if url_sync_enabled do
-        # URL sync enabled: update state but don't load data yet
-        # Data will be loaded via handle_params when URL updates
+      if DataState.url_sync_enabled?(socket) do
         socket
-        |> assign(:filters, new_filters)
-        |> assign(:search_term, search_term)
-        |> assign(:current_page, 1)
       else
-        # URL sync disabled: load data immediately
-        socket
-        |> assign(:filters, new_filters)
-        |> assign(:search_term, search_term)
-        |> assign(:current_page, 1)
-        |> load_data()
+        load_data(socket)
       end
 
     # Notify parent about state changes
-    socket = notify_state_change(socket, new_filters)
+    socket = notify_state_change(socket, socket.assigns.filters)
 
     {:noreply, socket}
   end
@@ -748,59 +683,17 @@ defmodule Cinder.Table.LiveComponent do
 
   @impl true
   def handle_async(:load_data, {:ok, {:ok, {results, page_info}}}, socket) do
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:data, results)
-      |> assign(:page_info, page_info)
-
-    {:noreply, socket}
+    {:noreply, DataState.handle_load_success(socket, results, page_info)}
   end
 
   @impl true
   def handle_async(:load_data, {:ok, {:error, error}}, socket) do
-    # Log error for developer debugging
-    Logger.error(
-      "Cinder table query failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
-      %{
-        resource: socket.assigns.query,
-        filters: socket.assigns.filters,
-        sort_by: socket.assigns.sort_by,
-        current_page: socket.assigns.current_page,
-        error: inspect(error)
-      }
-    )
-
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:data, [])
-      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
-
-    {:noreply, socket}
+    {:noreply, DataState.handle_load_error(socket, error)}
   end
 
   @impl true
   def handle_async(:load_data, {:exit, reason}, socket) do
-    # Log error for developer debugging
-    Logger.error(
-      "Cinder table query crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
-      %{
-        resource: socket.assigns.query,
-        filters: socket.assigns.filters,
-        sort_by: socket.assigns.sort_by,
-        current_page: socket.assigns.current_page,
-        reason: inspect(reason)
-      }
-    )
-
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:data, [])
-      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
-
-    {:noreply, socket}
+    {:noreply, DataState.handle_load_crash(socket, reason)}
   end
 
   # Helper functions for row click functionality
