@@ -16,8 +16,8 @@ defmodule Cinder.Components.List do
       # List container - controls layout (list vs grid is just CSS!)
       list_container_class: "divide-y divide-gray-200",
 
-      # List item styling - minimal defaults, user's <:item> slot controls layout
-      list_item_class: "",
+      # List item styling - sensible defaults for vertical lists
+      list_item_class: "py-3 px-4 text-gray-900",
       list_item_clickable_class: "cursor-pointer hover:bg-gray-50 transition-colors",
 
       # Sort container - card-like panel matching filter styling

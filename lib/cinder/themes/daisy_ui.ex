@@ -165,7 +165,7 @@ defmodule Cinder.Themes.DaisyUI do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-base-200"
-    set :list_item_class, ""
+    set :list_item_class, "py-3 px-4 text-base-content"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-base-200 transition-colors"
@@ -182,5 +182,13 @@ defmodule Cinder.Themes.DaisyUI do
     set :sort_icon_class, "ml-1"
     set :sort_asc_icon, "↑"
     set :sort_desc_icon, "↓"
+  end
+
+  component Cinder.Components.Grid do
+    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    set :grid_item_class, "card bg-base-100 shadow-md"
+
+    set :grid_item_clickable_class,
+        "cursor-pointer hover:shadow-lg transition-shadow"
   end
 end

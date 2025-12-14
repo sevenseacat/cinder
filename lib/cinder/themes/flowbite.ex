@@ -225,7 +225,7 @@ defmodule Cinder.Themes.Flowbite do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-gray-200 dark:divide-gray-700"
-    set :list_item_class, ""
+    set :list_item_class, "py-4 px-4 text-gray-900 dark:text-white"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -252,5 +252,15 @@ defmodule Cinder.Themes.Flowbite do
     set :sort_icon_class, "ml-1"
     set :sort_asc_icon, "↑"
     set :sort_desc_icon, "↓"
+  end
+
+  component Cinder.Components.Grid do
+    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+
+    set :grid_item_class,
+        "p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md"
+
+    set :grid_item_clickable_class,
+        "cursor-pointer hover:shadow-lg transition-shadow"
   end
 end

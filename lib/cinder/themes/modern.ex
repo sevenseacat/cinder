@@ -194,7 +194,7 @@ defmodule Cinder.Themes.Modern do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-gray-200"
-    set :list_item_class, ""
+    set :list_item_class, "py-3 px-4 text-gray-900"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-blue-50/30 transition-colors duration-150"
@@ -218,5 +218,13 @@ defmodule Cinder.Themes.Modern do
     set :sort_icon_class, "ml-1"
     set :sort_asc_icon, "↑"
     set :sort_desc_icon, "↓"
+  end
+
+  component Cinder.Components.Grid do
+    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    set :grid_item_class, "p-4 bg-white border border-gray-200 rounded-lg shadow-sm"
+
+    set :grid_item_clickable_class,
+        "cursor-pointer hover:shadow-md transition-shadow duration-150"
   end
 end

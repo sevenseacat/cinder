@@ -213,7 +213,7 @@ defmodule Cinder.Themes.Pastel do
 
   component Cinder.Components.List do
     set :list_container_class, "divide-y divide-pink-200"
-    set :list_item_class, ""
+    set :list_item_class, "py-3 px-4 text-gray-700"
 
     set :list_item_clickable_class,
         "cursor-pointer hover:bg-pink-50 transition-colors duration-150"
@@ -240,5 +240,15 @@ defmodule Cinder.Themes.Pastel do
     set :sort_icon_class, "ml-1"
     set :sort_asc_icon, "↑"
     set :sort_desc_icon, "↓"
+  end
+
+  component Cinder.Components.Grid do
+    set :grid_container_class, "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+
+    set :grid_item_class,
+        "p-4 bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200 rounded-2xl shadow-lg"
+
+    set :grid_item_clickable_class,
+        "cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-150"
   end
 end
