@@ -105,6 +105,8 @@ defmodule Cinder.ListTest do
       html = render_component(&Cinder.List.list/1, assigns)
 
       assert html =~ "cinder-list"
+      # Verify the custom container class is rendered (overrides theme default)
+      assert html =~ "grid grid-cols-3 gap-4"
     end
   end
 

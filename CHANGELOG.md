@@ -2,6 +2,12 @@
 
 ## Unreleased 
 
+### Features
+
+* Add `Cinder.List` component for flexible list and grid layouts (#9)
+
+## v0.8.1 (2025-12-04)
+
 ### Bug fixes 
 
 * Fix page size resetting to default when parent LiveView re-renders - user-selected page size now persists across parent state changes

@@ -260,6 +260,7 @@ component Cinder.Components.Filters do
   set :filter_select_label_class, ""
   set :filter_select_empty_class, ""
   set :filter_select_arrow_class, "w-4 h-4 ml-2 flex-shrink-0"
+  set :filter_select_placeholder_class, "text-gray-400"
   set :filter_boolean_container_class, ""
   set :filter_boolean_option_class, ""
   set :filter_boolean_radio_class, ""

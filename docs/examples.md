@@ -20,6 +20,7 @@ Choose `resource` for most cases, `query` for complex requirements like custom r
 - [Searching](#searching)
 - [Sorting](#sorting)
 - [Custom Filter Functions](#custom-filter-functions)
+- [List Layout](#list-layout)
 - [Theming](#theming)
 - [URL State Management](#url-state-management)
 - [Relationship Fields](#relationship-fields)
@@ -1129,6 +1130,82 @@ You can mix standard sorting, sort cycles, and custom filter functions:
   </:col>
 </Cinder.Table.table>
 ```
+
+## List Layout
+
+The `Cinder.List` component provides a flexible alternative to tables for displaying collections. It shares all the same filtering, sorting, pagination, and URL sync capabilities as `Cinder.Table`, but renders items using a customizable `<:item>` slot instead of table rows.
+
+### Basic List
+
+```heex
+<Cinder.List.list resource={MyApp.User} actor={@current_user}>
+  <:col field="name" filter sort search />
+  <:col field="email" filter />
+  <:col field="status" filter={:select} />
+
+  <:item :let={user}>
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="font-bold">{user.name}</h3>
+        <p class="text-gray-600">{user.email}</p>
+      </div>
+      <span class="px-2 py-1 text-sm bg-gray-100 rounded">{user.status}</span>
+    </div>
+  </:item>
+</Cinder.List.list>
+```
+
+The `<:col>` slots define which fields can be filtered, sorted, and searched - they don't render anything visible. The `<:item>` slot controls how each record is displayed.
+
+Since lists don't have table headers, sort controls render as a button group. Customize the label with `sort_label="Order by:"`.
+
+### Grid Layout
+
+Transform a list into a grid by overriding the `container_class`:
+
+```heex
+<Cinder.List.list
+  resource={MyApp.Product}
+  actor={@current_user}
+  container_class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+>
+  <:col field="name" filter sort search />
+  <:col field="category" filter={:select} />
+  <:col field="price" sort />
+
+  <:item :let={product}>
+    <div class="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+      <h3 class="font-bold text-lg">{product.name}</h3>
+      <p class="text-gray-600">{product.category}</p>
+      <p class="text-xl font-semibold mt-2">${product.price}</p>
+    </div>
+  </:item>
+</Cinder.List.list>
+```
+
+### Interactive Items
+
+Add click handlers to make items interactive:
+
+```heex
+<Cinder.List.list
+  resource={MyApp.Topic}
+  actor={@current_user}
+  item_click={fn topic -> JS.navigate(~p"/topics/#{topic.id}") end}
+>
+  <:col field="name" filter sort />
+  <:col field="type" filter={:select} />
+
+  <:item :let={topic}>
+    <div class="p-4">
+      <h3 class="font-bold">{topic.name}</h3>
+      <p class="text-sm text-gray-500">{topic.type}</p>
+    </div>
+  </:item>
+</Cinder.List.list>
+```
+
+When `item_click` is provided, the theme's hover and cursor styles are automatically applied to each item.
 
 ## Theming
 
