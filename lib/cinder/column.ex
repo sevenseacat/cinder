@@ -362,6 +362,10 @@ defmodule Cinder.Column do
     # Extract the actual resource from query or resource
     resource = extract_resource_from_query_or_resource(resource_or_query)
 
+    # Check if a custom filter_fn is provided - if so, always allow filtering
+    # since the user is providing their own filtering logic
+    has_custom_filter_fn = Map.get(slot, :filter_fn) != nil
+
     # Check if the slot explicitly set filterable (user override)
     slot_filterable = Map.get(slot, :filterable)
 
@@ -375,16 +379,21 @@ defmodule Cinder.Column do
         {false, nil}
 
       true ->
-        # User explicitly wants filtering - check if it's possible
-        {auto_filterable, auto_warning} = determine_auto_filterability(resource, field)
-
-        if auto_filterable do
-          # User wants filtering on something that can be filtered - OK
+        # If there's a custom filter_fn, allow filtering regardless of field existence
+        if has_custom_filter_fn do
           {true, nil}
         else
-          # User wants filtering on something that can't be filtered
-          # Keep it non-filterable and show the warning about why it can't work
-          {false, auto_warning}
+          # User explicitly wants filtering - check if it's possible
+          {auto_filterable, auto_warning} = determine_auto_filterability(resource, field)
+
+          if auto_filterable do
+            # User wants filtering on something that can be filtered - OK
+            {true, nil}
+          else
+            # User wants filtering on something that can't be filtered
+            # Keep it non-filterable and show the warning about why it can't work
+            {false, auto_warning}
+          end
         end
     end
   end

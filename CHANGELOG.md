@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased 
+
+### Features 
+
+* Allow filters for non-existent fields when a custom `filter_fn` is attached
+
 ## v0.9.0-beta.1 (2025-12-15)
 
 ### Features
