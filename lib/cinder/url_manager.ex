@@ -37,14 +37,30 @@ defmodule Cinder.UrlManager do
       %{title: "test", page: "2", sort: "-title"}
 
   """
-  def encode_state(%{filters: filters, current_page: current_page, sort_by: sort_by} = state) do
+  def encode_state(%{filters: filters, sort_by: sort_by} = state) do
     encoded_filters = encode_filters(filters)
 
+    # Handle pagination state based on mode
+    # For keyset pagination, we store after/before cursors; for offset, we store page number
     state_with_page =
-      if current_page > 1 do
-        Map.put(encoded_filters, :page, to_string(current_page))
-      else
-        encoded_filters
+      cond do
+        # Keyset pagination with after cursor
+        is_binary(Map.get(state, :after)) and Map.get(state, :after) != "" ->
+          Map.put(encoded_filters, :after, state.after)
+
+        # Keyset pagination with before cursor
+        is_binary(Map.get(state, :before)) and Map.get(state, :before) != "" ->
+          Map.put(encoded_filters, :before, state.before)
+
+        # Offset pagination - store page number
+        true ->
+          current_page = Map.get(state, :current_page, 1)
+
+          if current_page > 1 do
+            Map.put(encoded_filters, :page, to_string(current_page))
+          else
+            encoded_filters
+          end
       end
 
     # Add page_size if different from default
@@ -110,7 +126,9 @@ defmodule Cinder.UrlManager do
       current_page: decode_page(Map.get(url_params, "page")),
       sort_by: decode_sort(Map.get(url_params, "sort"), columns),
       page_size: decode_page_size(Map.get(url_params, "page_size")),
-      search_term: decode_search(Map.get(url_params, "search"))
+      search_term: decode_search(Map.get(url_params, "search")),
+      after: decode_cursor(Map.get(url_params, "after")),
+      before: decode_cursor(Map.get(url_params, "before"))
     }
   end
 
@@ -409,6 +427,29 @@ defmodule Cinder.UrlManager do
 
   def decode_page_size(nil), do: 25
   def decode_page_size(_), do: 25
+
+  @doc """
+  Decodes keyset cursor from URL parameter for keyset pagination.
+
+  Used for both `after` and `before` cursor parameters.
+  Returns nil for missing or empty cursor parameters.
+
+  ## Examples
+
+      iex> Cinder.UrlManager.decode_cursor("g2wAAAABbQAAAARha3Vsag==")
+      "g2wAAAABbQAAAARha3Vsag=="
+
+      iex> Cinder.UrlManager.decode_cursor(nil)
+      nil
+
+      iex> Cinder.UrlManager.decode_cursor("")
+      nil
+
+  """
+  def decode_cursor(nil), do: nil
+  def decode_cursor(""), do: nil
+  def decode_cursor(cursor) when is_binary(cursor), do: cursor
+  def decode_cursor(_), do: nil
 
   @doc """
   Sends state change notification to parent LiveView.

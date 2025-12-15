@@ -75,12 +75,12 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
         query_opts: []
       ]
 
-      {:ok, {results, page_info}} = QueryBuilder.build_and_execute(TestUser, options)
+      {:ok, page} = QueryBuilder.build_and_execute(TestUser, options)
 
-      # Should work with default paginated action
-      assert is_list(results)
-      assert page_info.current_page == 1
-      assert is_integer(page_info.total_count)
+      # Should work with default paginated action - returns Ash.Page.Offset
+      assert %Ash.Page.Offset{} = page
+      assert is_list(page.results)
+      assert is_integer(page.count)
     end
 
     test "handles pre-built query with action that has arguments - the main fix" do
@@ -99,15 +99,11 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
       ]
 
       # This should NOT raise ActionRequiresPagination error
-      {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+      {:ok, page} = QueryBuilder.build_and_execute(query, options)
 
-      # Should find Alice
-      assert length(results) == 1
-      assert hd(results).name == "Alice"
-
-      # Should still provide pagination info for UI consistency
-      assert page_info.total_count == 1
-      assert page_info.current_page == 1
+      # Should find Alice - non-paginated action returns map with :results
+      assert length(page.results) == 1
+      assert hd(page.results).name == "Alice"
     end
 
     test "handles pre-built query with default paginated action" do
@@ -123,11 +119,11 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
         query_opts: []
       ]
 
-      {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+      {:ok, page} = QueryBuilder.build_and_execute(query, options)
 
-      # Should use normal pagination
-      assert is_list(results)
-      assert page_info.current_page == 1
+      # Should use normal pagination - returns Ash.Page.Offset
+      assert %Ash.Page.Offset{} = page
+      assert is_list(page.results)
     end
 
     test "handles empty results from argument-based action" do
@@ -143,11 +139,10 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
         query_opts: []
       ]
 
-      {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+      {:ok, page} = QueryBuilder.build_and_execute(query, options)
 
-      assert results == []
-      assert page_info.total_count == 0
-      assert page_info.current_page == 1
+      # Non-paginated action returns map with :results
+      assert page.results == []
     end
   end
 
@@ -172,14 +167,10 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
         query_opts: []
       ]
 
-      {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+      {:ok, page} = QueryBuilder.build_and_execute(query, options)
 
       # Should return all results since action doesn't support pagination
-      assert length(results) == 5
-      assert page_info.total_count == 5
-      assert page_info.current_page == 1
-      assert page_info.total_pages == 1
-      assert page_info.has_next_page == false
+      assert length(page.results) == 5
     end
   end
 
@@ -203,11 +194,10 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
       # Capture log output to verify the warning appears
       log_output =
         capture_log(fn ->
-          {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+          {:ok, page} = QueryBuilder.build_and_execute(query, options)
 
           # Should return matching results
-          assert length(results) == 1
-          assert page_info.non_paginated == true
+          assert length(page.results) == 1
         end)
 
       # Should warn about pagination configuration mismatch
@@ -235,11 +225,10 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
       # Capture log output to verify no warning appears
       log_output =
         capture_log(fn ->
-          {:ok, {results, page_info}} = QueryBuilder.build_and_execute(query, options)
+          {:ok, page} = QueryBuilder.build_and_execute(query, options)
 
           # Should return matching results
-          assert length(results) == 1
-          assert page_info.non_paginated == true
+          assert length(page.results) == 1
         end)
 
       # Should not warn about pagination

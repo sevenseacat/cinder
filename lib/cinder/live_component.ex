@@ -65,15 +65,54 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("goto_page", %{"page" => page}, socket) do
-    page = String.to_integer(page)
+    # Only works in offset pagination mode
+    if socket.assigns.pagination_mode == :offset do
+      page = String.to_integer(page)
 
-    socket =
-      socket
-      |> assign(:current_page, page)
-      |> notify_state_change()
-      |> load_data()
+      socket =
+        socket
+        |> assign(:current_page, page)
+        |> notify_state_change()
+        |> load_data()
 
-    {:noreply, socket}
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Keyset pagination: Navigate to next page
+  @impl true
+  def handle_event("next_page", _params, socket) do
+    if socket.assigns.pagination_mode == :keyset do
+      socket =
+        socket
+        |> assign(:after_keyset, socket.assigns.last_keyset)
+        |> assign(:before_keyset, nil)
+        |> notify_state_change()
+        |> load_data()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Keyset pagination: Navigate to previous page
+  @impl true
+  def handle_event("prev_page", _params, socket) do
+    if socket.assigns.pagination_mode == :keyset do
+      socket =
+        socket
+        |> assign(:before_keyset, socket.assigns.first_keyset)
+        |> assign(:after_keyset, nil)
+        |> notify_state_change()
+        |> load_data()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -86,6 +125,9 @@ defmodule Cinder.LiveComponent do
       |> assign(:page_size, page_size)
       |> assign(:page_size_config, updated_config)
       |> assign(:current_page, 1)
+      # Clear keyset cursors to restart from beginning when page size changes
+      |> assign(:after_keyset, nil)
+      |> assign(:before_keyset, nil)
       |> notify_state_change()
       |> load_data()
 
@@ -208,12 +250,14 @@ defmodule Cinder.LiveComponent do
   # ============================================================================
 
   @impl true
-  def handle_async(:load_data, {:ok, {:ok, {results, page_info}}}, socket) do
+  def handle_async(:load_data, {:ok, {:ok, page}}, socket) do
     socket =
       socket
       |> assign(:loading, false)
-      |> assign(:data, results)
-      |> assign(:page_info, page_info)
+      |> assign(:data, page.results)
+      |> assign(:page, page)
+      # Update keyset cursors for navigation (only relevant in keyset mode)
+      |> maybe_update_keyset_cursors(page)
 
     {:noreply, socket}
   end
@@ -235,7 +279,7 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(:loading, false)
       |> assign(:data, [])
-      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+      |> assign(:page, nil)
 
     {:noreply, socket}
   end
@@ -257,10 +301,35 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(:loading, false)
       |> assign(:data, [])
-      |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+      |> assign(:page, nil)
 
     {:noreply, socket}
   end
+
+  defp maybe_update_keyset_cursors(socket, %Ash.Page.Keyset{} = page) do
+    results = page.results
+    # Extract keysets from first and last results for navigation
+    first_keyset = get_keyset_from_result(List.first(results))
+    last_keyset = get_keyset_from_result(List.last(results))
+
+    socket
+    |> assign(:first_keyset, first_keyset)
+    |> assign(:last_keyset, last_keyset)
+  end
+
+  defp maybe_update_keyset_cursors(socket, _page), do: socket
+
+  defp get_keyset_from_result(nil), do: nil
+
+  defp get_keyset_from_result(result) do
+    case result do
+      %{__metadata__: %{keyset: keyset}} -> keyset
+      _ -> nil
+    end
+  end
+
+  defp maybe_put_cursor(state, _key, nil), do: state
+  defp maybe_put_cursor(state, key, cursor), do: Map.put(state, key, cursor)
 
   # ============================================================================
   # PRIVATE FUNCTIONS - State Notification
@@ -273,6 +342,7 @@ defmodule Cinder.LiveComponent do
     page_size_config = socket.assigns.page_size_config
     search_term = socket.assigns.search_term
     filter_field_names = socket.assigns.filter_field_names
+    pagination_mode = socket.assigns.pagination_mode
 
     state = %{
       filters: filters,
@@ -283,6 +353,16 @@ defmodule Cinder.LiveComponent do
       search_term: search_term,
       filter_field_names: filter_field_names
     }
+
+    # For keyset pagination, include after/before cursors for URL persistence
+    state =
+      if pagination_mode == :keyset do
+        state
+        |> maybe_put_cursor(:after, socket.assigns.after_keyset)
+        |> maybe_put_cursor(:before, socket.assigns.before_keyset)
+      else
+        state
+      end
 
     Cinder.UrlManager.notify_state_change(socket, state)
   end
@@ -306,7 +386,9 @@ defmodule Cinder.LiveComponent do
         current_page: Cinder.UrlManager.decode_page(Map.get(raw_params, "page")),
         sort_by: decoded_sorts,
         page_size: Cinder.UrlManager.decode_page_size(Map.get(raw_params, "page_size")),
-        search_term: Map.get(raw_params, "search", "")
+        search_term: Map.get(raw_params, "search", ""),
+        after: Cinder.UrlManager.decode_cursor(Map.get(raw_params, "after")),
+        before: Cinder.UrlManager.decode_cursor(Map.get(raw_params, "before"))
       }
 
       final_sort_by =
@@ -335,6 +417,16 @@ defmodule Cinder.LiveComponent do
           socket
         end
 
+      # Handle keyset cursors from URL (after/before params)
+      updated_socket =
+        if socket.assigns.pagination_mode == :keyset do
+          updated_socket
+          |> maybe_assign_cursor(:after_keyset, decoded_state.after)
+          |> maybe_assign_cursor(:before_keyset, decoded_state.before)
+        else
+          updated_socket
+        end
+
       updated_socket
       |> assign(:filters, decoded_state.filters)
       |> assign(:current_page, decoded_state.current_page)
@@ -344,6 +436,9 @@ defmodule Cinder.LiveComponent do
       decode_url_state_legacy(socket, assigns)
     end
   end
+
+  defp maybe_assign_cursor(socket, _key, nil), do: socket
+  defp maybe_assign_cursor(socket, key, cursor), do: assign(socket, key, cursor)
 
   defp decode_url_state_legacy(socket, assigns) do
     url_params =
@@ -405,6 +500,9 @@ defmodule Cinder.LiveComponent do
 
     updated_page_size_config = %{page_size_config | selected_page_size: selected_page_size}
 
+    # Determine pagination mode (default to :offset for backwards compatibility)
+    pagination_mode = assigns[:pagination_mode] || :offset
+
     socket
     |> assign(:page_size, selected_page_size)
     |> assign(:page_size_config, updated_page_size_config)
@@ -416,8 +514,14 @@ defmodule Cinder.LiveComponent do
     |> assign(:search_term, assigns[:search_term] || "")
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
-    |> assign(:page_info, Cinder.QueryBuilder.build_error_page_info())
+    |> assign(:page, nil)
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
+    # Keyset pagination state
+    |> assign(:pagination_mode, pagination_mode)
+    |> assign(:after_keyset, assigns[:after_keyset])
+    |> assign(:before_keyset, assigns[:before_keyset])
+    |> assign(:first_keyset, assigns[:first_keyset])
+    |> assign(:last_keyset, assigns[:last_keyset])
   end
 
   defp assign_column_definitions(socket) do
@@ -485,7 +589,10 @@ defmodule Cinder.LiveComponent do
       sort_by: sort_by,
       filters: filters,
       columns: columns,
-      search_term: search_term
+      search_term: search_term,
+      pagination_mode: pagination_mode,
+      after_keyset: after_keyset,
+      before_keyset: before_keyset
     } = socket.assigns
 
     resource_var = resource
@@ -501,7 +608,11 @@ defmodule Cinder.LiveComponent do
       columns: columns,
       search_term: search_term,
       search_fn: socket.assigns.search_fn,
-      pagination_configured: socket.assigns.page_size_config.configurable || page_size != 25
+      pagination_configured: socket.assigns.page_size_config.configurable || page_size != 25,
+      # Keyset pagination options
+      pagination_mode: pagination_mode,
+      after_keyset: after_keyset,
+      before_keyset: before_keyset
     ]
 
     socket

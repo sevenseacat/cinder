@@ -147,7 +147,9 @@ defmodule Cinder.UrlSync do
       existing_params = URI.decode_query(uri.query || "")
 
       # The collection manages these specific parameter keys
-      known_collection_keys = MapSet.new(["page", "sort", "page_size", "search"])
+      # Including after/before for keyset pagination
+      known_collection_keys =
+        MapSet.new(["page", "sort", "page_size", "search", "after", "before"])
 
       # Extract filter field names from encoded state (if provided)
       # This tells us exactly which parameters are collection-managed filter fields

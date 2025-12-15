@@ -84,14 +84,14 @@ defmodule Cinder.Renderers.Table do
       </div>
 
       <!-- Pagination -->
-      <div :if={@page_info.total_pages > 1} class={@theme.pagination_wrapper_class} {@theme.pagination_wrapper_data}>
-        <Pagination.render
-          page_info={@page_info}
-          page_size_config={@page_size_config}
-          theme={@theme}
-          myself={@myself}
-        />
-      </div>
+      <Pagination.render
+        page={@page}
+        page_size_config={@page_size_config}
+        theme={@theme}
+        myself={@myself}
+        show_pagination={@show_pagination}
+        pagination_mode={@pagination_mode}
+      />
     </div>
     """
   end

@@ -4,6 +4,7 @@
 
 ### Features 
 
+* Add keyset pagination support via `pagination="keyset"` for better performance on large datasets (#15)
 * Allow filters for non-existent fields when a custom `filter_fn` is attached
 
 ## v0.9.0-beta.1 (2025-12-15)

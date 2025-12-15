@@ -74,7 +74,20 @@ defmodule Cinder.QueryBuilder do
       ]
 
   ## Returns
-  A tuple `{:ok, {results, page_info}}` or `{:error, reason}`
+
+  Returns `{:ok, page}` on success or `{:error, reason}` on failure.
+
+  The `page` value depends on the pagination mode and action configuration:
+
+  - **Offset pagination** (`:pagination_mode` is `:offset`, default): Returns `Ash.Page.Offset` struct
+  - **Keyset pagination** (`:pagination_mode` is `:keyset`): Returns `Ash.Page.Keyset` struct
+  - **Non-paginated actions**: Returns `%{results: list()}` map (not a struct)
+
+  All return types support accessing results via `page.results`.
+
+  Note: Non-paginated actions return a plain map rather than an Ash.Page struct.
+  This means pattern matching on `%Ash.Page.Offset{}` or `%Ash.Page.Keyset{}` will
+  not match non-paginated results. Use `page.results` for consistent access.
   """
   def build_and_execute(resource_or_query, options) do
     actor = Keyword.fetch!(options, :actor)
@@ -89,6 +102,11 @@ defmodule Cinder.QueryBuilder do
     query_opts = Keyword.get(options, :query_opts, [])
     search_term = Keyword.get(options, :search_term, "")
     search_fn = Keyword.get(options, :search_fn)
+
+    # Keyset pagination options
+    pagination_mode = Keyword.get(options, :pagination_mode, :offset)
+    after_keyset = Keyword.get(options, :after_keyset)
+    before_keyset = Keyword.get(options, :before_keyset)
 
     try do
       # Determine effective tenant (explicit tenant takes precedence over query tenant)
@@ -113,14 +131,28 @@ defmodule Cinder.QueryBuilder do
           # Handle pagination based on action support
           case action_supports_pagination?(prepared_query) do
             true ->
-              execute_with_pagination(
-                prepared_query,
-                actor,
-                effective_tenant,
-                query_opts,
-                current_page,
-                page_size
-              )
+              case pagination_mode do
+                :keyset ->
+                  execute_with_keyset_pagination(
+                    prepared_query,
+                    actor,
+                    effective_tenant,
+                    query_opts,
+                    page_size,
+                    after_keyset,
+                    before_keyset
+                  )
+
+                :offset ->
+                  execute_with_pagination(
+                    prepared_query,
+                    actor,
+                    effective_tenant,
+                    query_opts,
+                    current_page,
+                    page_size
+                  )
+              end
 
             false ->
               # Check if user has configured pagination but action doesn't support it
@@ -222,7 +254,7 @@ defmodule Cinder.QueryBuilder do
   # Default for resources without explicit pagination
   defp action_supports_pagination?(_), do: true
 
-  # Execute query with pagination (existing behavior)
+  # Execute query with offset pagination (existing behavior)
   defp execute_with_pagination(query, actor, tenant, query_opts, current_page, page_size) do
     paginated_query =
       Ash.Query.page(query,
@@ -232,11 +264,9 @@ defmodule Cinder.QueryBuilder do
       )
 
     case Ash.read(paginated_query, build_ash_options(actor, tenant, query_opts)) do
-      {:ok, %{results: results, count: total_count}} ->
-        page_info =
-          build_page_info_with_total_count(results, current_page, page_size, total_count)
-
-        {:ok, {results, page_info}}
+      # We pass offset: so Ash always returns Ash.Page.Offset
+      {:ok, %Ash.Page.Offset{} = page} ->
+        {:ok, page}
 
       {:error, query_error} ->
         log_query_error(query.resource, query_error, current_page, page_size, query_opts, tenant)
@@ -244,26 +274,48 @@ defmodule Cinder.QueryBuilder do
     end
   end
 
+  # Execute query with keyset pagination (cursor-based)
+  defp execute_with_keyset_pagination(
+         query,
+         actor,
+         tenant,
+         query_opts,
+         page_size,
+         after_keyset,
+         before_keyset
+       ) do
+    # Build keyset pagination options
+    keyset_opts =
+      [limit: page_size, count: true]
+      |> maybe_add_keyset_cursor(:after, after_keyset)
+      |> maybe_add_keyset_cursor(:before, before_keyset)
+
+    paginated_query = Ash.Query.page(query, keyset_opts)
+
+    case Ash.read(paginated_query, build_ash_options(actor, tenant, query_opts)) do
+      # Ash returns Offset or Keyset depending on app config and parameters, accept both
+      {:ok, %Ash.Page.Keyset{} = page} ->
+        {:ok, page}
+
+      {:ok, %Ash.Page.Offset{} = page} ->
+        {:ok, page}
+
+      {:error, query_error} ->
+        log_query_error(query.resource, query_error, 1, page_size, query_opts, tenant)
+        {:error, query_error}
+    end
+  end
+
+  defp maybe_add_keyset_cursor(opts, _key, nil), do: opts
+  defp maybe_add_keyset_cursor(opts, key, cursor), do: Keyword.put(opts, key, cursor)
+
   # Execute query without pagination and return all results
   defp execute_without_pagination(query, actor, tenant, query_opts, _current_page, _page_size) do
     case Ash.read(query, build_ash_options(actor, tenant, query_opts)) do
       {:ok, results} ->
-        result_count = length(results)
-
-        # Return all results with simple page info indicating no pagination
-        page_info = %{
-          current_page: 1,
-          total_pages: 1,
-          total_count: result_count,
-          has_next_page: false,
-          has_previous_page: false,
-          start_index: if(result_count > 0, do: 1, else: 0),
-          end_index: result_count,
-          # Add flag to indicate this is a non-paginated result set
-          non_paginated: true
-        }
-
-        {:ok, {results, page_info}}
+        # No pagination - return nil (pagination controls won't be shown)
+        # Wrap results in a simple struct-like map for consistent access via .results
+        {:ok, %{results: results}}
 
       {:error, query_error} ->
         log_query_error(query.resource, query_error, 1, 0, query_opts, tenant)
@@ -709,40 +761,6 @@ defmodule Cinder.QueryBuilder do
       {^key, direction} -> direction
       nil -> nil
     end
-  end
-
-  @doc """
-  Builds pagination info from query results and total count.
-  """
-  def build_page_info_with_total_count(results, current_page, page_size, total_count) do
-    total_pages = max(1, ceil(total_count / page_size))
-    start_index = (current_page - 1) * page_size + 1
-    actual_end_index = start_index + length(results) - 1
-
-    %{
-      current_page: current_page,
-      total_pages: total_pages,
-      total_count: total_count,
-      has_next_page: current_page < total_pages,
-      has_previous_page: current_page > 1,
-      start_index: if(total_count > 0, do: start_index, else: 0),
-      end_index: if(total_count > 0, do: max(actual_end_index, 0), else: 0)
-    }
-  end
-
-  @doc """
-  Builds error pagination info for failed queries.
-  """
-  def build_error_page_info do
-    %{
-      current_page: 1,
-      total_pages: 1,
-      total_count: 0,
-      has_next_page: false,
-      has_previous_page: false,
-      start_index: 0,
-      end_index: 0
-    }
   end
 
   # Build options for Ash.Query.for_read/3 and Ash.read/2

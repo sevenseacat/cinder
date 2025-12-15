@@ -223,8 +223,8 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     ]
 
     case QueryBuilder.build_and_execute(TestUser, options) do
-      {:ok, {results, _}} ->
-        full_names = Enum.map(results, & &1.full_name_expr)
+      {:ok, page} ->
+        full_names = Enum.map(page.results, & &1.full_name_expr)
         expected_sorted = ["Alice Smith", "Bob Johnson", "Zoe Adams"]
 
         assert full_names == expected_sorted,
@@ -253,8 +253,8 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     # Either it crashes (error) or returns unsorted data (success but not sorted)
     # Both outcomes demonstrate the issue exists
     case result do
-      {:ok, {results, _}} ->
-        full_names = Enum.map(results, & &1.full_name_module)
+      {:ok, page} ->
+        full_names = Enum.map(page.results, & &1.full_name_module)
         expected_sorted = ["Alice Smith", "Bob Johnson", "Zoe Adams"]
 
         # If it's properly sorted, the issue has been fixed
@@ -306,8 +306,8 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
       end)
 
     case db_result do
-      {:ok, {results, _}} ->
-        names = Enum.map(results, & &1.full_name_expr)
+      {:ok, page} ->
+        names = Enum.map(page.results, & &1.full_name_expr)
         assert names == ["Alice Smith", "Bob Johnson", "Zoe Adams"]
 
       {:error, error} ->
@@ -315,8 +315,8 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     end
 
     case memory_result do
-      {:ok, {results, _}} ->
-        names = Enum.map(results, & &1.full_name_module)
+      {:ok, page} ->
+        names = Enum.map(page.results, & &1.full_name_module)
         expected = ["Alice Smith", "Bob Johnson", "Zoe Adams"]
 
         # Test passes whether sorting works or doesn't work
@@ -753,11 +753,11 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
       query_opts: [load: [:full_name_expr]]
     ]
 
-    assert {:ok, {results, _page_info}} = QueryBuilder.build_and_execute(TestUser, valid_options)
-    assert length(results) > 0
+    assert {:ok, page} = QueryBuilder.build_and_execute(TestUser, valid_options)
+    assert length(page.results) > 0
 
     # Verify sorting worked
-    full_names = Enum.map(results, & &1.full_name_expr)
+    full_names = Enum.map(page.results, & &1.full_name_expr)
     assert full_names == Enum.sort(full_names)
 
     # Test filtering still works (no regression)
@@ -771,10 +771,10 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
       query_opts: [load: [:full_name_expr]]
     ]
 
-    assert {:ok, {filtered_results, _}} = QueryBuilder.build_and_execute(TestUser, filter_options)
+    assert {:ok, filtered_page} = QueryBuilder.build_and_execute(TestUser, filter_options)
 
-    if length(filtered_results) > 0 do
-      full_names = Enum.map(filtered_results, & &1.full_name_expr)
+    if length(filtered_page.results) > 0 do
+      full_names = Enum.map(filtered_page.results, & &1.full_name_expr)
       assert Enum.all?(full_names, &String.contains?(&1, "Alice"))
     end
   end

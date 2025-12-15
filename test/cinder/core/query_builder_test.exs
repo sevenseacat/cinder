@@ -387,10 +387,10 @@ defmodule Cinder.QueryBuilderTest do
       expect(Ash, :read, fn query, _opts ->
         # Should use default page_size of 25, not the invalid -5
         assert Keyword.get(query.page, :limit) == 25
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
-      {:ok, {_results, _page_info}} = QueryBuilder.build_and_execute(TestUser, options)
+      {:ok, _page} = QueryBuilder.build_and_execute(TestUser, options)
     end
 
     test "strips zero page_size and uses default" do
@@ -408,115 +408,10 @@ defmodule Cinder.QueryBuilderTest do
       expect(Ash, :read, fn query, _opts ->
         # Should use default page_size of 25, not the invalid 0
         assert Keyword.get(query.page, :limit) == 25
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
-      {:ok, {_results, _page_info}} = QueryBuilder.build_and_execute(TestUser, options)
-    end
-  end
-
-  describe "build_page_info_with_total_count/4" do
-    test "builds correct pagination info" do
-      results = [%{id: 1}, %{id: 2}, %{id: 3}]
-      current_page = 2
-      page_size = 25
-      total_count = 100
-
-      result =
-        QueryBuilder.build_page_info_with_total_count(
-          results,
-          current_page,
-          page_size,
-          total_count
-        )
-
-      assert result.current_page == 2
-      assert result.total_pages == 4
-      assert result.total_count == 100
-      assert result.has_next_page == true
-      assert result.has_previous_page == true
-      assert result.start_index == 26
-      assert result.end_index == 28
-    end
-
-    test "handles first page" do
-      results = Enum.map(1..25, &%{id: &1})
-      current_page = 1
-      page_size = 25
-      total_count = 100
-
-      result =
-        QueryBuilder.build_page_info_with_total_count(
-          results,
-          current_page,
-          page_size,
-          total_count
-        )
-
-      assert result.current_page == 1
-      assert result.has_next_page == true
-      assert result.has_previous_page == false
-      assert result.start_index == 1
-      assert result.end_index == 25
-    end
-
-    test "handles last page" do
-      results = Enum.map(1..10, &%{id: &1})
-      current_page = 4
-      page_size = 25
-      total_count = 85
-
-      result =
-        QueryBuilder.build_page_info_with_total_count(
-          results,
-          current_page,
-          page_size,
-          total_count
-        )
-
-      assert result.current_page == 4
-      assert result.total_pages == 4
-      assert result.has_next_page == false
-      assert result.has_previous_page == true
-      assert result.start_index == 76
-      assert result.end_index == 85
-    end
-
-    test "handles empty results" do
-      results = []
-      current_page = 1
-      page_size = 25
-      total_count = 0
-
-      result =
-        QueryBuilder.build_page_info_with_total_count(
-          results,
-          current_page,
-          page_size,
-          total_count
-        )
-
-      assert result.current_page == 1
-      assert result.total_pages == 1
-      assert result.total_count == 0
-      assert result.has_next_page == false
-      assert result.has_previous_page == false
-      assert result.start_index == 0
-      assert result.end_index == 0
-    end
-  end
-
-  describe "build_error_page_info/0" do
-    test "returns error pagination state" do
-      result = QueryBuilder.build_error_page_info()
-
-      assert result.current_page == 1
-      assert result.total_pages == 1
-      assert result.total_count == 0
-      assert result.has_next_page == false
-      assert result.has_previous_page == false
-      assert result.start_index == 0
-      assert result.end_index == 0
+      {:ok, _page} = QueryBuilder.build_and_execute(TestUser, options)
     end
   end
 
@@ -645,9 +540,8 @@ defmodule Cinder.QueryBuilderTest do
 
       # Should succeed with proper domain setup
       result = QueryBuilder.build_and_execute(TestUser, options)
-      assert {:ok, {results, page_info}} = result
-      assert is_list(results)
-      assert is_map(page_info)
+      assert {:ok, page} = result
+      assert is_list(page.results)
     end
 
     test "query_opts tenant handling" do
@@ -664,9 +558,8 @@ defmodule Cinder.QueryBuilderTest do
 
       # Should succeed with tenant from query_opts
       result = QueryBuilder.build_and_execute(TestUser, options)
-      assert {:ok, {results, page_info}} = result
-      assert is_list(results)
-      assert is_map(page_info)
+      assert {:ok, page} = result
+      assert is_list(page.results)
     end
 
     test "handles nil tenant gracefully" do
@@ -683,9 +576,8 @@ defmodule Cinder.QueryBuilderTest do
 
       # Should succeed without tenant
       result = QueryBuilder.build_and_execute(TestUser, options)
-      assert {:ok, {results, page_info}} = result
-      assert is_list(results)
-      assert is_map(page_info)
+      assert {:ok, page} = result
+      assert is_list(page.results)
     end
   end
 
@@ -1194,7 +1086,7 @@ defmodule Cinder.QueryBuilderTest do
       |> expect(:read, fn _query, opts ->
         send(test_pid, {:ash_read_called, opts})
         # Return a valid response structure
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       QueryBuilder.build_and_execute(TestUser, options)
@@ -1230,7 +1122,7 @@ defmodule Cinder.QueryBuilderTest do
       Ash
       |> expect(:read, fn _query, opts ->
         send(test_pid, {:ash_read_called, opts})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       QueryBuilder.build_and_execute(TestUser, options)
@@ -1272,7 +1164,7 @@ defmodule Cinder.QueryBuilderTest do
       Ash
       |> expect(:read, fn _query, opts ->
         send(test_pid, {:ash_read_called, opts})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       # Suppress expected warnings about unsupported options
@@ -1311,7 +1203,7 @@ defmodule Cinder.QueryBuilderTest do
       Ash
       |> expect(:read, fn _query, opts ->
         send(test_pid, {:ash_read_called, opts})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       QueryBuilder.build_and_execute(TestUser, options)
@@ -1344,7 +1236,7 @@ defmodule Cinder.QueryBuilderTest do
 
       expect(Ash, :read, fn _query, opts ->
         send(self(), {:ash_opts, opts})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       QueryBuilder.build_and_execute(
@@ -1365,7 +1257,7 @@ defmodule Cinder.QueryBuilderTest do
 
       expect(Ash, :read, fn query, _opts ->
         send(self(), {:final_query, query})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       QueryBuilder.build_and_execute(query_without_for_read, default_options())
@@ -1380,7 +1272,7 @@ defmodule Cinder.QueryBuilderTest do
 
       expect(Ash, :read, fn _query, opts ->
         send(self(), {:ash_opts, opts})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       QueryBuilder.build_and_execute(base_query, default_options(query_opts: [timeout: 5000]))
@@ -1397,7 +1289,7 @@ defmodule Cinder.QueryBuilderTest do
 
       expect(Ash, :read, fn _query, opts ->
         send(self(), {:ash_opts, opts})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       # No explicit tenant provided (tenant: nil)
@@ -1416,7 +1308,7 @@ defmodule Cinder.QueryBuilderTest do
 
       expect(Ash, :read, fn query, _opts ->
         send(self(), {:final_query_context, query.context})
-        {:ok, %{results: [], count: 0}}
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
       # Pass actor that should be merged with existing context

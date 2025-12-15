@@ -127,6 +127,12 @@ defmodule Cinder.Collection do
   attr(:on_state_change, :any, default: nil, doc: "Custom state change handler")
   attr(:show_pagination, :boolean, default: true, doc: "Whether to show pagination controls")
 
+  attr(:pagination, :any,
+    default: :offset,
+    doc:
+      "Pagination mode: :offset (default) or :keyset. Keyset pagination is faster for large datasets but only supports prev/next navigation."
+  )
+
   attr(:show_filters, :boolean,
     default: nil,
     doc: "Whether to show filter controls (auto-detected if nil)"
@@ -239,6 +245,7 @@ defmodule Cinder.Collection do
       |> assign_new(:scope, fn -> nil end)
       |> assign_new(:search, fn -> nil end)
       |> assign_new(:grid_columns, fn -> nil end)
+      |> assign_new(:pagination, fn -> :offset end)
 
     # Resolve actor and tenant from scope and explicit attributes
     resolved_options = resolve_actor_and_tenant(assigns)
@@ -269,6 +276,9 @@ defmodule Cinder.Collection do
     # Parse page_size configuration
     page_size_config = parse_page_size_config(assigns.page_size)
 
+    # Parse pagination mode
+    pagination_mode = parse_pagination_mode(assigns.pagination)
+
     # Select renderer based on layout (support both atoms and strings)
     layout = normalize_layout(assigns.layout)
     renderer = get_renderer(layout)
@@ -296,6 +306,7 @@ defmodule Cinder.Collection do
       |> assign(:search_fn, search_fn)
       |> assign(:show_filters, show_filters)
       |> assign(:show_sort, show_sort)
+      |> assign(:pagination_mode, pagination_mode)
       |> assign(:renderer, renderer)
       |> assign(:item_slot, item_slot)
       |> assign(:row_click, row_click)
@@ -338,6 +349,7 @@ defmodule Cinder.Collection do
         search_label={@search_label}
         search_placeholder={@search_placeholder}
         search_fn={@search_fn}
+        pagination_mode={@pagination_mode}
       />
     </div>
     """
@@ -734,6 +746,16 @@ defmodule Cinder.Collection do
   end
 
   defp parse_page_size_config(_invalid), do: parse_page_size_config(25)
+
+  # ============================================================================
+  # PRIVATE HELPERS - Pagination Mode
+  # ============================================================================
+
+  defp parse_pagination_mode(:offset), do: :offset
+  defp parse_pagination_mode(:keyset), do: :keyset
+  defp parse_pagination_mode("offset"), do: :offset
+  defp parse_pagination_mode("keyset"), do: :keyset
+  defp parse_pagination_mode(_invalid), do: :offset
 
   # ============================================================================
   # PRIVATE HELPERS - Theme

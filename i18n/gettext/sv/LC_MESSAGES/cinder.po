@@ -28,12 +28,12 @@ msgid_plural "active"
 msgstr[0] "aktiv"
 msgstr[1] "aktiva"
 
-#: lib/cinder/table/live_component.ex:423
+#: lib/cinder/renderers/pagination.ex:87
 #, elixir-autogen
 msgid "Page %{current} of %{total}"
 msgstr "Sida %{current} av %{total}"
 
-#: lib/cinder/table/live_component.ex:425
+#: lib/cinder/renderers/pagination.ex:89
 #, elixir-autogen
 msgid "showing %{start}-%{end} of %{total}"
 msgstr "visar %{start}-%{end} av %{total}"
@@ -44,27 +44,44 @@ msgstr "visar %{start}-%{end} av %{total}"
 msgid "to"
 msgstr "till"
 
-#: lib/cinder/table/live_component.ex:489
+#: lib/cinder/renderers/pagination.ex:153
+#: lib/cinder/renderers/pagination.ex:233
 #, elixir-autogen
 msgid "Next page"
 msgstr "Nästa sida"
 
-#: lib/cinder/table/live_component.ex:458
+#: lib/cinder/renderers/pagination.ex:122
+#: lib/cinder/renderers/pagination.ex:221
 #, elixir-autogen
 msgid "Previous page"
 msgstr "Föregående sida"
 
-#: lib/cinder/table/live_component.ex:446
+#: lib/cinder/renderers/pagination.ex:110
 #, elixir-autogen
 msgid "First page"
 msgstr "Första sidan"
 
-#: lib/cinder/table/live_component.ex:501
+#: lib/cinder/renderers/pagination.ex:165
 #, elixir-autogen
 msgid "Last page"
 msgstr "Sista sidan"
 
-#: lib/cinder/table/live_component.ex:472
+#: lib/cinder/renderers/pagination.ex:136
 #, elixir-autogen
 msgid "Go to page %{page}"
 msgstr "Gå till sidan %{page}"
+
+#: lib/cinder/renderers/pagination.ex:202
+#, elixir-autogen, elixir-format
+msgid "%{total} items"
+msgstr ""
+
+#: lib/cinder/renderers/pagination.ex:235
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Next"
+msgstr "Nästa sida"
+
+#: lib/cinder/renderers/pagination.ex:223
+#, elixir-autogen, elixir-format
+msgid "Prev"
+msgstr ""

@@ -239,10 +239,10 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       result = Cinder.QueryBuilder.build_and_execute(TestAlbum, options)
 
       case result do
-        {:ok, {results, page_info}} ->
-          assert is_list(results)
-          assert is_map(page_info)
-          assert Map.has_key?(page_info, :total_count)
+        {:ok, page} ->
+          # Returns Ash.Page.Offset struct for paginated actions
+          assert %Ash.Page.Offset{} = page
+          assert is_list(page.results)
 
         {:error, _error} ->
           # Acceptable for test resources without proper domain setup
@@ -302,8 +302,8 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         Cinder.QueryBuilder.build_and_execute(TestAlbum, options)
 
       case result do
-        {:ok, {results, _page_info}} ->
-          assert is_list(results)
+        {:ok, page} ->
+          assert is_list(page.results)
 
         {:error, _error} ->
           # Acceptable for test resources
@@ -355,8 +355,8 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       result = Cinder.QueryBuilder.build_and_execute(TestAlbum, options)
 
       case result do
-        {:ok, {results, _page_info}} ->
-          assert is_list(results)
+        {:ok, page} ->
+          assert is_list(page.results)
 
         {:error, _error} ->
           # Acceptable for test resources

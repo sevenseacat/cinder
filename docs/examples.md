@@ -975,7 +975,23 @@ Use `query_opts` to load only needed data:
 >
   ...
 </Cinder.collection>
+
+<!-- Keyset pagination for large datasets -->
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  pagination={:keyset}
+>
+  ...
+</Cinder.collection>
 ```
+
+**Keyset vs Offset Pagination:**
+
+- **Offset** (default): Traditional page numbers, allows jumping to any page. Can be slow on large datasets.
+- **Keyset**: Cursor-based prev/next navigation. Much faster on large datasets but cannot jump to arbitrary pages.
+
+Use keyset pagination when you have large tables (10k+ rows) where offset queries become slow.
 
 **Important:** Ensure your Ash action has pagination configured to prevent loading all records into memory:
 
@@ -983,7 +999,7 @@ Use `query_opts` to load only needed data:
 # In your resource
 actions do
   read :read do
-    pagination offset?: true, default_limit: 25
+    pagination offset?: true, keyset?: true, default_limit: 25
   end
 end
 ```

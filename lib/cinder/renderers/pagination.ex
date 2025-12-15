@@ -1,6 +1,12 @@
 defmodule Cinder.Renderers.Pagination do
   @moduledoc """
   Shared pagination component used by Table, List, and Grid renderers.
+
+  Supports two pagination modes:
+  - `Ash.Page.Offset` - Traditional page numbers with jump-to-page
+  - `Ash.Page.Keyset` - Cursor-based with prev/next navigation (faster for large datasets)
+
+  Uses `AshPhoenix.LiveView` helpers for working with Ash.Page structs directly.
   """
 
   use Phoenix.Component
@@ -8,25 +14,79 @@ defmodule Cinder.Renderers.Pagination do
   use Cinder.Messages
 
   @doc """
+  Checks if pagination controls should be shown based on page.
+
+  Returns true if there are more results than fit on one page.
+  """
+  def show_pagination?(%Ash.Page.Offset{count: count, limit: limit}), do: count > limit
+  def show_pagination?(%Ash.Page.Keyset{count: count, limit: limit}), do: count > limit
+  def show_pagination?(_), do: false
+
+  @doc """
   Renders pagination controls with page navigation and optional page size selector.
 
+  Handles the wrapper div and conditional display internally.
+  Returns empty content if pagination should not be shown.
+
   ## Required assigns
-  - `page_info` - Map with pagination state (current_page, total_pages, etc.)
+  - `page` - An `Ash.Page.Offset`, `Ash.Page.Keyset`, or nil
   - `page_size_config` - Map with page size configuration
   - `theme` - Theme configuration map
   - `myself` - LiveComponent reference for event targeting
+  - `show_pagination` - Boolean to enable/disable pagination (default: true)
   """
   def render(assigns) do
-    page_range = build_page_range(assigns.page_info)
-    assigns = assign(assigns, :page_range, page_range)
+    show = Map.get(assigns, :show_pagination, true) and show_pagination?(assigns.page)
+
+    if show do
+      # Use pagination_mode (if provided) to determine UI, not just page struct type.
+      # This handles the case where keyset mode returns Ash.Page.Offset on the first page
+      # (when no cursor is provided yet).
+      pagination_mode = Map.get(assigns, :pagination_mode, :offset)
+
+      case pagination_mode do
+        :keyset -> render_keyset(assigns)
+        :offset -> render_offset(assigns)
+      end
+    else
+      render_empty(assigns)
+    end
+  end
+
+  defp render_empty(assigns) do
+    ~H"""
+    """
+  end
+
+  # Offset pagination (traditional page numbers)
+  # In offset mode, we always pass `offset:` to Ash.Query.page, so Ash returns Ash.Page.Offset
+  defp render_offset(assigns) do
+    %Ash.Page.Offset{} = page = assigns.page
+    page_number = AshPhoenix.LiveView.page_number(page) + 1
+    total_pages = if page.count > 0, do: ceil(page.count / page.limit), else: 1
+    start_index = page.offset + 1
+    end_index = min(page.offset + length(page.results), page.count)
+    page_range = build_page_range(page_number, total_pages)
+
+    assigns =
+      assigns
+      |> assign(:page_range, page_range)
+      |> assign(:page_number, page_number)
+      |> assign(:total_pages, total_pages)
+      |> assign(:start_index, if(page.count > 0, do: start_index, else: 0))
+      |> assign(:end_index, if(page.count > 0, do: end_index, else: 0))
+      |> assign(:total_count, page.count)
+      |> assign(:has_prev, AshPhoenix.LiveView.prev_page?(page))
+      |> assign(:has_next, AshPhoenix.LiveView.next_page?(page))
 
     ~H"""
-    <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
+    <div class={@theme.pagination_wrapper_class} {@theme.pagination_wrapper_data}>
+      <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
       <!-- Left side: Page info -->
       <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
-        {dgettext("cinder", "Page %{current} of %{total}", current: @page_info.current_page, total: @page_info.total_pages)}
+        {dgettext("cinder", "Page %{current} of %{total}", current: @page_number, total: @total_pages)}
         <span class={@theme.pagination_count_class} {@theme.pagination_count_data}>
-          ({dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @page_info.start_index, end: @page_info.end_index, total: @page_info.total_count)})
+          ({dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @start_index, end: @end_index, total: @total_count)})
         </span>
       </div>
 
@@ -41,7 +101,7 @@ defmodule Cinder.Renderers.Pagination do
         <div class={@theme.pagination_nav_class} {@theme.pagination_nav_data}>
           <!-- First page and previous -->
           <button
-            :if={@page_info.current_page > 2}
+            :if={@page_number > 2}
             phx-click="goto_page"
             phx-value-page="1"
             phx-target={@myself}
@@ -53,9 +113,9 @@ defmodule Cinder.Renderers.Pagination do
           </button>
 
           <button
-            :if={@page_info.has_previous_page}
+            :if={@has_prev}
             phx-click="goto_page"
-            phx-value-page={@page_info.current_page - 1}
+            phx-value-page={@page_number - 1}
             phx-target={@myself}
             class={@theme.pagination_button_class}
             {@theme.pagination_button_data}
@@ -67,7 +127,7 @@ defmodule Cinder.Renderers.Pagination do
           <!-- Page numbers -->
           <span :for={page <- @page_range} class="inline-flex">
             <button
-              :if={page != @page_info.current_page}
+              :if={page != @page_number}
               phx-click="goto_page"
               phx-value-page={page}
               phx-target={@myself}
@@ -77,16 +137,16 @@ defmodule Cinder.Renderers.Pagination do
             >
               {page}
             </button>
-            <span :if={page == @page_info.current_page} class={@theme.pagination_current_class} {@theme.pagination_current_data}>
+            <span :if={page == @page_number} class={@theme.pagination_current_class} {@theme.pagination_current_data}>
               {page}
             </span>
           </span>
 
           <!-- Next and last page -->
           <button
-            :if={@page_info.has_next_page}
+            :if={@has_next}
             phx-click="goto_page"
-            phx-value-page={@page_info.current_page + 1}
+            phx-value-page={@page_number + 1}
             phx-target={@myself}
             class={@theme.pagination_button_class}
             {@theme.pagination_button_data}
@@ -96,9 +156,9 @@ defmodule Cinder.Renderers.Pagination do
           </button>
 
           <button
-            :if={@page_info.current_page < @page_info.total_pages - 1}
+            :if={@page_number < @total_pages - 1}
             phx-click="goto_page"
-            phx-value-page={@page_info.total_pages}
+            phx-value-page={@total_pages}
             phx-target={@myself}
             class={@theme.pagination_button_class}
             {@theme.pagination_button_data}
@@ -107,6 +167,75 @@ defmodule Cinder.Renderers.Pagination do
             &raquo;
           </button>
         </div>
+      </div>
+      </div>
+    </div>
+    """
+  end
+
+  # Keyset pagination (cursor-based prev/next)
+  # Note: "First" and "Last" buttons are not included because keyset pagination
+  # doesn't support arbitrary page jumps - only sequential navigation.
+  #
+  # Why we handle both Ash.Page.Keyset and Ash.Page.Offset here:
+  # On the first page (no cursor), there's no way to force keyset mode - Ash falls back
+  # to app config. New Ash installs default to keyset, but older apps may default to offset.
+  # Once navigation begins (after/before cursor provided), Ash returns Keyset.
+  defp render_keyset(assigns) do
+    page = assigns.page
+
+    # Both page types have more? field. For prev, check if we navigated here via cursor.
+    has_prev = has_previous_keyset_page?(page)
+    has_next = page.more?
+
+    assigns =
+      assigns
+      |> assign(:total_count, page.count)
+      |> assign(:has_prev, has_prev)
+      |> assign(:has_next, has_next)
+
+    ~H"""
+    <div class={@theme.pagination_wrapper_class} {@theme.pagination_wrapper_data}>
+      <div class={@theme.pagination_container_class} {@theme.pagination_container_data}>
+      <!-- Left side: Count info -->
+      <div class={@theme.pagination_info_class} {@theme.pagination_info_data}>
+        {dgettext("cinder", "%{total} items", total: @total_count)}
+      </div>
+
+      <!-- Right side: Page size selector and navigation -->
+      <div class="flex items-center space-x-6">
+        <!-- Page size selector (if configurable) -->
+        <div :if={@page_size_config.configurable} class={@theme.page_size_container_class} {@theme.page_size_container_data}>
+          <.page_size_selector page_size_config={@page_size_config} theme={@theme} myself={@myself} />
+        </div>
+
+        <!-- Keyset navigation: Prev / Next only -->
+        <div class={@theme.pagination_nav_class} {@theme.pagination_nav_data}>
+          <!-- Previous page -->
+          <button
+            phx-click="prev_page"
+            phx-target={@myself}
+            class={@theme.pagination_button_class}
+            {@theme.pagination_button_data}
+            disabled={!@has_prev}
+            title={dgettext("cinder", "Previous page")}
+          >
+            &lsaquo; {dgettext("cinder", "Prev")}
+          </button>
+
+          <!-- Next page -->
+          <button
+            phx-click="next_page"
+            phx-target={@myself}
+            class={@theme.pagination_button_class}
+            {@theme.pagination_button_data}
+            disabled={!@has_next}
+            title={dgettext("cinder", "Next page")}
+          >
+            {dgettext("cinder", "Next")} &rsaquo;
+          </button>
+        </div>
+      </div>
       </div>
     </div>
     """
@@ -161,13 +290,20 @@ defmodule Cinder.Renderers.Pagination do
     """
   end
 
-  defp build_page_range(page_info) do
-    current = page_info.current_page
-    total = page_info.total_pages
+  defp build_page_range(current_page, total_pages) do
+    range_start = max(1, current_page - 2)
+    range_end = min(total_pages, current_page + 2)
 
-    range_start = max(1, current - 2)
-    range_end = min(total, current + 2)
-
-    Enum.to_list(range_start..range_end)
+    if range_start <= range_end do
+      Enum.to_list(range_start..range_end)
+    else
+      [1]
+    end
   end
+
+  # Check if there's a previous page in keyset mode
+  defp has_previous_keyset_page?(%Ash.Page.Keyset{after: after_cursor}),
+    do: not is_nil(after_cursor)
+
+  defp has_previous_keyset_page?(%Ash.Page.Offset{offset: offset}), do: offset > 0
 end
