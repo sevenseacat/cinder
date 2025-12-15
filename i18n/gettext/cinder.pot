@@ -45,13 +45,13 @@ msgid "to"
 msgstr ""
 
 #: lib/cinder/renderers/pagination.ex:153
-#: lib/cinder/renderers/pagination.ex:233
+#: lib/cinder/renderers/pagination.ex:232
 #, elixir-autogen
 msgid "Next page"
 msgstr ""
 
 #: lib/cinder/renderers/pagination.ex:122
-#: lib/cinder/renderers/pagination.ex:221
+#: lib/cinder/renderers/pagination.ex:220
 #, elixir-autogen
 msgid "Previous page"
 msgstr ""
@@ -71,17 +71,17 @@ msgstr ""
 msgid "Go to page %{page}"
 msgstr ""
 
-#: lib/cinder/renderers/pagination.ex:202
+#: lib/cinder/renderers/pagination.ex:201
 #, elixir-autogen, elixir-format
 msgid "%{total} items"
 msgstr ""
 
-#: lib/cinder/renderers/pagination.ex:235
+#: lib/cinder/renderers/pagination.ex:234
 #, elixir-autogen, elixir-format
 msgid "Next"
 msgstr ""
 
-#: lib/cinder/renderers/pagination.ex:223
+#: lib/cinder/renderers/pagination.ex:222
 #, elixir-autogen, elixir-format
 msgid "Prev"
 msgstr ""
