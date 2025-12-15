@@ -1,0 +1,140 @@
+defmodule Cinder.Renderers.GridTest do
+  use ExUnit.Case, async: true
+  import Phoenix.LiveViewTest
+
+  alias Cinder.Renderers.Grid, as: GridRenderer
+
+  # Build a minimal theme with data-key attributes (mimics what Theme module generates)
+  defp build_theme do
+    %{
+      container_class: "container",
+      container_data: %{"data-key" => "container_class"},
+      controls_class: "controls",
+      controls_data: %{"data-key" => "controls_class"},
+      empty_class: "empty",
+      empty_data: %{"data-key" => "empty_class"},
+      loading_overlay_class: "loading-overlay",
+      loading_overlay_data: %{"data-key" => "loading_overlay_class"},
+      loading_container_class: "loading-container",
+      loading_container_data: %{"data-key" => "loading_container_class"},
+      loading_spinner_class: "spinner",
+      loading_spinner_data: %{"data-key" => "loading_spinner_class"},
+      loading_spinner_circle_class: "spinner-circle",
+      loading_spinner_circle_data: %{"data-key" => "loading_spinner_circle_class"},
+      loading_spinner_path_class: "spinner-path",
+      loading_spinner_path_data: %{"data-key" => "loading_spinner_path_class"},
+      pagination_wrapper_class: "pagination",
+      pagination_wrapper_data: %{"data-key" => "pagination_wrapper_class"},
+      grid_container_class: "grid gap-4",
+      grid_container_data: %{"data-key" => "grid_container_class"},
+      grid_item_class: "p-4 bg-white border rounded-lg",
+      grid_item_data: %{"data-key" => "grid_item_class"},
+      grid_item_clickable_class: "cursor-pointer hover:shadow-md",
+      grid_item_clickable_data: %{"data-key" => "grid_item_clickable_class"}
+    }
+  end
+
+  defp base_assigns do
+    %{
+      theme: build_theme(),
+      data: [],
+      columns: [],
+      filters: %{},
+      sort_by: [],
+      sort_label: "Sort by:",
+      loading: false,
+      loading_message: "Loading...",
+      empty_message: "No results found",
+      show_filters: false,
+      show_sort: false,
+      show_pagination: false,
+      page_info: %{total_pages: 1, current_page: 1},
+      page_size_config: %{},
+      myself: nil,
+      container_class: nil,
+      grid_columns: 3,
+      item_click: nil,
+      item_slot: [%{__slot__: :item, inner_block: fn _, _ -> "item content" end}],
+      filters_label: "Filters",
+      search_term: "",
+      search_enabled: false,
+      search_label: "Search",
+      search_placeholder: "Search..."
+    }
+  end
+
+  describe "data-key attributes" do
+    test "includes data-key for grid container when using theme classes" do
+      assigns = base_assigns()
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      assert html =~ ~s(data-key="grid_container_class")
+    end
+
+    test "includes data-key for grid items when data is present" do
+      assigns =
+        base_assigns()
+        |> Map.put(:data, [%{id: 1, name: "Test Item"}])
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      assert html =~ ~s(data-key="grid_item_class")
+    end
+
+    test "includes data-key for clickable items" do
+      click_fn = fn item -> Phoenix.LiveView.JS.navigate("/items/#{item.id}") end
+
+      assigns =
+        base_assigns()
+        |> Map.put(:data, [%{id: 1, name: "Clickable Item"}])
+        |> Map.put(:item_click, click_fn)
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      # Clickable items get the clickable data-key (it overwrites base in merge)
+      assert html =~ ~s(data-key="grid_item_clickable_class")
+    end
+
+    test "does not include data-key when custom container_class is provided" do
+      assigns =
+        base_assigns()
+        |> Map.put(:container_class, "my-custom-grid")
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      assert html =~ "my-custom-grid"
+      refute html =~ ~s(data-key="grid_container_class")
+    end
+
+    test "includes data-key with responsive grid_columns" do
+      assigns =
+        base_assigns()
+        |> Map.put(:grid_columns, xs: 1, md: 2, lg: 3)
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      # Should still have data-key even with dynamic grid columns
+      assert html =~ ~s(data-key="grid_container_class")
+      assert html =~ "grid-cols-1"
+      assert html =~ "md:grid-cols-2"
+      assert html =~ "lg:grid-cols-3"
+    end
+
+    test "multiple items each have data-key attribute" do
+      assigns =
+        base_assigns()
+        |> Map.put(:data, [
+          %{id: 1, name: "Item 1"},
+          %{id: 2, name: "Item 2"},
+          %{id: 3, name: "Item 3"}
+        ])
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      # Count occurrences of the data-key attribute
+      matches = Regex.scan(~r/data-key="grid_item_class"/, html)
+      assert length(matches) == 3
+    end
+  end
+end

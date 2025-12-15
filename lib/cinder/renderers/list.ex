@@ -23,7 +23,18 @@ defmodule Cinder.Renderers.List do
       Logger.warning("Cinder.List: No <:item> slot provided. Items will not be rendered.")
     end
 
-    assigns = assign(assigns, :has_item_slot, has_item_slot)
+    {container_class, container_data} =
+      get_container_class(assigns.container_class, assigns.theme)
+
+    {item_class, item_data} = get_item_classes(assigns.theme, assigns.item_click)
+
+    assigns =
+      assigns
+      |> assign(:has_item_slot, has_item_slot)
+      |> assign(:list_container_class, container_class)
+      |> assign(:list_container_data, container_data)
+      |> assign(:list_item_class, item_class)
+      |> assign(:list_item_data, item_data)
 
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
@@ -55,11 +66,12 @@ defmodule Cinder.Renderers.List do
       </div>
 
       <!-- List Items Container -->
-      <div class={get_container_class(@container_class, @theme)}>
+      <div class={@list_container_class} {@list_container_data}>
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data}
-            class={get_item_classes(@theme, @item_click)}
+            class={@list_item_class}
+            {@list_item_data}
             phx-click={@item_click && @item_click.(item)}
           >
             {render_slot(@item_slot, item)}
@@ -106,13 +118,16 @@ defmodule Cinder.Renderers.List do
   # ============================================================================
 
   defp get_container_class(nil, theme) do
-    Map.get(theme, :list_container_class, "divide-y divide-gray-200")
+    class = Map.get(theme, :list_container_class, "divide-y divide-gray-200")
+    data = Map.get(theme, :list_container_data, %{})
+    {class, data}
   end
 
-  defp get_container_class(custom_class, _theme), do: custom_class
+  defp get_container_class(custom_class, _theme), do: {custom_class, %{}}
 
   defp get_item_classes(theme, item_click) do
     base = Map.get(theme, :list_item_class, "")
+    base_data = Map.get(theme, :list_item_data, %{})
 
     if item_click do
       clickable =
@@ -122,9 +137,10 @@ defmodule Cinder.Renderers.List do
           "cursor-pointer hover:bg-gray-50 transition-colors"
         )
 
-      [base, clickable]
+      clickable_data = Map.get(theme, :list_item_clickable_data, %{})
+      {[base, clickable], Map.merge(base_data, clickable_data)}
     else
-      base
+      {base, base_data}
     end
   end
 end

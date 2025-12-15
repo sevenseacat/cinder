@@ -23,7 +23,18 @@ defmodule Cinder.Renderers.Grid do
       Logger.warning("Cinder.Grid: No <:item> slot provided. Items will not be rendered.")
     end
 
-    assigns = assign(assigns, :has_item_slot, has_item_slot)
+    {container_class, container_data} =
+      get_container_class(assigns.container_class, assigns.grid_columns, assigns.theme)
+
+    {item_class, item_data} = get_item_classes(assigns.theme, assigns.item_click)
+
+    assigns =
+      assigns
+      |> assign(:has_item_slot, has_item_slot)
+      |> assign(:grid_container_class, container_class)
+      |> assign(:grid_container_data, container_data)
+      |> assign(:grid_item_class, item_class)
+      |> assign(:grid_item_data, item_data)
 
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
@@ -55,11 +66,12 @@ defmodule Cinder.Renderers.Grid do
       </div>
 
       <!-- Grid Items Container -->
-      <div class={get_container_class(@container_class, @grid_columns, @theme)}>
+      <div class={@grid_container_class} {@grid_container_data}>
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data}
-            class={get_item_classes(@theme, @item_click)}
+            class={@grid_item_class}
+            {@grid_item_data}
             phx-click={@item_click && @item_click.(item)}
           >
             {render_slot(@item_slot, item)}
@@ -107,14 +119,15 @@ defmodule Cinder.Renderers.Grid do
 
   # Explicit container_class override takes precedence
   defp get_container_class(custom_class, _grid_columns, _theme) when is_binary(custom_class) do
-    custom_class
+    {custom_class, %{}}
   end
 
   # Build from theme base + grid_columns
   defp get_container_class(nil, grid_columns, theme) do
     base = Map.get(theme, :grid_container_class, "grid gap-4")
+    data = Map.get(theme, :grid_container_data, %{})
     cols = build_grid_cols(grid_columns)
-    [base, cols]
+    {[base, cols], data}
   end
 
   defp build_grid_cols(cols) when is_binary(cols) do
@@ -146,6 +159,8 @@ defmodule Cinder.Renderers.Grid do
     base =
       Map.get(theme, :grid_item_class, "p-4 bg-white border border-gray-200 rounded-lg shadow-sm")
 
+    base_data = Map.get(theme, :grid_item_data, %{})
+
     if item_click do
       clickable =
         Map.get(
@@ -154,9 +169,10 @@ defmodule Cinder.Renderers.Grid do
           "cursor-pointer hover:shadow-md transition-shadow"
         )
 
-      [base, clickable]
+      clickable_data = Map.get(theme, :grid_item_clickable_data, %{})
+      {[base, clickable], Map.merge(base_data, clickable_data)}
     else
-      base
+      {base, base_data}
     end
   end
 
