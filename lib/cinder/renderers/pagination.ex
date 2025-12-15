@@ -184,9 +184,8 @@ defmodule Cinder.Renderers.Pagination do
   defp render_keyset(assigns) do
     page = assigns.page
 
-    # Both page types have more? field. For prev, check if we navigated here via cursor.
     has_prev = has_previous_keyset_page?(page)
-    has_next = page.more?
+    has_next = has_next_keyset_page?(page)
 
     assigns =
       assigns
@@ -301,9 +300,32 @@ defmodule Cinder.Renderers.Pagination do
     end
   end
 
-  # Check if there's a previous page in keyset mode
-  defp has_previous_keyset_page?(%Ash.Page.Keyset{after: after_cursor}),
-    do: not is_nil(after_cursor)
+  # Check if there's a previous page in keyset mode.
+  # - If we used `after` cursor (forward navigation): there's always a previous page
+  # - If we used `before` cursor (backward navigation): `more?` tells us if there's more behind
+  # - If neither: we're on the first page
+  defp has_previous_keyset_page?(%Ash.Page.Keyset{
+         after: after_cursor,
+         before: before_cursor,
+         more?: more?
+       }) do
+    cond do
+      not is_nil(after_cursor) -> true
+      not is_nil(before_cursor) -> more?
+      true -> false
+    end
+  end
 
   defp has_previous_keyset_page?(%Ash.Page.Offset{offset: offset}), do: offset > 0
+
+  # Check if there's a next page in keyset mode.
+  # - If we used `before` cursor (backward navigation): there's always a next page (we came from there)
+  # - If we used `after` cursor or no cursor: `more?` tells us if there's more ahead
+  defp has_next_keyset_page?(%Ash.Page.Keyset{before: before_cursor})
+       when not is_nil(before_cursor),
+       do: true
+
+  defp has_next_keyset_page?(%Ash.Page.Keyset{more?: more?}), do: more?
+
+  defp has_next_keyset_page?(%Ash.Page.Offset{more?: more?}), do: more?
 end
