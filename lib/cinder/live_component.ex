@@ -140,6 +140,8 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(:search_term, "")
       |> assign(:current_page, 1)
+      |> assign(:after_keyset, nil)
+      |> assign(:before_keyset, nil)
       |> load_data()
       |> notify_state_change()
 
@@ -160,6 +162,8 @@ defmodule Cinder.LiveComponent do
       |> assign(:filters, new_filters)
       |> assign(:raw_filter_params, raw_filter_params)
       |> assign(:current_page, 1)
+      |> assign(:after_keyset, nil)
+      |> assign(:before_keyset, nil)
       |> load_data()
 
     socket = notify_state_change(socket, new_filters)
@@ -184,6 +188,8 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(:sort_by, new_sort)
       |> assign(:current_page, 1)
+      |> assign(:after_keyset, nil)
+      |> assign(:before_keyset, nil)
       |> assign(:user_has_interacted, true)
 
     socket =
@@ -211,6 +217,8 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(:filters, new_filters)
       |> assign(:current_page, 1)
+      |> assign(:after_keyset, nil)
+      |> assign(:before_keyset, nil)
       |> load_data()
       |> notify_state_change()
 
@@ -235,12 +243,25 @@ defmodule Cinder.LiveComponent do
 
     url_sync_enabled = !!socket.assigns[:on_state_change]
 
+    # Only reset pagination when filters or search actually change
+    filters_changed = new_filters != socket.assigns.filters
+    search_changed = search_term != socket.assigns.search_term
+
     socket =
       socket
       |> assign(:filters, new_filters)
       |> assign(:raw_filter_params, raw_filter_params)
       |> assign(:search_term, search_term)
-      |> assign(:current_page, 1)
+
+    socket =
+      if filters_changed or search_changed do
+        socket
+        |> assign(:current_page, 1)
+        |> assign(:after_keyset, nil)
+        |> assign(:before_keyset, nil)
+      else
+        socket
+      end
 
     socket =
       if url_sync_enabled do

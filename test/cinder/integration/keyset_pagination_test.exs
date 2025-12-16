@@ -580,5 +580,125 @@ defmodule Cinder.Integration.KeysetPaginationTest do
       # before_keyset should remain nil in offset mode
       assert socket.assigns.before_keyset == nil
     end
+
+    test "filter_change event clears keyset cursors when filters change" do
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
+
+      # Simulate having navigated to page 2 with existing filters
+      socket =
+        socket
+        |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
+        |> Phoenix.Component.assign(:before_keyset, nil)
+        |> Phoenix.Component.assign(:columns, [])
+        |> Phoenix.Component.assign(:filter_columns, [])
+        |> Phoenix.Component.assign(:filters, %{"status" => %{value: "active"}})
+
+      # Apply different filters - this should reset pagination
+      {:noreply, socket} =
+        LiveComponent.handle_event("filter_change", %{"filters" => %{}}, socket)
+
+      # Cursors should be cleared because filters changed
+      assert socket.assigns.after_keyset == nil
+      assert socket.assigns.before_keyset == nil
+    end
+
+    test "filter_change event does not reset pagination when filters unchanged" do
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
+
+      # Simulate having navigated to page 2 with no filters
+      socket =
+        socket
+        |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
+        |> Phoenix.Component.assign(:before_keyset, nil)
+        |> Phoenix.Component.assign(:columns, [])
+        |> Phoenix.Component.assign(:filter_columns, [])
+        |> Phoenix.Component.assign(:filters, %{})
+
+      # Submit same empty filters (e.g., typing in autocomplete without selecting)
+      {:noreply, socket} =
+        LiveComponent.handle_event("filter_change", %{"filters" => %{}}, socket)
+
+      # Cursors should NOT be cleared because filters didn't change
+      assert socket.assigns.after_keyset == "page1_last_cursor"
+      assert socket.assigns.before_keyset == nil
+    end
+
+    test "toggle_sort event clears keyset cursors" do
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
+
+      # Simulate having navigated to page 2
+      socket =
+        socket
+        |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
+        |> Phoenix.Component.assign(:before_keyset, nil)
+        |> Phoenix.Component.assign(:sort_by, [])
+
+      {:noreply, socket} =
+        LiveComponent.handle_event("toggle_sort", %{"key" => "name"}, socket)
+
+      # Cursors should be cleared to restart from beginning
+      assert socket.assigns.after_keyset == nil
+      assert socket.assigns.before_keyset == nil
+    end
+
+    test "clear_filter event clears keyset cursors" do
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
+
+      # Simulate having navigated and having filters
+      socket =
+        socket
+        |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
+        |> Phoenix.Component.assign(:before_keyset, nil)
+        |> Phoenix.Component.assign(:filters, %{"status" => %{value: "active"}})
+
+      {:noreply, socket} =
+        LiveComponent.handle_event("clear_filter", %{"key" => "status"}, socket)
+
+      # Cursors should be cleared to restart from beginning
+      assert socket.assigns.after_keyset == nil
+      assert socket.assigns.before_keyset == nil
+    end
+
+    test "clear_filter search event clears keyset cursors" do
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
+
+      # Simulate having navigated with a search term
+      socket =
+        socket
+        |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
+        |> Phoenix.Component.assign(:before_keyset, nil)
+        |> Phoenix.Component.assign(:search_term, "test query")
+
+      {:noreply, socket} =
+        LiveComponent.handle_event("clear_filter", %{"key" => "search"}, socket)
+
+      # Cursors should be cleared to restart from beginning
+      assert socket.assigns.after_keyset == nil
+      assert socket.assigns.before_keyset == nil
+    end
+
+    test "clear_all_filters event clears keyset cursors" do
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
+
+      # Simulate having navigated with filters
+      socket =
+        socket
+        |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
+        |> Phoenix.Component.assign(:before_keyset, nil)
+        |> Phoenix.Component.assign(:filters, %{"status" => %{value: "active"}})
+
+      {:noreply, socket} =
+        LiveComponent.handle_event("clear_all_filters", %{}, socket)
+
+      # Cursors should be cleared to restart from beginning
+      assert socket.assigns.after_keyset == nil
+      assert socket.assigns.before_keyset == nil
+    end
   end
 end
