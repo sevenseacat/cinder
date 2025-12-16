@@ -490,6 +490,37 @@ Min/Max inputs for numeric filtering:
 </:col>
 ```
 
+### Autocomplete Filter
+
+Searchable dropdown for fields with many options. Options are filtered server-side as you type:
+
+```heex
+<!-- Basic autocomplete with static options -->
+<:col
+  :let={order}
+  field="customer_id"
+  filter={[type: :autocomplete, options: @customers]}
+>
+  {order.customer.name}
+</:col>
+
+<!-- With custom placeholder and result limit -->
+<:col
+  :let={order}
+  field="product_id"
+  filter={[
+    type: :autocomplete,
+    options: @products,
+    placeholder: "Search products...",
+    max_results: 15
+  ]}
+>
+  {order.product.name}
+</:col>
+```
+
+Options are `{label, value}` tuples, same as the select filter. The `max_results` option (default: 10) limits how many matching options are shown at once.
+
 ## Filter-Only Slots
 
 Add filtering capability for fields without displaying them as columns. Useful for filtering by metadata or keeping tables focused:

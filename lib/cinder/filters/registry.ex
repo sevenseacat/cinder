@@ -18,7 +18,8 @@ defmodule Cinder.Filters.Registry do
       date_range: Cinder.Filters.DateRange,
       number_range: Cinder.Filters.NumberRange,
       boolean: Cinder.Filters.Boolean,
-      checkbox: Cinder.Filters.Checkbox
+      checkbox: Cinder.Filters.Checkbox,
+      autocomplete: Cinder.Filters.Autocomplete
     }
   end
 

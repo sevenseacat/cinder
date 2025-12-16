@@ -29,6 +29,7 @@ defmodule Cinder.Renderers.Table do
           show_search={@search_enabled}
           search_label={@search_label}
           search_placeholder={@search_placeholder}
+          raw_filter_params={Map.get(assigns, :raw_filter_params, %{})}
         />
       </div>
 

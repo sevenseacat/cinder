@@ -11,17 +11,17 @@
 msgid ""
 msgstr ""
 
-#: lib/cinder/filter_manager.ex:79
+#: lib/cinder/filter_manager.ex:81
 #, elixir-autogen
 msgid "Clear all"
 msgstr ""
 
-#: lib/cinder/filter_manager.ex:224
+#: lib/cinder/filter_manager.ex:228
 #, elixir-autogen
 msgid "Clear filter"
 msgstr ""
 
-#: lib/cinder/filter_manager.ex:69
+#: lib/cinder/filter_manager.ex:71
 #, elixir-autogen
 msgid "active"
 msgid_plural "active"

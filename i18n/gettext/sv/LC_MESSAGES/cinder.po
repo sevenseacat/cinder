@@ -11,17 +11,17 @@ msgstr ""
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/cinder/filter_manager.ex:79
+#: lib/cinder/filter_manager.ex:81
 #, elixir-autogen
 msgid "Clear all"
 msgstr "Rensa alla"
 
-#: lib/cinder/filter_manager.ex:224
+#: lib/cinder/filter_manager.ex:228
 #, elixir-autogen
 msgid "Clear filter"
 msgstr "Rensa filter"
 
-#: lib/cinder/filter_manager.ex:69
+#: lib/cinder/filter_manager.ex:71
 #, elixir-autogen
 msgid "active"
 msgid_plural "active"

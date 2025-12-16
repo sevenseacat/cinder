@@ -51,12 +51,14 @@ defmodule Cinder.FilterManager do
     filterable_columns = Enum.filter(assigns.columns, & &1.filterable)
     active_filters = count_active_filters(assigns.filters)
     filter_values = build_filter_values(filterable_columns, assigns.filters)
+    raw_filter_params = Map.get(assigns, :raw_filter_params, %{})
 
     assigns =
       assigns
       |> assign(:filterable_columns, filterable_columns)
       |> assign(:active_filters, active_filters)
       |> assign(:filter_values, filter_values)
+      |> assign(:raw_filter_params, raw_filter_params)
 
     ~H"""
     <!-- Filter Controls (including search) -->
@@ -130,6 +132,7 @@ defmodule Cinder.FilterManager do
               column={column}
               current_value={Map.get(@filter_values, column.field, "")}
               filter_values={@filter_values}
+              raw_filter_params={@raw_filter_params}
               theme={@theme}
               target={@target}
             />
@@ -152,7 +155,8 @@ defmodule Cinder.FilterManager do
         # Build additional assigns for filter modules
         filter_assigns = %{
           target: assigns.target,
-          filter_values: assigns.filter_values
+          filter_values: assigns.filter_values,
+          raw_filter_params: Map.get(assigns, :raw_filter_params, %{})
         }
 
         # Delegate to the specific filter module with error handling

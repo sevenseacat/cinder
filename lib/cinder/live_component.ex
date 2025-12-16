@@ -150,9 +150,15 @@ defmodule Cinder.LiveComponent do
   def handle_event("clear_filter", %{"key" => key}, socket) do
     new_filters = Cinder.FilterManager.clear_filter(socket.assigns.filters, key)
 
+    # Also clear the autocomplete search term for this field
+    raw_filter_params = Map.get(socket.assigns, :raw_filter_params, %{})
+    autocomplete_search_key = "#{key}_autocomplete_search"
+    raw_filter_params = Map.delete(raw_filter_params, autocomplete_search_key)
+
     socket =
       socket
       |> assign(:filters, new_filters)
+      |> assign(:raw_filter_params, raw_filter_params)
       |> assign(:current_page, 1)
       |> load_data()
 
@@ -215,8 +221,10 @@ defmodule Cinder.LiveComponent do
   def handle_event("filter_change", params, socket) do
     filter_columns = Map.get(socket.assigns, :filter_columns, socket.assigns.columns)
 
+    raw_filter_params = Map.get(params, "filters", %{})
+
     new_filters =
-      Map.get(params, "filters", %{})
+      raw_filter_params
       |> Cinder.FilterManager.params_to_filters(filter_columns)
 
     search_term =
@@ -230,6 +238,7 @@ defmodule Cinder.LiveComponent do
     socket =
       socket
       |> assign(:filters, new_filters)
+      |> assign(:raw_filter_params, raw_filter_params)
       |> assign(:search_term, search_term)
       |> assign(:current_page, 1)
 
