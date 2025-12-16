@@ -1,7 +1,7 @@
 defmodule Cinder.MixProject do
   use Mix.Project
 
-  @version "0.9.0-beta.1"
+  @version "0.9.0-beta.2"
   @source_url "https://github.com/sevenseacat/cinder"
 
   def project do
@@ -115,43 +115,23 @@ defmodule Cinder.MixProject do
         "Filter Types": [
           Cinder.Filter,
           Cinder.Filter.Helpers,
-          Cinder.Filters.Registry,
-          Cinder.Filters.Text,
-          Cinder.Filters.Select,
-          Cinder.Filters.MultiSelect,
-          Cinder.Filters.MultiCheckboxes,
-          Cinder.Filters.Boolean,
-          Cinder.Filters.Checkbox,
-          Cinder.Filters.DateRange,
-          Cinder.Filters.NumberRange
+          ~r/Cinder\.Filters\./
         ],
         Renderers: [
-          Cinder.Renderers.Table,
-          Cinder.Renderers.List,
-          Cinder.Renderers.Grid,
-          Cinder.Renderers.Pagination,
-          Cinder.Renderers.SortControls
+          ~r/Cinder\.Renderers\./
         ],
         "Theming System": [
           Cinder.Theme,
           ~r/Cinder\.Theme\./,
           ~r/Cinder\.Themes\./,
-          Cinder.Components.Table,
-          Cinder.Components.Filters,
-          Cinder.Components.Pagination,
-          Cinder.Components.Sorting,
-          Cinder.Components.Search,
-          Cinder.Components.Loading,
-          Cinder.Components.List,
-          Cinder.Components.Grid
+          ~r/Cinder\.Components\./
         ],
         Localization: [
           Cinder.Gettext,
           Cinder.Messages
         ],
         "Mix Tasks": [
-          Mix.Tasks.Cinder.Install,
-          Mix.Tasks.Cinder.Gen.Filter
+          ~r/Mix\.Tasks\./
         ],
         Internal: [
           Cinder.QueryBuilder,
