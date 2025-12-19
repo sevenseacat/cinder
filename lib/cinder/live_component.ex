@@ -625,11 +625,14 @@ defmodule Cinder.LiveComponent do
       before_keyset: before_keyset
     } = socket.assigns
 
+    scope = Map.get(socket.assigns, :scope)
+
     resource_var = resource
 
     options = [
       actor: actor,
       tenant: tenant,
+      scope: scope,
       query_opts: query_opts,
       filters: filters,
       sort_by: sort_by,

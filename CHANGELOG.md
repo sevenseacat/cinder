@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased 
+
+### Bug fixes 
+
+* Pass the full provided scope to `Ash.read` when running queries (#71)
+
 ## v0.9.0-beta.2 (2025-12-16)
 
 ### Features 

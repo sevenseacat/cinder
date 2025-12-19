@@ -247,9 +247,6 @@ defmodule Cinder.Collection do
       |> assign_new(:grid_columns, fn -> nil end)
       |> assign_new(:pagination, fn -> :offset end)
 
-    # Resolve actor and tenant from scope and explicit attributes
-    resolved_options = resolve_actor_and_tenant(assigns)
-
     # Validate and normalize query/resource parameters
     normalized_query = normalize_query_params(assigns[:resource], assigns[:query])
     resource = extract_resource_from_query(normalized_query)
@@ -298,7 +295,6 @@ defmodule Cinder.Collection do
       |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
       |> assign(:all_filter_configs, all_filter_configs)
-      |> assign(:resolved_options, resolved_options)
       |> assign(:page_size_config, page_size_config)
       |> assign(:search_label, search_label)
       |> assign(:search_placeholder, search_placeholder)
@@ -321,8 +317,9 @@ defmodule Cinder.Collection do
         id={@id}
         renderer={@renderer}
         query={@normalized_query}
-        actor={@resolved_options.actor}
-        tenant={@resolved_options.tenant}
+        actor={@actor}
+        tenant={@tenant}
+        scope={@scope}
         page_size_config={@page_size_config}
         theme={@resolved_theme}
         url_filters={get_url_filters(@url_state)}
@@ -665,29 +662,6 @@ defmodule Cinder.Collection do
   defp extract_resource_from_query(%Ash.Query{resource: resource}), do: resource
   defp extract_resource_from_query(resource) when is_atom(resource), do: resource
   defp extract_resource_from_query(_), do: nil
-
-  # ============================================================================
-  # PRIVATE HELPERS - Actor and Tenant
-  # ============================================================================
-
-  defp resolve_actor_and_tenant(assigns) do
-    scope_opts = extract_scope_options(assigns[:scope])
-
-    %{
-      actor: assigns[:actor] || scope_opts[:actor],
-      tenant: assigns[:tenant] || scope_opts[:tenant]
-    }
-  end
-
-  defp extract_scope_options(nil), do: []
-
-  defp extract_scope_options(scope) do
-    try do
-      Ash.Scope.to_opts(scope, [:actor, :tenant])
-    rescue
-      _ -> []
-    end
-  end
 
   # ============================================================================
   # PRIVATE HELPERS - Show/Hide Logic

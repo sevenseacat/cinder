@@ -90,8 +90,14 @@ defmodule Cinder.QueryBuilder do
   not match non-paginated results. Use `page.results` for consistent access.
   """
   def build_and_execute(resource_or_query, options) do
-    actor = Keyword.fetch!(options, :actor)
-    tenant = Keyword.get(options, :tenant)
+    explicit_actor = Keyword.fetch!(options, :actor)
+    explicit_tenant = Keyword.get(options, :tenant)
+    scope = Keyword.get(options, :scope)
+    scope_opts = extract_scope_options(scope)
+
+    # Explicit actor/tenant override scope values
+    actor = explicit_actor || scope_opts[:actor]
+    tenant = explicit_tenant || scope_opts[:tenant]
     filters = Keyword.get(options, :filters, %{})
     sort_by = Keyword.get(options, :sort_by, [])
     raw_page_size = Keyword.get(options, :page_size, 25)
@@ -109,13 +115,19 @@ defmodule Cinder.QueryBuilder do
     before_keyset = Keyword.get(options, :before_keyset)
 
     try do
-      # Determine effective tenant (explicit tenant takes precedence over query tenant)
+      # Query tenant as final fallback
       effective_tenant =
         tenant || if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant
 
       # Normalize input to a query and extract resource for logging
       {base_query, resource} =
-        normalize_resource_or_query(resource_or_query, actor, effective_tenant, query_opts)
+        normalize_resource_or_query(
+          resource_or_query,
+          actor,
+          effective_tenant,
+          scope_opts,
+          query_opts
+        )
 
       # Validate sort fields before applying them to prevent crashes
       case validate_sortable_fields(sort_by, resource) do
@@ -137,6 +149,7 @@ defmodule Cinder.QueryBuilder do
                     prepared_query,
                     actor,
                     effective_tenant,
+                    scope_opts,
                     query_opts,
                     page_size,
                     after_keyset,
@@ -148,6 +161,7 @@ defmodule Cinder.QueryBuilder do
                     prepared_query,
                     actor,
                     effective_tenant,
+                    scope_opts,
                     query_opts,
                     current_page,
                     page_size
@@ -170,6 +184,7 @@ defmodule Cinder.QueryBuilder do
                 prepared_query,
                 actor,
                 effective_tenant,
+                scope_opts,
                 query_opts,
                 current_page,
                 page_size
@@ -205,7 +220,7 @@ defmodule Cinder.QueryBuilder do
   end
 
   # Normalize input to always return {query, resource} tuple
-  defp normalize_resource_or_query(%Ash.Query{} = query, actor, tenant, query_opts) do
+  defp normalize_resource_or_query(%Ash.Query{} = query, actor, tenant, _scope_opts, query_opts) do
     # Fix nil action edge case
     updated_query =
       if is_nil(query.action) do
@@ -226,8 +241,16 @@ defmodule Cinder.QueryBuilder do
     {final_query, query.resource}
   end
 
-  defp normalize_resource_or_query(resource, actor, tenant, query_opts) when is_atom(resource) do
-    query = Ash.Query.for_read(resource, :read, %{}, build_ash_options(actor, tenant, query_opts))
+  defp normalize_resource_or_query(resource, actor, tenant, scope_opts, query_opts)
+       when is_atom(resource) do
+    query =
+      Ash.Query.for_read(
+        resource,
+        :read,
+        %{},
+        build_ash_options(actor, tenant, scope_opts, query_opts)
+      )
+
     {query, resource}
   end
 
@@ -255,7 +278,15 @@ defmodule Cinder.QueryBuilder do
   defp action_supports_pagination?(_), do: true
 
   # Execute query with offset pagination (existing behavior)
-  defp execute_with_pagination(query, actor, tenant, query_opts, current_page, page_size) do
+  defp execute_with_pagination(
+         query,
+         actor,
+         tenant,
+         scope_opts,
+         query_opts,
+         current_page,
+         page_size
+       ) do
     paginated_query =
       Ash.Query.page(query,
         limit: page_size,
@@ -263,7 +294,7 @@ defmodule Cinder.QueryBuilder do
         count: true
       )
 
-    case Ash.read(paginated_query, build_ash_options(actor, tenant, query_opts)) do
+    case Ash.read(paginated_query, build_ash_options(actor, tenant, scope_opts, query_opts)) do
       # We pass offset: so Ash always returns Ash.Page.Offset
       {:ok, %Ash.Page.Offset{} = page} ->
         {:ok, page}
@@ -279,6 +310,7 @@ defmodule Cinder.QueryBuilder do
          query,
          actor,
          tenant,
+         scope_opts,
          query_opts,
          page_size,
          after_keyset,
@@ -292,7 +324,7 @@ defmodule Cinder.QueryBuilder do
 
     paginated_query = Ash.Query.page(query, keyset_opts)
 
-    case Ash.read(paginated_query, build_ash_options(actor, tenant, query_opts)) do
+    case Ash.read(paginated_query, build_ash_options(actor, tenant, scope_opts, query_opts)) do
       # Ash returns Offset or Keyset depending on app config and parameters, accept both
       {:ok, %Ash.Page.Keyset{} = page} ->
         {:ok, page}
@@ -310,8 +342,16 @@ defmodule Cinder.QueryBuilder do
   defp maybe_add_keyset_cursor(opts, key, cursor), do: Keyword.put(opts, key, cursor)
 
   # Execute query without pagination and return all results
-  defp execute_without_pagination(query, actor, tenant, query_opts, _current_page, _page_size) do
-    case Ash.read(query, build_ash_options(actor, tenant, query_opts)) do
+  defp execute_without_pagination(
+         query,
+         actor,
+         tenant,
+         scope_opts,
+         query_opts,
+         _current_page,
+         _page_size
+       ) do
+    case Ash.read(query, build_ash_options(actor, tenant, scope_opts, query_opts)) do
       {:ok, results} ->
         # No pagination - return nil (pagination controls won't be shown)
         # Wrap results in a simple struct-like map for consistent access via .results
@@ -763,9 +803,22 @@ defmodule Cinder.QueryBuilder do
     end
   end
 
+  # Extract options from an Ash scope, returning empty list if scope is nil or invalid
+  defp extract_scope_options(nil), do: []
+
+  defp extract_scope_options(scope) do
+    try do
+      Ash.Scope.to_opts(scope)
+    rescue
+      _ -> []
+    end
+  end
+
   # Build options for Ash.Query.for_read/3 and Ash.read/2
-  defp build_ash_options(actor, tenant, query_opts) do
-    [actor: actor]
+  # Scope options provide base, explicit actor/tenant override
+  defp build_ash_options(actor, tenant, scope_opts, query_opts) do
+    scope_opts
+    |> Keyword.put(:actor, actor)
     |> maybe_add_tenant(tenant)
     |> maybe_add_ash_options(query_opts)
   end

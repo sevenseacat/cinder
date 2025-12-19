@@ -145,6 +145,20 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  # Test scope struct that implements Ash.Scope.ToOpts protocol
+  defmodule TestScope do
+    defstruct [:current_user, :current_tenant, :tz]
+
+    defimpl Ash.Scope.ToOpts do
+      def get_actor(%{current_user: current_user}), do: {:ok, current_user}
+      def get_tenant(%{current_tenant: current_tenant}), do: {:ok, current_tenant}
+      def get_context(%{tz: tz}) when not is_nil(tz), do: {:ok, %{shared: %{tz: tz}}}
+      def get_context(_), do: :error
+      def get_tracer(_), do: :error
+      def get_authorize?(_), do: :error
+    end
+  end
+
   describe "toggle_sort_direction/2" do
     test "adds ascending sort for new field" do
       current_sort = []
@@ -1516,6 +1530,178 @@ defmodule Cinder.QueryBuilderTest do
       assert result != query
       assert result.filter != nil
       assert result.filter != query.filter
+    end
+  end
+
+  describe "scope passthrough" do
+    test "extracts actor/tenant from scope when no explicit values provided" do
+      scope = %TestScope{
+        current_user: :scope_actor,
+        current_tenant: "scope_tenant",
+        tz: nil
+      }
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      # Should extract actor/tenant from scope
+      assert Keyword.get(ash_opts, :actor) == :scope_actor
+      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
+    end
+
+    test "passes full scope options including context to Ash.read" do
+      # Using our TestScope that implements Ash.Scope.ToOpts protocol
+      scope = %TestScope{
+        current_user: :scope_actor,
+        current_tenant: "scope_tenant",
+        tz: "America/New_York"
+      }
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :actor) == :scope_actor
+      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
+      assert Keyword.get(ash_opts, :context) == %{shared: %{tz: "America/New_York"}}
+    end
+
+    test "explicit actor/tenant override scope values" do
+      scope = %TestScope{
+        current_user: :scope_actor,
+        current_tenant: "scope_tenant",
+        tz: "America/New_York"
+      }
+
+      options = [
+        actor: :explicit_actor,
+        tenant: "explicit_tenant",
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      # Explicit values should override scope values
+      assert Keyword.get(ash_opts, :actor) == :explicit_actor
+      assert Keyword.get(ash_opts, :tenant) == "explicit_tenant"
+      # But other scope options should still be passed through
+      assert Keyword.get(ash_opts, :context) == %{shared: %{tz: "America/New_York"}}
+    end
+
+    test "extracts actor/tenant from TestScope when no explicit values" do
+      scope = %TestScope{
+        current_user: :scope_actor,
+        current_tenant: "scope_tenant",
+        tz: nil
+      }
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :actor) == :scope_actor
+      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
+    end
+
+    test "uses actor/tenant when no scope provided" do
+      options = [
+        actor: :explicit_actor,
+        tenant: "explicit_tenant",
+        scope: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :actor) == :explicit_actor
+      assert Keyword.get(ash_opts, :tenant) == "explicit_tenant"
     end
   end
 end
