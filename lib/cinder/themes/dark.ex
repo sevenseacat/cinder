@@ -16,7 +16,8 @@ defmodule Cinder.Themes.Dark do
     set :container_class,
         "bg-gray-900 shadow-2xl rounded-xl border border-gray-700 [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl"
 
-    set :controls_class, ""
+    set :controls_class,
+        "p-6 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700"
 
     set :table_wrapper_class, "overflow-x-auto bg-gray-900"
     set :table_class, "w-full border-collapse"

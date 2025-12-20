@@ -17,7 +17,8 @@ defmodule Cinder.Themes.Flowbite do
     set :container_class,
         "relative bg-white shadow-md dark:bg-gray-800 sm:rounded-lg border border-gray-200 dark:border-gray-700 [&>*:first-child]:sm:rounded-t-lg [&>*:last-child]:sm:rounded-b-lg"
 
-    set :controls_class, "relative z-20"
+    set :controls_class,
+        "p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-20"
 
     set :table_wrapper_class, "overflow-x-auto"
     set :table_class, "w-full text-sm text-left text-gray-500 dark:text-gray-400"
@@ -110,9 +111,9 @@ defmodule Cinder.Themes.Flowbite do
     set :filter_select_placeholder_class,
         "text-gray-500 dark:text-gray-400"
 
-    # Boolean filter
-    set :filter_boolean_container_class, "flex items-center space-x-6 h-[42px]"
-    set :filter_boolean_option_class, "flex items-center space-x-2"
+    # Boolean filter - radio buttons
+    set :filter_boolean_container_class, "flex items-center space-x-6 min-h-[42px]"
+    set :filter_boolean_option_class, "flex items-center"
 
     set :filter_boolean_radio_class,
         "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"

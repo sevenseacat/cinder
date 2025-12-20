@@ -55,7 +55,7 @@ defmodule Cinder.Components.Table do
       row_class: "",
       th_class: "text-left whitespace-nowrap",
       td_class: "",
-      bulk_actions_container_class: "flex gap-2 mb-4",
+      bulk_actions_container_class: "flex justify-end gap-2 pt-4 pr-4",
       bulk_action_button_class: "px-3 py-1 text-sm rounded border",
       bulk_loading_class: "animate-pulse",
       loading_class: "text-center py-4",
