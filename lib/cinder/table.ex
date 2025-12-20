@@ -70,6 +70,10 @@ defmodule Cinder.Table do
     default: :id,
     doc: "Field to use as ID for bulk actions (defaults to :id)"
 
+  attr :emit_visible_ids, :boolean,
+    default: false,
+    doc: "When true, emits {:cinder_visible_ids, table_id, [id]} to parent after each data load"
+
   slot :col do
     attr :field, :string
     attr :filter, :any

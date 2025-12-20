@@ -193,6 +193,11 @@ defmodule Cinder.Collection do
     doc: "Field to use as ID for bulk actions (defaults to :id)"
   )
 
+  attr(:emit_visible_ids, :boolean,
+    default: false,
+    doc: "When true, emits {:cinder_visible_ids, table_id, [id]} to parent after each data load"
+  )
+
   slot :col do
     attr(:field, :string,
       required: false,
@@ -273,6 +278,7 @@ defmodule Cinder.Collection do
       |> assign_new(:pagination, fn -> :offset end)
       |> assign_new(:bulk_actions, fn -> [] end)
       |> assign_new(:id_field, fn -> :id end)
+      |> assign_new(:emit_visible_ids, fn -> false end)
 
     # Validate and normalize query/resource parameters
     normalized_query = normalize_query_params(assigns[:resource], assigns[:query])
@@ -376,6 +382,7 @@ defmodule Cinder.Collection do
         pagination_mode={@pagination_mode}
         bulk_actions={@bulk_actions}
         id_field={@id_field}
+        emit_visible_ids={@emit_visible_ids}
       />
     </div>
     """

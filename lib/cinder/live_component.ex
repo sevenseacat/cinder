@@ -305,6 +305,7 @@ defmodule Cinder.LiveComponent do
       |> assign(:page, page)
       # Update keyset cursors for navigation (only relevant in keyset mode)
       |> maybe_update_keyset_cursors(page)
+      |> maybe_emit_visible_ids(page.results)
 
     {:noreply, socket}
   end
@@ -618,6 +619,8 @@ defmodule Cinder.LiveComponent do
     |> assign(:bulk_actions, assigns[:bulk_actions] || [])
     |> assign(:id_field, assigns[:id_field] || :id)
     |> assign(:bulk_action_loading, nil)
+    # Visible IDs tracking
+    |> assign(:emit_visible_ids, assigns[:emit_visible_ids] || false)
   end
 
   defp assign_column_definitions(socket) do
@@ -753,5 +756,17 @@ defmodule Cinder.LiveComponent do
     ]
 
     Cinder.QueryBuilder.build_and_execute(resource, options)
+  end
+
+  # Emit visible IDs to parent LiveView for selective refresh optimization
+  defp maybe_emit_visible_ids(socket, results) do
+    if socket.assigns[:emit_visible_ids] do
+      id_field = socket.assigns[:id_field] || :id
+      table_id = socket.assigns[:id]
+      visible_ids = Enum.map(results, &Map.get(&1, id_field))
+      send(self(), {:cinder_visible_ids, table_id, visible_ids})
+    end
+
+    socket
   end
 end

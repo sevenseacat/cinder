@@ -22,6 +22,11 @@ defmodule Cinder.Components.Table do
     :th_class,
     :td_class,
 
+    # Bulk actions
+    :bulk_actions_container_class,
+    :bulk_action_button_class,
+    :bulk_loading_class,
+
     # States
     :loading_class,
     :empty_class,
@@ -50,6 +55,9 @@ defmodule Cinder.Components.Table do
       row_class: "",
       th_class: "text-left whitespace-nowrap",
       td_class: "",
+      bulk_actions_container_class: "flex gap-2 mb-4",
+      bulk_action_button_class: "px-3 py-1 text-sm rounded border",
+      bulk_loading_class: "animate-pulse",
       loading_class: "text-center py-4",
       empty_class: "text-center py-4",
       error_container_class: "text-red-600 text-sm",
