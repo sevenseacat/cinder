@@ -17,8 +17,7 @@ defmodule Cinder.Themes.Flowbite do
     set :container_class,
         "relative bg-white shadow-md dark:bg-gray-800 sm:rounded-lg border border-gray-200 dark:border-gray-700 [&>*:first-child]:sm:rounded-t-lg [&>*:last-child]:sm:rounded-b-lg"
 
-    set :controls_class,
-        "p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-20"
+    set :controls_class, "relative z-20"
 
     set :table_wrapper_class, "overflow-x-auto"
     set :table_class, "w-full text-sm text-left text-gray-500 dark:text-gray-400"

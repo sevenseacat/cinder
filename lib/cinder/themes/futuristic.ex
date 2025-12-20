@@ -16,8 +16,7 @@ defmodule Cinder.Themes.Futuristic do
     set :container_class,
         "bg-slate-950 border border-blue-500/30 shadow-2xl shadow-blue-500/10 backdrop-blur-sm"
 
-    set :controls_class,
-        "p-6 bg-gradient-to-r from-slate-900/80 to-blue-900/20 border-b border-blue-500/30 backdrop-blur-sm relative z-10"
+    set :controls_class, "relative z-10"
 
     set :table_wrapper_class, "overflow-x-auto bg-slate-900/50"
     set :table_class, "w-full border-collapse"

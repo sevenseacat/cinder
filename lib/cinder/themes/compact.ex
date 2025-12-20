@@ -16,8 +16,7 @@ defmodule Cinder.Themes.Compact do
     set :container_class,
         "bg-white border border-gray-300 shadow-sm"
 
-    set :controls_class,
-        "p-3 bg-gray-50 border-b border-gray-300"
+    set :controls_class, ""
 
     set :table_wrapper_class, "overflow-x-auto"
     set :table_class, "w-full border-collapse"

@@ -14,7 +14,7 @@ defmodule Cinder.Themes.DaisyUI do
 
   component Cinder.Components.Table do
     set :container_class, "card bg-base-100"
-    set :controls_class, "pb-4"
+    set :controls_class, ""
     set :table_wrapper_class, "overflow-x-auto"
     set :table_class, "table table-zebra w-full"
     set :thead_class, ""

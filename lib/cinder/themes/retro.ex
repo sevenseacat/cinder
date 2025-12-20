@@ -15,8 +15,7 @@ defmodule Cinder.Themes.Retro do
   component Cinder.Components.Table do
     set :container_class, "bg-gray-900 border-2 border-cyan-400 shadow-2xl shadow-cyan-400/20"
 
-    set :controls_class,
-        "p-6 bg-gradient-to-r from-purple-900 to-pink-900 border-b-2 border-cyan-400"
+    set :controls_class, ""
 
     set :table_wrapper_class, "overflow-x-auto bg-black"
     set :table_class, "w-full border-collapse"

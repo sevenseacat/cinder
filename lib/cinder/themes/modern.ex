@@ -16,7 +16,7 @@ defmodule Cinder.Themes.Modern do
     set :container_class,
         "bg-white shadow-lg rounded-xl border border-gray-100 [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl"
 
-    set :controls_class, "p-6 bg-gradient-to-r from-gray-50 to-white"
+    set :controls_class, ""
     set :table_wrapper_class, "overflow-x-auto bg-white"
     set :table_class, "w-full border-collapse"
     set :thead_class, "bg-gradient-to-r from-blue-50 to-indigo-50"
