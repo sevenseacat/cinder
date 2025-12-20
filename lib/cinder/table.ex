@@ -61,6 +61,15 @@ defmodule Cinder.Table do
   attr :class, :string, default: "", doc: "Additional CSS classes"
   attr :row_click, :any, default: nil, doc: "Function to call when a row is clicked"
 
+  attr :bulk_actions, :list,
+    default: [],
+    doc:
+      "List of bulk action maps with :label and :event keys, e.g. [%{label: \"Export\", event: \"export_ids\"}]"
+
+  attr :id_field, :atom,
+    default: :id,
+    doc: "Field to use as ID for bulk actions (defaults to :id)"
+
   slot :col do
     attr :field, :string
     attr :filter, :any

@@ -595,6 +595,45 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  describe "build_and_execute/2 with bulk_actions" do
+    test "returns list of IDs when bulk_actions is true" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: [],
+        bulk_actions: true,
+        id_field: :id
+      ]
+
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      assert {:ok, ids} = result
+      assert is_list(ids)
+    end
+
+    test "applies filters before returning IDs" do
+      options = [
+        actor: nil,
+        filters: %{"name" => %{type: :text, value: "NonexistentName", operator: :contains}},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [%{field: "name", filter_fn: nil, filterable: true, filter_type: :text}],
+        query_opts: [],
+        bulk_actions: true,
+        id_field: :id
+      ]
+
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      assert {:ok, ids} = result
+      # Should return empty list since no records match
+      assert ids == []
+    end
+  end
+
   describe "apply_filters/3" do
     test "returns query unchanged when no filters" do
       query = %MockQueryFilters{resource: TestResource}
