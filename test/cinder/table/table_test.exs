@@ -241,24 +241,6 @@ defmodule Cinder.TableTest do
       assert html =~ ~r/name="filters\[age_max\]"/
     end
 
-    test "invalid string filter types get converted to atoms but still render as text" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [
-          %{field: "name", filter: "invalid_filter_type", __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.Table.table/1, assigns)
-
-      # Invalid filter types should still render successfully
-      # They get converted to atoms but fall back to text filter behavior
-      assert html =~ ~r/name="filters\[name\]"/
-      refute html =~ ~r/name="filters\[name_min\]"/
-      refute html =~ ~r/name="filters\[name_max\]"/
-    end
-
     test "mixed string and atom filter types render correctly" do
       assigns = %{
         resource: TestUser,

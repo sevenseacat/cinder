@@ -824,7 +824,7 @@ defmodule Cinder.Collection do
     end
   end
 
-  defp determine_filter_type(filter_attr, _field, _resource) do
+  defp determine_filter_type(filter_attr, field, _resource) do
     case filter_attr do
       false ->
         {:text, []}
@@ -833,19 +833,35 @@ defmodule Cinder.Collection do
         {:auto, []}
 
       filter_type when is_atom(filter_type) ->
+        validate_filter_type!(filter_type, field)
         {filter_type, []}
 
       filter_type when is_binary(filter_type) ->
-        {String.to_atom(filter_type), []}
+        normalized_type = String.to_atom(filter_type)
+        validate_filter_type!(normalized_type, field)
+        {normalized_type, []}
 
       filter_config when is_list(filter_config) ->
         type = Keyword.get(filter_config, :type, :auto)
         normalized_type = if is_binary(type), do: String.to_atom(type), else: type
+        validate_filter_type!(normalized_type, field)
         options = Keyword.delete(filter_config, :type)
         {normalized_type, options}
 
       _ ->
         {:text, []}
+    end
+  end
+
+  defp validate_filter_type!(:auto, _field), do: :ok
+
+  defp validate_filter_type!(filter_type, field) do
+    unless Cinder.Filters.Registry.registered?(filter_type) do
+      available = Cinder.Filters.Registry.all_filters_with_custom() |> Map.keys() |> Enum.sort()
+
+      raise ArgumentError,
+            "Invalid filter type #{inspect(filter_type)} for field #{inspect(field)}. " <>
+              "Available types: #{Enum.map_join(available, ", ", &inspect/1)}"
     end
   end
 

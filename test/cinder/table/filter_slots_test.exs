@@ -827,6 +827,34 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert filter.filter_fn == nil
     end
 
+    test "raises helpful error for invalid filter type on filter slot" do
+      assert_raise ArgumentError, ~r/Invalid filter type :multiselect for field "status"/, fn ->
+        filter_slots = [
+          %{
+            field: "status",
+            type: :multiselect,
+            __slot__: :filter
+          }
+        ]
+
+        Cinder.Collection.process_filter_slots(filter_slots, TestUser)
+      end
+    end
+
+    test "raises helpful error for invalid string filter type on col slot" do
+      assert_raise ArgumentError, ~r/Invalid filter type :multiselect for field "status"/, fn ->
+        col_slots = [
+          %{
+            field: "status",
+            filter: "multiselect",
+            __slot__: :col
+          }
+        ]
+
+        Cinder.Collection.process_columns(col_slots, TestUser)
+      end
+    end
+
     test "filter slot with fn on non-existent field is still filterable" do
       custom_filter_fn = fn query, %{value: value} ->
         Map.put(query, :special_filter, value)
