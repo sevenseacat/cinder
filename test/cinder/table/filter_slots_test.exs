@@ -753,4 +753,157 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert html =~ "🔍 Filters"
     end
   end
+
+  describe "filter slot custom fn support" do
+    test "filter slot with fn attribute sets filter_fn on processed column" do
+      custom_filter_fn = fn query, %{value: value} ->
+        Map.put(query, :custom_filter_applied, value)
+      end
+
+      filter_slots = [
+        %{
+          field: "virtual_field",
+          label: "Virtual Filter",
+          fn: custom_filter_fn,
+          __slot__: :filter
+        }
+      ]
+
+      processed = Cinder.Collection.process_filter_slots(filter_slots, TestUser)
+      filter = List.first(processed)
+
+      # The filter slot should have the custom filter_fn set
+      assert filter.filterable == true
+      assert is_function(filter.filter_fn, 2)
+    end
+
+    test "filter slot fn is called by QueryBuilder" do
+      mock_query = %{resource: TestUser, filters: []}
+
+      custom_filter_fn = fn query, filter_config ->
+        Map.update(query, :filters, [filter_config], &[filter_config | &1])
+      end
+
+      filter_slots = [
+        %{
+          field: "custom_filter",
+          label: "Custom",
+          type: :text,
+          fn: custom_filter_fn,
+          __slot__: :filter
+        }
+      ]
+
+      processed_filters = Cinder.Collection.process_filter_slots(filter_slots, TestUser)
+
+      columns =
+        Enum.map(processed_filters, fn col ->
+          %{field: col.field, filter_fn: col.filter_fn}
+        end)
+
+      filters = %{"custom_filter" => %{type: :text, value: "test_value", operator: :eq}}
+      result = Cinder.QueryBuilder.apply_filters(mock_query, filters, columns)
+
+      # Verify the custom filter function was called
+      assert length(result.filters) == 1
+      [applied_filter] = result.filters
+      assert applied_filter.value == "test_value"
+    end
+
+    test "filter slot without fn has nil filter_fn" do
+      filter_slots = [
+        %{
+          field: "name",
+          label: "Name",
+          type: :text,
+          __slot__: :filter
+        }
+      ]
+
+      processed = Cinder.Collection.process_filter_slots(filter_slots, TestUser)
+      filter = List.first(processed)
+
+      assert filter.filterable == true
+      assert filter.filter_fn == nil
+    end
+
+    test "filter slot with fn on non-existent field is still filterable" do
+      custom_filter_fn = fn query, %{value: value} ->
+        Map.put(query, :special_filter, value)
+      end
+
+      filter_slots = [
+        %{
+          field: "nonexistent.field",
+          label: "Special Filter",
+          type: :select,
+          options: [{"Option A", "a"}, {"Option B", "b"}],
+          fn: custom_filter_fn,
+          __slot__: :filter
+        }
+      ]
+
+      processed = Cinder.Collection.process_filter_slots(filter_slots, TestUser)
+      filter = List.first(processed)
+
+      # Should be filterable because it has a custom filter_fn
+      assert filter.filterable == true
+      assert filter.filter_type == :select
+      assert is_function(filter.filter_fn, 2)
+    end
+
+    test "merged filter_columns includes both col filters and filter-only slots with fn" do
+      # This tests that merge_filter_configurations correctly combines column filters
+      # and filter-only slots, preserving the filter_fn on filter slots.
+      #
+      # Note: This test verifies the data structures are correct, but doesn't test
+      # the LiveComponent.load_data code path that passes filter_columns (not columns)
+      # to QueryBuilder. That would require a full integration test with async handling.
+      custom_filter_fn = fn query, filter_config ->
+        Map.put(query, :custom_applied, filter_config.value)
+      end
+
+      col_slots = [
+        %{field: "name", filter: true, __slot__: :col},
+        %{field: "age", filter: [type: :number_range], __slot__: :col}
+      ]
+
+      filter_slots = [
+        %{
+          field: "virtual_filter",
+          label: "Virtual",
+          type: :checkbox,
+          fn: custom_filter_fn,
+          __slot__: :filter
+        }
+      ]
+
+      processed_columns = Cinder.Collection.process_columns(col_slots, TestUser)
+      processed_filter_slots = Cinder.Collection.process_filter_slots(filter_slots, TestUser)
+
+      # Merge like the LiveComponent does
+      merged =
+        Cinder.Collection.merge_filter_configurations(processed_columns, processed_filter_slots)
+
+      # Should have 3 entries: name filter, age filter, and virtual_filter
+      assert length(merged) == 3
+
+      # Find the virtual filter and verify it has the filter_fn
+      virtual_filter = Enum.find(merged, &(&1.field == "virtual_filter"))
+      assert virtual_filter != nil
+      assert is_function(virtual_filter.filter_fn, 2)
+
+      # Verify QueryBuilder uses the custom fn when filtering
+      mock_query = %{resource: TestUser}
+      filters = %{"virtual_filter" => %{type: :checkbox, value: true}}
+
+      columns_for_query =
+        Enum.map(merged, fn col ->
+          %{field: col.field, filter_fn: col.filter_fn}
+        end)
+
+      result = Cinder.QueryBuilder.apply_filters(mock_query, filters, columns_for_query)
+      assert result.custom_applied == true
+    end
+  end
 end

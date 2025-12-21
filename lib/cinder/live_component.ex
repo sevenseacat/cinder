@@ -629,6 +629,9 @@ defmodule Cinder.LiveComponent do
 
     resource_var = resource
 
+    # Use filter_columns for filtering (includes filter-only slots with filter_fn)
+    filter_columns = Map.get(socket.assigns, :filter_columns, columns)
+
     options = [
       actor: actor,
       tenant: tenant,
@@ -638,7 +641,7 @@ defmodule Cinder.LiveComponent do
       sort_by: sort_by,
       page_size: page_size,
       current_page: current_page,
-      columns: columns,
+      columns: filter_columns,
       search_term: search_term,
       search_fn: socket.assigns.search_fn,
       pagination_configured: socket.assigns.page_size_config.configurable || page_size != 25,

@@ -4,6 +4,7 @@
 
 ### Bug fixes 
 
+* Fix custom `fn` attribute on filter-only slots not being passed to QueryBuilder
 * Pass the full provided scope to `Ash.read` when running queries (#71)
 
 ## v0.9.0-beta.2 (2025-12-16)

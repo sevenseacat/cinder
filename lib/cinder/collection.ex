@@ -220,8 +220,22 @@ defmodule Cinder.Collection do
       doc: "Field name to filter on"
     )
 
-    attr(:filter, :any, doc: "Filter configuration")
+    attr(:type, :atom, doc: "Filter type (:text, :select, :boolean, :date_range, etc.)")
     attr(:label, :string, doc: "Custom filter label")
+    attr(:options, :list, doc: "Options for select/multi_select filters")
+    attr(:value, :any, doc: "Default or fixed value for checkbox filters")
+    attr(:operator, :atom, doc: "Filter operator (:eq, :contains, :gt, etc.)")
+    attr(:case_sensitive, :boolean, doc: "Whether text filtering is case-sensitive")
+    attr(:placeholder, :string, doc: "Placeholder text for filter input")
+    attr(:labels, :map, doc: "Custom labels for boolean filter options")
+    attr(:prompt, :string, doc: "Prompt text for select filters")
+    attr(:match_mode, :atom, doc: "Match mode for multi-value filters (:any or :all)")
+    attr(:format, :string, doc: "Date format for date filters")
+    attr(:include_time, :boolean, doc: "Whether to include time in date filters")
+    attr(:step, :any, doc: "Step value for number range filters")
+    attr(:min, :any, doc: "Minimum value for range filters")
+    attr(:max, :any, doc: "Maximum value for range filters")
+    attr(:fn, :fun, doc: "Custom filter function (fn query, filter_config -> query)")
   end
 
   def collection(assigns) do
@@ -458,6 +472,8 @@ defmodule Cinder.Collection do
       filter_options = Map.get(slot, :options, [])
       filter_value = Map.get(slot, :value)
       label = Map.get(slot, :label)
+      # Extract custom filter function from slot (like process_columns does)
+      filter_fn = Map.get(slot, :fn)
 
       # Extract all filter-specific options
       extra_options =
@@ -512,7 +528,7 @@ defmodule Cinder.Collection do
         filterable: true,
         sortable: false,
         class: "",
-        filter_fn: nil,
+        filter_fn: filter_fn,
         search: false
       }
 
