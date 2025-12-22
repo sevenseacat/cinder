@@ -41,6 +41,31 @@ defmodule Cinder.LiveComponent do
     {:ok, socket}
   end
 
+  def update(%{__update_item__: {id, update_fn}} = assigns, socket) do
+    # In-memory update of a single item (no re-query)
+    id_field = socket.assigns[:id_field] || :id
+
+    updated_data =
+      Enum.map(socket.assigns.data || [], fn item ->
+        if Map.get(item, id_field) == id, do: update_fn.(item), else: item
+      end)
+
+    {:ok, socket |> assign(Map.drop(assigns, [:__update_item__])) |> assign(:data, updated_data)}
+  end
+
+  def update(%{__update_items__: {ids, update_fn}} = assigns, socket) do
+    # In-memory update of multiple items (no re-query)
+    id_field = socket.assigns[:id_field] || :id
+    id_set = MapSet.new(ids)
+
+    updated_data =
+      Enum.map(socket.assigns.data || [], fn item ->
+        if Map.get(item, id_field) in id_set, do: update_fn.(item), else: item
+      end)
+
+    {:ok, socket |> assign(Map.drop(assigns, [:__update_items__])) |> assign(:data, updated_data)}
+  end
+
   def update(assigns, socket) do
     socket =
       socket
