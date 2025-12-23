@@ -461,7 +461,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       query_cols = Cinder.Collection.build_query_columns(processed, [])
 
       # Sortable-only should NOT be in query_columns (sorting uses display columns)
-      assert length(query_cols) == 0
+      assert Enum.empty?(query_cols)
 
       # But it should still be in processed columns (display columns)
       assert length(processed) == 1
