@@ -590,7 +590,10 @@ defmodule Cinder.Collection do
               "Use either column filtering or filter-only slots, not both for the same field."
     end
 
-    column_filters = Enum.filter(processed_columns, & &1.filterable)
+    # Include columns that are filterable OR searchable
+    column_filters =
+      Enum.filter(processed_columns, &(&1.filterable or Map.get(&1, :searchable, false)))
+
     column_filters ++ processed_filter_slots
   end
 

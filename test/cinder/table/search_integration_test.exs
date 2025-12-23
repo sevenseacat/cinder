@@ -411,6 +411,45 @@ defmodule Cinder.Table.SearchIntegrationTest do
     end
   end
 
+  test "searchable columns are included in filter_columns when filter-only slots exist" do
+    # This test covers the bug where searchable columns were excluded from
+    # filter_columns when filter-only slots were present, breaking search functionality.
+    # The merge_filter_configurations function must include columns that are
+    # filterable OR searchable, not just filterable.
+
+    col_slots = [
+      %{field: "title", search: true, label: "Title", filter: false},
+      %{field: "description", search: true, label: "Description", filter: false},
+      %{field: "status", search: false, label: "Status", filter: false}
+    ]
+
+    filter_slots = [
+      %{field: "category", type: :select, label: "Category", options: [{"A", "a"}, {"B", "b"}]}
+    ]
+
+    processed_columns = Cinder.Collection.process_columns(col_slots, SearchTestResource)
+
+    processed_filter_slots =
+      Cinder.Collection.process_filter_slots(filter_slots, SearchTestResource)
+
+    # This is what gets passed to LiveComponent as filter_configs
+    merged =
+      Cinder.Collection.merge_filter_configurations(processed_columns, processed_filter_slots)
+
+    # Searchable columns should be included even though they're not filterable
+    merged_fields = Enum.map(merged, & &1.field)
+    assert "title" in merged_fields
+    assert "description" in merged_fields
+    assert "category" in merged_fields
+
+    # Non-searchable, non-filterable columns should NOT be included
+    refute "status" in merged_fields
+
+    # Verify searchable flag is preserved
+    title_col = Enum.find(merged, &(&1.field == "title"))
+    assert title_col.searchable == true
+  end
+
   test "search works through filter_change event like other filters" do
     # Test that search now uses the same form-based filter_change event
     # instead of the dedicated search_change event for consistency
