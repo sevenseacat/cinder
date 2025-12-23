@@ -43,7 +43,7 @@ defmodule Cinder.Renderers.Grid do
         <!-- Filter Controls (including search) -->
         <Cinder.FilterManager.render_filter_controls
           :if={@show_filters}
-          columns={Map.get(assigns, :filter_columns, @columns)}
+          columns={Map.get(assigns, :query_columns, @columns)}
           filters={@filters}
           theme={@theme}
           target={@myself}

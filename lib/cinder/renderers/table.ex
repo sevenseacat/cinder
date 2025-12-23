@@ -20,7 +20,7 @@ defmodule Cinder.Renderers.Table do
       <!-- Filter Controls (including search) -->
       <div :if={@show_filters} class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
-          columns={Map.get(assigns, :filter_columns, @columns)}
+          columns={Map.get(assigns, :query_columns, @columns)}
           filters={@filters}
           theme={@theme}
           target={@myself}

@@ -227,13 +227,13 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("filter_change", params, socket) do
-    filter_columns = Map.get(socket.assigns, :filter_columns, socket.assigns.columns)
+    query_columns = Map.get(socket.assigns, :query_columns, socket.assigns.columns)
 
     raw_filter_params = Map.get(params, "filters", %{})
 
     new_filters =
       raw_filter_params
-      |> Cinder.FilterManager.params_to_filters(filter_columns)
+      |> Cinder.FilterManager.params_to_filters(query_columns)
 
     search_term =
       case Map.get(params, "search") do
@@ -406,7 +406,7 @@ defmodule Cinder.LiveComponent do
       raw_params = assigns.url_raw_params
 
       decoded_filters =
-        Cinder.UrlManager.decode_filters(raw_params, socket.assigns.filter_columns)
+        Cinder.UrlManager.decode_filters(raw_params, socket.assigns.query_columns)
 
       decoded_sorts =
         Cinder.UrlManager.decode_sort(Map.get(raw_params, "sort"), socket.assigns.columns)
@@ -555,26 +555,26 @@ defmodule Cinder.LiveComponent do
   end
 
   defp assign_column_definitions(socket) do
-    resource = socket.assigns.query
+    # Display columns - already processed by Collection, use directly
+    columns = socket.assigns.col
 
-    columns =
-      socket.assigns.col
-      |> Enum.map(&Cinder.Column.parse_column(&1, resource))
-
-    filter_columns =
-      case Map.get(socket.assigns, :filter_configs) do
+    # Query columns - columns used for filtering and searching
+    # Includes filterable columns, searchable columns, and filter-only slots
+    query_columns =
+      case Map.get(socket.assigns, :query_columns) do
         nil -> columns
-        filter_configs -> filter_configs
+        qc -> qc
       end
 
+    # Field names of filterable columns (for URL state management)
     filter_field_names =
-      filter_columns
+      query_columns
       |> Enum.filter(& &1.filterable)
       |> Enum.map(& &1.field)
 
     socket
     |> assign(:columns, columns)
-    |> assign(:filter_columns, filter_columns)
+    |> assign(:query_columns, query_columns)
     |> assign(:filter_field_names, filter_field_names)
   end
 
@@ -629,8 +629,8 @@ defmodule Cinder.LiveComponent do
 
     resource_var = resource
 
-    # Use filter_columns for filtering (includes filter-only slots with filter_fn)
-    filter_columns = Map.get(socket.assigns, :filter_columns, columns)
+    # Use query_columns for filtering and searching (includes filter-only slots)
+    query_columns = Map.get(socket.assigns, :query_columns, columns)
 
     options = [
       actor: actor,
@@ -641,7 +641,7 @@ defmodule Cinder.LiveComponent do
       sort_by: sort_by,
       page_size: page_size,
       current_page: current_page,
-      columns: filter_columns,
+      columns: query_columns,
       search_term: search_term,
       search_fn: socket.assigns.search_fn,
       pagination_configured: socket.assigns.page_size_config.configurable || page_size != 25,
