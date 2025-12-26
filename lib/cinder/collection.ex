@@ -182,6 +182,22 @@ defmodule Cinder.Collection do
     doc: "Function to call when a row/item is clicked. Receives the item as argument."
   )
 
+  attr(:bulk_actions, :list,
+    default: [],
+    doc:
+      "List of bulk action maps with :label and :event keys, e.g. [%{label: \"Export\", event: \"export_ids\"}]"
+  )
+
+  attr(:id_field, :atom,
+    default: :id,
+    doc: "Field to use as ID for bulk actions (defaults to :id)"
+  )
+
+  attr(:emit_visible_ids, :boolean,
+    default: false,
+    doc: "When true, emits {:cinder_visible_ids, table_id, [id]} to parent after each data load"
+  )
+
   slot :col do
     attr(:field, :string,
       required: false,
@@ -260,6 +276,9 @@ defmodule Cinder.Collection do
       |> assign_new(:search, fn -> nil end)
       |> assign_new(:grid_columns, fn -> nil end)
       |> assign_new(:pagination, fn -> :offset end)
+      |> assign_new(:bulk_actions, fn -> [] end)
+      |> assign_new(:id_field, fn -> :id end)
+      |> assign_new(:emit_visible_ids, fn -> false end)
 
     # Validate and normalize query/resource parameters
     normalized_query = normalize_query_params(assigns[:resource], assigns[:query])
@@ -361,6 +380,9 @@ defmodule Cinder.Collection do
         search_placeholder={@search_placeholder}
         search_fn={@search_fn}
         pagination_mode={@pagination_mode}
+        bulk_actions={@bulk_actions}
+        id_field={@id_field}
+        emit_visible_ids={@emit_visible_ids}
       />
     </div>
     """

@@ -17,6 +17,24 @@ defmodule Cinder.Renderers.Table do
   def render(assigns) do
     ~H"""
     <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
+      <!-- Bulk Action Buttons -->
+      <div :if={Map.get(assigns, :bulk_actions, []) != []} class={Map.get(@theme, :bulk_actions_container_class, "flex justify-end gap-2 p-4")}>
+        <button
+          :for={action <- Map.get(assigns, :bulk_actions, [])}
+          type="button"
+          phx-click="bulk_action"
+          phx-value-event={Map.get(action, :event, "bulk_action_all_ids")}
+          phx-target={@myself}
+          disabled={Map.get(assigns, :bulk_action_loading) != nil}
+          class={[
+            Map.get(@theme, :bulk_action_button_class, "px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"),
+            Map.get(assigns, :bulk_action_loading) == Map.get(action, :event) && Map.get(@theme, :bulk_loading_class, "animate-pulse")
+          ]}
+        >
+          {Map.get(action, :label, "Action")}
+        </button>
+      </div>
+
       <!-- Filter Controls (including search) -->
       <div :if={@show_filters} class={@theme.controls_class} {@theme.controls_data}>
         <Cinder.FilterManager.render_filter_controls
