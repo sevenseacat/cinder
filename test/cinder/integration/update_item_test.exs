@@ -137,7 +137,9 @@ defmodule Cinder.Integration.UpdateItemTest do
       assert updated_socket.assigns.data == []
     end
 
-    test "strips __update_item__ from assigns after processing" do
+    test "only updates data without processing other assigns" do
+      # __update_item__ is a focused operation that ONLY updates :data
+      # It should not process any other assigns to avoid triggering reloads
       socket =
         make_socket(%{
           id_field: :id,
@@ -145,14 +147,17 @@ defmodule Cinder.Integration.UpdateItemTest do
         })
 
       assigns = %{
-        __update_item__: {1, fn item -> item end},
-        other_assign: "should_be_kept"
+        __update_item__: {1, fn item -> %{item | value: "updated"} end},
+        other_assign: "should_be_ignored"
       }
 
       {:ok, updated_socket} = LiveComponent.update(assigns, socket)
 
+      # Data should be updated
+      assert updated_socket.assigns.data == [%{id: 1, value: "updated"}]
+      # Other assigns should NOT be applied (focused operation)
+      refute Map.has_key?(updated_socket.assigns, :other_assign)
       refute Map.has_key?(updated_socket.assigns, :__update_item__)
-      assert updated_socket.assigns[:other_assign] == "should_be_kept"
     end
   end
 

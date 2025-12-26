@@ -41,7 +41,7 @@ defmodule Cinder.LiveComponent do
     {:ok, socket}
   end
 
-  def update(%{__update_item__: {id, update_fn}} = assigns, socket) do
+  def update(%{__update_item__: {id, update_fn}}, socket) do
     # In-memory update of a single item (no re-query)
     id_field = socket.assigns[:id_field] || :id
 
@@ -50,10 +50,10 @@ defmodule Cinder.LiveComponent do
         if Map.get(item, id_field) == id, do: update_fn.(item), else: item
       end)
 
-    {:ok, socket |> assign(Map.drop(assigns, [:__update_item__])) |> assign(:data, updated_data)}
+    {:ok, assign(socket, :data, updated_data)}
   end
 
-  def update(%{__update_items__: {ids, update_fn}} = assigns, socket) do
+  def update(%{__update_items__: {ids, update_fn}}, socket) do
     # In-memory update of multiple items (no re-query)
     id_field = socket.assigns[:id_field] || :id
     id_set = MapSet.new(ids)
@@ -63,17 +63,19 @@ defmodule Cinder.LiveComponent do
         if Map.get(item, id_field) in id_set, do: update_fn.(item), else: item
       end)
 
-    {:ok, socket |> assign(Map.drop(assigns, [:__update_items__])) |> assign(:data, updated_data)}
+    {:ok, assign(socket, :data, updated_data)}
   end
 
   def update(assigns, socket) do
+    prev_state = data_state(socket.assigns)
+
     socket =
       socket
       |> assign(assigns)
       |> assign_defaults()
       |> assign_column_definitions()
       |> decode_url_state(assigns)
-      |> load_data_if_needed()
+      |> load_data_if_needed(prev_state)
 
     {:ok, socket}
   end
@@ -219,12 +221,12 @@ defmodule Cinder.LiveComponent do
 
     socket =
       if url_sync_enabled do
-        socket
+        assign(socket, :__reload_requested__, true)
       else
         load_data(socket)
       end
 
-    notify_state_change(socket)
+    socket = notify_state_change(socket)
 
     {:noreply, socket}
   end
@@ -290,7 +292,7 @@ defmodule Cinder.LiveComponent do
 
     socket =
       if url_sync_enabled do
-        socket
+        assign(socket, :__reload_requested__, true)
       else
         load_data(socket)
       end
@@ -582,7 +584,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:search_term, assigns[:search_term] || "")
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
-    |> assign(:page, nil)
+    |> assign_new(:page, fn -> nil end)
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
     # Keyset pagination state
     |> assign(:pagination_mode, pagination_mode)
@@ -642,8 +644,39 @@ defmodule Cinder.LiveComponent do
   # PRIVATE FUNCTIONS - Data Loading
   # ============================================================================
 
-  defp load_data_if_needed(socket) do
-    load_data(socket)
+  # Keys that affect data queries - changes to these trigger a reload.
+  # Note: actor and tenant are compared by reference via normalize_auth/1 to avoid
+  # false positives from Ecto struct metadata differences.
+  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts after_keyset before_keyset scope)a
+
+  defp data_state(assigns) do
+    base_state = Map.take(assigns, @data_keys)
+    # Normalize actor/tenant to avoid false positives from Ecto metadata
+    Map.merge(base_state, %{
+      actor_id: normalize_auth(assigns[:actor]),
+      tenant_id: normalize_auth(assigns[:tenant])
+    })
+  end
+
+  # Normalize actor/tenant to a stable value for comparison
+  defp normalize_auth(nil), do: nil
+  defp normalize_auth(value) when is_binary(value) or is_atom(value), do: value
+  defp normalize_auth(%{id: id}), do: id
+  defp normalize_auth(value), do: value
+
+  defp load_data_if_needed(socket, prev) do
+    first_load = socket.assigns[:page] == nil
+    curr = data_state(socket.assigns)
+    state_changed = curr != prev
+    # Check if a reload was requested (e.g., by event handler with URL sync)
+    reload_requested = socket.assigns[:__reload_requested__] == true
+    socket = assign(socket, :__reload_requested__, false)
+
+    if first_load or state_changed or reload_requested do
+      load_data(socket)
+    else
+      socket
+    end
   end
 
   defp load_data(socket) do
