@@ -146,6 +146,12 @@ defmodule Cinder do
   defdelegate refresh_table(socket, table_id), to: Cinder.Refresh
   defdelegate refresh_tables(socket, table_ids), to: Cinder.Refresh
 
+  # In-memory update functions (efficient for small PubSub-driven changes)
+  defdelegate update_item(socket, collection_id, id, update_fn), to: Cinder.Update
+  defdelegate update_items(socket, collection_id, ids, update_fn), to: Cinder.Update
+  defdelegate update_if_visible(socket, collection_id, id, update_fn), to: Cinder.Update
+  defdelegate update_items_if_visible(socket, collection_id, ids, update_fn), to: Cinder.Update
+
   @doc """
   Sets up Cinder with configured custom filters.
 
