@@ -26,7 +26,4 @@ defmodule Cinder.Table.Refresh do
 
   @deprecated "Use Cinder.Refresh.refresh_tables/2 instead"
   defdelegate refresh_tables(socket, table_ids), to: Cinder.Refresh
-
-  @deprecated "Use Cinder.Refresh.refresh_if_visible/3 instead"
-  defdelegate refresh_if_visible(socket, table_id, ids), to: Cinder.Refresh
 end

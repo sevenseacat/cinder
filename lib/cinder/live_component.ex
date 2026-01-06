@@ -42,7 +42,6 @@ defmodule Cinder.LiveComponent do
   end
 
   def update(%{__update_item__: {id, update_fn}}, socket) do
-    # In-memory update of a single item (no re-query)
     id_field = socket.assigns[:id_field] || :id
 
     updated_data =
@@ -54,7 +53,6 @@ defmodule Cinder.LiveComponent do
   end
 
   def update(%{__update_items__: {ids, update_fn}}, socket) do
-    # In-memory update of multiple items (no re-query)
     id_field = socket.assigns[:id_field] || :id
     id_set = MapSet.new(ids)
 
@@ -64,6 +62,46 @@ defmodule Cinder.LiveComponent do
       end)
 
     {:ok, assign(socket, :data, updated_data)}
+  end
+
+  def update(%{__update_item_if_visible__: {id, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    data = socket.assigns.data || []
+
+    if Enum.any?(data, fn item -> Map.get(item, id_field) == id end) do
+      updated_data =
+        Enum.map(data, fn item ->
+          if Map.get(item, id_field) == id, do: update_fn.(item), else: item
+        end)
+
+      {:ok, assign(socket, :data, updated_data)}
+    else
+      {:ok, socket}
+    end
+  end
+
+  def update(%{__update_items_if_visible__: {ids, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    data = socket.assigns.data || []
+    id_set = MapSet.new(ids)
+
+    visible_ids =
+      data
+      |> Enum.map(&Map.get(&1, id_field))
+      |> MapSet.new()
+
+    ids_to_update = MapSet.intersection(id_set, visible_ids)
+
+    if MapSet.size(ids_to_update) > 0 do
+      updated_data =
+        Enum.map(data, fn item ->
+          if Map.get(item, id_field) in ids_to_update, do: update_fn.(item), else: item
+        end)
+
+      {:ok, assign(socket, :data, updated_data)}
+    else
+      {:ok, socket}
+    end
   end
 
   def update(assigns, socket) do
@@ -315,7 +353,6 @@ defmodule Cinder.LiveComponent do
       |> assign(:page, page)
       # Update keyset cursors for navigation (only relevant in keyset mode)
       |> maybe_update_keyset_cursors(page)
-      |> maybe_emit_visible_ids(page.results)
 
     {:noreply, socket}
   end
@@ -376,18 +413,6 @@ defmodule Cinder.LiveComponent do
   end
 
   defp maybe_update_keyset_cursors(socket, _page), do: socket
-
-  # Emit visible IDs to parent LiveView for selective refresh optimization
-  defp maybe_emit_visible_ids(socket, results) do
-    if socket.assigns[:emit_visible_ids] do
-      id_field = socket.assigns[:id_field] || :id
-      collection_id = socket.assigns[:id]
-      visible_ids = Enum.map(results, &Map.get(&1, id_field))
-      send(self(), {:cinder_visible_ids, collection_id, visible_ids})
-    end
-
-    socket
-  end
 
   defp get_keyset_from_result(nil), do: nil
 
@@ -645,30 +670,44 @@ defmodule Cinder.LiveComponent do
   # ============================================================================
 
   # Keys that affect data queries - changes to these trigger a reload.
-  # Note: actor and tenant are compared by reference via normalize_auth/1 to avoid
+  # Note: actor, tenant, and scope are normalized separately to avoid
   # false positives from Ecto struct metadata differences.
-  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts after_keyset before_keyset scope)a
+  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts after_keyset before_keyset)a
 
   defp data_state(assigns) do
     base_state = Map.take(assigns, @data_keys)
-    # Normalize actor/tenant to avoid false positives from Ecto metadata
+
     Map.merge(base_state, %{
       actor_id: normalize_auth(assigns[:actor]),
-      tenant_id: normalize_auth(assigns[:tenant])
+      tenant_id: normalize_auth(assigns[:tenant]),
+      scope_id: normalize_scope(assigns[:scope])
     })
   end
 
-  # Normalize actor/tenant to a stable value for comparison
   defp normalize_auth(nil), do: nil
   defp normalize_auth(value) when is_binary(value) or is_atom(value), do: value
   defp normalize_auth(%{id: id}), do: id
   defp normalize_auth(value), do: value
 
+  # Normalize scope by extracting IDs from nested structs
+  defp normalize_scope(nil), do: nil
+
+  defp normalize_scope(scope) when is_map(scope) do
+    scope
+    |> Enum.map(fn
+      {key, %{id: id}} -> {key, id}
+      {key, value} when is_map(value) -> {key, normalize_scope(value)}
+      {key, value} -> {key, value}
+    end)
+    |> Enum.sort()
+  end
+
+  defp normalize_scope(value), do: value
+
   defp load_data_if_needed(socket, prev) do
     first_load = socket.assigns[:page] == nil
     curr = data_state(socket.assigns)
     state_changed = curr != prev
-    # Check if a reload was requested (e.g., by event handler with URL sync)
     reload_requested = socket.assigns[:__reload_requested__] == true
     socket = assign(socket, :__reload_requested__, false)
 

@@ -36,6 +36,7 @@ defmodule Cinder.Update do
     and calculations that come from the database will NOT be recalculated.
   - For changes that affect derived data, use `refresh_table/2` instead.
   - If the item is not found in the current data, the update is silently ignored.
+  - The `update_if_visible` functions check visibility within the component itself.
   """
 
   import Phoenix.LiveView, only: [send_update: 2]
@@ -122,31 +123,24 @@ defmodule Cinder.Update do
   Updates an item only if it's currently visible in the collection.
 
   This combines the efficiency of `update_item/4` with visibility checking.
-  If the item is not in the visible set, no update is sent (complete no-op).
+  The component itself checks if the item exists in its current data before
+  applying the update. If the item is not visible, the update is silently ignored.
 
-  Requires the collection to have `emit_visible_ids={true}` and the parent
-  LiveView to store visible IDs via the `{:cinder_visible_ids, ...}` handler.
+  Safe to call when you're unsure if the item is currently displayed.
 
   ## Parameters
 
-  - `socket` - The LiveView socket (must have `:cinder_visible_ids` in assigns)
+  - `socket` - The LiveView socket
   - `collection_id` - The ID of the collection (string)
   - `id` - The ID of the item to update
   - `update_fn` - A function that receives the item and returns the updated item
 
   ## Returns
 
-  The socket (unchanged). Update message sent only if item is visible.
+  The socket (unchanged, but update message has been sent to component).
 
   ## Examples
 
-      # In parent LiveView, store visible IDs
-      def handle_info({:cinder_visible_ids, collection_id, ids}, socket) do
-        visible_ids = socket.assigns[:cinder_visible_ids] || %{}
-        {:noreply, assign(socket, :cinder_visible_ids, Map.put(visible_ids, collection_id, MapSet.new(ids)))}
-      end
-
-      # Update only if visible
       def handle_info({:user_typing, user_id}, socket) do
         {:noreply, update_if_visible(socket, "users-table", user_id, fn user ->
           %{user | typing: true}
@@ -155,31 +149,31 @@ defmodule Cinder.Update do
   """
   def update_if_visible(socket, collection_id, id, update_fn)
       when is_binary(collection_id) and is_function(update_fn, 1) do
-    visible_ids = get_in(socket.assigns, [:cinder_visible_ids, collection_id])
+    send_update(Cinder.LiveComponent,
+      id: collection_id,
+      __update_item_if_visible__: {id, update_fn}
+    )
 
-    if visible_ids && id in visible_ids do
-      update_item(socket, collection_id, id, update_fn)
-    else
-      socket
-    end
+    socket
   end
 
   @doc """
   Updates multiple items only if any are currently visible.
 
   Like `update_if_visible/4` but for multiple IDs. Only items that are both
-  in the provided list AND currently visible will be updated.
+  in the provided list AND currently visible will be updated. The component
+  itself determines which items are visible by checking its current data.
 
   ## Parameters
 
-  - `socket` - The LiveView socket (must have `:cinder_visible_ids` in assigns)
+  - `socket` - The LiveView socket
   - `collection_id` - The ID of the collection (string)
   - `ids` - List of IDs to potentially update
   - `update_fn` - A function that receives each item and returns the updated item
 
   ## Returns
 
-  The socket (unchanged). Update message sent only for visible items.
+  The socket (unchanged, but update message has been sent to component).
 
   ## Examples
 
@@ -191,18 +185,11 @@ defmodule Cinder.Update do
   """
   def update_items_if_visible(socket, collection_id, ids, update_fn)
       when is_binary(collection_id) and is_list(ids) and is_function(update_fn, 1) do
-    visible_ids = get_in(socket.assigns, [:cinder_visible_ids, collection_id])
+    send_update(Cinder.LiveComponent,
+      id: collection_id,
+      __update_items_if_visible__: {ids, update_fn}
+    )
 
-    if visible_ids do
-      visible_to_update = Enum.filter(ids, &(&1 in visible_ids))
-
-      if visible_to_update != [] do
-        update_items(socket, collection_id, visible_to_update, update_fn)
-      else
-        socket
-      end
-    else
-      socket
-    end
+    socket
   end
 end

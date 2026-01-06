@@ -266,6 +266,151 @@ defmodule Cinder.Integration.UpdateItemTest do
     end
   end
 
+  describe "LiveComponent update/2 with __update_item_if_visible__" do
+    test "updates item when it exists in data" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [
+            %{id: "user-1", name: "Alice", status: :inactive},
+            %{id: "user-2", name: "Bob", status: :inactive}
+          ]
+        })
+
+      assigns = %{
+        __update_item_if_visible__: {"user-2", fn item -> %{item | status: :active} end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == [
+               %{id: "user-1", name: "Alice", status: :inactive},
+               %{id: "user-2", name: "Bob", status: :active}
+             ]
+    end
+
+    test "does nothing when item is not in data" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [
+            %{id: "user-1", name: "Alice"}
+          ]
+        })
+
+      assigns = %{
+        __update_item_if_visible__:
+          {"user-999", fn item -> %{item | name: "Should not happen"} end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      # Data should be unchanged
+      assert updated_socket.assigns.data == [
+               %{id: "user-1", name: "Alice"}
+             ]
+    end
+
+    test "works with custom id_field" do
+      socket =
+        make_socket(%{
+          id_field: :uuid,
+          data: [
+            %{uuid: "abc-123", count: 0}
+          ]
+        })
+
+      assigns = %{
+        __update_item_if_visible__: {"abc-123", fn item -> %{item | count: 1} end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == [%{uuid: "abc-123", count: 1}]
+    end
+
+    test "handles empty data list gracefully" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: []
+        })
+
+      assigns = %{
+        __update_item_if_visible__: {"any-id", fn item -> %{item | changed: true} end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == []
+    end
+  end
+
+  describe "LiveComponent update/2 with __update_items_if_visible__" do
+    test "updates only items that exist in data" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [
+            %{id: "a", selected: false},
+            %{id: "b", selected: false},
+            %{id: "c", selected: false}
+          ]
+        })
+
+      # Include IDs that exist and don't exist
+      assigns = %{
+        __update_items_if_visible__: {["a", "c", "z"], fn item -> %{item | selected: true} end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == [
+               %{id: "a", selected: true},
+               %{id: "b", selected: false},
+               %{id: "c", selected: true}
+             ]
+    end
+
+    test "does nothing when no IDs are in data" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [
+            %{id: "user-1", value: "original"}
+          ]
+        })
+
+      assigns = %{
+        __update_items_if_visible__:
+          {["user-99", "user-100"], fn item -> %{item | value: "changed"} end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == [
+               %{id: "user-1", value: "original"}
+             ]
+    end
+
+    test "handles empty ID list" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [%{id: 1, value: "test"}]
+        })
+
+      assigns = %{
+        __update_items_if_visible__: {[], fn item -> %{item | value: "changed"} end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      # No changes when empty list
+      assert updated_socket.assigns.data == [%{id: 1, value: "test"}]
+    end
+  end
+
   describe "update function behavior" do
     test "update function can modify multiple fields" do
       socket =
