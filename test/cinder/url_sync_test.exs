@@ -380,10 +380,10 @@ defmodule Cinder.UrlSyncTest do
     test "filter-only slots are properly decoded from URL parameters (regression test)" do
       # This tests the specific bug where filter-only slots (like <:filter field="track_count" .../>)
       # were lost during URL state decoding because decode_url_state was using display columns
-      # instead of filter_columns for filter decoding
+      # instead of query_columns for filter decoding
 
       # Simulate filter-only slot configuration
-      filter_columns = [
+      query_columns = [
         %{field: "name", filterable: true, filter_type: :text},
         %{
           field: "track_count",
@@ -402,11 +402,11 @@ defmodule Cinder.UrlSyncTest do
       # Simulate URL parameters that include a filter-only field
       url_params = %{"track_count" => "8", "name" => "test"}
 
-      # Test that filter_columns can decode the filter-only field
-      filters_with_filter_columns = Cinder.UrlManager.decode_filters(url_params, filter_columns)
-      assert Map.has_key?(filters_with_filter_columns, "track_count")
+      # Test that query_columns can decode the filter-only field
+      filters_with_query_columns = Cinder.UrlManager.decode_filters(url_params, query_columns)
+      assert Map.has_key?(filters_with_query_columns, "track_count")
 
-      assert filters_with_filter_columns["track_count"] == %{
+      assert filters_with_query_columns["track_count"] == %{
                type: :checkbox,
                value: 8,
                operator: :equals

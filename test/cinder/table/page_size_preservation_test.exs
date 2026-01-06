@@ -60,7 +60,7 @@ defmodule Cinder.Table.PageSizePreservationTest do
       filters_label: "Filters",
       empty_message: "No results",
       col: [],
-      filter_configs: [],
+      query_columns: [],
       row_click: nil,
       search_enabled: false,
       search_label: "Search",
@@ -161,7 +161,7 @@ defmodule Cinder.Table.PageSizePreservationTest do
         |> Phoenix.Component.assign(:current_page, 1)
         |> Phoenix.Component.assign(:search_term, "")
         |> Phoenix.Component.assign(:filter_field_names, ["name"])
-        |> Phoenix.Component.assign(:filter_columns, [
+        |> Phoenix.Component.assign(:query_columns, [
           %{field: "name", filterable: true, filter_type: :text}
         ])
         |> Phoenix.Component.assign(:user_has_interacted, false)

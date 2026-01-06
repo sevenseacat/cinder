@@ -454,8 +454,8 @@ defmodule Cinder.Table.FilterSlotsTest do
     end
   end
 
-  describe "configuration merging" do
-    test "merges column filters and filter slots correctly" do
+  describe "build_query_columns" do
+    test "builds query columns from column filters and filter slots correctly" do
       processed_columns = [
         %{field: "name", filterable: true, filter_type: :text, __slot__: :col},
         %{field: "email", filterable: false, __slot__: :col}
@@ -466,7 +466,7 @@ defmodule Cinder.Table.FilterSlotsTest do
         %{field: "department", filterable: true, filter_type: :select, __slot__: :filter}
       ]
 
-      merged = Cinder.Table.merge_filter_configurations(processed_columns, processed_filter_slots)
+      merged = Cinder.Table.build_query_columns(processed_columns, processed_filter_slots)
 
       # Should include only filterable column + both filter slots
       assert length(merged) == 3
@@ -489,7 +489,7 @@ defmodule Cinder.Table.FilterSlotsTest do
       ]
 
       assert_raise ArgumentError, ~r/Field conflict detected.*name/, fn ->
-        Cinder.Table.merge_filter_configurations(processed_columns, processed_filter_slots)
+        Cinder.Table.build_query_columns(processed_columns, processed_filter_slots)
       end
     end
 
@@ -503,7 +503,7 @@ defmodule Cinder.Table.FilterSlotsTest do
         %{field: "name", filterable: true, filter_type: :text, __slot__: :filter}
       ]
 
-      merged = Cinder.Table.merge_filter_configurations(processed_columns, processed_filter_slots)
+      merged = Cinder.Table.build_query_columns(processed_columns, processed_filter_slots)
       assert length(merged) == 1
       assert hd(merged).field == "name"
       assert hd(merged).__slot__ == :filter
@@ -880,12 +880,12 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert is_function(filter.filter_fn, 2)
     end
 
-    test "merged filter_columns includes both col filters and filter-only slots with fn" do
-      # This tests that merge_filter_configurations correctly combines column filters
+    test "merged query_columns includes both col filters and filter-only slots with fn" do
+      # This tests that build_query_columns correctly combines column filters
       # and filter-only slots, preserving the filter_fn on filter slots.
       #
       # Note: This test verifies the data structures are correct, but doesn't test
-      # the LiveComponent.load_data code path that passes filter_columns (not columns)
+      # the LiveComponent.load_data code path that passes query_columns (not columns)
       # to QueryBuilder. That would require a full integration test with async handling.
       custom_filter_fn = fn query, filter_config ->
         Map.put(query, :custom_applied, filter_config.value)
@@ -911,7 +911,7 @@ defmodule Cinder.Table.FilterSlotsTest do
 
       # Merge like the LiveComponent does
       merged =
-        Cinder.Collection.merge_filter_configurations(processed_columns, processed_filter_slots)
+        Cinder.Collection.build_query_columns(processed_columns, processed_filter_slots)
 
       # Should have 3 entries: name filter, age filter, and virtual_filter
       assert length(merged) == 3

@@ -470,7 +470,7 @@ defmodule Cinder.Integration.KeysetPaginationTest do
         filters_label: "Filters",
         empty_message: "No results",
         col: [],
-        filter_configs: [],
+        query_columns: [],
         row_click: nil,
         search_enabled: false,
         search_label: "Search",
@@ -591,7 +591,7 @@ defmodule Cinder.Integration.KeysetPaginationTest do
         |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
         |> Phoenix.Component.assign(:before_keyset, nil)
         |> Phoenix.Component.assign(:columns, [])
-        |> Phoenix.Component.assign(:filter_columns, [])
+        |> Phoenix.Component.assign(:query_columns, [])
         |> Phoenix.Component.assign(:filters, %{"status" => %{value: "active"}})
 
       # Apply different filters - this should reset pagination
@@ -613,7 +613,7 @@ defmodule Cinder.Integration.KeysetPaginationTest do
         |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
         |> Phoenix.Component.assign(:before_keyset, nil)
         |> Phoenix.Component.assign(:columns, [])
-        |> Phoenix.Component.assign(:filter_columns, [])
+        |> Phoenix.Component.assign(:query_columns, [])
         |> Phoenix.Component.assign(:filters, %{})
 
       # Submit same empty filters (e.g., typing in autocomplete without selecting)

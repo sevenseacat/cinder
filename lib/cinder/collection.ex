@@ -290,15 +290,15 @@ defmodule Cinder.Collection do
     # Process filter slots if present
     processed_filter_slots = process_filter_slots(Map.get(assigns, :filter, []), resource)
 
-    # Merge columns and filter slots
-    all_filter_configs = merge_filter_configurations(processed_columns, processed_filter_slots)
+    # Build query columns (columns used for filtering and searching)
+    query_columns = build_query_columns(processed_columns, processed_filter_slots)
 
     # Process unified search configuration
     {search_label, search_placeholder, search_enabled, search_fn} =
       process_search_config(assigns.search, processed_columns)
 
     # Determine if filters should be shown
-    show_filters = determine_show_filters(assigns, all_filter_configs, search_enabled)
+    show_filters = determine_show_filters(assigns, query_columns, search_enabled)
 
     # Determine if sort controls should be shown (for list/grid layouts)
     show_sort = determine_show_sort(assigns, processed_columns)
@@ -327,7 +327,7 @@ defmodule Cinder.Collection do
       assigns
       |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
-      |> assign(:all_filter_configs, all_filter_configs)
+      |> assign(:query_columns, query_columns)
       |> assign(:page_size_config, page_size_config)
       |> assign(:search_label, search_label)
       |> assign(:search_placeholder, search_placeholder)
@@ -369,7 +369,7 @@ defmodule Cinder.Collection do
         sort_label={@sort_label}
         empty_message={@empty_message}
         col={@processed_columns}
-        filter_configs={@all_filter_configs}
+        query_columns={@query_columns}
         row_click={@row_click}
         item_click={@item_click}
         item_slot={@item_slot}
@@ -467,6 +467,8 @@ defmodule Cinder.Collection do
         end
 
       # Create slot in internal format with proper label handling
+      # Note: We store the original slot for render_slot compatibility in renderers.
+      # Phoenix's render_slot expects the full slot structure, not just inner_block.
       %{
         field: field,
         label: Map.get(slot, :label, parsed_column.label),
@@ -476,6 +478,7 @@ defmodule Cinder.Collection do
         sortable: parsed_column.sortable,
         class: Map.get(slot, :class, ""),
         inner_block: slot[:inner_block] || default_inner_block(field),
+        slot: slot,
         filter_fn: parsed_column.filter_fn,
         searchable: parsed_column.searchable,
         sort_cycle: sort_config.cycle || [nil, :asc, :desc],
@@ -587,9 +590,38 @@ defmodule Cinder.Collection do
   end
 
   @doc """
-  Merge column filters and filter-only slots, checking for field conflicts.
+  Builds the list of columns used for query operations (filtering AND searching).
+
+  This function combines:
+  - **Filterable columns**: needed for filter application
+  - **Searchable columns**: needed for search even if not filterable
+  - **Filter-only slots**: dedicated filter controls not tied to display columns
+
+  NOTE: Sortable-only columns are NOT included here - sorting uses display_columns
+  because sort controls are tied to column headers.
+
+  Raises `ArgumentError` if the same field is defined in both a filterable column
+  and a filter-only slot.
   """
+  def build_query_columns(processed_columns, processed_filter_slots) do
+    validate_no_field_conflicts!(processed_columns, processed_filter_slots)
+
+    # Include columns that participate in query operations (filter OR search)
+    query_relevant_columns =
+      Enum.filter(processed_columns, fn col ->
+        col.filterable or Map.get(col, :searchable, false)
+      end)
+
+    query_relevant_columns ++ processed_filter_slots
+  end
+
+  # Kept for backward compatibility - delegates to build_query_columns
+  @doc false
   def merge_filter_configurations(processed_columns, processed_filter_slots) do
+    build_query_columns(processed_columns, processed_filter_slots)
+  end
+
+  defp validate_no_field_conflicts!(processed_columns, processed_filter_slots) do
     column_fields =
       processed_columns
       |> Enum.filter(& &1.filterable)
@@ -612,8 +644,7 @@ defmodule Cinder.Collection do
               "Use either column filtering or filter-only slots, not both for the same field."
     end
 
-    column_filters = Enum.filter(processed_columns, & &1.filterable)
-    column_filters ++ processed_filter_slots
+    :ok
   end
 
   @doc """

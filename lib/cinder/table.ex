@@ -126,9 +126,14 @@ defmodule Cinder.Table do
   defdelegate process_filter_slots(filter_slots, resource), to: Cinder.Collection
 
   @doc """
-  Merge column filters and filter-only slots, checking for field conflicts.
-  Delegates to `Cinder.Collection.merge_filter_configurations/2`.
+  Builds the list of columns used for query operations (filtering AND searching).
+  Delegates to `Cinder.Collection.build_query_columns/2`.
   """
+  defdelegate build_query_columns(processed_columns, processed_filter_slots),
+    to: Cinder.Collection
+
+  @doc false
+  @deprecated "Use build_query_columns/2 instead"
   defdelegate merge_filter_configurations(processed_columns, processed_filter_slots),
     to: Cinder.Collection
 
