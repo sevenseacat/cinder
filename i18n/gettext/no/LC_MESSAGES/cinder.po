@@ -1,0 +1,87 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: no\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/cinder/filter_manager.ex:81
+#, elixir-autogen
+msgid "Clear all"
+msgstr "Fjern alle"
+
+#: lib/cinder/filter_manager.ex:228
+#, elixir-autogen
+msgid "Clear filter"
+msgstr "Fjern filter"
+
+#: lib/cinder/filter_manager.ex:71
+#, elixir-autogen
+msgid "active"
+msgid_plural "active"
+msgstr[0] "aktiv"
+msgstr[1] "aktive"
+
+#: lib/cinder/renderers/pagination.ex:87
+#, elixir-autogen
+msgid "Page %{current} of %{total}"
+msgstr "Side %{current} av %{total}"
+
+#: lib/cinder/renderers/pagination.ex:89
+#, elixir-autogen
+msgid "showing %{start}-%{end} of %{total}"
+msgstr "viser %{start}-%{end} av %{total}"
+
+#: lib/cinder/filters/date_range.ex:51
+#: lib/cinder/filters/number_range.ex:41
+#, elixir-autogen
+msgid "to"
+msgstr "til"
+
+#: lib/cinder/renderers/pagination.ex:153
+#: lib/cinder/renderers/pagination.ex:232
+#, elixir-autogen
+msgid "Next page"
+msgstr "Neste side"
+
+#: lib/cinder/renderers/pagination.ex:122
+#: lib/cinder/renderers/pagination.ex:220
+#, elixir-autogen
+msgid "Previous page"
+msgstr "Forrige side"
+
+#: lib/cinder/renderers/pagination.ex:110
+#, elixir-autogen
+msgid "First page"
+msgstr "Første side"
+
+#: lib/cinder/renderers/pagination.ex:165
+#, elixir-autogen
+msgid "Last page"
+msgstr "Siste side"
+
+#: lib/cinder/renderers/pagination.ex:136
+#, elixir-autogen
+msgid "Go to page %{page}"
+msgstr "Gå til side %{page}"
+
+#: lib/cinder/renderers/pagination.ex:201
+#, elixir-autogen, elixir-format
+msgid "%{total} items"
+msgstr "%{total} elementer"
+
+#: lib/cinder/renderers/pagination.ex:234
+#, elixir-autogen, elixir-format
+msgid "Next"
+msgstr "Neste"
+
+#: lib/cinder/renderers/pagination.ex:222
+#, elixir-autogen, elixir-format
+msgid "Prev"
+msgstr "Forrige"
