@@ -64,44 +64,37 @@ defmodule Cinder.LiveComponent do
     {:ok, assign(socket, :data, updated_data)}
   end
 
-  def update(%{__update_item_if_visible__: {id, update_fn}}, socket) do
+  # Single item update - raw item passed (has id field)
+  def update(%{__update_item_if_visible__: {%{} = raw_item, update_fn}}, socket) do
     id_field = socket.assigns[:id_field] || :id
-    data = socket.assigns.data || []
-
-    if Enum.any?(data, fn item -> Map.get(item, id_field) == id end) do
-      updated_data =
-        Enum.map(data, fn item ->
-          if Map.get(item, id_field) == id, do: update_fn.(item), else: item
-        end)
-
-      {:ok, assign(socket, :data, updated_data)}
-    else
-      {:ok, socket}
-    end
+    id = Map.get(raw_item, id_field)
+    do_update_item_if_visible(socket, id, raw_item, update_fn, id_field)
   end
 
-  def update(%{__update_items_if_visible__: {ids, update_fn}}, socket) do
+  # Single item update - just ID passed
+  def update(%{__update_item_if_visible__: {id, update_fn}}, socket) do
     id_field = socket.assigns[:id_field] || :id
-    data = socket.assigns.data || []
-    id_set = MapSet.new(ids)
+    do_update_item_if_visible(socket, id, nil, update_fn, id_field)
+  end
 
-    visible_ids =
-      data
-      |> Enum.map(&Map.get(&1, id_field))
-      |> MapSet.new()
+  # Single raw item passed (not in a list)
+  def update(%{__update_items_if_visible__: {%{} = item, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    items_by_id = %{Map.get(item, id_field) => item}
+    do_update_items_if_visible(socket, items_by_id, update_fn, id_field)
+  end
 
-    ids_to_update = MapSet.intersection(id_set, visible_ids)
+  # List of raw items passed
+  def update(%{__update_items_if_visible__: {[%{} | _] = items, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    items_by_id = Map.new(items, &{Map.get(&1, id_field), &1})
+    do_update_items_if_visible(socket, items_by_id, update_fn, id_field)
+  end
 
-    if MapSet.size(ids_to_update) > 0 do
-      updated_data =
-        Enum.map(data, fn item ->
-          if Map.get(item, id_field) in ids_to_update, do: update_fn.(item), else: item
-        end)
-
-      {:ok, assign(socket, :data, updated_data)}
-    else
-      {:ok, socket}
-    end
+  # List of IDs passed (use old table data)
+  def update(%{__update_items_if_visible__: {ids, update_fn}}, socket) when is_list(ids) do
+    id_field = socket.assigns[:id_field] || :id
+    do_update_items_if_visible(socket, nil, ids, update_fn, id_field)
   end
 
   def update(assigns, socket) do
@@ -117,6 +110,64 @@ defmodule Cinder.LiveComponent do
 
     {:ok, socket}
   end
+
+  defp do_update_item_if_visible(socket, id, raw_item, update_fn, id_field) do
+    data = socket.assigns.data || []
+
+    case Enum.find(data, &(Map.get(&1, id_field) == id)) do
+      nil ->
+        {:ok, socket}
+
+      old_item ->
+        input = raw_item || old_item
+        updated = update_fn.(input)
+        updated_data = Enum.map(data, &if(Map.get(&1, id_field) == id, do: updated, else: &1))
+        {:ok, assign(socket, :data, updated_data)}
+    end
+  end
+
+  # When raw items provided as map
+  defp do_update_items_if_visible(socket, items_by_id, update_fn, id_field) do
+    do_update_items_if_visible(socket, items_by_id, Map.keys(items_by_id), update_fn, id_field)
+  end
+
+  defp do_update_items_if_visible(socket, items_by_id, ids, update_fn, id_field) do
+    data = socket.assigns.data || []
+    id_set = MapSet.new(ids)
+    visible_ids = data |> Enum.map(&Map.get(&1, id_field)) |> MapSet.new()
+    ids_to_update = MapSet.intersection(id_set, visible_ids)
+
+    if MapSet.size(ids_to_update) == 0 do
+      {:ok, socket}
+    else
+      input_items = get_input_items(data, items_by_id, ids_to_update, id_field)
+      updated_by_id = update_fn.(input_items) |> to_map_by_id(id_field)
+
+      updated_data =
+        Enum.map(data, fn item ->
+          id = Map.get(item, id_field)
+          Map.get(updated_by_id, id, item)
+        end)
+
+      {:ok, assign(socket, :data, updated_data)}
+    end
+  end
+
+  # Get input items from raw data if provided, otherwise from table data
+  defp get_input_items(_data, items_by_id, ids_to_update, _id_field) when is_map(items_by_id) do
+    ids_to_update |> Enum.map(&items_by_id[&1]) |> Enum.filter(& &1)
+  end
+
+  defp get_input_items(data, nil, ids_to_update, id_field) do
+    Enum.filter(data, &(Map.get(&1, id_field) in ids_to_update))
+  end
+
+  # Normalize function return to map
+  defp to_map_by_id(items, id_field) when is_list(items) do
+    Map.new(items, &{Map.get(&1, id_field), &1})
+  end
+
+  defp to_map_by_id(items, _id_field) when is_map(items), do: items
 
   @impl true
   def render(assigns) do

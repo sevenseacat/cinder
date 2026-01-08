@@ -124,7 +124,8 @@ defmodule Cinder.Update do
 
   This combines the efficiency of `update_item/4` with visibility checking.
   The component itself checks if the item exists in its current data before
-  applying the update. If the item is not visible, the update is silently ignored.
+  applying the update. If the item is not visible, the update function is never
+  called, enabling lazy loading patterns.
 
   Safe to call when you're unsure if the item is currently displayed.
 
@@ -133,7 +134,8 @@ defmodule Cinder.Update do
   - `socket` - The LiveView socket
   - `collection_id` - The ID of the collection (string)
   - `id` - The ID of the item to update
-  - `update_fn` - A function that receives the item and returns the updated item
+  - `update_fn` - A function that receives a list containing the visible item
+    and returns either a list of updated items or a map of `%{id => updated_item}`
 
   ## Returns
 
@@ -141,9 +143,18 @@ defmodule Cinder.Update do
 
   ## Examples
 
+      # Simple update
       def handle_info({:user_typing, user_id}, socket) do
-        {:noreply, update_if_visible(socket, "users-table", user_id, fn user ->
-          %{user | typing: true}
+        {:noreply, update_if_visible(socket, "users-table", user_id, fn [user] ->
+          [%{user | typing: true}]
+        end)}
+      end
+
+      # Lazy loading - only loads if visible
+      def handle_info({:user_updated, user_id, raw_data}, socket) do
+        {:noreply, update_if_visible(socket, "users-table", user_id, fn _visible ->
+          {:ok, loaded} = Ash.load(raw_data, [:profile, :settings], opts)
+          [loaded]
         end)}
       end
   """
@@ -164,12 +175,16 @@ defmodule Cinder.Update do
   in the provided list AND currently visible will be updated. The component
   itself determines which items are visible by checking its current data.
 
+  The update function is called ONCE with ALL visible items, enabling efficient
+  batch operations. If no items are visible, the function is never called.
+
   ## Parameters
 
   - `socket` - The LiveView socket
   - `collection_id` - The ID of the collection (string)
   - `ids` - List of IDs to potentially update
-  - `update_fn` - A function that receives each item and returns the updated item
+  - `update_fn` - A function that receives a list of visible items and returns
+    either a list of updated items or a map of `%{id => updated_item}`
 
   ## Returns
 
@@ -177,12 +192,31 @@ defmodule Cinder.Update do
 
   ## Examples
 
+      # Simple batch update
       def handle_info({:users_went_offline, user_ids}, socket) do
-        {:noreply, update_items_if_visible(socket, "users-table", user_ids, fn user ->
-          %{user | online: false}
+        {:noreply, update_items_if_visible(socket, "users-table", user_ids, fn users ->
+          Enum.map(users, &%{&1 | online: false})
+        end)}
+      end
+
+      # Lazy batch loading - only loads visible items
+      def handle_info(%{payload: %{data: data}}, socket) do
+        items = List.wrap(data)
+        ids = Enum.map(items, & &1.id)
+        raw_by_id = Map.new(items, &{&1.id, &1})
+
+        {:noreply, update_items_if_visible(socket, "table", ids, fn visible_items ->
+          to_load = Enum.map(visible_items, &raw_by_id[&1.id])
+          {:ok, loaded} = Ash.load(to_load, [:relations], opts)
+          loaded
         end)}
       end
   """
+  def update_items_if_visible(socket, collection_id, item, update_fn)
+      when is_binary(collection_id) and is_struct(item) and is_function(update_fn, 1) do
+    update_items_if_visible(socket, collection_id, [item], update_fn)
+  end
+
   def update_items_if_visible(socket, collection_id, ids, update_fn)
       when is_binary(collection_id) and is_list(ids) and is_function(update_fn, 1) do
     send_update(Cinder.LiveComponent,

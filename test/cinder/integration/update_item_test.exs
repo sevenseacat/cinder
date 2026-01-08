@@ -359,8 +359,10 @@ defmodule Cinder.Integration.UpdateItemTest do
         })
 
       # Include IDs that exist and don't exist
+      # update_fn receives a list and returns a list
       assigns = %{
-        __update_items_if_visible__: {["a", "c", "z"], fn item -> %{item | selected: true} end}
+        __update_items_if_visible__:
+          {["a", "c", "z"], fn items -> Enum.map(items, &%{&1 | selected: true}) end}
       }
 
       {:ok, updated_socket} = LiveComponent.update(assigns, socket)
@@ -383,7 +385,7 @@ defmodule Cinder.Integration.UpdateItemTest do
 
       assigns = %{
         __update_items_if_visible__:
-          {["user-99", "user-100"], fn item -> %{item | value: "changed"} end}
+          {["user-99", "user-100"], fn items -> Enum.map(items, &%{&1 | value: "changed"}) end}
       }
 
       {:ok, updated_socket} = LiveComponent.update(assigns, socket)
@@ -401,7 +403,8 @@ defmodule Cinder.Integration.UpdateItemTest do
         })
 
       assigns = %{
-        __update_items_if_visible__: {[], fn item -> %{item | value: "changed"} end}
+        __update_items_if_visible__:
+          {[], fn items -> Enum.map(items, &%{&1 | value: "changed"}) end}
       }
 
       {:ok, updated_socket} = LiveComponent.update(assigns, socket)
