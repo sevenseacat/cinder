@@ -132,63 +132,80 @@ defmodule Cinder.QueryBuilder do
       # Validate sort fields before applying them to prevent crashes
       case validate_sortable_fields(sort_by, resource) do
         :ok ->
-          # Continue with normal query building
-          prepared_query =
-            base_query
-            |> apply_query_opts(query_opts)
-            |> apply_filters(filters, columns)
-            |> apply_search(search_term, columns, search_fn)
-            |> apply_sorting(sort_by)
+          # Check if this is a bulk_actions request (returns IDs only, no pagination)
+          if Keyword.get(options, :bulk_actions, false) do
+            execute_bulk_actions(
+              base_query,
+              actor,
+              effective_tenant,
+              scope_opts,
+              query_opts,
+              filters,
+              columns,
+              search_term,
+              search_fn,
+              sort_by,
+              Keyword.get(options, :id_field, :id)
+            )
+          else
+            # Continue with normal query building
+            prepared_query =
+              base_query
+              |> apply_query_opts(query_opts)
+              |> apply_filters(filters, columns)
+              |> apply_search(search_term, columns, search_fn)
+              |> apply_sorting(sort_by)
 
-          # Handle pagination based on action support
-          case action_supports_pagination?(prepared_query) do
-            true ->
-              case pagination_mode do
-                :keyset ->
-                  execute_with_keyset_pagination(
-                    prepared_query,
-                    actor,
-                    effective_tenant,
-                    scope_opts,
-                    query_opts,
-                    page_size,
-                    after_keyset,
-                    before_keyset
+            # Handle pagination based on action support
+            case action_supports_pagination?(prepared_query) do
+              true ->
+                case pagination_mode do
+                  :keyset ->
+                    execute_with_keyset_pagination(
+                      prepared_query,
+                      actor,
+                      effective_tenant,
+                      scope_opts,
+                      query_opts,
+                      page_size,
+                      after_keyset,
+                      before_keyset
+                    )
+
+                  :offset ->
+                    execute_with_pagination(
+                      prepared_query,
+                      actor,
+                      effective_tenant,
+                      scope_opts,
+                      query_opts,
+                      current_page,
+                      page_size
+                    )
+                end
+
+              false ->
+                # Check if user has configured pagination but action doesn't support it
+                if Keyword.get(options, :pagination_configured, false) do
+                  require Logger
+
+                  Logger.warning(
+                    "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
+                      "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
+                      "https://hexdocs.pm/ash/pagination.html"
                   )
+                end
 
-                :offset ->
-                  execute_with_pagination(
-                    prepared_query,
-                    actor,
-                    effective_tenant,
-                    scope_opts,
-                    query_opts,
-                    current_page,
-                    page_size
-                  )
-              end
-
-            false ->
-              # Check if user has configured pagination but action doesn't support it
-              if Keyword.get(options, :pagination_configured, false) do
-                require Logger
-
-                Logger.warning(
-                  "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
-                    "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
-                    "https://hexdocs.pm/ash/pagination.html"
+                execute_without_pagination(
+                  prepared_query,
+                  actor,
+                  effective_tenant,
+                  scope_opts,
+                  query_opts,
+                  current_page,
+                  page_size
                 )
-              end
-
-              execute_without_pagination(
-                prepared_query,
-                actor,
-                effective_tenant,
-                scope_opts,
-                query_opts,
-                current_page,
-                page_size
-              )
+            end
           end
 
         {:error, message} ->
@@ -382,6 +399,43 @@ defmodule Cinder.QueryBuilder do
   defp extract_resource_for_logging(%Ash.Query{resource: resource}), do: resource
   defp extract_resource_for_logging(resource) when is_atom(resource), do: resource
   defp extract_resource_for_logging(_), do: :unknown
+
+  # Execute bulk actions query - returns only IDs, no pagination
+  # Used for bulk operations where we need all matching record IDs
+  defp execute_bulk_actions(
+         base_query,
+         actor,
+         tenant,
+         scope_opts,
+         query_opts,
+         filters,
+         columns,
+         search_term,
+         search_fn,
+         sort_by,
+         id_field
+       ) do
+    # Only select the ID field for efficiency
+    bulk_query_opts = Keyword.put(query_opts, :select, [id_field])
+
+    prepared_query =
+      base_query
+      |> apply_query_opts(bulk_query_opts)
+      |> apply_filters(filters, columns)
+      |> apply_search(search_term, columns, search_fn)
+      |> apply_sorting(sort_by)
+
+    case Ash.read(prepared_query, build_ash_options(actor, tenant, scope_opts, query_opts)) do
+      {:ok, results} ->
+        # Extract just the IDs from results
+        ids = Enum.map(results, &Map.get(&1, id_field))
+        {:ok, ids}
+
+      {:error, query_error} ->
+        log_query_error(prepared_query.resource, query_error, 1, 0, query_opts, tenant)
+        {:error, query_error}
+    end
+  end
 
   @doc """
   Applies query options like load and select to an Ash query.

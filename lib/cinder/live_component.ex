@@ -275,6 +275,23 @@ defmodule Cinder.LiveComponent do
     {:noreply, socket}
   end
 
+  # Handle bulk action button clicks - fetches all IDs matching current filters
+  @impl true
+  def handle_event("bulk_action", %{"event" => event_name}, socket) do
+    # Extract assigns before passing to start_async to avoid copying the whole socket
+    assigns = socket.assigns
+
+    # Start async bulk action query
+    socket =
+      socket
+      |> assign(:bulk_action_loading, event_name)
+      |> start_async(:bulk_action, fn ->
+        execute_bulk_action_query(assigns)
+      end)
+
+    {:noreply, socket}
+  end
+
   # ============================================================================
   # ASYNC HANDLERS
   # ============================================================================
@@ -288,6 +305,7 @@ defmodule Cinder.LiveComponent do
       |> assign(:page, page)
       # Update keyset cursors for navigation (only relevant in keyset mode)
       |> maybe_update_keyset_cursors(page)
+      |> maybe_emit_visible_ids(page.results)
 
     {:noreply, socket}
   end
@@ -332,6 +350,51 @@ defmodule Cinder.LiveComponent do
       |> assign(:loading, false)
       |> assign(:data, [])
       |> assign(:page, nil)
+
+    {:noreply, socket}
+  end
+
+  # Async handler for bulk action queries
+  @impl true
+  def handle_async(:bulk_action, {:ok, {:ok, ids}}, socket) do
+    event_name = socket.assigns.bulk_action_loading
+
+    # Send message to parent LiveView with the event name and IDs
+    send(self(), {String.to_atom(event_name), {:ok, ids}})
+
+    socket =
+      socket
+      |> assign(:bulk_action_loading, nil)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async(:bulk_action, {:ok, {:error, error}}, socket) do
+    event_name = socket.assigns.bulk_action_loading
+
+    # Send error message to parent LiveView
+    send(self(), {String.to_atom(event_name), {:error, error}})
+
+    socket =
+      socket
+      |> assign(:bulk_action_loading, nil)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async(:bulk_action, {:exit, reason}, socket) do
+    event_name = socket.assigns.bulk_action_loading
+
+    Logger.error("Bulk action query crashed: #{inspect(reason)}")
+
+    # Send error message to parent LiveView
+    send(self(), {String.to_atom(event_name), {:error, reason}})
+
+    socket =
+      socket
+      |> assign(:bulk_action_loading, nil)
 
     {:noreply, socket}
   end
@@ -552,6 +615,12 @@ defmodule Cinder.LiveComponent do
     |> assign(:before_keyset, assigns[:before_keyset])
     |> assign(:first_keyset, assigns[:first_keyset])
     |> assign(:last_keyset, assigns[:last_keyset])
+    # Bulk actions state
+    |> assign(:bulk_actions, assigns[:bulk_actions] || [])
+    |> assign(:id_field, assigns[:id_field] || :id)
+    |> assign(:bulk_action_loading, nil)
+    # Visible IDs tracking
+    |> assign(:emit_visible_ids, assigns[:emit_visible_ids] || false)
   end
 
   defp assign_column_definitions(socket) do
@@ -656,5 +725,48 @@ defmodule Cinder.LiveComponent do
     |> start_async(:load_data, fn ->
       Cinder.QueryBuilder.build_and_execute(resource_var, options)
     end)
+  end
+
+  # Execute bulk action query - same as load_data but with bulk_actions: true
+  defp execute_bulk_action_query(assigns) do
+    %{
+      query: resource,
+      query_opts: query_opts,
+      actor: actor,
+      tenant: tenant,
+      sort_by: sort_by,
+      filters: filters,
+      columns: columns,
+      search_term: search_term,
+      id_field: id_field
+    } = assigns
+
+    options = [
+      actor: actor,
+      tenant: tenant,
+      query_opts: query_opts,
+      filters: filters,
+      sort_by: sort_by,
+      columns: columns,
+      search_term: search_term,
+      search_fn: assigns.search_fn,
+      # Key difference: request bulk actions mode (IDs only, no pagination)
+      bulk_actions: true,
+      id_field: id_field
+    ]
+
+    Cinder.QueryBuilder.build_and_execute(resource, options)
+  end
+
+  # Emit visible IDs to parent LiveView for selective refresh optimization
+  defp maybe_emit_visible_ids(socket, results) do
+    if socket.assigns[:emit_visible_ids] do
+      id_field = socket.assigns[:id_field] || :id
+      table_id = socket.assigns[:id]
+      visible_ids = Enum.map(results, &Map.get(&1, id_field))
+      send(self(), {:cinder_visible_ids, table_id, visible_ids})
+    end
+
+    socket
   end
 end

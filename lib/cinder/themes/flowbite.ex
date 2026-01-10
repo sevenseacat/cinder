@@ -41,6 +41,12 @@ defmodule Cinder.Themes.Flowbite do
         "flex p-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 dark:border-red-800"
 
     set :error_message_class, ""
+
+    # Bulk action button styling
+    set :bulk_action_button_class,
+        "flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-600"
+
+    set :bulk_loading_class, "animate-pulse dark:animate-pulse"
   end
 
   component Cinder.Components.Filters do
