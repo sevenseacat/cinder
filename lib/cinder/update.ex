@@ -127,15 +127,19 @@ defmodule Cinder.Update do
   applying the update. If the item is not visible, the update function is never
   called, enabling lazy loading patterns.
 
+  You can pass either an ID or a raw item (struct/map with the ID field). When
+  passing a raw item, that item is passed to your update function instead of
+  the existing table data - useful for lazy loading scenarios where you want
+  to transform incoming PubSub data.
+
   Safe to call when you're unsure if the item is currently displayed.
 
   ## Parameters
 
   - `socket` - The LiveView socket
   - `collection_id` - The ID of the collection (string)
-  - `id` - The ID of the item to update
-  - `update_fn` - A function that receives a list containing the visible item
-    and returns either a list of updated items or a map of `%{id => updated_item}`
+  - `id_or_item` - The ID of the item to update, or a raw item (map/struct with ID field)
+  - `update_fn` - A function that receives the item and returns the updated item
 
   ## Returns
 
@@ -143,18 +147,18 @@ defmodule Cinder.Update do
 
   ## Examples
 
-      # Simple update
+      # Simple update - pass ID, receive existing item from table
       def handle_info({:user_typing, user_id}, socket) do
-        {:noreply, update_if_visible(socket, "users-table", user_id, fn [user] ->
-          [%{user | typing: true}]
+        {:noreply, update_if_visible(socket, "users-table", user_id, fn user ->
+          %{user | typing: true}
         end)}
       end
 
-      # Lazy loading - only loads if visible
-      def handle_info({:user_updated, user_id, raw_data}, socket) do
-        {:noreply, update_if_visible(socket, "users-table", user_id, fn _visible ->
-          {:ok, loaded} = Ash.load(raw_data, [:profile, :settings], opts)
-          [loaded]
+      # Lazy loading - pass raw item, receive it back for transformation
+      def handle_info({:user_updated, raw_user}, socket) do
+        {:noreply, update_if_visible(socket, "users-table", raw_user, fn raw ->
+          {:ok, loaded} = Ash.load(raw, [:profile, :settings])
+          loaded
         end)}
       end
   """
@@ -178,11 +182,13 @@ defmodule Cinder.Update do
   The update function is called ONCE with ALL visible items, enabling efficient
   batch operations. If no items are visible, the function is never called.
 
+  Also accepts a single struct for convenience - it will be wrapped in a list.
+
   ## Parameters
 
   - `socket` - The LiveView socket
   - `collection_id` - The ID of the collection (string)
-  - `ids` - List of IDs to potentially update
+  - `ids_or_items` - List of IDs, list of raw items, or a single struct
   - `update_fn` - A function that receives a list of visible items and returns
     either a list of updated items or a map of `%{id => updated_item}`
 
