@@ -2,12 +2,19 @@
 
 ## Unreleased 
 
+### Features
+
+* Add in-memory item updates for efficient PubSub-driven changes without re-querying the entire table (#77)
+  * `update_item/4` and `update_items/4` for direct updates
+  * `update_if_visible/4` and `update_items_if_visible/4` for lazy loading patterns
+
 ### Bug fixes 
 
 * Fix sort indicators not displaying for embedded field default sorts (#83)
 * Raise helpful error for invalid filter types instead of silently falling back to text filter
 * Fix custom `fn` attribute on filter-only slots not being passed to QueryBuilder
 * Pass the full provided scope to `Ash.read` when running queries (#71)
+* Fix table reloading data unnecessarily when parent LiveView re-renders with unchanged state
 
 ## v0.9.0-beta.2 (2025-12-16)
 

@@ -1003,6 +1003,66 @@ end
 {:noreply, refresh_tables(socket, ["users-table", "audit-logs-table"])}
 ```
 
+### In-Memory Updates
+
+For PubSub-driven updates where you already have the new data, use in-memory updates instead of re-querying the entire table:
+
+```elixir
+defmodule MyAppWeb.UsersLive do
+  use MyAppWeb, :live_view
+  import Cinder.Update
+
+  def mount(_params, _session, socket) do
+    if connected?(socket), do: MyApp.PubSub.subscribe("users")
+    {:ok, socket}
+  end
+
+  # Update a single item by ID
+  def handle_info({:user_status_changed, user_id, new_status}, socket) do
+    {:noreply, update_item(socket, "users-table", user_id, fn user ->
+      %{user | status: new_status}
+    end)}
+  end
+
+  # Update multiple items
+  def handle_info({:users_deactivated, user_ids}, socket) do
+    {:noreply, update_items(socket, "users-table", user_ids, fn user ->
+      %{user | active: false}
+    end)}
+  end
+end
+```
+
+#### Lazy Loading with `update_if_visible`
+
+When PubSub delivers bare records without associations, use `update_if_visible` to only load data for items currently displayed:
+
+```elixir
+# Only loads associations if the user is on the current page
+def handle_info({:user_updated, raw_user}, socket) do
+  {:noreply, update_if_visible(socket, "users-table", raw_user, fn raw ->
+    {:ok, loaded} = Ash.load(raw, [:department, :manager])
+    loaded
+  end)}
+end
+
+# Batch version - loads associations for all visible items at once
+def handle_info({:users_updated, raw_users}, socket) do
+  {:noreply, update_items_if_visible(socket, "users-table", raw_users, fn visible ->
+    {:ok, loaded} = Ash.load(visible, [:department, :manager])
+    loaded
+  end)}
+end
+```
+
+The `*_if_visible` variants never call your function if the item isn't displayed, avoiding wasted database calls.
+
+#### Caveats
+
+- These functions modify in-memory data only. Computed fields, aggregates, and calculations from the database will NOT be recalculated.
+- For changes that affect derived data, use `refresh_table/2` instead.
+- If the item is not found in the current page, the update is silently ignored.
+
 ## Performance Optimization
 
 ### Efficient Data Loading

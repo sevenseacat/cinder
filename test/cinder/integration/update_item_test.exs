@@ -344,6 +344,92 @@ defmodule Cinder.Integration.UpdateItemTest do
 
       assert updated_socket.assigns.data == []
     end
+
+    test "accepts raw item instead of ID and passes it to update function" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [
+            %{id: "user-1", name: "Alice", status: :stale},
+            %{id: "user-2", name: "Bob", status: :stale}
+          ]
+        })
+
+      # Pass a raw item (like from PubSub) instead of just an ID
+      raw_item = %{id: "user-1", name: "Alice Updated", status: :fresh, extra: "new_field"}
+
+      assigns = %{
+        __update_item_if_visible__:
+          {raw_item,
+           fn item ->
+             # The update function receives the raw item, not the table's existing item
+             assert item == raw_item
+             item
+           end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      # The raw item replaces the existing one
+      assert updated_socket.assigns.data == [
+               %{id: "user-1", name: "Alice Updated", status: :fresh, extra: "new_field"},
+               %{id: "user-2", name: "Bob", status: :stale}
+             ]
+    end
+
+    test "raw item update does nothing when item ID is not visible" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [
+            %{id: "user-1", name: "Alice"}
+          ]
+        })
+
+      # Raw item with ID that doesn't exist in table
+      raw_item = %{id: "user-999", name: "Ghost"}
+
+      update_called = :ets.new(:update_called, [:set, :public])
+      :ets.insert(update_called, {:called, false})
+
+      assigns = %{
+        __update_item_if_visible__:
+          {raw_item,
+           fn item ->
+             :ets.insert(update_called, {:called, true})
+             item
+           end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      # Update function should NOT have been called
+      assert :ets.lookup(update_called, :called) == [{:called, false}]
+      :ets.delete(update_called)
+
+      # Data unchanged
+      assert updated_socket.assigns.data == [%{id: "user-1", name: "Alice"}]
+    end
+
+    test "raw item works with custom id_field" do
+      socket =
+        make_socket(%{
+          id_field: :uuid,
+          data: [
+            %{uuid: "abc-123", value: "old"}
+          ]
+        })
+
+      raw_item = %{uuid: "abc-123", value: "new", loaded: true}
+
+      assigns = %{
+        __update_item_if_visible__: {raw_item, fn item -> item end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == [%{uuid: "abc-123", value: "new", loaded: true}]
+    end
   end
 
   describe "LiveComponent update/2 with __update_items_if_visible__" do
