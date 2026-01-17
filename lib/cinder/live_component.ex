@@ -41,17 +41,133 @@ defmodule Cinder.LiveComponent do
     {:ok, socket}
   end
 
+  def update(%{__update_item__: {id, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+
+    updated_data =
+      Enum.map(socket.assigns.data || [], fn item ->
+        if Map.get(item, id_field) == id, do: update_fn.(item), else: item
+      end)
+
+    {:ok, assign(socket, :data, updated_data)}
+  end
+
+  def update(%{__update_items__: {ids, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    id_set = MapSet.new(ids)
+
+    updated_data =
+      Enum.map(socket.assigns.data || [], fn item ->
+        if Map.get(item, id_field) in id_set, do: update_fn.(item), else: item
+      end)
+
+    {:ok, assign(socket, :data, updated_data)}
+  end
+
+  # Single item update - raw item passed (has id field)
+  def update(%{__update_item_if_visible__: {%{} = raw_item, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    id = Map.get(raw_item, id_field)
+    do_update_item_if_visible(socket, id, raw_item, update_fn, id_field)
+  end
+
+  # Single item update - just ID passed
+  def update(%{__update_item_if_visible__: {id, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    do_update_item_if_visible(socket, id, nil, update_fn, id_field)
+  end
+
+  # Single raw item passed (not in a list)
+  def update(%{__update_items_if_visible__: {%{} = item, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    items_by_id = %{Map.get(item, id_field) => item}
+    do_update_items_if_visible(socket, items_by_id, update_fn, id_field)
+  end
+
+  # List of raw items passed
+  def update(%{__update_items_if_visible__: {[%{} | _] = items, update_fn}}, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    items_by_id = Map.new(items, &{Map.get(&1, id_field), &1})
+    do_update_items_if_visible(socket, items_by_id, update_fn, id_field)
+  end
+
+  # List of IDs passed (use old table data)
+  def update(%{__update_items_if_visible__: {ids, update_fn}}, socket) when is_list(ids) do
+    id_field = socket.assigns[:id_field] || :id
+    do_update_items_if_visible(socket, nil, ids, update_fn, id_field)
+  end
+
   def update(assigns, socket) do
+    prev_state = data_state(socket.assigns)
+
     socket =
       socket
       |> assign(assigns)
       |> assign_defaults()
       |> assign_column_definitions()
       |> decode_url_state(assigns)
-      |> load_data_if_needed()
+      |> load_data_if_needed(prev_state)
 
     {:ok, socket}
   end
+
+  defp do_update_item_if_visible(socket, id, raw_item, update_fn, id_field) do
+    data = socket.assigns.data || []
+
+    case Enum.find(data, &(Map.get(&1, id_field) == id)) do
+      nil ->
+        {:ok, socket}
+
+      old_item ->
+        input = raw_item || old_item
+        updated = update_fn.(input)
+        updated_data = Enum.map(data, &if(Map.get(&1, id_field) == id, do: updated, else: &1))
+        {:ok, assign(socket, :data, updated_data)}
+    end
+  end
+
+  # When raw items provided as map
+  defp do_update_items_if_visible(socket, items_by_id, update_fn, id_field) do
+    do_update_items_if_visible(socket, items_by_id, Map.keys(items_by_id), update_fn, id_field)
+  end
+
+  defp do_update_items_if_visible(socket, items_by_id, ids, update_fn, id_field) do
+    data = socket.assigns.data || []
+    id_set = MapSet.new(ids)
+    visible_ids = data |> Enum.map(&Map.get(&1, id_field)) |> MapSet.new()
+    ids_to_update = MapSet.intersection(id_set, visible_ids)
+
+    if MapSet.size(ids_to_update) == 0 do
+      {:ok, socket}
+    else
+      input_items = get_input_items(data, items_by_id, ids_to_update, id_field)
+      updated_by_id = update_fn.(input_items) |> to_map_by_id(id_field)
+
+      updated_data =
+        Enum.map(data, fn item ->
+          id = Map.get(item, id_field)
+          Map.get(updated_by_id, id, item)
+        end)
+
+      {:ok, assign(socket, :data, updated_data)}
+    end
+  end
+
+  # Get input items from raw data if provided, otherwise from table data
+  defp get_input_items(_data, items_by_id, ids_to_update, _id_field) when is_map(items_by_id) do
+    ids_to_update |> Enum.map(&items_by_id[&1]) |> Enum.filter(& &1)
+  end
+
+  defp get_input_items(data, nil, ids_to_update, id_field) do
+    Enum.filter(data, &(Map.get(&1, id_field) in ids_to_update))
+  end
+
+  # Normalize function return to map
+  defp to_map_by_id(items, id_field) when is_list(items) do
+    Map.new(items, &{Map.get(&1, id_field), &1})
+  end
+
+  defp to_map_by_id(items, _id_field) when is_map(items), do: items
 
   @impl true
   def render(assigns) do
@@ -194,12 +310,12 @@ defmodule Cinder.LiveComponent do
 
     socket =
       if url_sync_enabled do
-        socket
+        assign(socket, :__reload_requested__, true)
       else
         load_data(socket)
       end
 
-    notify_state_change(socket)
+    socket = notify_state_change(socket)
 
     {:noreply, socket}
   end
@@ -265,7 +381,7 @@ defmodule Cinder.LiveComponent do
 
     socket =
       if url_sync_enabled do
-        socket
+        assign(socket, :__reload_requested__, true)
       else
         load_data(socket)
       end
@@ -544,7 +660,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:search_term, assigns[:search_term] || "")
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
-    |> assign(:page, nil)
+    |> assign_new(:page, fn -> nil end)
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
     # Keyset pagination state
     |> assign(:pagination_mode, pagination_mode)
@@ -604,8 +720,53 @@ defmodule Cinder.LiveComponent do
   # PRIVATE FUNCTIONS - Data Loading
   # ============================================================================
 
-  defp load_data_if_needed(socket) do
-    load_data(socket)
+  # Keys that affect data queries - changes to these trigger a reload.
+  # Note: actor, tenant, and scope are normalized separately to avoid
+  # false positives from Ecto struct metadata differences.
+  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts after_keyset before_keyset)a
+
+  defp data_state(assigns) do
+    base_state = Map.take(assigns, @data_keys)
+
+    Map.merge(base_state, %{
+      actor_id: normalize_auth(assigns[:actor]),
+      tenant_id: normalize_auth(assigns[:tenant]),
+      scope_id: normalize_scope(assigns[:scope])
+    })
+  end
+
+  defp normalize_auth(nil), do: nil
+  defp normalize_auth(value) when is_binary(value) or is_atom(value), do: value
+  defp normalize_auth(%{id: id}), do: id
+  defp normalize_auth(value), do: value
+
+  # Normalize scope by extracting IDs from nested structs
+  defp normalize_scope(nil), do: nil
+
+  defp normalize_scope(scope) when is_map(scope) do
+    scope
+    |> Enum.map(fn
+      {key, %{id: id}} -> {key, id}
+      {key, value} when is_map(value) -> {key, normalize_scope(value)}
+      {key, value} -> {key, value}
+    end)
+    |> Enum.sort()
+  end
+
+  defp normalize_scope(value), do: value
+
+  defp load_data_if_needed(socket, prev) do
+    first_load = socket.assigns[:page] == nil
+    curr = data_state(socket.assigns)
+    state_changed = curr != prev
+    reload_requested = socket.assigns[:__reload_requested__] == true
+    socket = assign(socket, :__reload_requested__, false)
+
+    if first_load or state_changed or reload_requested do
+      load_data(socket)
+    else
+      socket
+    end
   end
 
   defp load_data(socket) do
