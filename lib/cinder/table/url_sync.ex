@@ -18,8 +18,6 @@ defmodule Cinder.Table.UrlSync do
   This module will be removed in version 1.0.
   """
 
-  require Logger
-
   @deprecated "Use Cinder.UrlSync instead"
   defmacro __using__(_opts) do
     quote do

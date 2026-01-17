@@ -14,7 +14,6 @@ defmodule Cinder.LiveComponent do
   """
 
   use Phoenix.LiveComponent
-  require Ash.Query
   require Logger
   use Cinder.Messages
 

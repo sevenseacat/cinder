@@ -28,7 +28,6 @@ defmodule Cinder.Filters.Autocomplete do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  require Ash.Query
   import Cinder.Filter
   alias Phoenix.LiveView.JS
 

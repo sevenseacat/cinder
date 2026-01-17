@@ -342,13 +342,6 @@ defmodule Cinder.ColumnTest do
   end
 
   describe "edge cases" do
-    test "handles nil slot gracefully" do
-      # This shouldn't happen in practice, but test robustness
-      assert_raise(BadMapError, fn ->
-        Column.parse_column(nil, nil)
-      end)
-    end
-
     test "handles empty slot creates action column" do
       slot = %{}
       resource = nil

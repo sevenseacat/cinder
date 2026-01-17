@@ -8,7 +8,6 @@ defmodule Cinder.Filters.Select do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  require Ash.Query
   import Cinder.Filter
   alias Phoenix.LiveView.JS
 

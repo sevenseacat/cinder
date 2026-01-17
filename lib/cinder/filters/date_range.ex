@@ -9,7 +9,6 @@ defmodule Cinder.Filters.DateRange do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  require Ash.Query
   import Cinder.Filter
   use Cinder.Messages
 
@@ -151,7 +150,6 @@ defmodule Cinder.Filters.DateRange do
   # Private helper functions
 
   defp valid_date?(""), do: true
-  defp valid_date?(nil), do: true
 
   defp valid_date?(date_string) when is_binary(date_string) do
     case Date.from_iso8601(date_string) do

@@ -4,8 +4,6 @@ defmodule Cinder.Filters.MultiSelectMatchModeTest do
   alias Cinder.Filters.MultiSelect
   alias TestResourceForInference
 
-  require Ash.Query
-
   describe "match_mode option processing" do
     test "defaults to :any when match_mode not specified" do
       column = %{field: "tags", filter_options: [options: []]}

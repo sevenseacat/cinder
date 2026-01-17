@@ -26,7 +26,6 @@ defmodule Cinder.Filters.Checkbox do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  require Ash.Query
   import Cinder.Filter
 
   @impl true

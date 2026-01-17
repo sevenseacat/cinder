@@ -8,7 +8,6 @@ defmodule Cinder.Filters.Boolean do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  require Ash.Query
   import Cinder.Filter
 
   @impl true

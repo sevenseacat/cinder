@@ -4,8 +4,6 @@ defmodule Cinder.Filters.SelectTest do
   alias Cinder.Filters.Select
   alias TestResourceForInference
 
-  require Ash.Query
-
   describe "Select filter build_query/3 for array fields" do
     setup do
       query = Ash.Query.new(TestResourceForInference)

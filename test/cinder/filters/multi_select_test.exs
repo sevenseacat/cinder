@@ -4,8 +4,6 @@ defmodule Cinder.Filters.MultiSelectTest do
   alias Cinder.Filters.MultiSelect
   alias TestResourceForInference
 
-  require Ash.Query
-
   describe "MultiSelect filter build_query/3 for array fields" do
     setup do
       query = Ash.Query.new(TestResourceForInference)

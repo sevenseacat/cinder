@@ -9,7 +9,6 @@ defmodule Cinder.Filters.Text do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  require Ash.Query
   import Cinder.Filter
 
   @impl true

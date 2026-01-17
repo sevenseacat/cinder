@@ -553,8 +553,7 @@ defmodule Cinder.FilterManager do
 
         _ ->
           # Regular field lookup
-          key_atom = if is_binary(key), do: String.to_atom(key), else: key
-          get_regular_attribute(resource, key_atom)
+          get_regular_attribute(resource, String.to_atom(key))
       end
     rescue
       _ -> nil

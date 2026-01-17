@@ -8,7 +8,6 @@ defmodule Cinder.Filters.NumberRange do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  require Ash.Query
   import Cinder.Filter
   use Cinder.Messages
 

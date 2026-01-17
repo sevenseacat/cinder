@@ -4,8 +4,6 @@ defmodule Cinder.Filters.BooleanTest do
   alias Cinder.Filters.Boolean
   alias TestResourceForInference
 
-  require Ash.Query
-
   describe "Boolean filter build_query/3 for array fields" do
     setup do
       query = Ash.Query.new(TestResourceForInference)
