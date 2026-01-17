@@ -551,49 +551,4 @@ defmodule Cinder.Table.SearchIntegrationTest do
       assert length(display_fields) == 4
     end
   end
-
-  test "search works through filter_change event like other filters" do
-    # Test that search now uses the same form-based filter_change event
-    # instead of the dedicated search_change event for consistency
-
-    # Simulate filter_change event with search parameter
-    filter_change_params = %{
-      "search" => "test search query",
-      "filters" => %{
-        "name" => "john",
-        "age_min" => "25"
-      }
-    }
-
-    # Test that both search and filters are processed in the same event
-    search_term = Map.get(filter_change_params, "search")
-    filter_params = Map.get(filter_change_params, "filters")
-
-    assert search_term == "test search query"
-    assert filter_params == %{"name" => "john", "age_min" => "25"}
-
-    # Test filter_change with only search parameter
-    search_only_params = %{"search" => "search only"}
-    search_only_term = Map.get(search_only_params, "search")
-    search_only_filters = Map.get(search_only_params, "filters")
-
-    assert search_only_term == "search only"
-    assert search_only_filters == nil
-
-    # Test filter_change with only filters parameter
-    filters_only_params = %{"filters" => %{"status" => "active"}}
-    filters_only_term = Map.get(filters_only_params, "search")
-    filters_only_filters = Map.get(filters_only_params, "filters")
-
-    assert filters_only_term == nil
-    assert filters_only_filters == %{"status" => "active"}
-
-    # Test empty parameters
-    empty_params = %{}
-    empty_search = Map.get(empty_params, "search")
-    empty_filters = Map.get(empty_params, "filters")
-
-    assert empty_search == nil
-    assert empty_filters == nil
-  end
 end
