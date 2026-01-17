@@ -4,6 +4,7 @@
 
 ### Bug fixes 
 
+* Fix sort indicators not displaying for embedded field default sorts (#83)
 * Raise helpful error for invalid filter types instead of silently falling back to text filter
 * Fix custom `fn` attribute on filter-only slots not being passed to QueryBuilder
 * Pass the full provided scope to `Ash.read` when running queries (#71)

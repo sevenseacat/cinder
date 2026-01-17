@@ -686,6 +686,19 @@ Provide a default sort via the `query` parameter. User sorting replaces (not add
 </Cinder.collection>
 ```
 
+#### Default Sort on Embedded Fields
+
+For embedded fields, use `Cinder.QueryBuilder.apply_sorting/2` with the double underscore notation:
+
+```heex
+<Cinder.collection
+  query={MyApp.User |> Cinder.QueryBuilder.apply_sorting([{"profile__last_name", :asc}])}
+  actor={@current_user}
+>
+  <:col :let={user} field="profile__last_name" sort>{user.profile.last_name}</:col>
+</Cinder.collection>
+```
+
 ## Custom Filter Functions
 
 For complex filtering logic that goes beyond simple field matching:
@@ -895,6 +908,25 @@ Use double underscore notation (`__`) for embedded resource fields:
 <:col :let={user} field="settings__address__city" filter>
   {user.settings.address.city}
 </:col>
+```
+
+### Sorting Embedded Fields
+
+Embedded fields support sorting just like regular fields:
+
+```heex
+<:col :let={user} field="profile__last_name" sort>{user.profile.last_name}</:col>
+```
+
+For default sorting on embedded fields, use `Cinder.QueryBuilder.apply_sorting/2`:
+
+```heex
+<Cinder.collection
+  query={MyApp.User |> Cinder.QueryBuilder.apply_sorting([{"profile__last_name", :asc}])}
+  actor={@current_user}
+>
+  <:col :let={user} field="profile__last_name" sort>{user.profile.last_name}</:col>
+</Cinder.collection>
 ```
 
 ### Automatic Enum Detection

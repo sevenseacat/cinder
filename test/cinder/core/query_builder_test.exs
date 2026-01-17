@@ -1074,6 +1074,35 @@ defmodule Cinder.QueryBuilderTest do
       # This creates the confusing cycle: desc -> none -> asc -> desc -> none
       # instead of the expected: desc -> asc -> desc -> none
     end
+
+    test "extracts sorts from embedded field calc expressions" do
+      # When sorting on embedded fields, Cinder uses calc expressions like:
+      # calc(get_path(^ref(:profile), [:first_name]))
+      # This test ensures extract_query_sorts can reverse-engineer these back to
+      # the URL-safe field notation (e.g., "profile__first_name")
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> QueryBuilder.apply_sorting([{"profile__first_name", :desc}])
+
+      columns = [%{field: "name"}, %{field: "profile__first_name"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"profile__first_name", :desc}]
+    end
+
+    test "extracts sorts from nested embedded field calc expressions" do
+      # Test nested embedded fields like settings__address__city
+      query =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> QueryBuilder.apply_sorting([{"settings__address__city", :asc}])
+
+      columns = [%{field: "name"}, %{field: "settings__address__city"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"settings__address__city", :asc}]
+    end
   end
 
   describe "build_ash_options/3 timeout handling" do

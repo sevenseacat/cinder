@@ -1358,7 +1358,10 @@ defmodule Cinder.QueryBuilder do
     sorts
     |> Enum.map(&normalize_sort_tuple/1)
     |> Enum.filter(&valid_table_sort?(&1, columns))
-    |> Enum.map(fn {field, direction} -> {Atom.to_string(field), direction} end)
+    |> Enum.map(fn
+      {field, direction} when is_atom(field) -> {Atom.to_string(field), direction}
+      {field, direction} when is_binary(field) -> {field, direction}
+    end)
   end
 
   def extract_query_sorts(_query, _columns) do
@@ -1376,6 +1379,25 @@ defmodule Cinder.QueryBuilder do
     {field, :asc}
   end
 
+  # Handle calc expressions from embedded field sorts (e.g., weather__clear)
+  # The sort is an Ash.Query.Calculation with module: Ash.Resource.Calculation.Expression
+  # and opts containing expr: %Ash.Query.Call{name: :get_path, args: [{:_ref, [], :field}, [:path]]}
+  defp normalize_sort_tuple({
+         %{module: Ash.Resource.Calculation.Expression, opts: opts},
+         direction
+       })
+       when direction in [:asc, :desc] do
+    case Keyword.get(opts, :expr) do
+      %{name: :get_path, args: [{:_ref, [], embed_name}, field_path]} ->
+        embed_str = to_string(embed_name)
+        field_str = field_path |> Enum.map_join("__", &to_string/1)
+        {"#{embed_str}__#{field_str}", direction}
+
+      _ ->
+        nil
+    end
+  end
+
   defp normalize_sort_tuple(_), do: nil
 
   # Check if a sort tuple is valid for table display
@@ -1386,7 +1408,7 @@ defmodule Cinder.QueryBuilder do
 
   defp valid_table_sort?({field, _direction}, columns)
        when is_list(columns) and length(columns) > 0 do
-    field_name = Atom.to_string(field)
+    field_name = if is_atom(field), do: Atom.to_string(field), else: field
 
     Enum.any?(columns, fn column ->
       column_field = Map.get(column, :field) || Map.get(column, "field")
