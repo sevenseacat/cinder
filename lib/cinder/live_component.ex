@@ -631,12 +631,14 @@ defmodule Cinder.LiveComponent do
   defp assign_defaults(socket) do
     assigns = socket.assigns
 
+    default_page_size = Cinder.PageSize.get_default_page_size()
+
     page_size_config =
       assigns[:page_size_config] ||
         %{
-          selected_page_size: 25,
+          selected_page_size: default_page_size,
           page_size_options: [],
-          default_page_size: 25,
+          default_page_size: default_page_size,
           configurable: false
         }
 

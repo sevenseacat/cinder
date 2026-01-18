@@ -108,8 +108,9 @@ defmodule Cinder.Collection do
   attr(:id, :string, default: "cinder-collection", doc: "Unique identifier for the collection")
 
   attr(:page_size, :any,
-    default: 25,
-    doc: "Number of items per page or [default: 25, options: [10, 25, 50]]"
+    default: nil,
+    doc:
+      "Number of items per page or [default: 25, options: [10, 25, 50]]. Defaults to global config :cinder, :default_page_size or 25 if not configured."
   )
 
   attr(:theme, :any, default: "default", doc: "Theme name or theme map")
@@ -248,7 +249,7 @@ defmodule Cinder.Collection do
       assigns
       |> assign_new(:id, fn -> "cinder-collection" end)
       |> assign_new(:layout, fn -> :table end)
-      |> assign_new(:page_size, fn -> 25 end)
+      |> assign_new(:page_size, fn -> Cinder.PageSize.get_default_page_size() end)
       |> assign_new(:theme, fn -> "default" end)
       |> assign_new(:url_state, fn -> false end)
       |> assign_new(:query_opts, fn -> [] end)
@@ -752,7 +753,7 @@ defmodule Cinder.Collection do
   end
 
   defp parse_page_size_config(config) when is_list(config) do
-    default = Keyword.get(config, :default, 25)
+    default = Keyword.get(config, :default, Cinder.PageSize.get_default_page_size())
     options = Keyword.get(config, :options, [])
 
     valid_options =
@@ -772,7 +773,8 @@ defmodule Cinder.Collection do
     }
   end
 
-  defp parse_page_size_config(_invalid), do: parse_page_size_config(25)
+  defp parse_page_size_config(_invalid),
+    do: parse_page_size_config(Cinder.PageSize.get_default_page_size())
 
   # ============================================================================
   # PRIVATE HELPERS - Pagination Mode
