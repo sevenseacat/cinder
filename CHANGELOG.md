@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased 
+## v0.9.0-beta.3 (2026-01-21)
 
 ### Features
 
