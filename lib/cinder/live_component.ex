@@ -631,16 +631,10 @@ defmodule Cinder.LiveComponent do
   defp assign_defaults(socket) do
     assigns = socket.assigns
 
-    default_page_size = Cinder.PageSize.get_default_page_size()
-
+    # Use existing page_size_config if already parsed by Collection,
+    # otherwise parse the global default
     page_size_config =
-      assigns[:page_size_config] ||
-        %{
-          selected_page_size: default_page_size,
-          page_size_options: [],
-          default_page_size: default_page_size,
-          configurable: false
-        }
+      assigns[:page_size_config] || Cinder.PageSize.parse(nil)
 
     selected_page_size =
       Map.get(socket.assigns, :page_size) || page_size_config.selected_page_size

@@ -110,7 +110,7 @@ defmodule Cinder.Collection do
   attr(:page_size, :any,
     default: nil,
     doc:
-      "Number of items per page or [default: 25, options: [10, 25, 50]]. Defaults to global config :cinder, :default_page_size or 25 if not configured."
+      "Number of items per page or [default: 25, options: [10, 25, 50]]. See `Cinder.PageSize` for global configuration."
   )
 
   attr(:theme, :any, default: "default", doc: "Theme name or theme map")
@@ -291,7 +291,7 @@ defmodule Cinder.Collection do
     show_sort = determine_show_sort(assigns, processed_columns)
 
     # Parse page_size configuration
-    page_size_config = parse_page_size_config(assigns.page_size)
+    page_size_config = Cinder.PageSize.parse(assigns.page_size)
 
     # Parse pagination mode
     pagination_mode = parse_pagination_mode(assigns.pagination)
@@ -738,43 +738,6 @@ defmodule Cinder.Collection do
   defp determine_show_sort(_assigns, columns) do
     Enum.any?(columns, & &1.sortable)
   end
-
-  # ============================================================================
-  # PRIVATE HELPERS - Page Size
-  # ============================================================================
-
-  defp parse_page_size_config(page_size) when is_integer(page_size) do
-    %{
-      selected_page_size: page_size,
-      page_size_options: [],
-      default_page_size: page_size,
-      configurable: false
-    }
-  end
-
-  defp parse_page_size_config(config) when is_list(config) do
-    default = Keyword.get(config, :default, Cinder.PageSize.get_default_page_size())
-    options = Keyword.get(config, :options, [])
-
-    valid_options =
-      if is_list(options) and Enum.all?(options, &is_integer/1) do
-        options
-      else
-        []
-      end
-
-    configurable = length(valid_options) > 1
-
-    %{
-      selected_page_size: default,
-      page_size_options: valid_options,
-      default_page_size: default,
-      configurable: configurable
-    }
-  end
-
-  defp parse_page_size_config(_invalid),
-    do: parse_page_size_config(Cinder.PageSize.get_default_page_size())
 
   # ============================================================================
   # PRIVATE HELPERS - Pagination Mode

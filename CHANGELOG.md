@@ -4,6 +4,7 @@
 
 ### Features
 
+* Add global default page size configuration via `config :cinder, default_page_size: ...` (#84)
 * Add in-memory item updates for efficient PubSub-driven changes without re-querying the entire table (#77)
   * `update_item/4` and `update_items/4` for direct updates
   * `update_if_visible/4` and `update_items_if_visible/4` for lazy loading patterns

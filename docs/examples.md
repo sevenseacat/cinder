@@ -1109,6 +1109,20 @@ Use `query_opts` to load only needed data:
 </Cinder.collection>
 ```
 
+**Global Default Page Size:**
+
+Set a default page size for all collections in your config:
+
+```elixir
+# config/config.exs
+config :cinder, default_page_size: 50
+
+# Or with user-selectable options
+config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
+```
+
+Individual collections can still override with the `page_size` attribute.
+
 **Keyset vs Offset Pagination:**
 
 - **Offset** (default): Traditional page numbers, allows jumping to any page. Can be slow on large datasets.

@@ -2,54 +2,66 @@ defmodule Cinder.PageSize do
   @moduledoc """
   Page size configuration for Cinder table components.
 
-  Provides utilities for retrieving the default page size from application configuration.
-
   ## Configuration
 
-  You can set a default page size for all Cinder tables in your application configuration:
+  Set a global default page size in your application configuration:
 
       # config/config.exs
       config :cinder, default_page_size: 50
 
-      # Or with configurable options
+      # Or with configurable options (shows dropdown selector)
       config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
 
-  Individual tables can still override the configured default:
+  Individual tables can override the global default:
 
   ```heex
   <Cinder.collection page_size={100} ...>
-    <!-- This table uses page_size 100, ignoring the configured default -->
   </Cinder.collection>
   ```
   """
 
+  @default_page_size 25
+
   @doc """
-  Gets the configured default page size from application configuration.
+  Parses a page size value into a standardized config map.
 
-  Returns the page size configured via `config :cinder, default_page_size: ...`
-  or falls back to 25 if no configuration is set.
+  Accepts an integer, keyword list with `:default` and `:options` keys,
+  or `nil` to use the global default.
+  """
+  def parse(nil), do: parse(get_default_page_size())
 
-  ## Examples
+  def parse(value) when is_integer(value) do
+    %{
+      selected_page_size: value,
+      page_size_options: [],
+      default_page_size: value,
+      configurable: false
+    }
+  end
 
-      # With configuration
-      Application.put_env(:cinder, :default_page_size, 50)
-      Cinder.PageSize.get_default_page_size()
-      #=> 50
+  def parse(config) when is_list(config) do
+    default = Keyword.get(config, :default, @default_page_size)
+    options = Keyword.get(config, :options, [])
 
-      # With keyword list configuration
-      Application.put_env(:cinder, :default_page_size, [default: 25, options: [10, 25, 50, 100]])
-      Cinder.PageSize.get_default_page_size()
-      #=> [default: 25, options: [10, 25, 50, 100]]
+    valid_options =
+      if is_list(options) and Enum.all?(options, &is_integer/1), do: options, else: []
 
-      # Without configuration
-      Cinder.PageSize.get_default_page_size()
-      #=> 25
+    %{
+      selected_page_size: default,
+      page_size_options: valid_options,
+      default_page_size: default,
+      configurable: length(valid_options) > 1
+    }
+  end
 
+  def parse(_invalid), do: parse(@default_page_size)
+
+  @doc """
+  Gets the raw default page size from application configuration.
+
+  Returns the configured value or 25 if not set.
   """
   def get_default_page_size do
-    case Application.get_env(:cinder, :default_page_size) do
-      nil -> 25
-      page_size -> page_size
-    end
+    Application.get_env(:cinder, :default_page_size, @default_page_size)
   end
 end
