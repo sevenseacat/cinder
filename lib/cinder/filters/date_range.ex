@@ -158,8 +158,6 @@ defmodule Cinder.Filters.DateRange do
     end
   end
 
-  defp valid_date?(_), do: false
-
   # Validate both date and datetime formats
   defp valid_date_or_datetime?(""), do: true
   defp valid_date_or_datetime?(nil), do: true
@@ -183,8 +181,6 @@ defmodule Cinder.Filters.DateRange do
       valid_date?(value)
     end
   end
-
-  defp valid_date_or_datetime?(_), do: false
 
   # Format value for HTML input display
   defp format_value_for_input("", _include_time), do: ""

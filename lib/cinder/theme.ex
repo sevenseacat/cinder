@@ -70,6 +70,16 @@ defmodule Cinder.Theme do
   end
 
   @doc """
+  Returns the given theme or the default theme if nil.
+
+  Used internally by the theme DSL to avoid dialyzer warnings
+  when extending themes.
+  """
+  @spec theme_or_default(map() | nil) :: map()
+  def theme_or_default(nil), do: default()
+  def theme_or_default(theme) when is_map(theme), do: theme
+
+  @doc """
   Gets the configured default theme from application configuration.
 
   Returns the theme configured via `config :cinder, default_theme: ...`

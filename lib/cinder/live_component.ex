@@ -538,7 +538,7 @@ defmodule Cinder.LiveComponent do
 
       final_sort_by =
         cond do
-          decoded_state.sort_by != [] and not is_nil(decoded_state.sort_by) ->
+          decoded_state.sort_by != [] ->
             decoded_state.sort_by
 
           Map.get(socket.assigns, :user_has_interacted, false) ->
@@ -606,7 +606,7 @@ defmodule Cinder.LiveComponent do
 
       final_sort_by =
         cond do
-          decoded_state.sort_by != [] and not is_nil(decoded_state.sort_by) ->
+          decoded_state.sort_by != [] ->
             decoded_state.sort_by
 
           Map.get(socket.assigns, :user_has_interacted, false) ->

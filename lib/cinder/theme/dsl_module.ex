@@ -126,7 +126,7 @@ defmodule Cinder.Theme.DslModule do
         base_theme = unquote(Macro.escape(resolve_base_theme(base_theme)))
         overrides = unquote(Macro.escape(Enum.reverse(overrides)))
 
-        theme_map = base_theme || Cinder.Theme.default()
+        theme_map = Cinder.Theme.theme_or_default(base_theme)
         apply_overrides(theme_map, overrides)
       end
 

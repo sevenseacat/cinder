@@ -957,8 +957,7 @@ defmodule Cinder.QueryBuilder do
       # Parse field to handle relationship calculations for sortability check
       {target_resource, target_field} = resolve_field_resource(resource, field_string)
 
-      target_field_atom =
-        if is_binary(target_field), do: String.to_atom(target_field), else: target_field
+      target_field_atom = String.to_atom(target_field)
 
       # Check if it's a calculation that needs validation
       case get_calculation_info(target_resource, target_field_atom) do
@@ -1117,14 +1116,6 @@ defmodule Cinder.QueryBuilder do
 
         # Check if embed_field is an embedded attribute
         case Ash.Resource.Info.attribute(resource, embed_field_atom) do
-          %{type: {:array, embedded_type}} when is_atom(embedded_type) ->
-            # Array of embedded resources - check if nested field exists on embedded type
-            validate_embedded_resource_field(embedded_type, nested_field)
-
-          %{type: embedded_type} when is_atom(embedded_type) ->
-            # Single embedded resource - check if nested field exists on embedded type
-            validate_embedded_resource_field(embedded_type, nested_field)
-
           %{type: :map} ->
             # Map type - assume nested field is valid (can't validate structure)
             true
@@ -1133,12 +1124,16 @@ defmodule Cinder.QueryBuilder do
             # Array of maps - assume nested field is valid
             true
 
+          %{type: {:array, embedded_type}} when is_atom(embedded_type) ->
+            # Array of embedded resources - check if nested field exists on embedded type
+            validate_embedded_resource_field(embedded_type, nested_field)
+
+          %{type: embedded_type} when is_atom(embedded_type) ->
+            # Single embedded resource - check if nested field exists on embedded type
+            validate_embedded_resource_field(embedded_type, nested_field)
+
           nil ->
             # Embed field doesn't exist
-            false
-
-          _ ->
-            # Field exists but is not embedded type
             false
         end
       else
@@ -1158,14 +1153,6 @@ defmodule Cinder.QueryBuilder do
         embed_field_atom = String.to_atom(embed_field)
 
         case Ash.Resource.Info.attribute(resource, embed_field_atom) do
-          %{type: {:array, embedded_type}} when is_atom(embedded_type) ->
-            # Array of embedded resources - validate nested path on embedded type
-            validate_nested_path_on_embedded_resource(embedded_type, nested_path)
-
-          %{type: embedded_type} when is_atom(embedded_type) ->
-            # Single embedded resource - validate nested path on embedded type
-            validate_nested_path_on_embedded_resource(embedded_type, nested_path)
-
           %{type: :map} ->
             # Map type - assume nested path is valid (can't validate structure)
             true
@@ -1174,12 +1161,16 @@ defmodule Cinder.QueryBuilder do
             # Array of maps - assume nested path is valid
             true
 
+          %{type: {:array, embedded_type}} when is_atom(embedded_type) ->
+            # Array of embedded resources - validate nested path on embedded type
+            validate_nested_path_on_embedded_resource(embedded_type, nested_path)
+
+          %{type: embedded_type} when is_atom(embedded_type) ->
+            # Single embedded resource - validate nested path on embedded type
+            validate_nested_path_on_embedded_resource(embedded_type, nested_path)
+
           nil ->
             # Embed field doesn't exist
-            false
-
-          _ ->
-            # Field exists but is not embedded type
             false
         end
       else
@@ -1205,12 +1196,6 @@ defmodule Cinder.QueryBuilder do
             next_embed_atom = String.to_atom(next_embed_field)
 
             case Ash.Resource.Info.attribute(embedded_type, next_embed_atom) do
-              %{type: {:array, deeper_embedded_type}} when is_atom(deeper_embedded_type) ->
-                validate_nested_path_on_embedded_resource(deeper_embedded_type, remaining_path)
-
-              %{type: deeper_embedded_type} when is_atom(deeper_embedded_type) ->
-                validate_nested_path_on_embedded_resource(deeper_embedded_type, remaining_path)
-
               %{type: :map} ->
                 # Map type - assume remaining path is valid
                 true
@@ -1219,12 +1204,14 @@ defmodule Cinder.QueryBuilder do
                 # Array of maps - assume remaining path is valid
                 true
 
+              %{type: {:array, deeper_embedded_type}} when is_atom(deeper_embedded_type) ->
+                validate_nested_path_on_embedded_resource(deeper_embedded_type, remaining_path)
+
+              %{type: deeper_embedded_type} when is_atom(deeper_embedded_type) ->
+                validate_nested_path_on_embedded_resource(deeper_embedded_type, remaining_path)
+
               nil ->
                 # Field doesn't exist on this embedded resource
-                false
-
-              _ ->
-                # Field exists but is not embedded type
                 false
             end
           else
@@ -1281,10 +1268,10 @@ defmodule Cinder.QueryBuilder do
   @doc """
   Checks if a field exists on a resource (including attributes, relationships, calculations, aggregates)
   """
-  def field_exists_on_resource?(resource, field_atom) do
+  def field_exists_on_resource?(resource, field) do
     try do
       if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
-        field_atom = if is_binary(field_atom), do: String.to_atom(field_atom), else: field_atom
+        field_atom = if is_binary(field), do: String.to_atom(field), else: field
 
         # Get all valid field types
         attributes = Ash.Resource.Info.attributes(resource) |> Enum.map(& &1.name)

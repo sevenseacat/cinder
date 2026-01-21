@@ -148,8 +148,7 @@ defmodule Cinder.UrlSync do
 
       # The collection manages these specific parameter keys
       # Including after/before for keyset pagination
-      known_collection_keys =
-        MapSet.new(["page", "sort", "page_size", "search", "after", "before"])
+      known_collection_keys = ["page", "sort", "page_size", "search", "after", "before"]
 
       # Extract filter field names from encoded state (if provided)
       # This tells us exactly which parameters are collection-managed filter fields
@@ -164,9 +163,7 @@ defmodule Cinder.UrlSync do
 
       # Build set of all collection-managed parameter keys
       collection_managed_keys =
-        known_collection_keys
-        |> MapSet.union(MapSet.new(filter_field_names))
-        |> MapSet.union(MapSet.new(Map.keys(new_params)))
+        MapSet.new(known_collection_keys ++ filter_field_names ++ Map.keys(new_params))
 
       # Preserve only custom params (those NOT in collection_managed_keys)
       custom_params =
