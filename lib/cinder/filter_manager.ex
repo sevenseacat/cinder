@@ -98,7 +98,7 @@ defmodule Cinder.FilterManager do
                   class={@theme.search_input_class}
                   {@theme.search_input_data}
                 />
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <div class="absolute inset-y-0 left-0 z-10 flex items-center pl-3 pointer-events-none">
                   <svg class={@theme.search_icon_class} {@theme.search_icon_data} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
