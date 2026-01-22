@@ -136,7 +136,7 @@ defmodule Cinder.Renderers.Grid do
   end
 
   defp build_grid_cols(cols) when is_integer(cols) and cols in 1..12 do
-    "grid-cols-#{cols}"
+    "grid grid-cols-#{cols}"
   end
 
   # If an invalid number is provided, default to 3

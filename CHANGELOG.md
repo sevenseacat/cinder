@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased 
+
+### Bugfixes
+
+* Always include `grid` CSS class when using `grid` collection layout
+
 ## v0.9.0-beta.3 (2026-01-21)
 
 ### Features
