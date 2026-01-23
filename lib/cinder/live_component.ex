@@ -340,6 +340,60 @@ defmodule Cinder.LiveComponent do
     {:noreply, socket}
   end
 
+  # ============================================================================
+  # SELECTION EVENT HANDLERS
+  # ============================================================================
+
+  @impl true
+  def handle_event("toggle_select", %{"id" => id}, socket) do
+    selected_ids = socket.assigns.selected_ids
+
+    new_selected =
+      if MapSet.member?(selected_ids, id) do
+        MapSet.delete(selected_ids, id)
+      else
+        MapSet.put(selected_ids, id)
+      end
+
+    socket =
+      socket
+      |> assign(:selected_ids, new_selected)
+      |> notify_selection_change(:toggle)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("toggle_select_all_page", _params, socket) do
+    id_field = socket.assigns[:id_field] || :id
+    page_ids = socket.assigns.data |> Enum.map(&to_string(Map.get(&1, id_field))) |> MapSet.new()
+    all_selected? = MapSet.subset?(page_ids, socket.assigns.selected_ids)
+
+    new_selected =
+      if all_selected? do
+        MapSet.difference(socket.assigns.selected_ids, page_ids)
+      else
+        MapSet.union(socket.assigns.selected_ids, page_ids)
+      end
+
+    socket =
+      socket
+      |> assign(:selected_ids, new_selected)
+      |> notify_selection_change(:select_all)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("clear_selection", _params, socket) do
+    socket =
+      socket
+      |> assign(:selected_ids, MapSet.new())
+      |> notify_selection_change(:clear)
+
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_event("filter_change", params, socket) do
     query_columns = Map.get(socket.assigns, :query_columns, socket.assigns.columns)
@@ -388,6 +442,21 @@ defmodule Cinder.LiveComponent do
     socket = notify_state_change(socket, new_filters)
 
     {:noreply, socket}
+  end
+
+  defp notify_selection_change(socket, action) do
+    if event_name = socket.assigns[:on_selection_change] do
+      payload = %{
+        component_id: socket.assigns.id,
+        selected_ids: socket.assigns.selected_ids,
+        selected_count: MapSet.size(socket.assigns.selected_ids),
+        action: action
+      }
+
+      send(self(), {event_name, payload})
+    end
+
+    socket
   end
 
   # ============================================================================
@@ -663,6 +732,11 @@ defmodule Cinder.LiveComponent do
     |> assign(:before_keyset, assigns[:before_keyset])
     |> assign(:first_keyset, assigns[:first_keyset])
     |> assign(:last_keyset, assigns[:last_keyset])
+    # Selection state
+    |> assign(:selectable, assigns[:selectable] || false)
+    |> assign_new(:selected_ids, fn -> MapSet.new() end)
+    |> assign(:on_selection_change, assigns[:on_selection_change])
+    |> assign(:id_field, assigns[:id_field] || :id)
   end
 
   defp assign_column_definitions(socket) do

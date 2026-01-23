@@ -189,6 +189,17 @@ defmodule Cinder.Collection do
     doc: "Field to use as ID for update_if_visible operations (defaults to :id)"
   )
 
+  attr(:selectable, :boolean,
+    default: false,
+    doc: "Enable row/item selection via checkboxes"
+  )
+
+  attr(:on_selection_change, :any,
+    default: nil,
+    doc:
+      "Event name (atom or string) sent to parent when selection changes. Parent receives {event_name, %{selected_ids: MapSet.t(), selected_count: integer(), component_id: string(), action: atom()}}."
+  )
+
   slot :col do
     attr(:field, :string,
       required: false,
@@ -267,6 +278,8 @@ defmodule Cinder.Collection do
       |> assign_new(:search, fn -> nil end)
       |> assign_new(:grid_columns, fn -> nil end)
       |> assign_new(:pagination, fn -> :offset end)
+      |> assign_new(:selectable, fn -> false end)
+      |> assign_new(:on_selection_change, fn -> nil end)
 
     # Validate and normalize query/resource parameters
     normalized_query = normalize_query_params(assigns[:resource], assigns[:query])
@@ -369,6 +382,8 @@ defmodule Cinder.Collection do
         search_fn={@search_fn}
         pagination_mode={@pagination_mode}
         id_field={@id_field}
+        selectable={@selectable}
+        on_selection_change={@on_selection_change}
       />
     </div>
     """

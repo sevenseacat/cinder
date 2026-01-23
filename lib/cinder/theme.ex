@@ -172,7 +172,17 @@ defmodule Cinder.Theme do
     # Grid
     grid_container_class: "grid gap-4",
     grid_item_class: "p-4 bg-white border border-gray-200 rounded-lg shadow-sm",
-    grid_item_clickable_class: "cursor-pointer hover:shadow-md transition-shadow"
+    grid_item_clickable_class: "cursor-pointer hover:shadow-md transition-shadow",
+
+    # Selection
+    selection_checkbox_class: "",
+    selection_th_class: "",
+    selection_td_class: "",
+    selected_row_class: "",
+    grid_selection_overlay_class: "",
+    selected_item_class: "",
+    list_selection_container_class: "",
+    bulk_actions_container_class: ""
   }
 
   # Re-export the DSL functionality

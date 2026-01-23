@@ -39,6 +39,15 @@ defmodule Cinder.Renderers.Table do
         <table class={@theme.table_class} {@theme.table_data}>
           <thead class={@theme.thead_class} {@theme.thead_data}>
             <tr class={@theme.header_row_class} {@theme.header_row_data}>
+              <th :if={@selectable} class={@theme.selection_th_class} {@theme.selection_th_data}>
+                <input
+                  type="checkbox"
+                  checked={all_page_selected?(@selected_ids, @data, @id_field)}
+                  phx-click="toggle_select_all_page"
+                  phx-target={@myself}
+                  class={@theme.selection_checkbox_class}
+                />
+              </th>
               <th :for={column <- @columns} class={[@theme.th_class, column.class]} {@theme.th_data}>
                 <div :if={column.sortable}
                      class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
@@ -58,15 +67,25 @@ defmodule Cinder.Renderers.Table do
           </thead>
           <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} {@theme.tbody_data}>
             <tr :for={item <- @data}
-                class={get_row_classes(@theme.row_class, @row_click)}
+                class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
                 {@theme.row_data}
                 phx-click={@row_click && @row_click.(item)}>
+              <td :if={@selectable} class={@theme.selection_td_class} {@theme.selection_td_data}>
+                <input
+                  type="checkbox"
+                  checked={item_selected?(@selected_ids, item, @id_field)}
+                  phx-click="toggle_select"
+                  phx-value-id={to_string(Map.get(item, @id_field))}
+                  phx-target={@myself}
+                  class={@theme.selection_checkbox_class}
+                />
+              </td>
               <td :for={column <- @columns} class={[@theme.td_class, column.class]} {@theme.td_data}>
                 {render_slot(column.slot, item)}
               </td>
             </tr>
             <tr :if={@data == [] and not @loading}>
-              <td colspan={length(@columns)} class={@theme.empty_class} {@theme.empty_data}>
+              <td colspan={column_count(@columns, @selectable)} class={@theme.empty_class} {@theme.empty_data}>
                 {@empty_message}
               </td>
             </tr>
@@ -137,11 +156,31 @@ defmodule Cinder.Renderers.Table do
   # HELPER FUNCTIONS
   # ============================================================================
 
-  defp get_row_classes(base_classes, row_click) do
-    if row_click do
-      [base_classes, "cursor-pointer"]
+  defp get_row_classes(base_classes, row_click, selectable, selected_ids, item, id_field, theme) do
+    classes = if row_click, do: [base_classes, "cursor-pointer"], else: [base_classes]
+
+    if selectable and item_selected?(selected_ids, item, id_field) do
+      classes ++ [theme.selected_row_class]
     else
-      base_classes
+      classes
     end
+  end
+
+  defp all_page_selected?(selected_ids, data, id_field) when is_list(data) and length(data) > 0 do
+    Enum.all?(data, fn item ->
+      item_selected?(selected_ids, item, id_field)
+    end)
+  end
+
+  defp all_page_selected?(_selected_ids, _data, _id_field), do: false
+
+  defp item_selected?(selected_ids, item, id_field) do
+    id = to_string(Map.get(item, id_field))
+    MapSet.member?(selected_ids, id)
+  end
+
+  defp column_count(columns, selectable) do
+    base_count = length(columns)
+    if selectable, do: base_count + 1, else: base_count
   end
 end
