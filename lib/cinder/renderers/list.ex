@@ -67,6 +67,13 @@ defmodule Cinder.Renderers.List do
         />
       </div>
 
+      <!-- Bulk Actions -->
+      <%= if Map.get(assigns, :selectable, false) and Map.get(assigns, :bulk_actions_slot, []) != [] do %>
+        <div class={@theme.bulk_actions_container_class} {@theme.bulk_actions_container_data}>
+          {render_slot(Map.get(assigns, :bulk_actions_slot, []), %{selected_ids: Map.get(assigns, :selected_ids, MapSet.new()), selected_count: MapSet.size(Map.get(assigns, :selected_ids, MapSet.new()))})}
+        </div>
+      <% end %>
+
       <!-- List Items Container -->
       <div class={@list_container_class} {@list_container_data}>
         <%= if @has_item_slot do %>

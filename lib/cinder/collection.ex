@@ -256,6 +256,11 @@ defmodule Cinder.Collection do
     attr(:fn, :fun, doc: "Custom filter function (fn query, filter_config -> query)")
   end
 
+  slot(:bulk_actions,
+    required: false,
+    doc: "Template for rendering bulk action buttons when items are selected"
+  )
+
   def collection(assigns) do
     assigns =
       assigns
@@ -317,6 +322,9 @@ defmodule Cinder.Collection do
     # Get the item slot for list/grid layouts
     item_slot = Map.get(assigns, :item, [])
 
+    # Get the bulk_actions slot
+    bulk_actions_slot = Map.get(assigns, :bulk_actions, [])
+
     # Resolve theme
     resolved_theme = resolve_theme(assigns.theme)
 
@@ -339,6 +347,7 @@ defmodule Cinder.Collection do
       |> assign(:pagination_mode, pagination_mode)
       |> assign(:renderer, renderer)
       |> assign(:item_slot, item_slot)
+      |> assign(:bulk_actions_slot, bulk_actions_slot)
       |> assign(:row_click, row_click)
       |> assign(:item_click, item_click)
       |> assign(:resolved_theme, resolved_theme)
@@ -384,6 +393,7 @@ defmodule Cinder.Collection do
         id_field={@id_field}
         selectable={@selectable}
         on_selection_change={@on_selection_change}
+        bulk_actions_slot={@bulk_actions_slot}
       />
     </div>
     """
