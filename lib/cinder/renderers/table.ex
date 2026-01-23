@@ -69,7 +69,7 @@ defmodule Cinder.Renderers.Table do
             <tr :for={item <- @data}
                 class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
                 {@theme.row_data}
-                phx-click={@row_click && @row_click.(item)}>
+                phx-click={row_click_action(@row_click, @selectable, item, @id_field, @myself)}>
               <td :if={@selectable} class={@theme.selection_td_class} {@theme.selection_td_data}>
                 <input
                   type="checkbox"
@@ -157,7 +157,9 @@ defmodule Cinder.Renderers.Table do
   # ============================================================================
 
   defp get_row_classes(base_classes, row_click, selectable, selected_ids, item, id_field, theme) do
-    classes = if row_click, do: [base_classes, "cursor-pointer"], else: [base_classes]
+    # Add cursor-pointer if row is clickable (either via row_click or selectable without row_click)
+    clickable = row_click != nil or (selectable and row_click == nil)
+    classes = if clickable, do: [base_classes, "cursor-pointer"], else: [base_classes]
 
     if selectable and item_selected?(selected_ids, item, id_field) do
       classes ++ [theme.selected_row_class]
@@ -165,6 +167,19 @@ defmodule Cinder.Renderers.Table do
       classes
     end
   end
+
+  defp row_click_action(row_click, _selectable, item, _id_field, _myself) when row_click != nil do
+    row_click.(item)
+  end
+
+  defp row_click_action(nil, true, item, id_field, myself) do
+    Phoenix.LiveView.JS.push("toggle_select",
+      value: %{id: to_string(Map.get(item, id_field))},
+      target: myself
+    )
+  end
+
+  defp row_click_action(nil, false, _item, _id_field, _myself), do: nil
 
   defp all_page_selected?(selected_ids, data, id_field) when is_list(data) and length(data) > 0 do
     Enum.all?(data, fn item ->

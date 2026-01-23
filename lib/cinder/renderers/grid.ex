@@ -72,9 +72,9 @@ defmodule Cinder.Renderers.Grid do
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data}
-            class={get_grid_item_classes(@grid_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @theme)}
+            class={get_item_classes_with_selection(@grid_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
             {@grid_item_data}
-            phx-click={@item_click && @item_click.(item)}
+            phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), item, Map.get(assigns, :id_field, :id), @myself)}
           >
             <div
               :if={Map.get(assigns, :selectable, false)}
@@ -196,8 +196,20 @@ defmodule Cinder.Renderers.Grid do
   # SELECTION HELPERS
   # ============================================================================
 
-  defp get_grid_item_classes(base_class, selectable, selected_ids, item, id_field, theme) do
+  defp get_item_classes_with_selection(
+         base_class,
+         selectable,
+         selected_ids,
+         item,
+         id_field,
+         item_click,
+         theme
+       ) do
     classes = if selectable, do: [base_class, "relative"], else: [base_class]
+
+    # Add cursor-pointer if item is clickable (either via item_click or selectable without item_click)
+    clickable = item_click != nil or (selectable and item_click == nil)
+    classes = if clickable, do: classes ++ ["cursor-pointer"], else: classes
 
     if selectable and item_selected?(selected_ids, item, id_field) do
       classes ++ [theme.selected_item_class]
@@ -205,6 +217,20 @@ defmodule Cinder.Renderers.Grid do
       classes
     end
   end
+
+  defp item_click_action(item_click, _selectable, item, _id_field, _myself)
+       when item_click != nil do
+    item_click.(item)
+  end
+
+  defp item_click_action(nil, true, item, id_field, myself) do
+    Phoenix.LiveView.JS.push("toggle_select",
+      value: %{id: to_string(Map.get(item, id_field))},
+      target: myself
+    )
+  end
+
+  defp item_click_action(nil, false, _item, _id_field, _myself), do: nil
 
   defp item_selected?(selected_ids, item, id_field) do
     id = to_string(Map.get(item, id_field))
