@@ -72,10 +72,23 @@ defmodule Cinder.Renderers.Grid do
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data}
-            class={@grid_item_class}
+            class={get_grid_item_classes(@grid_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @theme)}
             {@grid_item_data}
             phx-click={@item_click && @item_click.(item)}
           >
+            <div
+              :if={Map.get(assigns, :selectable, false)}
+              class={@theme.grid_selection_overlay_class}
+            >
+              <input
+                type="checkbox"
+                checked={item_selected?(Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
+                phx-click="toggle_select"
+                phx-value-id={to_string(Map.get(item, Map.get(assigns, :id_field, :id)))}
+                phx-target={@myself}
+                class={@theme.selection_checkbox_class}
+              />
+            </div>
             {render_slot(@item_slot, item)}
           </div>
         <% else %>
@@ -177,6 +190,25 @@ defmodule Cinder.Renderers.Grid do
     else
       {base, base_data}
     end
+  end
+
+  # ============================================================================
+  # SELECTION HELPERS
+  # ============================================================================
+
+  defp get_grid_item_classes(base_class, selectable, selected_ids, item, id_field, theme) do
+    classes = if selectable, do: [base_class, "relative"], else: [base_class]
+
+    if selectable and item_selected?(selected_ids, item, id_field) do
+      classes ++ [theme.selected_item_class]
+    else
+      classes
+    end
+  end
+
+  defp item_selected?(selected_ids, item, id_field) do
+    id = to_string(Map.get(item, id_field))
+    MapSet.member?(selected_ids, id)
   end
 
   # Tailwind safelist - these classes are dynamically generated, keep them here for purge detection:
