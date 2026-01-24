@@ -83,6 +83,7 @@ defmodule Cinder.Collection do
   """
 
   use Phoenix.Component
+  use Cinder.Messages
   require Logger
 
   # Shared attributes for all layouts
@@ -147,13 +148,13 @@ defmodule Cinder.Collection do
   attr(:loading_message, :string, default: "Loading...", doc: "Message to show while loading")
 
   attr(:filters_label, :string,
-    default: "🔍 Filters",
-    doc: "Label for the filters component"
+    default: nil,
+    doc: "Label for the filters component (defaults to translated \"Filters\")"
   )
 
   attr(:sort_label, :string,
-    default: "Sort by:",
-    doc: "Label for sort button group (list/grid only)"
+    default: nil,
+    doc: "Label for sort button group (defaults to translated \"Sort by:\")"
   )
 
   attr(:search, :any,
@@ -256,8 +257,8 @@ defmodule Cinder.Collection do
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
       |> assign_new(:loading_message, fn -> "Loading..." end)
-      |> assign_new(:filters_label, fn -> "🔍 Filters" end)
-      |> assign_new(:sort_label, fn -> "Sort by:" end)
+      |> assign(:filters_label, assigns[:filters_label] || "🔍 " <> dgettext("cinder", "Filters"))
+      |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
       |> assign_new(:empty_message, fn -> "No results found" end)
       |> assign_new(:class, fn -> "" end)
       |> assign_new(:container_class, fn -> nil end)

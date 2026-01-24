@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+* Add i18n support for "Filters" and "Sort by:" labels
+
 ### Bugfixes
 
 * Always include `grid` CSS class when using `grid` collection layout
