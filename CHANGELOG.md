@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased 
+## Unreleased
 
 ### Bugfixes
 
 * Always include `grid` CSS class when using `grid` collection layout
+* Fix DaisyUI theme missing padding on grid/list items by adding `card-body` class
 
 ## v0.9.0-beta.3 (2026-01-21)
 
