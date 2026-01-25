@@ -46,6 +46,18 @@ The table layout is the default, so no `layout` attribute is needed. For other l
 </Cinder.collection>
 ```
 
+#### `row_click` → `click`
+
+The `row_click` attribute has been renamed to `click`:
+
+```heex
+<!-- OLD -->
+<Cinder.Table.table resource={MyApp.User} actor={@current_user} row_click={&JS.navigate("/users/#{&1.id}")}>
+
+<!-- NEW -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} click={&JS.navigate("/users/#{&1.id}")}>
+```
+
 ### Module Relocations
 
 The following modules have been moved to cleaner namespaces:
@@ -92,10 +104,11 @@ Available themes: `default`, `modern`, `retro`, `futuristic`, `dark`, `daisy_ui`
 ### Migration Checklist
 
 1. [ ] Replace `<Cinder.Table.table>` with `<Cinder.collection>`
-2. [ ] Update `import Cinder.Table.Refresh` to `import Cinder.Refresh`
-3. [ ] Update `use Cinder.Table.UrlSync` to `use Cinder.UrlSync`
-4. [ ] Replace `theme="pastel"` with another theme
-5. [ ] Run your test suite and fix any deprecation warnings
+2. [ ] Rename `row_click` attribute to `click`
+3. [ ] Update `import Cinder.Table.Refresh` to `import Cinder.Refresh`
+4. [ ] Update `use Cinder.Table.UrlSync` to `use Cinder.UrlSync`
+5. [ ] Replace `theme="pastel"` with another theme
+6. [ ] Run your test suite and fix any deprecation warnings
 
 ## Upgrading to 0.5.4
 
