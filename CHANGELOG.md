@@ -17,6 +17,7 @@
 * Fix DaisyUI theme missing padding on grid/list items by adding `card-body` class
 * Fix select/multi-select filters not using column label for default prompt
 * Fix checkbox/boolean filter layout causing uneven wrapping across all themes
+* Fix page size dropdown toggling all tables when multiple tables exist on same page (#89)
 
 ## v0.9.0-beta.3 (2026-01-21)
 

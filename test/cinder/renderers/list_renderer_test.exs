@@ -36,6 +36,7 @@ defmodule Cinder.Renderers.ListTest do
 
   defp base_assigns do
     %{
+      id: "test-list",
       theme: build_theme(),
       data: [],
       columns: [],

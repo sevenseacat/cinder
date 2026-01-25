@@ -109,6 +109,7 @@ defmodule Cinder.Renderers.Grid do
         myself={@myself}
         show_pagination={@show_pagination}
         pagination_mode={@pagination_mode}
+        id={@id}
       />
     </div>
     """

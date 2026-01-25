@@ -94,7 +94,7 @@ defmodule Cinder.Renderers.Pagination do
       <div class="flex items-center space-x-6">
         <!-- Page size selector (if configurable) -->
         <div :if={@page_size_config.configurable} class={@theme.page_size_container_class} {@theme.page_size_container_data}>
-          <.page_size_selector page_size_config={@page_size_config} theme={@theme} myself={@myself} />
+          <.page_size_selector page_size_config={@page_size_config} theme={@theme} myself={@myself} id={@id} />
         </div>
 
         <!-- Page navigation -->
@@ -205,7 +205,7 @@ defmodule Cinder.Renderers.Pagination do
       <div class="flex items-center space-x-6">
         <!-- Page size selector (if configurable) -->
         <div :if={@page_size_config.configurable} class={@theme.page_size_container_class} {@theme.page_size_container_data}>
-          <.page_size_selector page_size_config={@page_size_config} theme={@theme} myself={@myself} />
+          <.page_size_selector page_size_config={@page_size_config} theme={@theme} myself={@myself} id={@id} />
         </div>
 
         <!-- Keyset navigation: Prev / Next only -->
@@ -241,6 +241,9 @@ defmodule Cinder.Renderers.Pagination do
   end
 
   defp page_size_selector(assigns) do
+    dropdown_id = "#{assigns.id}-page-size-options"
+    assigns = assign(assigns, :dropdown_id, dropdown_id)
+
     ~H"""
     <div class="flex items-center space-x-2">
       <span class={@theme.page_size_label_class} {@theme.page_size_label_data}>
@@ -251,7 +254,7 @@ defmodule Cinder.Renderers.Pagination do
           type="button"
           class={@theme.page_size_dropdown_class}
           {@theme.page_size_dropdown_data}
-          phx-click={JS.toggle(to: "#page-size-options")}
+          phx-click={JS.toggle(to: "##{@dropdown_id}")}
           aria-haspopup="true"
           aria-expanded="false"
         >
@@ -261,10 +264,10 @@ defmodule Cinder.Renderers.Pagination do
           </svg>
         </button>
         <div
-          id="page-size-options"
+          id={@dropdown_id}
           class={["absolute top-full right-0 mt-1 z-50 hidden", @theme.page_size_dropdown_container_class]}
           {@theme.page_size_dropdown_container_data}
-          phx-click-away={JS.hide(to: "#page-size-options")}
+          phx-click-away={JS.hide(to: "##{@dropdown_id}")}
         >
           <button
             :for={option <- @page_size_config.page_size_options}
@@ -274,7 +277,7 @@ defmodule Cinder.Renderers.Pagination do
               (@page_size_config.selected_page_size == option && @theme.page_size_selected_class || "")
             ]}
             {@theme.page_size_option_data}
-            phx-click={JS.push("change_page_size") |> JS.hide(to: "#page-size-options")}
+            phx-click={JS.push("change_page_size") |> JS.hide(to: "##{@dropdown_id}")}
             phx-value-page_size={option}
             phx-target={@myself}
           >

@@ -36,6 +36,7 @@ defmodule Cinder.Renderers.GridTest do
 
   defp base_assigns do
     %{
+      id: "test-grid",
       theme: build_theme(),
       data: [],
       columns: [],
