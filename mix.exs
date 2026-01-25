@@ -79,9 +79,9 @@ defmodule Cinder.MixProject do
   defp package do
     [
       name: "cinder",
-      maintainers: ["Rebecca Le"],
+      maintainers: ["Rebecca Le <traybaby@gmail.com>"],
       licenses: ["MIT"],
-      links: %{"GitHub" => @source_url},
+      links: %{"GitHub" => @source_url, "Website" => "https://cinder.sevenseacat.net"},
       files: ~w(lib i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
     ]
   end
