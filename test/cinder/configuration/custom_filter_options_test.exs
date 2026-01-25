@@ -120,6 +120,80 @@ defmodule Cinder.CustomFilterOptionsTest do
       assert parsed_column.filter_options[:prompt] == "Choose weapon category"
     end
 
+    test "multi_select uses column label for default prompt" do
+      slot_config = %{
+        field: "type",
+        label: "Weapon Type",
+        filterable: true,
+        filter_type: :multi_select
+      }
+
+      parsed_column = Cinder.Column.parse_column(slot_config, TestWeapon)
+
+      # Should use the column label for the default prompt
+      assert parsed_column.filter_options[:prompt] == "All Weapon Type"
+    end
+
+    test "select uses column label for default prompt" do
+      slot_config = %{
+        field: "type",
+        label: "Category",
+        filterable: true,
+        filter_type: :select
+      }
+
+      parsed_column = Cinder.Column.parse_column(slot_config, TestWeapon)
+
+      # Should use the column label for the default prompt
+      assert parsed_column.filter_options[:prompt] == "All Category"
+    end
+
+    test "falls back to humanized field name when no label provided" do
+      slot_config = %{
+        field: "type",
+        filterable: true,
+        filter_type: :multi_select
+      }
+
+      parsed_column = Cinder.Column.parse_column(slot_config, TestWeapon)
+
+      # Should fall back to humanized field name
+      assert parsed_column.filter_options[:prompt] == "All Type"
+    end
+
+    test "Collection.process_columns passes label through for filter prompt" do
+      # This tests the real flow through Collection.process_columns
+      # which is what Cinder.Table uses
+      slots = [
+        %{
+          field: "type",
+          label: "Weapon Category",
+          filter: [type: :multi_select]
+        }
+      ]
+
+      [processed] = Cinder.Collection.process_columns(slots, TestWeapon)
+
+      # The label should be used for the filter prompt
+      assert processed.label == "Weapon Category"
+      assert processed.filter_options[:prompt] == "All Weapon Category"
+    end
+
+    test "Collection.process_columns falls back to humanized field when no label" do
+      slots = [
+        %{
+          field: "type",
+          filter: [type: :multi_select]
+        }
+      ]
+
+      [processed] = Cinder.Collection.process_columns(slots, TestWeapon)
+
+      # Should fall back to humanized field name for both label and prompt
+      assert processed.label == "Type"
+      assert processed.filter_options[:prompt] == "All Type"
+    end
+
     test "text filter with custom options" do
       slot_config = %{
         field: "name",

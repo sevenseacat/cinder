@@ -396,7 +396,8 @@ defmodule Cinder.Collection do
       filter_fn = if is_list(filter_attr), do: Keyword.get(filter_attr, :fn), else: nil
 
       # Use Column module to parse the column configuration
-      column_config = %{
+      # Only include label if explicitly set, to preserve fallback behavior
+      base_column_config = %{
         field: field,
         sortable: sort_config.enabled,
         filterable: filter_attr != false,
@@ -404,6 +405,12 @@ defmodule Cinder.Collection do
         filter_fn: filter_fn,
         search: Map.get(slot, :search, false)
       }
+
+      column_config =
+        case Map.get(slot, :label) do
+          nil -> base_column_config
+          label -> Map.put(base_column_config, :label, label)
+        end
 
       # Let Column module infer filter type if needed, otherwise use explicit type
       {filter_type, filter_options_from_unified} =

@@ -10,6 +10,7 @@
 
 * Always include `grid` CSS class when using `grid` collection layout
 * Fix DaisyUI theme missing padding on grid/list items by adding `card-body` class
+* Fix select/multi-select filters not using column label for default prompt
 
 ## v0.9.0-beta.3 (2026-01-21)
 

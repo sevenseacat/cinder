@@ -432,11 +432,18 @@ defmodule Cinder.FilterManager do
       merged_options = Keyword.merge(default_options, slot_options)
 
       # Enhance options with Ash-specific data for select/multi_select filters
+      # Use explicit label if provided, otherwise humanize the field key
+      label =
+        Map.get(slot, :label) ||
+          key
+          |> Cinder.Filter.Helpers.field_notation_from_url_safe()
+          |> Cinder.Filter.Helpers.humanize_embedded_field()
+
       enhanced_options =
         case filter_type do
-          :select -> enhance_select_options(merged_options, attribute, key)
-          :multi_select -> enhance_select_options(merged_options, attribute, key)
-          :multi_checkboxes -> enhance_select_options(merged_options, attribute, key)
+          :select -> enhance_select_options(merged_options, attribute, label)
+          :multi_select -> enhance_select_options(merged_options, attribute, label)
+          :multi_checkboxes -> enhance_select_options(merged_options, attribute, label)
           _ -> merged_options
         end
 
@@ -749,25 +756,27 @@ defmodule Cinder.FilterManager do
     end
   end
 
-  defp enhance_select_options(default_options, attribute, key) do
+  defp enhance_select_options(options, attribute, label) do
+    # Only set prompt if not already set to a truthy value
+    options =
+      if Keyword.get(options, :prompt) do
+        options
+      else
+        Keyword.put(options, :prompt, "All #{label}")
+      end
+
     case extract_enum_options(attribute) do
       [] ->
-        # No enum options found, return defaults
-        # Convert URL-safe notation to bracket notation for proper humanization
-        converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
-        humanized_key = Cinder.Filter.Helpers.humanize_embedded_field(converted_key)
+        # No enum options found, return as-is
+        options
 
-        Keyword.merge(default_options, prompt: "All #{humanized_key}")
-
-      options ->
-        # Add enum options and prompt
-        # Convert URL-safe notation to bracket notation for proper humanization
-        converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
-        humanized_key = Cinder.Filter.Helpers.humanize_embedded_field(converted_key)
-
-        default_options
-        |> Keyword.put(:options, options)
-        |> Keyword.put(:prompt, "All #{humanized_key}")
+      enum_options ->
+        # Add enum options if not already set to a non-empty list
+        if Keyword.get(options, :options, []) != [] do
+          options
+        else
+          Keyword.put(options, :options, enum_options)
+        end
     end
   end
 
