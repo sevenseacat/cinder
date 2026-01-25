@@ -37,9 +37,9 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_clear_all_class, "btn btn-ghost btn-xs"
 
     set :filter_inputs_class,
-        "flow-root px-6 pb-2"
+        "flex flex-wrap gap-4 px-6 pb-6"
 
-    set :filter_input_wrapper_class, "form-control float-left mr-4 mb-4"
+    set :filter_input_wrapper_class, "form-control"
 
     set :filter_label_class, "label whitespace-nowrap"
 
@@ -72,13 +72,13 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_select_placeholder_class, "text-base-content/40"
 
     # Boolean filter
-    set :filter_boolean_container_class, "flex space-x-4 h-[36px] items-center"
+    set :filter_boolean_container_class, "flex space-x-4 h-10 items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"
     set :filter_boolean_radio_class, "radio radio-sm"
     set :filter_boolean_label_class, "text-sm cursor-pointer"
 
     # Checkbox filter
-    set :filter_checkbox_container_class, "flex items-center h-[36px]"
+    set :filter_checkbox_container_class, "flex items-center h-10"
     set :filter_checkbox_input_class, "checkbox checkbox-sm mr-2"
     set :filter_checkbox_label_class, "text-sm cursor-pointer"
 

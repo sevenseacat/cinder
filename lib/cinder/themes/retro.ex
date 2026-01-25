@@ -58,9 +58,9 @@ defmodule Cinder.Themes.Retro do
         "text-xs text-cyan-100 bg-fuchsia-600 hover:bg-fuchsia-500 font-bold uppercase tracking-wide transition-colors border-2 border-cyan-400 hover:border-yellow-400 px-4 py-2 shadow-lg shadow-fuchsia-400/30"
 
     set :filter_inputs_class,
-        "flow-root -mb-6"
+        "flex flex-wrap gap-6"
 
-    set :filter_input_wrapper_class, "space-y-3 float-left mr-6 mb-6"
+    set :filter_input_wrapper_class, "space-y-3"
 
     set :filter_label_class,
         "block text-sm font-bold text-cyan-100 uppercase tracking-wide whitespace-nowrap"

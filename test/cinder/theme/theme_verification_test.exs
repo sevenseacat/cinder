@@ -121,9 +121,8 @@ defmodule Cinder.ThemeVerificationTest do
 
         boolean_container = theme[:filter_boolean_container_class]
 
-        # Should have explicit height (not min-height) for consistency
-        assert String.contains?(boolean_container, "h-[") or
-                 String.contains?(boolean_container, "height"),
+        # Should have explicit height for consistency (h-10, h-12, h-[42px], etc.)
+        assert Regex.match?(~r/\bh-(\d+|\[)/, boolean_container),
                "#{unquote(theme_module)} boolean filter container should have explicit height for alignment"
 
         # Should include items-center for vertical alignment

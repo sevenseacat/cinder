@@ -47,9 +47,9 @@ defmodule Cinder.Themes.Modern do
         "text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
 
     set :filter_inputs_class,
-        "flow-root -mb-6"
+        "flex flex-wrap gap-6"
 
-    set :filter_input_wrapper_class, "space-y-2 float-left mr-6 mb-6"
+    set :filter_input_wrapper_class, "space-y-2"
 
     set :filter_label_class,
         "block text-sm font-medium text-gray-700 whitespace-nowrap"

@@ -57,9 +57,9 @@ defmodule Cinder.Themes.Compact do
         "text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
 
     set :filter_inputs_class,
-        "flow-root -mb-3"
+        "flex flex-wrap gap-3"
 
-    set :filter_input_wrapper_class, "space-y-1 float-left mr-3 mb-3"
+    set :filter_input_wrapper_class, "space-y-1"
 
     set :filter_label_class,
         "block text-xs font-medium text-gray-700 whitespace-nowrap"
