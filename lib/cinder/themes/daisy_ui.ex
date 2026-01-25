@@ -74,12 +74,12 @@ defmodule Cinder.Themes.DaisyUI do
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-4 h-[36px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"
-    set :filter_boolean_radio_class, "radio radio-sm radio-primary"
+    set :filter_boolean_radio_class, "radio radio-sm"
     set :filter_boolean_label_class, "text-sm cursor-pointer"
 
     # Checkbox filter
     set :filter_checkbox_container_class, "flex items-center h-[36px]"
-    set :filter_checkbox_input_class, "checkbox checkbox-primary checkbox-sm mr-2"
+    set :filter_checkbox_input_class, "checkbox checkbox-sm mr-2"
     set :filter_checkbox_label_class, "text-sm cursor-pointer"
 
     # Multi-select filter (dropdown interface)
@@ -91,7 +91,7 @@ defmodule Cinder.Themes.DaisyUI do
     set :filter_multiselect_option_class,
         "px-3 py-2 hover:bg-base-200 border-b border-base-300 last:border-b-0 cursor-pointer"
 
-    set :filter_multiselect_checkbox_class, "checkbox checkbox-sm checkbox-primary mr-2"
+    set :filter_multiselect_checkbox_class, "checkbox checkbox-sm mr-2"
     set :filter_multiselect_label_class, "text-sm cursor-pointer select-none flex-1"
     set :filter_multiselect_empty_class, "px-3 py-2 text-base-content/50 italic text-sm"
 

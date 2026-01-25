@@ -106,7 +106,7 @@ defmodule Cinder.Themes.Retro do
     set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
-        "h-5 w-5 text-fuchsia-400 focus:ring-fuchsia-400 focus:ring-2 border-2 border-cyan-400"
+        "h-5 w-5 bg-gray-800 border-cyan-400 border-2 checked:bg-fuchsia-500 checked:border-fuchsia-500 focus:ring-fuchsia-400 focus:ring-2 cursor-pointer"
 
     set :filter_boolean_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
@@ -115,7 +115,7 @@ defmodule Cinder.Themes.Retro do
     set :filter_checkbox_container_class, "flex items-center h-[48px]"
 
     set :filter_checkbox_input_class,
-        "h-5 w-5 text-fuchsia-400 focus:ring-fuchsia-400 focus:ring-2 border-2 border-cyan-400 bg-gray-800 mr-2"
+        "h-5 w-5 bg-gray-800 border-cyan-400 border-2 rounded checked:bg-fuchsia-500 checked:border-fuchsia-500 focus:ring-fuchsia-400 focus:ring-2 cursor-pointer mr-2"
 
     set :filter_checkbox_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
@@ -130,7 +130,7 @@ defmodule Cinder.Themes.Retro do
         "px-3 py-2 hover:bg-fuchsia-800 hover:shadow-lg hover:shadow-fuchsia-400/30 border-b border-cyan-400/50 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-4 w-4 text-yellow-400 focus:ring-yellow-400/50 focus:ring-2 border-2 border-cyan-400 bg-gray-800 mr-2"
+        "h-4 w-4 bg-gray-800 border-cyan-400 border-2 rounded checked:bg-fuchsia-500 checked:border-fuchsia-500 focus:ring-fuchsia-400 focus:ring-2 cursor-pointer mr-2"
 
     set :filter_multiselect_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide select-none flex-1"
@@ -143,7 +143,7 @@ defmodule Cinder.Themes.Retro do
     set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-5 w-5 text-fuchsia-400 focus:ring-fuchsia-400 focus:ring-2 border-2 border-cyan-400 bg-gray-800"
+        "h-5 w-5 bg-gray-800 border-cyan-400 border-2 rounded checked:bg-fuchsia-500 checked:border-fuchsia-500 focus:ring-fuchsia-400 focus:ring-2 cursor-pointer"
 
     set :filter_multicheckboxes_label_class,
         "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"

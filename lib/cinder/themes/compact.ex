@@ -102,14 +102,17 @@ defmodule Cinder.Themes.Compact do
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-4 h-[34px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-1"
-    set :filter_boolean_radio_class, "h-3 w-3 text-blue-600 focus:ring-blue-500 focus:ring-1"
+
+    set :filter_boolean_radio_class,
+        "h-3 w-3 bg-white border-gray-300 checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer"
+
     set :filter_boolean_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 
     # Checkbox filter
     set :filter_checkbox_container_class, "flex items-center h-[34px]"
 
     set :filter_checkbox_input_class,
-        "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-1 mr-1"
+        "h-3 w-3 bg-white border-gray-300 rounded checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer mr-1"
 
     set :filter_checkbox_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 
@@ -123,7 +126,7 @@ defmodule Cinder.Themes.Compact do
         "px-2 py-1.5 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 cursor-pointer text-xs"
 
     set :filter_multiselect_checkbox_class,
-        "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-1 mr-2"
+        "h-3 w-3 bg-white border-gray-300 rounded checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer mr-2"
 
     set :filter_multiselect_label_class,
         "text-xs font-medium text-gray-700 cursor-pointer select-none flex-1"
@@ -135,7 +138,7 @@ defmodule Cinder.Themes.Compact do
     set :filter_multicheckboxes_option_class, "flex items-center space-x-1"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 focus:ring-1"
+        "h-3 w-3 bg-white border-gray-300 rounded checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer"
 
     set :filter_multicheckboxes_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
 

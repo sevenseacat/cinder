@@ -100,14 +100,17 @@ defmodule Cinder.Themes.Dark do
     # Boolean filter
     set :filter_boolean_container_class, "flex space-x-6 h-[42px] items-center"
     set :filter_boolean_option_class, "flex items-center space-x-2"
-    set :filter_boolean_radio_class, "h-4 w-4 text-purple-400 focus:ring-purple-500 focus:ring-2"
+
+    set :filter_boolean_radio_class,
+        "h-4 w-4 bg-gray-700 border-gray-600 checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer"
+
     set :filter_boolean_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
 
     # Checkbox filter
     set :filter_checkbox_container_class, "flex items-center h-[42px]"
 
     set :filter_checkbox_input_class,
-        "h-4 w-4 text-purple-400 focus:ring-purple-500 focus:ring-2 rounded mr-2"
+        "h-4 w-4 bg-gray-700 border-gray-600 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer mr-2"
 
     set :filter_checkbox_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
 
@@ -121,7 +124,7 @@ defmodule Cinder.Themes.Dark do
         "px-3 py-2 hover:bg-purple-900/50 border-b border-gray-700 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-4 w-4 text-purple-400 focus:ring-purple-500 focus:ring-2 rounded mr-2"
+        "h-4 w-4 bg-gray-700 border-gray-600 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer mr-2"
 
     set :filter_multiselect_label_class,
         "text-sm font-medium text-gray-300 cursor-pointer select-none flex-1"
@@ -133,7 +136,7 @@ defmodule Cinder.Themes.Dark do
     set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-4 w-4 text-purple-600 focus:ring-purple-500 focus:ring-2 rounded"
+        "h-4 w-4 bg-gray-700 border-gray-600 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer"
 
     set :filter_multicheckboxes_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
 

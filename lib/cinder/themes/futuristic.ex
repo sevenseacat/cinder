@@ -105,7 +105,7 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_boolean_option_class, "flex items-center space-x-2"
 
     set :filter_boolean_radio_class,
-        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60"
+        "h-4 w-4 bg-slate-900 border-blue-500/40 checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer"
 
     set :filter_boolean_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
@@ -114,7 +114,7 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_checkbox_container_class, "flex items-center h-[48px]"
 
     set :filter_checkbox_input_class,
-        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60 mr-2"
+        "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer mr-2"
 
     set :filter_checkbox_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
@@ -129,7 +129,7 @@ defmodule Cinder.Themes.Futuristic do
         "px-3 py-2 hover:bg-blue-950/60 border-b border-blue-500/20 last:border-b-0 cursor-pointer"
 
     set :filter_multiselect_checkbox_class,
-        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60 mr-2"
+        "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer mr-2"
 
     set :filter_multiselect_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide select-none flex-1"
@@ -142,7 +142,7 @@ defmodule Cinder.Themes.Futuristic do
     set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
     set :filter_multicheckboxes_checkbox_class,
-        "h-4 w-4 text-green-400 focus:ring-green-400/50 focus:ring-2 border border-blue-500/40 bg-slate-900/60"
+        "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer"
 
     set :filter_multicheckboxes_label_class,
         "text-sm font-light text-blue-100 cursor-pointer tracking-wide"

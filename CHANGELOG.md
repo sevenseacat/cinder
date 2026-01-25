@@ -6,6 +6,11 @@
 
 * Add i18n support for "Filters" and "Sort by:" labels
 
+### Improvements
+
+* Improve checkbox and radio button styling across all themes for consistent appearance with `@tailwindcss/forms` plugin
+* Update Flowbite theme to use Flowbite design token classes for form inputs
+
 ### Bugfixes
 
 * Always include `grid` CSS class when using `grid` collection layout
