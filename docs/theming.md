@@ -51,30 +51,14 @@ end
 
 ### Tailwind CSS Forms Plugin
 
-For consistent styling of checkboxes, radio buttons, and other form inputs across browsers, we recommend installing the [`@tailwindcss/forms`](https://github.com/tailwindlabs/tailwindcss-forms) plugin.
+For consistent styling of checkboxes, radio buttons, and other form inputs across browsers, we recommend enabling the [`@tailwindcss/forms`](https://github.com/tailwindlabs/tailwindcss-forms) plugin.
 
 **Why?** Native HTML checkboxes and radio buttons ignore most CSS properties (border, background, border-radius). The forms plugin applies `appearance-none` and provides base styles that make these inputs fully customizable with Tailwind classes.
 
-**Installation:**
-
-```bash
-npm install @tailwindcss/forms
-```
-
-**Tailwind v4** - Add to your `app.css`:
+Add to your `app.css`:
 
 ```css
 @plugin "@tailwindcss/forms";
-```
-
-**Tailwind v3** - Add to your `tailwind.config.js`:
-
-```javascript
-module.exports = {
-  plugins: [
-    require('@tailwindcss/forms'),
-  ],
-}
 ```
 
 **Note:** Cinder themes work without this plugin, but checkbox and radio button styling will fall back to browser defaults. If you're using DaisyUI or Flowbite, their component classes handle form input styling internally for their own components.
