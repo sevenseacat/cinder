@@ -432,5 +432,7 @@ defmodule Cinder.Filter do
       "products-filter-price-min"
   """
   def filter_id(table_id, field), do: "#{table_id}-filter-#{sanitized_field_name(field)}"
-  def filter_id(table_id, field, suffix), do: "#{table_id}-filter-#{sanitized_field_name(field)}-#{suffix}"
+
+  def filter_id(table_id, field, suffix),
+    do: "#{table_id}-filter-#{sanitized_field_name(field)}-#{suffix}"
 end

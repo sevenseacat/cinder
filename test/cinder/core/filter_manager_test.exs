@@ -611,6 +611,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_values: %{},
         table_id: "test-table"
       }
+
       input_html = render_component(&FilterManager.filter_input/1, input_assigns)
 
       # Label should have for attribute
@@ -620,7 +621,12 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
 
     test "select filter label for attribute matches button id", %{theme: theme} do
-      column = %{field: "status", label: "Status", filter_type: :select, filter_options: [options: [{"Active", "active"}]]}
+      column = %{
+        field: "status",
+        label: "Status",
+        filter_type: :select,
+        filter_options: [options: [{"Active", "active"}]]
+      }
 
       label_assigns = %{column: column, table_id: "test-table", theme: theme}
       label_html = render_component(&FilterManager.filter_label/1, label_assigns)
@@ -633,6 +639,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_values: %{},
         table_id: "test-table"
       }
+
       input_html = render_component(&FilterManager.filter_input/1, input_assigns)
 
       # Label should have for attribute pointing to button
@@ -655,6 +662,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_values: %{},
         table_id: "test-table"
       }
+
       input_html = render_component(&FilterManager.filter_input/1, input_assigns)
 
       # Label should point to min input
@@ -665,7 +673,12 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
 
     test "date range filter label points to from input", %{theme: theme} do
-      column = %{field: "created_at", label: "Created", filter_type: :date_range, filter_options: []}
+      column = %{
+        field: "created_at",
+        label: "Created",
+        filter_type: :date_range,
+        filter_options: []
+      }
 
       label_assigns = %{column: column, table_id: "test-table", theme: theme}
       label_html = render_component(&FilterManager.filter_label/1, label_assigns)
@@ -678,6 +691,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_values: %{},
         table_id: "test-table"
       }
+
       input_html = render_component(&FilterManager.filter_input/1, input_assigns)
 
       # Label should point to from input
@@ -688,7 +702,12 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
 
     test "autocomplete filter label points to input", %{theme: theme} do
-      column = %{field: "category", label: "Category", filter_type: :autocomplete, filter_options: [options: []]}
+      column = %{
+        field: "category",
+        label: "Category",
+        filter_type: :autocomplete,
+        filter_options: [options: []]
+      }
 
       label_assigns = %{column: column, table_id: "test-table", theme: theme}
       label_html = render_component(&FilterManager.filter_label/1, label_assigns)
@@ -701,6 +720,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
         filter_values: %{},
         table_id: "test-table"
       }
+
       input_html = render_component(&FilterManager.filter_input/1, input_assigns)
 
       # Label should point to input (not container)

@@ -11,17 +11,17 @@ msgstr ""
 "Language: no\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/cinder/filter_manager.ex:81
+#: lib/cinder/filter_manager.ex:83
 #, elixir-autogen
 msgid "Clear all"
 msgstr "Fjern alle"
 
-#: lib/cinder/filter_manager.ex:228
+#: lib/cinder/filter_manager.ex:278
 #, elixir-autogen
 msgid "Clear filter"
 msgstr "Fjern filter"
 
-#: lib/cinder/filter_manager.ex:71
+#: lib/cinder/filter_manager.ex:73
 #, elixir-autogen
 msgid "active"
 msgid_plural "active"
@@ -38,8 +38,8 @@ msgstr "Side %{current} av %{total}"
 msgid "showing %{start}-%{end} of %{total}"
 msgstr "viser %{start}-%{end} av %{total}"
 
-#: lib/cinder/filters/date_range.ex:50
-#: lib/cinder/filters/number_range.ex:40
+#: lib/cinder/filters/date_range.ex:54
+#: lib/cinder/filters/number_range.ex:44
 #, elixir-autogen
 msgid "to"
 msgstr "til"

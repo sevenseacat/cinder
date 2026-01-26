@@ -175,7 +175,8 @@ defmodule Cinder.FilterManager do
   defp label_for_attr(:date_range, table_id, field), do: filter_id(table_id, field, "from")
 
   # For dropdown filters, point to the button
-  defp label_for_attr(filter_type, table_id, field) when filter_type in [:select, :multi_select] do
+  defp label_for_attr(filter_type, table_id, field)
+       when filter_type in [:select, :multi_select] do
     "#{filter_id(table_id, field)}-button"
   end
 
@@ -244,7 +245,13 @@ defmodule Cinder.FilterManager do
         # Fallback to text filter if type not found
         fallback_column = Map.put(assigns.column, :filter_type, :text)
         text_module = Registry.get_filter(:text)
-        filter_assigns = %{table_id: assigns.table_id, target: assigns.target, filter_values: assigns.filter_values}
+
+        filter_assigns = %{
+          table_id: assigns.table_id,
+          target: assigns.target,
+          filter_values: assigns.filter_values
+        }
+
         text_module.render(fallback_column, assigns.current_value, assigns.theme, filter_assigns)
       end
 
