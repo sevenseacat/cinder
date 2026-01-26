@@ -103,7 +103,10 @@ if Code.ensure_loaded?(Igniter) do
           if patches == [] do
             source_string
           else
-            Sourceror.patch_string(source_string, patches)
+            source_string
+            |> Sourceror.patch_string(patches)
+            |> Code.format_string!(locals_without_parens: [set: 2, extends: 1])
+            |> IO.iodata_to_binary()
           end
 
         {:error, _} ->
@@ -187,7 +190,6 @@ if Code.ensure_loaded?(Igniter) do
           "# #{comment}\n" <> Enum.join(calls, "\n")
       end
     end
-
   end
 else
   defmodule Mix.Tasks.Cinder.Migrate.Theme do

@@ -206,16 +206,14 @@ defmodule MyApp.CustomTheme do
   use Cinder.Theme
   extends :modern
 
-  component Cinder.Components.Table do
-    set :container_class, "bg-gradient-to-r from-purple-900 to-blue-900 rounded-2xl shadow-2xl"
-    set :th_class, "px-6 py-4 text-yellow-300 font-bold uppercase tracking-widest"
-    set :row_class, "border-b border-purple-500/30 hover:bg-purple-800/50"
-  end
+  # Table
+  set :container_class, "bg-gradient-to-r from-purple-900 to-blue-900 rounded-2xl shadow-2xl"
+  set :th_class, "px-6 py-4 text-yellow-300 font-bold uppercase tracking-widest"
+  set :row_class, "border-b border-purple-500/30 hover:bg-purple-800/50"
 
-  component Cinder.Components.Filters do
-    set :filter_container_class, "bg-black border-2 border-yellow-400 p-6 rounded-lg"
-    set :filter_text_input_class, "bg-gray-900 border-yellow-400 text-yellow-100"
-  end
+  # Filters
+  set :filter_container_class, "bg-black border-2 border-yellow-400 p-6 rounded-lg"
+  set :filter_text_input_class, "bg-gray-900 border-yellow-400 text-yellow-100"
 end
 
 # Use in template
@@ -237,11 +235,9 @@ defmodule MyApp.DarkRetro do
   use Cinder.Theme
   extends :retro
 
-  component Cinder.Components.Table do
-    # Keep retro styling but make it even darker
-    set :container_class, "bg-black border-4 border-green-400 shadow-green-400/50"
-    set :th_class, "px-6 py-4 text-green-100 font-bold bg-green-900 border-b-4 border-green-400"
-  end
+  # Table - Keep retro styling but make it even darker
+  set :container_class, "bg-black border-4 border-green-400 shadow-green-400/50"
+  set :th_class, "px-6 py-4 text-green-100 font-bold bg-green-900 border-b-4 border-green-400"
 end
 ```
 

@@ -90,6 +90,41 @@ use Cinder.UrlSync
 Cinder.UrlSync.handle_params(params, uri, socket)
 ```
 
+### Simplified Theme DSL
+
+The theme DSL has been simplified. The `component/2` wrapper blocks are now deprecated in favor of flat `set` calls. (The `component` blocks did not have any functional purpose — they were purely cosmetic.)
+
+```elixir
+# OLD (deprecated)
+defmodule MyApp.CustomTheme do
+  use Cinder.Theme
+
+  component Cinder.Components.Table do
+    set :container_class, "bg-white shadow rounded-lg"
+    set :th_class, "px-4 py-2 text-left font-semibold"
+  end
+end
+
+# NEW
+defmodule MyApp.CustomTheme do
+  use Cinder.Theme
+
+  # Table
+  set :container_class, "bg-white shadow rounded-lg"
+  set :th_class, "px-4 py-2 text-left font-semibold"
+end
+```
+
+#### Automatic Migration
+
+Run the migration task to automatically convert your theme files:
+
+```bash
+mix cinder.migrate.theme MyApp.CustomTheme
+```
+
+The old `component/2` syntax will continue to work but shows deprecation warnings at compile time.
+
 ### Removed: `pastel` Theme
 
 The `pastel` theme has been removed. If you were using it, switch to another theme or create a custom theme with similar styling.
@@ -99,7 +134,7 @@ The `pastel` theme has been removed. If you were using it, switch to another the
 theme="modern"  # or any other available theme
 ```
 
-Available themes: `default`, `modern`, `retro`, `futuristic`, `dark`, `daisy_ui`, `flowbite`, `compact`
+Available themes: `modern`, `retro`, `futuristic`, `dark`, `daisy_ui`, `flowbite`, `compact`
 
 ### Migration Checklist
 
@@ -108,7 +143,8 @@ Available themes: `default`, `modern`, `retro`, `futuristic`, `dark`, `daisy_ui`
 3. [ ] Update `import Cinder.Table.Refresh` to `import Cinder.Refresh`
 4. [ ] Update `use Cinder.Table.UrlSync` to `use Cinder.UrlSync`
 5. [ ] Replace `theme="pastel"` with another theme
-6. [ ] Run your test suite and fix any deprecation warnings
+6. [ ] Migrate custom themes: `mix cinder.migrate.theme MyApp.CustomTheme`
+7. [ ] Run your test suite and fix any deprecation warnings
 
 ## Upgrading to 0.5.4
 
@@ -144,5 +180,5 @@ All deprecated features will be removed in version 1.0. To prepare:
 | Version | Changes |
 |---------|---------|
 | 0.5.4 | `filter_options` deprecated |
-| 0.9.0 | `Cinder.Table.table` deprecated, module relocations, `pastel` theme removed |
+| 0.9.0 | `Cinder.Table.table` deprecated, module relocations, `pastel` theme removed, theme `component/2` syntax deprecated |
 | 1.0.0 | All deprecated features removed |

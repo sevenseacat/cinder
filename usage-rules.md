@@ -296,10 +296,8 @@ config :cinder, default_theme: "modern"
 defmodule MyApp.CustomTheme do
   use Cinder.Theme
 
-  component Cinder.Components.Table do
-    set :container_class, "bg-white shadow rounded-lg"
-    set :th_class, "px-4 py-2 text-left font-semibold"
-  end
+  set :container_class, "bg-white shadow rounded-lg"
+  set :th_class, "px-4 py-2 text-left font-semibold"
 end
 ```
 

@@ -775,21 +775,18 @@ Create reusable custom themes as modules:
 defmodule MyApp.Theme.Corporate do
   use Cinder.Theme
 
-  component Cinder.Components.Table do
-    set :container_class, "bg-white shadow-lg rounded-lg border border-gray-200"
-    set :th_class, "px-6 py-4 bg-blue-50 text-left font-semibold text-blue-900"
-    set :td_class, "px-6 py-4 border-b border-gray-100"
-    set :row_class, "hover:bg-blue-50 transition-colors"
-  end
+  # Table
+  set :container_class, "bg-white shadow-lg rounded-lg border border-gray-200"
+  set :th_class, "px-6 py-4 bg-blue-50 text-left font-semibold text-blue-900"
+  set :td_class, "px-6 py-4 border-b border-gray-100"
+  set :row_class, "hover:bg-blue-50 transition-colors"
 
-  component Cinder.Components.Filters do
-    set :filter_container_class, "bg-gray-50 p-4 rounded-lg mb-4"
-    set :filter_text_input_class, "w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-  end
+  # Filters
+  set :filter_container_class, "bg-gray-50 p-4 rounded-lg mb-4"
+  set :filter_text_input_class, "w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
 
-  component Cinder.Components.Pagination do
-    set :pagination_button_class, "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-  end
+  # Pagination
+  set :pagination_button_class, "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
 end
 ```
 
