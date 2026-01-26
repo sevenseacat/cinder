@@ -8,19 +8,22 @@ defmodule Cinder.Filters.NumberRange do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  import Cinder.Filter
+  import Cinder.Filter, only: [field_name: 2, filter_id: 3]
   use Cinder.Messages
 
   @impl true
-  def render(column, current_value, theme, _assigns) do
+  def render(column, current_value, theme, assigns) do
     min_value = get_in(current_value, [:min]) || ""
     max_value = get_in(current_value, [:max]) || ""
+    table_id = Map.get(assigns, :table_id)
 
     assigns = %{
       column: column,
       min_value: min_value,
       max_value: max_value,
-      theme: theme
+      theme: theme,
+      min_id: table_id && filter_id(table_id, column.field, "min"),
+      max_id: table_id && filter_id(table_id, column.field, "max")
     }
 
     ~H"""
@@ -28,6 +31,7 @@ defmodule Cinder.Filters.NumberRange do
       <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
           type="number"
+          id={@min_id}
           name={field_name(@column.field, "min")}
           value={@min_value}
           placeholder="Min"
@@ -42,6 +46,7 @@ defmodule Cinder.Filters.NumberRange do
       <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
           type="number"
+          id={@max_id}
           name={field_name(@column.field, "max")}
           value={@max_value}
           placeholder="Max"

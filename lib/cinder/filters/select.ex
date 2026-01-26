@@ -8,7 +8,7 @@ defmodule Cinder.Filters.Select do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  import Cinder.Filter
+  import Cinder.Filter, only: [get_option: 3, field_name: 1, filter_id: 2]
   alias Phoenix.LiveView.JS
 
   @impl true
@@ -31,8 +31,16 @@ defmodule Cinder.Filters.Select do
         Map.get(option_labels, current_value, current_value)
       end
 
-    # Sanitize field name for use in HTML attributes and CSS selectors
+    table_id = Map.get(assigns, :table_id)
     safe_field_name = Cinder.Filter.sanitized_field_name(column.field)
+
+    # Use filter_id for consistent ID generation (or fallback for tests without table_id)
+    dropdown_id =
+      if table_id do
+        filter_id(table_id, column.field)
+      else
+        "select-dropdown-#{safe_field_name}"
+      end
 
     assigns = %{
       column: column,
@@ -41,7 +49,7 @@ defmodule Cinder.Filters.Select do
       prompt: prompt,
       theme: theme,
       display_text: display_text,
-      dropdown_id: "select-dropdown-#{safe_field_name}",
+      dropdown_id: dropdown_id,
       target: Map.get(assigns, :target)
     }
 
@@ -50,6 +58,7 @@ defmodule Cinder.Filters.Select do
       <!-- Main dropdown button that looks like a select input -->
       <button
         type="button"
+        id={"#{@dropdown_id}-button"}
         class={[@theme.filter_select_input_class, "flex items-center justify-between"]}
         {@theme.filter_select_input_data}
         phx-click={JS.toggle(to: "##{@dropdown_id}-options")}

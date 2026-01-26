@@ -169,7 +169,7 @@ defmodule Cinder.RelationshipFilterIntegrationTest do
 
       # Test that relationship fields get their proper filter types
       test_cases = [
-        {"user.role", :select, "select-dropdown", "filters[user.role]"},
+        {"user.role", :select, "test-table-filter-user_role", "filters[user.role]"},
         {"user.created_at", :date_range, "type=\"date\"", "filters[user.created_at_from]"},
         {"user.active", :boolean, "type=\"radio\"", "filters[user.active]"},
         {"user.salary", :number_range, "type=\"number\"", "filters[user.salary_min]"}
@@ -188,7 +188,8 @@ defmodule Cinder.RelationshipFilterIntegrationTest do
           current_value: nil,
           theme: theme,
           target: nil,
-          filter_values: %{}
+          filter_values: %{},
+          table_id: "test-table"
         }
 
         html = render_component(&FilterManager.filter_input/1, assigns)

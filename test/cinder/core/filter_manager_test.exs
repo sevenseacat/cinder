@@ -125,7 +125,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
         current_value: 50,
         theme: theme,
         target: nil,
-        filter_values: %{}
+        filter_values: %{},
+        table_id: "test-table"
       }
 
       html_string = render_component(&FilterManager.filter_input/1, assigns)
@@ -159,7 +160,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
         current_value: "test",
         theme: theme,
         target: nil,
-        filter_values: %{}
+        filter_values: %{},
+        table_id: "test-table"
       }
 
       log_output =
@@ -190,7 +192,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
         current_value: "test",
         theme: theme,
         target: nil,
-        filter_values: %{}
+        filter_values: %{},
+        table_id: "test-table"
       }
 
       html_string = render_component(&FilterManager.filter_input/1, assigns)
@@ -585,6 +588,137 @@ defmodule Cinder.FilterManagerRuntimeTest do
       ]
 
       assert result == expected
+    end
+  end
+
+  describe "filter label accessibility" do
+    setup do
+      theme = Cinder.Theme.default()
+      %{theme: theme}
+    end
+
+    test "text filter label for attribute matches input id", %{theme: theme} do
+      column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+      label_html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      input_assigns = %{
+        column: column,
+        current_value: nil,
+        theme: theme,
+        target: nil,
+        filter_values: %{},
+        table_id: "test-table"
+      }
+      input_html = render_component(&FilterManager.filter_input/1, input_assigns)
+
+      # Label should have for attribute
+      assert label_html =~ ~r/for="test-table-filter-name"/
+      # Input should have matching id
+      assert input_html =~ ~r/id="test-table-filter-name"/
+    end
+
+    test "select filter label for attribute matches button id", %{theme: theme} do
+      column = %{field: "status", label: "Status", filter_type: :select, filter_options: [options: [{"Active", "active"}]]}
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+      label_html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      input_assigns = %{
+        column: column,
+        current_value: nil,
+        theme: theme,
+        target: nil,
+        filter_values: %{},
+        table_id: "test-table"
+      }
+      input_html = render_component(&FilterManager.filter_input/1, input_assigns)
+
+      # Label should have for attribute pointing to button
+      assert label_html =~ ~r/for="test-table-filter-status-button"/
+      # Button should have matching id
+      assert input_html =~ ~r/id="test-table-filter-status-button"/
+    end
+
+    test "number range filter label points to min input", %{theme: theme} do
+      column = %{field: "price", label: "Price", filter_type: :number_range, filter_options: []}
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+      label_html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      input_assigns = %{
+        column: column,
+        current_value: nil,
+        theme: theme,
+        target: nil,
+        filter_values: %{},
+        table_id: "test-table"
+      }
+      input_html = render_component(&FilterManager.filter_input/1, input_assigns)
+
+      # Label should point to min input
+      assert label_html =~ ~r/for="test-table-filter-price-min"/
+      # Both inputs should have ids
+      assert input_html =~ ~r/id="test-table-filter-price-min"/
+      assert input_html =~ ~r/id="test-table-filter-price-max"/
+    end
+
+    test "date range filter label points to from input", %{theme: theme} do
+      column = %{field: "created_at", label: "Created", filter_type: :date_range, filter_options: []}
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+      label_html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      input_assigns = %{
+        column: column,
+        current_value: nil,
+        theme: theme,
+        target: nil,
+        filter_values: %{},
+        table_id: "test-table"
+      }
+      input_html = render_component(&FilterManager.filter_input/1, input_assigns)
+
+      # Label should point to from input
+      assert label_html =~ ~r/for="test-table-filter-created_at-from"/
+      # Both inputs should have ids
+      assert input_html =~ ~r/id="test-table-filter-created_at-from"/
+      assert input_html =~ ~r/id="test-table-filter-created_at-to"/
+    end
+
+    test "autocomplete filter label points to input", %{theme: theme} do
+      column = %{field: "category", label: "Category", filter_type: :autocomplete, filter_options: [options: []]}
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+      label_html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      input_assigns = %{
+        column: column,
+        current_value: nil,
+        theme: theme,
+        target: nil,
+        filter_values: %{},
+        table_id: "test-table"
+      }
+      input_html = render_component(&FilterManager.filter_input/1, input_assigns)
+
+      # Label should point to input (not container)
+      assert label_html =~ ~r/for="test-table-filter-category"/
+      # Input should have the expected id
+      assert input_html =~ ~r/id="test-table-filter-category"/
+      # Container should have different id
+      assert input_html =~ ~r/id="test-table-filter-category-dropdown"/
+    end
+
+    test "boolean filter label has no for attribute", %{theme: theme} do
+      column = %{field: "active", label: "Active", filter_type: :boolean, filter_options: []}
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+      label_html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      # Boolean labels should not have for attribute (inner labels work)
+      refute label_html =~ ~r/for="/
     end
   end
 end

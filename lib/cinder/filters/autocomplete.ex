@@ -28,7 +28,7 @@ defmodule Cinder.Filters.Autocomplete do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  import Cinder.Filter
+  import Cinder.Filter, only: [get_option: 3, field_name: 1, filter_id: 2]
   alias Phoenix.LiveView.JS
 
   @default_max_results 10
@@ -72,8 +72,17 @@ defmodule Cinder.Filters.Autocomplete do
       end
 
     # Sanitize field name for use in HTML attributes
+    table_id = Map.get(assigns, :table_id)
     safe_field_name = Cinder.Filter.sanitized_field_name(column.field)
-    dropdown_id = "autocomplete-dropdown-#{safe_field_name}"
+
+    # Use filter_id for consistent ID generation (or fallback for tests without table_id)
+    {dropdown_id, input_id} =
+      if table_id do
+        base_id = filter_id(table_id, column.field)
+        {"#{base_id}-dropdown", base_id}
+      else
+        {"autocomplete-dropdown-#{safe_field_name}", nil}
+      end
 
     assigns = %{
       column: column,
@@ -85,6 +94,7 @@ defmodule Cinder.Filters.Autocomplete do
       placeholder: placeholder,
       theme: theme,
       dropdown_id: dropdown_id,
+      input_id: input_id,
       target: Map.get(assigns, :target)
     }
 
@@ -100,6 +110,7 @@ defmodule Cinder.Filters.Autocomplete do
       <!-- Search input -->
       <input
         type="text"
+        id={@input_id}
         name={"filters[#{@column.field}_autocomplete_search]"}
         value={if @current_value != "", do: @current_label, else: @search_term}
         placeholder={@placeholder}

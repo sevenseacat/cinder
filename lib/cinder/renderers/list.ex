@@ -43,6 +43,7 @@ defmodule Cinder.Renderers.List do
         <!-- Filter Controls (including search) -->
         <Cinder.FilterManager.render_filter_controls
           :if={@show_filters}
+          table_id={@id}
           columns={Map.get(assigns, :query_columns, @columns)}
           filters={@filters}
           theme={@theme}

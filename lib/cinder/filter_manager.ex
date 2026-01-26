@@ -11,6 +11,8 @@ defmodule Cinder.FilterManager do
   alias Cinder.Filters.Registry
   use Cinder.Messages
 
+  import Cinder.Filter, only: [filter_id: 2, filter_id: 3]
+
   @type filter_type ::
           :text
           | :select
@@ -86,11 +88,12 @@ defmodule Cinder.FilterManager do
         <div class={@theme.filter_inputs_class} {@theme.filter_inputs_data}>
           <!-- Search Input (if enabled) - as first filter -->
           <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
-            <label class={@theme.filter_label_class} {@theme.filter_label_data}>{Map.get(assigns, :search_label, "Search")}:</label>
+            <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} {@theme.filter_label_data}>{Map.get(assigns, :search_label, "Search")}:</label>
             <div class="flex items-center space-x-2">
               <div class="flex-1 relative">
                 <input
                   type="text"
+                  id={filter_id(@table_id, "search")}
                   name="search"
                   value={Map.get(assigns, :search_term, "")}
                   placeholder={Map.get(assigns, :search_placeholder, "Search...")}
@@ -124,12 +127,14 @@ defmodule Cinder.FilterManager do
           </div>
 
           <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
-            <label class={[
-              @theme.filter_label_class,
-              if(column.filter_type == :checkbox, do: "invisible", else: "")
-            ]} {@theme.filter_label_data}>{column.label}:</label>
+            <.filter_label
+              column={column}
+              table_id={@table_id}
+              theme={@theme}
+            />
             <.filter_input
               column={column}
+              table_id={@table_id}
               current_value={Map.get(@filter_values, column.field, "")}
               filter_values={@filter_values}
               raw_filter_params={@raw_filter_params}
@@ -144,6 +149,43 @@ defmodule Cinder.FilterManager do
   end
 
   @doc """
+  Renders a filter label with appropriate accessibility attributes based on filter type.
+  """
+  def filter_label(assigns) do
+    ~H"""
+    <label
+      class={[
+        @theme.filter_label_class,
+        if(@column.filter_type == :checkbox, do: "invisible", else: "")
+      ]}
+      for={label_for_attr(@column.filter_type, @table_id, @column.field)}
+      phx-click={label_click_action(@column.filter_type, @table_id, @column.field)}
+      {@theme.filter_label_data}
+    >{@column.label}:</label>
+    """
+  end
+
+  # For single-input filters, return the filter ID for the `for` attribute
+  defp label_for_attr(filter_type, table_id, field) when filter_type in [:text, :autocomplete] do
+    filter_id(table_id, field)
+  end
+
+  # For range filters, point to the first (min/from) input
+  defp label_for_attr(:number_range, table_id, field), do: filter_id(table_id, field, "min")
+  defp label_for_attr(:date_range, table_id, field), do: filter_id(table_id, field, "from")
+
+  # For dropdown filters, point to the button
+  defp label_for_attr(filter_type, table_id, field) when filter_type in [:select, :multi_select] do
+    "#{filter_id(table_id, field)}-button"
+  end
+
+  # For group filters, no `for` attribute (inner labels work)
+  defp label_for_attr(_filter_type, _table_id, _field), do: nil
+
+  # No click action needed - `for` attribute handles focus/activation
+  defp label_click_action(_filter_type, _table_id, _field), do: nil
+
+  @doc """
   Renders an individual filter input by delegating to the appropriate filter module.
   """
   def filter_input(assigns) do
@@ -154,6 +196,7 @@ defmodule Cinder.FilterManager do
       if filter_module do
         # Build additional assigns for filter modules
         filter_assigns = %{
+          table_id: assigns.table_id,
           target: assigns.target,
           filter_values: assigns.filter_values,
           raw_filter_params: Map.get(assigns, :raw_filter_params, %{})
@@ -201,7 +244,7 @@ defmodule Cinder.FilterManager do
         # Fallback to text filter if type not found
         fallback_column = Map.put(assigns.column, :filter_type, :text)
         text_module = Registry.get_filter(:text)
-        filter_assigns = %{target: assigns.target, filter_values: assigns.filter_values}
+        filter_assigns = %{table_id: assigns.table_id, target: assigns.target, filter_values: assigns.filter_values}
         text_module.render(fallback_column, assigns.current_value, assigns.theme, filter_assigns)
       end
 

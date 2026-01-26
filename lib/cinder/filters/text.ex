@@ -12,20 +12,23 @@ defmodule Cinder.Filters.Text do
   import Cinder.Filter
 
   @impl true
-  def render(column, current_value, theme, _assigns) do
+  def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
     placeholder = get_option(filter_options, :placeholder, "Filter #{column.label}...")
+    table_id = Map.get(assigns, :table_id)
 
     assigns = %{
       column: column,
       current_value: current_value || "",
       placeholder: placeholder,
-      theme: theme
+      theme: theme,
+      filter_id: table_id && filter_id(table_id, column.field)
     }
 
     ~H"""
     <input
       type="text"
+      id={@filter_id}
       name={field_name(@column.field)}
       value={@current_value}
       placeholder={@placeholder}

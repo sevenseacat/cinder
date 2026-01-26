@@ -413,4 +413,24 @@ defmodule Cinder.Filter do
     field_name
     |> String.replace(~r/[^a-zA-Z0-9_-]/, "_")
   end
+
+  @doc """
+  Generates a unique HTML ID for a filter input.
+
+  When a table_id is provided, it's used as a prefix to ensure uniqueness
+  when multiple tables exist on the same page.
+
+  ## Examples
+
+      iex> Cinder.Filter.filter_id("my-table", "name")
+      "my-table-filter-name"
+
+      iex> Cinder.Filter.filter_id("users", "user.email")
+      "users-filter-user_email"
+
+      iex> Cinder.Filter.filter_id("products", "price", "min")
+      "products-filter-price-min"
+  """
+  def filter_id(table_id, field), do: "#{table_id}-filter-#{sanitized_field_name(field)}"
+  def filter_id(table_id, field, suffix), do: "#{table_id}-filter-#{sanitized_field_name(field)}-#{suffix}"
 end

@@ -9,13 +9,14 @@ defmodule Cinder.Filters.DateRange do
   @behaviour Cinder.Filter
   use Phoenix.Component
 
-  import Cinder.Filter
+  import Cinder.Filter, only: [field_name: 2, filter_id: 3]
   use Cinder.Messages
 
   @impl true
-  def render(column, current_value, theme, _assigns) do
+  def render(column, current_value, theme, assigns) do
     from_value = get_in(current_value, [:from]) || ""
     to_value = get_in(current_value, [:to]) || ""
+    table_id = Map.get(assigns, :table_id)
 
     # Check for include_time option
     filter_options = Map.get(column, :filter_options, [])
@@ -31,7 +32,9 @@ defmodule Cinder.Filters.DateRange do
       from_value: from_display,
       to_value: to_display,
       input_type: input_type,
-      theme: theme
+      theme: theme,
+      from_id: table_id && filter_id(table_id, column.field, "from"),
+      to_id: table_id && filter_id(table_id, column.field, "to")
     }
 
     ~H"""
@@ -39,6 +42,7 @@ defmodule Cinder.Filters.DateRange do
       <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
           type={@input_type}
+          id={@from_id}
           name={field_name(@column.field, "from")}
           value={@from_value}
           placeholder="From"
@@ -52,6 +56,7 @@ defmodule Cinder.Filters.DateRange do
       <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
         <input
           type={@input_type}
+          id={@to_id}
           name={field_name(@column.field, "to")}
           value={@to_value}
           placeholder="To"
