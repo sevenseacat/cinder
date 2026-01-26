@@ -1,6 +1,6 @@
 defmodule Cinder.Theme.DslModule do
   @moduledoc """
-  Simplified DSL module for creating custom Cinder themes.
+  DSL module for creating custom Cinder themes.
 
   This module provides the `use Cinder.Theme` functionality that allows
   users to define custom themes using a simple macro-based DSL.
@@ -10,15 +10,13 @@ defmodule Cinder.Theme.DslModule do
       defmodule MyApp.CustomTheme do
         use Cinder.Theme
 
-        component Cinder.Components.Table do
-          set :container_class, "my-custom-table-container"
-          set :row_class, "my-custom-row hover:bg-blue-50"
-        end
+        # Table
+        set :container_class, "my-custom-table-container"
+        set :row_class, "my-custom-row hover:bg-blue-50"
 
-        component Cinder.Components.Filters do
-          set :container_class, "my-filter-container"
-          set :text_input_class, "my-text-input"
-        end
+        # Filters
+        set :filter_container_class, "my-filter-container"
+        set :filter_text_input_class, "my-text-input"
       end
 
   ## Theme Inheritance
@@ -29,10 +27,9 @@ defmodule Cinder.Theme.DslModule do
         use Cinder.Theme
         extends :modern
 
-        component Cinder.Components.Table do
-          set :container_class, "bg-gray-900 text-white"
-          set :row_class, "border-gray-700 hover:bg-gray-800"
-        end
+        # Override just what you need
+        set :container_class, "bg-gray-900 text-white"
+        set :row_class, "border-gray-700 hover:bg-gray-800"
       end
 
   Or extend your own custom themes:
@@ -40,20 +37,16 @@ defmodule Cinder.Theme.DslModule do
       defmodule MyApp.BaseTheme do
         use Cinder.Theme
 
-        component Cinder.Components.Table do
-          set :container_class, "my-base-container"
-          set :row_class, "my-base-row"
-        end
+        set :container_class, "my-base-container"
+        set :row_class, "my-base-row"
       end
 
       defmodule MyApp.SpecializedTheme do
         use Cinder.Theme
         extends MyApp.BaseTheme
 
-        component Cinder.Components.Table do
-          set :container_class, "my-specialized-container"
-          # Inherits :row_class from BaseTheme
-        end
+        # Override container, inherit row_class from BaseTheme
+        set :container_class, "my-specialized-container"
       end
 
   **Note**: When extending custom themes, make sure the base theme module is
@@ -90,27 +83,29 @@ defmodule Cinder.Theme.DslModule do
   end
 
   @doc """
-  Macro for defining component customizations.
-  """
-  defmacro component(component, do: block) do
-    quote do
-      @current_component unquote(component)
-      @current_properties []
-      unquote(block)
+  Deprecated: component grouping is no longer needed.
 
-      @theme_overrides [
-        %{component: @current_component, properties: Enum.reverse(@current_properties)}
-        | @theme_overrides
-      ]
+  This macro is kept for backwards compatibility but does nothing.
+  Run `mix cinder.migrate.theme` to update your themes to the new flat syntax.
+  """
+  defmacro component(_component, do: block) do
+    IO.warn(
+      "component/2 is deprecated in Cinder themes and will be removed in a future version. " <>
+        "Run `mix cinder.migrate.theme` to update your theme files.",
+      Macro.Env.stacktrace(__CALLER__)
+    )
+
+    quote do
+      unquote(block)
     end
   end
 
   @doc """
-  Macro for setting theme properties within an override block.
+  Macro for setting a theme property.
   """
   defmacro set(key, value) do
     quote do
-      @current_properties [{unquote(key), unquote(value)} | @current_properties]
+      @theme_overrides [{unquote(key), unquote(value)} | @theme_overrides]
     end
   end
 
@@ -131,10 +126,8 @@ defmodule Cinder.Theme.DslModule do
       end
 
       defp apply_overrides(theme_map, overrides) do
-        Enum.reduce(overrides, theme_map, fn %{properties: properties}, acc ->
-          Enum.reduce(properties, acc, fn {key, value}, theme_acc ->
-            Map.put(theme_acc, key, value)
-          end)
+        Enum.reduce(overrides, theme_map, fn {key, value}, acc ->
+          Map.put(acc, key, value)
         end)
       end
     end

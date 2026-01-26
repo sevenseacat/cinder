@@ -3,7 +3,6 @@ defmodule Cinder.Theme do
   Theme management for Cinder table components.
 
   Provides default themes and utilities for merging custom theme configurations.
-  Also supports the new Spark DSL for defining modular themes.
 
   ## Basic Usage
 
@@ -14,15 +13,17 @@ defmodule Cinder.Theme do
       # config/config.exs
       config :cinder, default_theme: "modern"
 
-  ## Advanced Usage (DSL-based themes)
+  ## Custom Themes
 
       defmodule MyApp.CustomTheme do
         use Cinder.Theme
 
-        override Cinder.Components.Table do
-          set :container_class, "my-custom-table-container"
-          set :row_class, "my-custom-row hover:bg-blue-50"
-        end
+        # Table
+        set :container_class, "my-custom-table-container"
+        set :row_class, "my-custom-row hover:bg-blue-50"
+
+        # Filters
+        set :filter_container_class, "my-filter-container"
       end
 
       # Use in config
@@ -44,13 +45,135 @@ defmodule Cinder.Theme do
   Individual tables can still override the configured default:
 
   ```heex
-  <Cinder.Table.table theme="dark" ...>
+  <Cinder.collection theme="dark" ...>
     <!-- This table uses "dark" theme, ignoring the configured default -->
-  </Cinder.Table.table>
+  </Cinder.collection>
   ```
   """
 
   @type theme :: %{atom() => String.t()}
+
+  # All theme properties and their defaults in one place
+  @theme_defaults %{
+    # Table
+    container_class: "",
+    controls_class: "",
+    table_wrapper_class: "overflow-x-auto",
+    table_class: "w-full border-collapse",
+    thead_class: "",
+    tbody_class: "",
+    header_row_class: "",
+    row_class: "",
+    th_class: "text-left whitespace-nowrap",
+    td_class: "",
+    loading_class: "text-center py-4",
+    empty_class: "text-center py-4",
+    error_container_class: "text-red-600 text-sm",
+    error_message_class: "",
+
+    # Filters
+    filter_container_class: "",
+    filter_header_class: "",
+    filter_title_class: "",
+    filter_count_class: "",
+    filter_clear_all_class: "",
+    filter_inputs_class: "",
+    filter_input_wrapper_class: "",
+    filter_label_class: "",
+    filter_placeholder_class: "",
+    filter_clear_button_class: "",
+    filter_text_input_class: "",
+    filter_date_input_class: "",
+    filter_number_input_class:
+      "[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]",
+    filter_select_input_class: "",
+    filter_select_container_class: "",
+    filter_select_dropdown_class: "",
+    filter_select_option_class: "",
+    filter_select_label_class: "",
+    filter_select_empty_class: "",
+    filter_select_arrow_class: "w-4 h-4 ml-2 flex-shrink-0",
+    filter_select_placeholder_class: "text-gray-400",
+    filter_boolean_container_class: "",
+    filter_boolean_option_class: "",
+    filter_boolean_radio_class: "",
+    filter_boolean_label_class: "",
+    filter_checkbox_container_class: "",
+    filter_checkbox_input_class: "",
+    filter_checkbox_label_class: "",
+    filter_multiselect_container_class: "",
+    filter_multiselect_dropdown_class: "",
+    filter_multiselect_option_class: "",
+    filter_multiselect_checkbox_class: "",
+    filter_multiselect_label_class: "",
+    filter_multiselect_empty_class: "",
+    filter_multicheckboxes_container_class: "",
+    filter_multicheckboxes_option_class: "",
+    filter_multicheckboxes_checkbox_class: "",
+    filter_multicheckboxes_label_class: "",
+    filter_range_container_class: "",
+    filter_range_input_group_class: "",
+    filter_range_separator_class: "flex items-center px-2 text-sm text-gray-500",
+
+    # Pagination
+    pagination_wrapper_class: "",
+    pagination_container_class: "",
+    pagination_button_class: "",
+    pagination_info_class: "",
+    pagination_count_class: "",
+    pagination_nav_class: "",
+    pagination_current_class: "",
+    page_size_container_class: "",
+    page_size_label_class: "",
+    page_size_dropdown_class: "",
+    page_size_dropdown_container_class: "",
+    page_size_option_class: "",
+    page_size_selected_class: "",
+
+    # Sorting
+    sort_indicator_class: "ml-1 inline-flex items-center align-baseline",
+    sort_arrow_wrapper_class: "inline-flex items-center",
+    sort_asc_icon_name: "hero-chevron-up",
+    sort_asc_icon_class: "w-3 h-3",
+    sort_desc_icon_name: "hero-chevron-down",
+    sort_desc_icon_class: "w-3 h-3",
+    sort_none_icon_name: "hero-chevron-up-down",
+    sort_none_icon_class: "w-3 h-3 opacity-50",
+
+    # Loading
+    loading_overlay_class: "",
+    loading_container_class: "",
+    loading_spinner_class: "",
+    loading_spinner_circle_class: "",
+    loading_spinner_path_class: "",
+
+    # Search
+    search_container_class: "",
+    search_wrapper_class: "relative",
+    search_input_class: "w-full px-3 py-2 border rounded",
+    search_icon_class: "w-4 h-4",
+    search_label_class: "",
+
+    # List
+    list_container_class: "divide-y divide-gray-200",
+    list_item_class: "py-3 px-4 text-gray-900",
+    list_item_clickable_class: "cursor-pointer hover:bg-gray-50 transition-colors",
+    sort_container_class: "bg-white border border-gray-200 rounded-lg shadow-sm mt-4",
+    sort_controls_class: "flex items-center gap-2 p-4",
+    sort_controls_label_class: "text-sm text-gray-600 font-medium",
+    sort_buttons_class: "flex gap-1",
+    sort_button_class: "px-3 py-1 text-sm border rounded transition-colors",
+    sort_button_active_class: "bg-blue-50 border-blue-300 text-blue-700",
+    sort_button_inactive_class: "bg-white border-gray-300 hover:bg-gray-50",
+    sort_icon_class: "ml-1",
+    sort_asc_icon: "↑",
+    sort_desc_icon: "↓",
+
+    # Grid
+    grid_container_class: "grid gap-4",
+    grid_item_class: "p-4 bg-white border border-gray-200 rounded-lg shadow-sm",
+    grid_item_clickable_class: "cursor-pointer hover:shadow-md transition-shadow"
+  }
 
   # Re-export the DSL functionality
   defmacro __using__(opts) do
@@ -233,47 +356,29 @@ defmodule Cinder.Theme do
   end
 
   @doc """
-  Gets all available theme properties across all components.
+  Gets all available theme properties.
   """
   def all_theme_properties do
-    [
-      Cinder.Components.Table,
-      Cinder.Components.Filters,
-      Cinder.Components.Pagination,
-      Cinder.Components.Sorting,
-      Cinder.Components.Loading,
-      Cinder.Components.Search
-    ]
-    |> Enum.flat_map(& &1.theme_properties())
-    |> Enum.uniq()
+    @theme_defaults
+    |> Map.keys()
     |> Enum.sort()
   end
 
   @doc """
-  Gets the complete default theme by merging all component defaults.
+  Gets the complete default theme.
   """
   def complete_default do
-    table_theme = Cinder.Components.Table.default_theme()
-    filters_theme = Cinder.Components.Filters.default_theme()
-    pagination_theme = Cinder.Components.Pagination.default_theme()
-    sorting_theme = Cinder.Components.Sorting.default_theme()
-    loading_theme = Cinder.Components.Loading.default_theme()
-    search_theme = Cinder.Components.Search.default_theme()
-    list_theme = Cinder.Components.List.default_theme()
-    grid_theme = Cinder.Components.Grid.default_theme()
-
-    [
-      table_theme,
-      filters_theme,
-      pagination_theme,
-      sorting_theme,
-      loading_theme,
-      search_theme,
-      list_theme,
-      grid_theme
-    ]
-    |> Enum.reduce(%{}, &Map.merge/2)
+    @theme_defaults
   end
+
+  @doc """
+  Validates that a theme property key is valid.
+  """
+  def valid_property?(key) when is_atom(key) do
+    Map.has_key?(@theme_defaults, key)
+  end
+
+  def valid_property?(_), do: false
 
   # Applies theme property mapping for backwards compatibility.
   # Currently a no-op since all properties are properly namespaced.

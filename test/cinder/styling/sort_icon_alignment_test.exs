@@ -107,7 +107,7 @@ defmodule Cinder.SortIconAlignmentTest do
     end
 
     test "default theme provides basic alignment" do
-      default_theme = Cinder.Components.Sorting.default_theme()
+      default_theme = Cinder.Theme.complete_default()
 
       # Should have all necessary alignment classes
       assert default_theme.sort_indicator_class == "ml-1 inline-flex items-center align-baseline"

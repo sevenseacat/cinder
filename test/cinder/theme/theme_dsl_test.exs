@@ -2,68 +2,57 @@ defmodule Cinder.ThemeDslTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Theme
-  alias Cinder.Theme
 
   # Test theme modules for testing
   defmodule SimpleTestTheme do
     use Cinder.Theme
 
-    component Cinder.Components.Table do
-      set(:container_class, "custom-table-container")
-      set(:row_class, "custom-row")
-    end
+    # Table
+    set :container_class, "custom-table-container"
+    set :row_class, "custom-row"
 
-    component Cinder.Components.Filters do
-      set(:filter_container_class, "custom-filter-container")
-      set(:filter_text_input_class, "custom-text-input")
-    end
+    # Filters
+    set :filter_container_class, "custom-filter-container"
+    set :filter_text_input_class, "custom-text-input"
   end
 
   defmodule InheritanceTestTheme do
     use Cinder.Theme
     extends(:modern)
 
-    component Cinder.Components.Table do
-      set(:container_class, "inherited-table-container")
-    end
+    # Table
+    set :container_class, "inherited-table-container"
   end
 
   defmodule InvalidComponentTheme do
     use Cinder.Theme
 
-    component InvalidComponent do
-      set(:some_class, "some-value")
-    end
+    set :some_class, "some-value"
   end
 
   defmodule InvalidPropertyTheme do
     use Cinder.Theme
 
-    component Cinder.Components.Table do
-      set(:invalid_property, "some-value")
-    end
+    set :invalid_property, "some-value"
   end
 
   defmodule BaseCustomTheme do
     use Cinder.Theme
 
-    component Cinder.Components.Table do
-      set(:container_class, "base-custom-container")
-      set(:row_class, "base-custom-row")
-    end
+    # Table
+    set :container_class, "base-custom-container"
+    set :row_class, "base-custom-row"
 
-    component Cinder.Components.Filters do
-      set(:filter_container_class, "base-custom-filter-container")
-    end
+    # Filters
+    set :filter_container_class, "base-custom-filter-container"
   end
 
   defmodule ExtendingCustomTheme do
     use Cinder.Theme
     extends(BaseCustomTheme)
 
-    component Cinder.Components.Table do
-      set(:container_class, "extending-custom-container")
-    end
+    # Table
+    set :container_class, "extending-custom-container"
   end
 
   describe "DSL theme resolution" do
@@ -120,9 +109,7 @@ defmodule Cinder.ThemeDslTest do
           use Cinder.Theme
           extends(NonExistentCustomTheme)
 
-          component Cinder.Components.Table do
-            set(:container_class, "invalid-extending-container")
-          end
+          set :container_class, "invalid-extending-container"
         end
       end
     end
@@ -137,9 +124,7 @@ defmodule Cinder.ThemeDslTest do
           use Cinder.Theme
           extends(NotAThemeModule)
 
-          component Cinder.Components.Table do
-            set(:container_class, "invalid-extending-container")
-          end
+          set :container_class, "invalid-extending-container"
         end
       end
     end
@@ -207,63 +192,16 @@ defmodule Cinder.ThemeDslTest do
     end
   end
 
-  describe "component theme properties" do
-    test "table component has expected properties" do
-      properties = Cinder.Components.Table.theme_properties()
-
-      assert :container_class in properties
-      assert :table_class in properties
-      assert :row_class in properties
-      assert :th_class in properties
-      assert :td_class in properties
+  describe "theme property validation" do
+    test "valid_property? accepts known properties" do
+      assert Theme.valid_property?(:container_class) == true
+      assert Theme.valid_property?(:filter_text_input_class) == true
     end
 
-    test "filters component has expected properties" do
-      properties = Cinder.Components.Filters.theme_properties()
-
-      assert :filter_container_class in properties
-      assert :filter_text_input_class in properties
-      assert :filter_boolean_container_class in properties
-      assert :filter_multiselect_dropdown_class in properties
-    end
-
-    test "component validation works" do
-      assert Cinder.Components.Table.valid_property?(:container_class) == true
-      assert Cinder.Components.Table.valid_property?(:invalid_property) == false
-      assert Cinder.Components.Table.valid_property?("string_key") == false
-    end
-  end
-
-  describe "theme property completeness" do
-    test "complete_default includes all component defaults" do
-      complete_theme = Theme.complete_default()
-
-      # Should include properties from all components
-      # Table
-      assert Map.has_key?(complete_theme, :container_class)
-      # Filters
-      assert Map.has_key?(complete_theme, :filter_container_class)
-      # Pagination
-      assert Map.has_key?(complete_theme, :pagination_wrapper_class)
-      # Sorting
-      assert Map.has_key?(complete_theme, :sort_indicator_class)
-      # Loading
-      assert Map.has_key?(complete_theme, :loading_overlay_class)
-    end
-
-    test "all_theme_properties returns comprehensive list" do
-      all_properties = Theme.all_theme_properties()
-
-      assert is_list(all_properties)
-      assert :container_class in all_properties
-      assert :filter_text_input_class in all_properties
-      assert :pagination_button_class in all_properties
-      assert :sort_asc_icon_class in all_properties
-      assert :loading_spinner_class in all_properties
-
-      # Should be sorted and unique
-      assert all_properties == Enum.sort(all_properties)
-      assert all_properties == Enum.uniq(all_properties)
+    test "valid_property? rejects unknown properties" do
+      assert Theme.valid_property?(:invalid_property) == false
+      assert Theme.valid_property?("string_key") == false
+      assert Theme.valid_property?(123) == false
     end
   end
 

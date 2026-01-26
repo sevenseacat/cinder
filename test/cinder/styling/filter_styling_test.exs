@@ -171,26 +171,6 @@ defmodule Cinder.FilterStylingTest do
       assert NumberRange.empty?(%{min: "", max: ""}) == true
       assert NumberRange.empty?(%{min: "10", max: "100"}) == false
     end
-
-    test "theme property validation includes new separator class" do
-      # Test that the new theme property is recognized as valid
-      assert Cinder.Components.Filters.valid_property?(:filter_range_separator_class) == true
-
-      # Test that it's included in the theme properties list
-      assert :filter_range_separator_class in Cinder.Components.Filters.theme_properties()
-    end
-
-    test "default theme includes all required properties" do
-      default_theme = Cinder.Components.Filters.default_theme()
-
-      # Should include the new separator class
-      assert Map.has_key?(default_theme, :filter_range_separator_class)
-
-      # Should include existing classes
-      assert Map.has_key?(default_theme, :filter_range_container_class)
-      assert Map.has_key?(default_theme, :filter_range_input_group_class)
-      assert Map.has_key?(default_theme, :filter_number_input_class)
-    end
   end
 
   describe "CSS Class Structure" do
