@@ -360,7 +360,7 @@ defmodule Cinder.Filter.Helpers do
     end
   end
 
-  defp apply_operator_to_relationship(query, rel_path, field_atom, value, operator, _opts) do
+  defp apply_operator_to_relationship(query, rel_path, field_atom, value, operator, opts) do
     require Ash.Query
     import Ash.Expr
 
@@ -399,7 +399,38 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) <= ^value))
 
       :in when is_list(value) ->
-        Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) in ^value))
+        match_mode = Keyword.get(opts, :match_mode, :any)
+
+        case value do
+          [] ->
+            query
+
+          [single_value] ->
+            # Single value: same for both modes
+            Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) == ^single_value))
+
+          multiple_values ->
+            case match_mode do
+              :all ->
+                # ALL mode: must have a related record matching each value
+                # exists(rel, field == val1) AND exists(rel, field == val2) AND ...
+                conditions =
+                  Enum.map(multiple_values, fn val ->
+                    expr(exists(^rel_path, ^ref(field_atom) == ^val))
+                  end)
+
+                combined =
+                  Enum.reduce(conditions, fn condition, acc ->
+                    expr(^acc and ^condition)
+                  end)
+
+                Ash.Query.filter(query, ^combined)
+
+              _ ->
+                # ANY mode (default): exists with IN operator
+                Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) in ^multiple_values))
+            end
+        end
 
       _ ->
         query

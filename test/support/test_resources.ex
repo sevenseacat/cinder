@@ -91,3 +91,83 @@ defmodule TestUserResource do
     attribute(:settings, TestSettings)
   end
 end
+
+# Resources for testing relationship filtering
+defmodule TestGenreEnum do
+  @moduledoc false
+  use Ash.Type.Enum,
+    values: [
+      rock: [label: "Rock"],
+      pop: [label: "Pop"],
+      jazz: [label: "Jazz"],
+      classical: [label: "Classical"]
+    ]
+end
+
+defmodule TestRelationshipDomain do
+  @moduledoc false
+  use Ash.Domain, validate_config_inclusion?: false
+
+  resources do
+    resource(TestArtist)
+    resource(TestAlbum)
+  end
+end
+
+defmodule TestArtist do
+  @moduledoc false
+  use Ash.Resource,
+    domain: TestRelationshipDomain,
+    data_layer: Ash.DataLayer.Ets,
+    validate_domain_inclusion?: false
+
+  ets do
+    private?(true)
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+    attribute(:name, :string)
+    attribute(:country, :string)
+    attribute(:founded_year, :integer)
+    attribute(:active, :boolean)
+  end
+
+  relationships do
+    has_many(:albums, TestAlbum, destination_attribute: :artist_id)
+  end
+
+  actions do
+    defaults([:create, :read, :update, :destroy])
+  end
+end
+
+defmodule TestAlbum do
+  @moduledoc false
+  use Ash.Resource,
+    domain: TestRelationshipDomain,
+    data_layer: Ash.DataLayer.Ets,
+    validate_domain_inclusion?: false
+
+  ets do
+    private?(true)
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+    attribute(:title, :string)
+    attribute(:release_date, :date)
+    attribute(:price, :decimal)
+    attribute(:is_remastered, :boolean)
+    attribute(:genre, TestGenreEnum)
+    attribute(:artist_id, :uuid)
+  end
+
+  relationships do
+    belongs_to(:artist, TestArtist, attribute_writable?: true)
+  end
+
+  actions do
+    defaults([:create, :read, :update, :destroy])
+  end
+end

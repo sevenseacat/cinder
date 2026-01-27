@@ -1,84 +1,11 @@
 defmodule Cinder.RelationshipFilteringSimpleTest do
+  @moduledoc """
+  Tests for relationship field filtering.
+
+  Uses TestArtist/TestAlbum from test/support/test_resources.ex.
+  """
   use ExUnit.Case, async: true
   import Phoenix.LiveViewTest
-
-  # Define enum first
-  defmodule TestGenreEnum do
-    use Ash.Type.Enum,
-      values: [
-        rock: [label: "Rock"],
-        pop: [label: "Pop"],
-        jazz: [label: "Jazz"],
-        classical: [label: "Classical"]
-      ]
-  end
-
-  # Test domain
-  defmodule TestDomain do
-    use Ash.Domain, validate_config_inclusion?: false
-
-    resources do
-      resource(Cinder.RelationshipFilteringSimpleTest.TestArtist)
-      resource(Cinder.RelationshipFilteringSimpleTest.TestAlbum)
-    end
-  end
-
-  # Test resources with relationships
-  defmodule TestArtist do
-    use Ash.Resource,
-      domain: TestDomain,
-      data_layer: Ash.DataLayer.Ets
-
-    ets do
-      private?(true)
-    end
-
-    attributes do
-      uuid_primary_key(:id)
-      attribute(:name, :string)
-      attribute(:country, :string)
-      attribute(:founded_year, :integer)
-      attribute(:active, :boolean)
-    end
-
-    relationships do
-      has_many(:albums, Cinder.RelationshipFilteringSimpleTest.TestAlbum,
-        destination_attribute: :artist_id
-      )
-    end
-
-    actions do
-      defaults([:create, :read, :update, :destroy])
-    end
-  end
-
-  defmodule TestAlbum do
-    use Ash.Resource,
-      domain: TestDomain,
-      data_layer: Ash.DataLayer.Ets
-
-    ets do
-      private?(true)
-    end
-
-    attributes do
-      uuid_primary_key(:id)
-      attribute(:title, :string)
-      attribute(:release_date, :date)
-      attribute(:price, :decimal)
-      attribute(:is_remastered, :boolean)
-      attribute(:genre, TestGenreEnum)
-      attribute(:artist_id, :uuid)
-    end
-
-    relationships do
-      belongs_to(:artist, Cinder.RelationshipFilteringSimpleTest.TestArtist)
-    end
-
-    actions do
-      defaults([:create, :read, :update, :destroy])
-    end
-  end
 
   describe "relationship filter parameter processing" do
     test "processes text filter on relationship field" do
