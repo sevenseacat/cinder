@@ -394,6 +394,23 @@ defmodule Cinder.LiveComponent do
     {:noreply, socket}
   end
 
+  # ============================================================================
+  # BULK ACTION EVENT HANDLERS
+  # ============================================================================
+
+  @impl true
+  def handle_event("bulk_action_execute", %{"index" => index}, socket) do
+    slots = socket.assigns[:bulk_action_slots] || []
+    slot = Enum.at(slots, index)
+
+    if slot do
+      execute_bulk_action(slot, socket)
+    else
+      Logger.warning("Cinder: Bulk action slot not found at index #{index}")
+      {:noreply, socket}
+    end
+  end
+
   @impl true
   def handle_event("filter_change", params, socket) do
     query_columns = Map.get(socket.assigns, :query_columns, socket.assigns.columns)
@@ -442,6 +459,88 @@ defmodule Cinder.LiveComponent do
     socket = notify_state_change(socket, new_filters)
 
     {:noreply, socket}
+  end
+
+  # ============================================================================
+  # BULK ACTION HELPERS
+  # ============================================================================
+
+  defp execute_bulk_action(slot, socket) do
+    action = slot[:action]
+    selected_ids = socket.assigns.selected_ids |> MapSet.to_list()
+
+    if selected_ids == [] do
+      {:noreply, socket}
+    else
+      resource = extract_resource(socket.assigns)
+
+      if resource do
+        result =
+          Cinder.BulkActionExecutor.execute(action,
+            resource: resource,
+            ids: selected_ids,
+            id_field: socket.assigns[:id_field] || :id,
+            actor: socket.assigns[:actor],
+            tenant: socket.assigns[:tenant]
+          )
+
+        handle_bulk_action_result(result, slot, socket)
+      else
+        Logger.error("Cinder: No resource configured for bulk action")
+        {:noreply, socket}
+      end
+    end
+  end
+
+  defp handle_bulk_action_result(result, slot, socket) do
+    case result do
+      {:ok, _} ->
+        handle_bulk_action_success(slot, socket)
+
+      {:error, reason} ->
+        handle_bulk_action_error(slot, socket, reason)
+    end
+  end
+
+  defp handle_bulk_action_success(slot, socket) do
+    socket =
+      socket
+      |> assign(:selected_ids, MapSet.new())
+      |> notify_selection_change(:clear)
+      |> load_data()
+
+    socket =
+      if slot[:on_success] do
+        Phoenix.LiveView.push_event(socket, "phx:bulk_action_success", %{js: slot[:on_success]})
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  defp handle_bulk_action_error(slot, socket, reason) do
+    Logger.error("Cinder: Bulk action failed: #{inspect(reason)}")
+
+    socket =
+      if slot[:on_error] do
+        Phoenix.LiveView.push_event(socket, "phx:bulk_action_error", %{
+          js: slot[:on_error],
+          reason: inspect(reason)
+        })
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  defp extract_resource(assigns) do
+    case assigns[:query] do
+      %Ash.Query{resource: resource} -> resource
+      resource when is_atom(resource) and not is_nil(resource) -> resource
+      _ -> nil
+    end
   end
 
   defp notify_selection_change(socket, action) do

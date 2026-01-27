@@ -44,29 +44,14 @@ defmodule Cinder.Renderers.BulkActions do
     <div class={@theme.bulk_actions_container_class} {@theme.bulk_actions_container_data}>
       <span
         :for={{slot, index} <- Enum.with_index(@slots)}
-        phx-click={build_click(slot, index, @selected_count, @myself)}
+        phx-click={JS.push("bulk_action_execute", value: %{index: index}, target: @myself)}
+        data-confirm={slot[:confirm] && interpolate_confirm(slot[:confirm], @selected_count)}
         class="contents"
       >
         {render_slot([slot], %{selected_ids: @selected_ids, selected_count: @selected_count})}
       </span>
     </div>
     """
-  end
-
-  defp build_click(slot, index, selected_count, myself) do
-    if slot[:confirm] do
-      confirm_msg = interpolate_confirm(slot[:confirm], selected_count)
-
-      JS.push("bulk_action_confirm",
-        value: %{index: index, message: confirm_msg},
-        target: myself
-      )
-    else
-      JS.push("bulk_action_execute",
-        value: %{index: index},
-        target: myself
-      )
-    end
   end
 
   defp interpolate_confirm(message, count) do

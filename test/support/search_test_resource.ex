@@ -22,11 +22,15 @@ defmodule Cinder.Support.SearchTestResource do
   end
 
   actions do
-    defaults([:read])
+    defaults([:read, :destroy])
 
     create :create do
       primary?(true)
       accept([:title, :description, :status, :category])
+    end
+
+    update :archive do
+      change(set_attribute(:status, "archived"))
     end
   end
 end
