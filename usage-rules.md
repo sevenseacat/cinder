@@ -301,6 +301,51 @@ defmodule MyApp.CustomTheme do
 end
 ```
 
+## Selection & Bulk Actions
+
+Enable checkbox selection and bulk operations on selected records:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+
+  <!-- Atom action: introspects resource to call bulk_update or bulk_destroy -->
+  <:bulk_action action={:archive} confirm="Archive {count} users?">
+    <button>Archive Selected</button>
+  </:bulk_action>
+
+  <!-- Function action: receives (query, opts) like code interface -->
+  <:bulk_action action={&MyApp.Users.soft_delete/2} on_success={:deleted} on_error={:delete_failed}>
+    <button>Delete Selected</button>
+  </:bulk_action>
+</Cinder.collection>
+```
+
+### Bulk Action Slot Attributes
+
+- `action` - Ash action atom or function/2 (required)
+- `confirm` - Confirmation message (`{count}` interpolates selection count)
+- `on_success` - Event name sent to parent on success
+- `on_error` - Event name sent to parent on error
+- `action_opts` - Additional Ash options (e.g., `[return_records?: true]`)
+
+### Selection Attributes
+
+- `selectable` - Enable checkboxes (works in table/grid/list)
+- `on_selection_change` - Event name for selection state changes
+
+### Handling Callbacks
+
+```elixir
+def handle_info({:deleted, %{count: count}}, socket) do
+  {:noreply, put_flash(socket, :info, "Deleted #{count} users")}
+end
+
+def handle_info({:delete_failed, %{reason: reason}}, socket) do
+  {:noreply, put_flash(socket, :error, "Failed: #{inspect(reason)}")}
+end
+```
+
 ## Testing
 
 Use `render_async` for data-dependent assertions:

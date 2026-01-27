@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+* Add bulk selection and actions via `selectable` attribute and `bulk_action` slot
+
 ### Bugfixes
 
 * Add `for`/`id` attributes to filter labels and inputs for accessibility (#91)

@@ -23,6 +23,7 @@ This document provides comprehensive examples and detailed reference for all Cin
 - [Collection Refresh](#collection-refresh)
 - [Performance Optimization](#performance-optimization)
 - [Localization](#localization)
+- [Selection & Bulk Actions](#selection--bulk-actions)
 - [Testing](#testing)
 
 ## Basic Usage
@@ -51,6 +52,7 @@ Add `filter` and `sort` attributes to enable interactive filtering and sorting:
 ```
 
 Cinder automatically detects the appropriate filter type based on your Ash resource's field types:
+
 - String fields → text filter
 - Boolean fields → boolean filter (radio buttons)
 - Date/datetime fields → date range filter
@@ -309,14 +311,14 @@ Cinder automatically detects the appropriate filter type based on your Ash resou
 
 When you use `filter` without specifying a type, Cinder inspects your Ash resource:
 
-| Ash Field Type | Filter Type | UI Component |
-|---------------|-------------|--------------|
-| `:string`, `:ci_string` | `:text` | Text input with contains search |
-| `:boolean` | `:boolean` | Radio buttons (Yes/No) |
-| `:date`, `:datetime`, `:utc_datetime` | `:date_range` | From/To date pickers |
-| `:integer`, `:decimal`, `:float` | `:number_range` | Min/Max number inputs |
-| `Ash.Type.Enum` | `:select` | Dropdown with enum values |
-| `{:array, _}` | `:multi_select` | Multi-select for array fields |
+| Ash Field Type                        | Filter Type     | UI Component                    |
+| ------------------------------------- | --------------- | ------------------------------- |
+| `:string`, `:ci_string`               | `:text`         | Text input with contains search |
+| `:boolean`                            | `:boolean`      | Radio buttons (Yes/No)          |
+| `:date`, `:datetime`, `:utc_datetime` | `:date_range`   | From/To date pickers            |
+| `:integer`, `:decimal`, `:float`      | `:number_range` | Min/Max number inputs           |
+| `Ash.Type.Enum`                       | `:select`       | Dropdown with enum values       |
+| `{:array, _}`                         | `:multi_select` | Multi-select for array fields   |
 
 ### Text Filter
 
@@ -571,6 +573,7 @@ Search provides a single text input that filters across multiple columns simulta
 ### How Search Works
 
 When a user types in the search box, Cinder filters records where **any** of the searchable columns contain the search term. For example, searching "smith" might match:
+
 - A user named "John Smith"
 - A user with email "smith@example.com"
 - A user in the "Blacksmith" department
@@ -733,6 +736,7 @@ end
 ### Function Signature
 
 Custom filter functions receive:
+
 1. `query` - The current `Ash.Query`
 2. `filter_config` - Map containing `:value` and other filter options
 
@@ -751,6 +755,7 @@ Cinder includes 9 built-in themes:
 ```
 
 Available themes:
+
 - `"default"` - Clean, minimal styling
 - `"modern"` - Contemporary look with shadows and rounded corners
 - `"compact"` - Dense layout for data-heavy views
@@ -1164,6 +1169,170 @@ Gettext.put_locale("nl")
 ```
 
 Available languages: English (en), Dutch (nl), Swedish (sv).
+
+## Selection & Bulk Actions
+
+Enable row/item selection with checkboxes and execute bulk operations on selected records.
+
+### Enabling Selection
+
+Add `selectable` to enable checkboxes:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email">{user.email}</:col>
+</Cinder.collection>
+```
+
+### Bulk Action Slots
+
+Define bulk actions using the `bulk_action` slot.
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+
+  <:bulk_action action={:archive} :let={context}>
+    <button class="btn" disabled={context.selected_count == 0}>Archive Selected</button>
+  </:bulk_action>
+
+  <:bulk_action action={:destroy} confirm="Delete {count} users?">
+    <button class="btn btn-danger">Delete Selected</button>
+  </:bulk_action>
+</Cinder.collection>
+```
+
+### Action Types
+
+**Atom actions** call Ash bulk operations directly. The action type (update/destroy) is introspected from the resource:
+
+```heex
+<!-- Calls Ash.bulk_update with the :archive action -->
+<:bulk_action action={:archive}>Archive</:bulk_action>
+
+<!-- Calls Ash.bulk_destroy with the :destroy action -->
+<:bulk_action action={:destroy}>Delete</:bulk_action>
+```
+
+**Function actions** receive a pre-filtered query matching code interface signatures:
+
+```heex
+<:bulk_action action={&MyApp.Users.archive/2}>Archive</:bulk_action>
+```
+
+### Confirmation Dialogs
+
+Add `confirm` to show a browser confirmation dialog. Use `{count}` to interpolate the selection count:
+
+```heex
+<:bulk_action action={:destroy} confirm="Are you sure you want to delete {count} records?">
+  Delete Selected
+</:bulk_action>
+```
+
+### Success and Error Callbacks
+
+Handle action results in your parent LiveView:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  selectable
+>
+  <:bulk_action
+    action={:archive}
+    on_success={:users_archived}
+    on_error={:archive_failed}
+  >
+    Archive Selected
+  </:bulk_action>
+</Cinder.collection>
+```
+
+```elixir
+def handle_info({:users_archived, payload}, socket) do
+  # payload contains: %{component_id, action, count, result}
+  {:noreply, put_flash(socket, :info, "Archived #{payload.count} users")}
+end
+
+def handle_info({:archive_failed, payload}, socket) do
+  # payload contains: %{component_id, action, reason}
+  {:noreply, put_flash(socket, :error, "Archive failed: #{inspect(payload.reason)}")}
+end
+```
+
+### Action Options
+
+Pass additional Ash bulk options via `action_opts`:
+
+```heex
+<:bulk_action action={:archive} action_opts={[return_records?: true, notify?: true]}>
+  Archive Selected
+</:bulk_action>
+```
+
+### Selection Change Notifications
+
+Track selection state in your parent LiveView:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  selectable
+  on_selection_change={:selection_changed}
+>
+  ...
+</Cinder.collection>
+```
+
+```elixir
+def handle_info({:selection_changed, payload}, socket) do
+  # payload contains: %{selected_ids, selected_count, component_id, action}
+  # action is one of: :select, :deselect, :select_all, :clear
+  {:noreply, assign(socket, :selected_count, payload.selected_count)}
+end
+```
+
+### Accessing Selection Context
+
+The bulk action slot receives selection context:
+
+```heex
+<:bulk_action :let={selection} action={:archive}>
+  <button class="btn">
+    Archive {selection.selected_count} users
+  </button>
+</:bulk_action>
+```
+
+Available in `selection`:
+
+- `selected_count` - Number of selected items
+- `selected_ids` - MapSet of selected record IDs
+
+### Click-to-Select
+
+When `selectable` is enabled without a `click` handler, clicking rows/items toggles selection:
+
+```heex
+<!-- Clicking a row toggles its selection -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
+  ...
+</Cinder.collection>
+
+<!-- With a click handler, only checkboxes toggle selection -->
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  selectable
+  click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
+>
+  ...
+</Cinder.collection>
+```
 
 ## Testing
 
