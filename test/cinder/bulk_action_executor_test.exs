@@ -129,6 +129,65 @@ defmodule Cinder.BulkActionExecutorTest do
     end
   end
 
+  describe "action_opts" do
+    test "atom actions merge action_opts directly into Ash options", %{ids: ids} do
+      # Use return_records? to verify opts are passed through
+      result =
+        BulkActionExecutor.execute(:archive,
+          resource: SearchTestResource,
+          ids: ids,
+          action_opts: [return_records?: true]
+        )
+
+      assert {:ok, %Ash.BulkResult{status: :success, records: records}} = result
+      assert length(records) == 2
+      assert Enum.all?(records, &(&1.status == "archived"))
+    end
+
+    test "function actions wrap action_opts in bulk_options for code interface compatibility", %{ids: ids} do
+      test_pid = self()
+
+      action = fn _query, opts ->
+        send(test_pid, {:called_with_opts, opts})
+        {:ok, :done}
+      end
+
+      result =
+        BulkActionExecutor.execute(action,
+          resource: SearchTestResource,
+          ids: ids,
+          action_opts: [return_records?: true, notify?: true]
+        )
+
+      assert {:ok, :done} = result
+
+      assert_receive {:called_with_opts, opts}
+      assert opts[:bulk_options] == [return_records?: true, notify?: true]
+      assert opts[:actor] == nil
+      assert opts[:tenant] == nil
+    end
+
+    test "function actions without action_opts don't include bulk_options key", %{ids: ids} do
+      test_pid = self()
+
+      action = fn _query, opts ->
+        send(test_pid, {:called_with_opts, opts})
+        {:ok, :done}
+      end
+
+      result =
+        BulkActionExecutor.execute(action,
+          resource: SearchTestResource,
+          ids: ids
+        )
+
+      assert {:ok, :done} = result
+
+      assert_receive {:called_with_opts, opts}
+      refute Keyword.has_key?(opts, :bulk_options)
+    end
+  end
+
   describe "normalize_result/1" do
     test "passes through {:ok, _} tuples" do
       assert {:ok, :value} = BulkActionExecutor.normalize_result({:ok, :value})

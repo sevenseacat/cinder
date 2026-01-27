@@ -481,7 +481,8 @@ defmodule Cinder.LiveComponent do
             ids: selected_ids,
             id_field: socket.assigns[:id_field] || :id,
             actor: socket.assigns[:actor],
-            tenant: socket.assigns[:tenant]
+            tenant: socket.assigns[:tenant],
+            action_opts: slot[:action_opts] || []
           )
 
         handle_bulk_action_result(result, slot, socket)
@@ -494,27 +495,31 @@ defmodule Cinder.LiveComponent do
 
   defp handle_bulk_action_result(result, slot, socket) do
     case result do
-      {:ok, _} ->
-        handle_bulk_action_success(slot, socket)
+      {:ok, bulk_result} ->
+        handle_bulk_action_success(slot, socket, bulk_result)
 
       {:error, reason} ->
         handle_bulk_action_error(slot, socket, reason)
     end
   end
 
-  defp handle_bulk_action_success(slot, socket) do
+  defp handle_bulk_action_success(slot, socket, result) do
+    selected_count = MapSet.size(socket.assigns.selected_ids)
+
     socket =
       socket
       |> assign(:selected_ids, MapSet.new())
       |> notify_selection_change(:clear)
       |> load_data()
 
-    socket =
-      if slot[:on_success] do
-        Phoenix.LiveView.push_event(socket, "phx:bulk_action_success", %{js: slot[:on_success]})
-      else
-        socket
-      end
+    if event_name = slot[:on_success] do
+      send(self(), {event_name, %{
+        component_id: socket.assigns.id,
+        action: slot[:action],
+        count: selected_count,
+        result: result
+      }})
+    end
 
     {:noreply, socket}
   end
@@ -522,15 +527,13 @@ defmodule Cinder.LiveComponent do
   defp handle_bulk_action_error(slot, socket, reason) do
     Logger.error("Cinder: Bulk action failed: #{inspect(reason)}")
 
-    socket =
-      if slot[:on_error] do
-        Phoenix.LiveView.push_event(socket, "phx:bulk_action_error", %{
-          js: slot[:on_error],
-          reason: inspect(reason)
-        })
-      else
-        socket
-      end
+    if event_name = slot[:on_error] do
+      send(self(), {event_name, %{
+        component_id: socket.assigns.id,
+        action: slot[:action],
+        reason: reason
+      }})
+    end
 
     {:noreply, socket}
   end

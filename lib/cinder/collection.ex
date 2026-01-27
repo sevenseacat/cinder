@@ -259,16 +259,24 @@ defmodule Cinder.Collection do
   slot :bulk_action do
     attr(:action, :any,
       required: true,
-      doc: "Ash action atom, function/2 capture, or fn(ids, opts) -> result"
+      doc: "Ash action atom or function/2 receiving (query, opts) like code interface functions"
+    )
+
+    attr(:action_opts, :list,
+      doc: "Additional options passed to the Ash action (e.g., [return_records?: true, notify?: true])"
     )
 
     attr(:confirm, :string,
       doc: "Confirmation message. Supports {count} interpolation for selected count."
     )
 
-    attr(:on_success, :any, doc: "JS command to execute on success")
+    attr(:on_success, :atom,
+      doc: "Event name sent to parent on success. Payload: %{component_id, action, count, result}"
+    )
 
-    attr(:on_error, :any, doc: "JS command to execute on error")
+    attr(:on_error, :atom,
+      doc: "Event name sent to parent on error. Payload: %{component_id, action, reason}"
+    )
   end
 
   def collection(assigns) do

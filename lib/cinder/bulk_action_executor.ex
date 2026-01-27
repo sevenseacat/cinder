@@ -12,7 +12,8 @@ defmodule Cinder.BulkActionExecutor do
           ids: [String.t()],
           id_field: atom(),
           actor: any(),
-          tenant: any()
+          tenant: any(),
+          action_opts: keyword()
         ]
 
   @doc """
@@ -25,17 +26,23 @@ defmodule Cinder.BulkActionExecutor do
   - `:id_field` - The field to filter on (default: `:id`)
   - `:actor` - Actor for authorization
   - `:tenant` - Tenant for multi-tenancy
+  - `:action_opts` - Additional options for the action (e.g., `[return_records?: true]`)
 
   ## Action Types
 
-  - **Atom**: Calls `Ash.bulk_update/4` (or `Ash.bulk_destroy/4` for `:destroy`)
+  - **Atom**: Calls `Ash.bulk_update/4` (or `Ash.bulk_destroy/4` for `:destroy`).
+    Action opts are merged directly into the Ash options.
   - **Function/2**: Calls the function with `(query, opts)` where query is
-    filtered to the selected IDs
+    filtered to the selected IDs. Action opts are wrapped in `bulk_options: [...]`
+    for code interface compatibility.
 
   ## Examples
 
       # Atom action - uses Ash.bulk_update
       execute(:archive, resource: MyApp.User, ids: ["1", "2"], actor: current_user)
+
+      # With action options
+      execute(:archive, resource: MyApp.User, ids: ["1", "2"], action_opts: [return_records?: true])
 
       # Function - receives filtered query
       execute(&MyApp.Users.archive/2, resource: MyApp.User, ids: ["1", "2"])
@@ -50,11 +57,12 @@ defmodule Cinder.BulkActionExecutor do
     id_field = Keyword.get(opts, :id_field, :id)
     actor = Keyword.get(opts, :actor)
     tenant = Keyword.get(opts, :tenant)
+    action_opts = Keyword.get(opts, :action_opts, [])
 
     query = build_query(resource, ids, id_field)
-    ash_opts = build_ash_opts(actor, tenant)
+    base_opts = build_base_opts(actor, tenant)
 
-    run_action(action, query, ash_opts)
+    run_action(action, query, base_opts, action_opts)
   end
 
   @doc """
@@ -86,12 +94,15 @@ defmodule Cinder.BulkActionExecutor do
 
   # Private functions
 
-  defp build_ash_opts(actor, tenant) do
+  defp build_base_opts(actor, tenant) do
     [actor: actor, tenant: tenant]
     |> Enum.reject(fn {_, v} -> is_nil(v) end)
   end
 
-  defp run_action(action, query, opts) when is_atom(action) do
+  # Atom actions: merge action_opts directly (for Ash.bulk_update/bulk_destroy)
+  defp run_action(action, query, base_opts, action_opts) when is_atom(action) do
+    opts = Keyword.merge(base_opts, action_opts)
+
     result =
       case action do
         :destroy ->
@@ -104,7 +115,15 @@ defmodule Cinder.BulkActionExecutor do
     normalize_result(result)
   end
 
-  defp run_action(action, query, opts) when is_function(action, 2) do
+  # Function actions: wrap action_opts in bulk_options (for code interface)
+  defp run_action(action, query, base_opts, action_opts) when is_function(action, 2) do
+    opts =
+      if action_opts == [] do
+        base_opts
+      else
+        Keyword.put(base_opts, :bulk_options, action_opts)
+      end
+
     try do
       result = action.(query, opts)
       normalize_result(result)
@@ -113,7 +132,7 @@ defmodule Cinder.BulkActionExecutor do
     end
   end
 
-  defp run_action(_action, _query, _opts) do
+  defp run_action(_action, _query, _base_opts, _action_opts) do
     {:error, "Invalid action - must be an atom or function/2"}
   end
 end
