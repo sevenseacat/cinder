@@ -1275,7 +1275,7 @@ Pass additional Ash bulk options via `action_opts`:
 
 ### Selection Change Notifications
 
-Track selection state in your parent LiveView:
+You can also track selection state in your parent LiveView. This is not necessary to do, Cinder will track the IDs of selected records internally, but if you want to know about the selections yourself as well, this is how:
 
 ```heex
 <Cinder.collection
