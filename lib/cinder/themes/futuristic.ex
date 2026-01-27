@@ -112,7 +112,7 @@ defmodule Cinder.Themes.Futuristic do
   set :filter_checkbox_container_class, "flex items-center h-[48px]"
 
   set :filter_checkbox_input_class,
-      "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer mr-2"
+      "h-4 w-4 bg-slate-900 border-blue-500/40 checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer mr-2"
 
   set :filter_checkbox_label_class,
       "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
@@ -210,7 +210,9 @@ defmodule Cinder.Themes.Futuristic do
   set :loading_spinner_path_class, "opacity-75"
 
   # List
-  set :list_container_class, "divide-y divide-green-500/20 border-b border-blue-500/30"
+  set :list_container_class,
+      "divide-y divide-green-500/20 border-b border-blue-500/30 peer-[.bulk-actions]:border-t"
+
   set :list_item_class, "py-3 px-6 text-blue-100"
 
   set :list_item_clickable_class,
@@ -239,11 +241,36 @@ defmodule Cinder.Themes.Futuristic do
   set :sort_desc_icon, "↓"
 
   # Grid
-  set :grid_container_class, "grid gap-4 p-6"
+  set :grid_container_class, "grid gap-4 m-6"
 
   set :grid_item_class,
       "p-4 bg-slate-950/80 text-blue-100 border border-green-500/30 shadow-2xl shadow-green-500/10 backdrop-blur-sm"
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:border-green-400/60 hover:shadow-green-500/20 transition-all duration-300"
+
+  # Selection
+  set :selection_checkbox_class,
+      "h-4 w-4 bg-slate-900 border-blue-500/40 checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer"
+
+  set :selected_row_class, "bg-green-500/10 border-green-500"
+  set :grid_selection_overlay_class, "mb-2"
+  set :selected_item_class, "ring-1 ring-green-500 shadow-lg shadow-green-500/20"
+  set :list_selection_container_class, "mb-2"
+
+  set :bulk_actions_container_class, "m-6 flex gap-2 justify-end peer bulk-actions"
+
+  # Buttons
+  set :button_class, "px-4 py-2 text-sm font-medium border transition-all duration-300"
+
+  set :button_primary_class,
+      "bg-green-500/20 border-green-500 text-green-400 hover:bg-green-500/30 hover:shadow-green-500/20 hover:shadow-lg"
+
+  set :button_secondary_class,
+      "bg-transparent border-blue-500/50 text-blue-400 hover:border-blue-400 hover:bg-blue-500/10"
+
+  set :button_danger_class,
+      "bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30 hover:shadow-red-500/20 hover:shadow-lg"
+
+  set :button_disabled_class, "opacity-50 cursor-not-allowed"
 end

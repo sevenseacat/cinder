@@ -309,14 +309,14 @@ Enable checkbox selection and bulk operations on selected records:
 <Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
 
-  <!-- Atom action: introspects resource to call bulk_update or bulk_destroy -->
-  <:bulk_action action={:archive} confirm="Archive {count} users?">
-    <button>Archive Selected</button>
-  </:bulk_action>
+  <!-- Themed buttons (recommended): use label and variant for auto-styled buttons -->
+  <:bulk_action action={:archive} label="Archive ({count})" variant={:primary} />
+  <:bulk_action action={:export} label="Export" variant={:secondary} />
+  <:bulk_action action={:destroy} label="Delete" variant={:danger} confirm="Delete {count}?" />
 
-  <!-- Function action: receives (query, opts) like code interface -->
-  <:bulk_action action={&MyApp.Users.soft_delete/2} on_success={:deleted} on_error={:delete_failed}>
-    <button>Delete Selected</button>
+  <!-- Custom buttons: provide inner content for full control -->
+  <:bulk_action action={&MyApp.Users.soft_delete/2} on_success={:deleted} :let={ctx}>
+    <button disabled={ctx.selected_count == 0}>Delete Selected</button>
   </:bulk_action>
 </Cinder.collection>
 ```
@@ -324,6 +324,8 @@ Enable checkbox selection and bulk operations on selected records:
 ### Bulk Action Slot Attributes
 
 - `action` - Ash action atom or function/2 (required)
+- `label` - Button text (enables themed button, supports `{count}` interpolation)
+- `variant` - Button style: `:primary` (default), `:secondary`, `:danger`
 - `confirm` - Confirmation message (`{count}` interpolates selection count)
 - `on_success` - Event name sent to parent on success
 - `on_error` - Event name sent to parent on error

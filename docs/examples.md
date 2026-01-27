@@ -1187,7 +1187,39 @@ Add `selectable` to enable checkboxes:
 
 ### Bulk Action Slots
 
-Define bulk actions using the `bulk_action` slot.
+Define bulk actions using the `bulk_action` slot. There are two ways to render bulk action buttons:
+
+#### Themed Buttons (Recommended)
+
+Use `label` and `variant` for automatically styled buttons that match your theme:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+
+  <!-- Themed buttons: automatically styled based on theme -->
+  <:bulk_action action={:archive} label="Archive ({count})" variant={:primary} />
+  <:bulk_action action={:export} label="Export" variant={:secondary} />
+  <:bulk_action action={:destroy} label="Delete" variant={:danger} confirm="Delete {count} users?" />
+</Cinder.collection>
+```
+
+Available variants:
+- `:primary` (default) - Solid/filled button for primary actions
+- `:secondary` - Outline/ghost style for secondary actions
+- `:danger` - Destructive action style (typically red)
+
+The `{count}` placeholder in labels is interpolated with the current selection count. Buttons are automatically disabled when no items are selected.
+
+Themed buttons use these theme properties:
+- `button_class` - Base styles (padding, font, border-radius)
+- `button_primary_class`, `button_secondary_class`, `button_danger_class` - Variant styles
+- `button_disabled_class` - Disabled state styles
+- `bulk_actions_container_class` - Container styling (matches card/list item aesthetic)
+
+#### Custom Buttons
+
+For full control over button rendering, provide inner content instead of `label`:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user} selectable>

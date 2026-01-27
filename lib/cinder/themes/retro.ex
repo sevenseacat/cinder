@@ -208,7 +208,9 @@ defmodule Cinder.Themes.Retro do
   set :loading_spinner_path_class, "opacity-75"
 
   # List
-  set :list_container_class, "divide-y divide-pink-500/30 border-b-2 border-cyan-400 "
+  set :list_container_class,
+      "divide-y divide-pink-500/30 border-b-2 border-cyan-400 peer-[.bulk-actions]:border-t-2"
+
   set :list_item_class, "py-3 px-6 text-cyan-100"
 
   set :list_item_clickable_class,
@@ -237,11 +239,36 @@ defmodule Cinder.Themes.Retro do
   set :sort_desc_icon, "↓"
 
   # Grid
-  set :grid_container_class, "grid gap-4 p-6"
+  set :grid_container_class, "grid gap-4 px-6 mt-6"
 
   set :grid_item_class,
       "p-4 bg-gray-900 text-cyan-100 border-2 border-fuchsia-400 shadow-2xl shadow-fuchsia-400/20"
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:border-yellow-400 hover:shadow-yellow-400/30 transition-all duration-150"
+
+  # Selection
+  set :selection_checkbox_class,
+      "w-4 h-4 text-fuchsia-500 checked:bg-fuchsia-500 checked:border-fuchsia-500 bg-gray-900 border-2 border-cyan-400 rounded focus:ring-fuchsia-400"
+
+  set :selected_row_class, "bg-fuchsia-900/30 border-fuchsia-400"
+  set :grid_selection_overlay_class, "mb-2"
+  set :selected_item_class, "ring-2 ring-fuchsia-400 shadow-lg shadow-fuchsia-400/30"
+  set :list_selection_container_class, "mb-2"
+
+  set :bulk_actions_container_class,
+      "m-6 bg-gray-900 text-cyan-100 flex gap-2 justify-end peer bulk-actions"
+
+  # Buttons
+  set :button_class, "px-4 py-2 text-sm font-bold border-2 transition-all duration-150"
+
+  set :button_primary_class,
+      "bg-fuchsia-500 border-fuchsia-400 text-white hover:bg-fuchsia-400 hover:shadow-fuchsia-400/50 hover:shadow-lg"
+
+  set :button_secondary_class, "bg-transparent border-cyan-400 text-cyan-400 hover:bg-cyan-400/20"
+
+  set :button_danger_class,
+      "bg-red-500 border-red-400 text-white hover:bg-red-400 hover:shadow-red-400/50 hover:shadow-lg"
+
+  set :button_disabled_class, "opacity-50 cursor-not-allowed"
 end

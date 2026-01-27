@@ -49,7 +49,7 @@ defmodule Cinder.Renderers.Table do
         <table class={@theme.table_class} {@theme.table_data}>
           <thead class={@theme.thead_class} {@theme.thead_data}>
             <tr class={@theme.header_row_class} {@theme.header_row_data}>
-              <th :if={@selectable} class={@theme.selection_th_class} {@theme.selection_th_data}>
+              <th :if={@selectable} class={[@theme.th_class, "w-10"]} {@theme.th_data}>
                 <input
                   type="checkbox"
                   checked={all_page_selected?(@selected_ids, @data, @id_field)}
@@ -80,7 +80,7 @@ defmodule Cinder.Renderers.Table do
                 class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
                 {@theme.row_data}
                 phx-click={row_click_action(@row_click, @selectable, item, @id_field, @myself)}>
-              <td :if={@selectable} class={@theme.selection_td_class} {@theme.selection_td_data}>
+              <td :if={@selectable} class={[@theme.td_class, "w-10"]} {@theme.td_data}>
                 <input
                   type="checkbox"
                   checked={item_selected?(@selected_ids, item, @id_field)}

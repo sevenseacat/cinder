@@ -108,7 +108,7 @@ defmodule Cinder.Themes.Compact do
   set :filter_checkbox_container_class, "flex items-center h-[34px]"
 
   set :filter_checkbox_input_class,
-      "h-3 w-3 bg-white border-gray-300 rounded checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer mr-1"
+      "h-3 w-3 bg-white border-gray-300 checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer mr-1"
 
   set :filter_checkbox_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
   # Multi-select filter (tag-based interface)
@@ -211,9 +211,25 @@ defmodule Cinder.Themes.Compact do
   set :sort_desc_icon, "↓"
 
   # Grid
-  set :grid_container_class, "grid gap-3 p-3"
+  set :grid_container_class, "grid gap-3 px-3 mt-3"
   set :grid_item_class, "p-3 bg-white border border-gray-300 shadow-sm text-gray-900"
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:shadow transition-shadow duration-100"
+
+  # Selection
+  set :selection_checkbox_class, "w-3 h-3 text-blue-600 border-gray-300 focus:ring-blue-500"
+  set :selected_row_class, "bg-blue-50"
+  set :grid_selection_overlay_class, "mb-1"
+  set :selected_item_class, "ring-1 ring-blue-500"
+  set :list_selection_container_class, "mb-1"
+
+  set :bulk_actions_container_class, "m-3 bg-white flex gap-1 justify-end"
+
+  # Buttons
+  set :button_class, "px-2 py-1 text-xs font-medium rounded"
+  set :button_primary_class, "bg-blue-600 text-white hover:bg-blue-700"
+  set :button_secondary_class, "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+  set :button_danger_class, "bg-red-600 text-white hover:bg-red-700"
+  set :button_disabled_class, "opacity-50 cursor-not-allowed"
 end

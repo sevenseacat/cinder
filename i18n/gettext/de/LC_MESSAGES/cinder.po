@@ -83,12 +83,12 @@ msgstr "Nächste Seite"
 msgid "Prev"
 msgstr "Zurück"
 
-#: lib/cinder/collection.ex:295
+#: lib/cinder/collection.ex:308
 #, elixir-autogen, elixir-format
 msgid "Filters"
 msgstr "Filter"
 
-#: lib/cinder/collection.ex:296
+#: lib/cinder/collection.ex:309
 #, elixir-autogen, elixir-format
 msgid "Sort by:"
 msgstr "Sortieren nach:"

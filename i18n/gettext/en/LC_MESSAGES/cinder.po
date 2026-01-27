@@ -86,12 +86,12 @@ msgstr ""
 msgid "Prev"
 msgstr ""
 
-#: lib/cinder/collection.ex:295
+#: lib/cinder/collection.ex:308
 #, elixir-autogen, elixir-format
 msgid "Filters"
 msgstr ""
 
-#: lib/cinder/collection.ex:296
+#: lib/cinder/collection.ex:309
 #, elixir-autogen, elixir-format
 msgid "Sort by:"
 msgstr ""

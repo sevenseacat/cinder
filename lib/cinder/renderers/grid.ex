@@ -215,7 +215,7 @@ defmodule Cinder.Renderers.Grid do
          item_click,
          theme
        ) do
-    classes = if selectable, do: [base_class, "relative"], else: [base_class]
+    classes = [base_class]
 
     # Add cursor-pointer if item is clickable (either via item_click or selectable without item_click)
     clickable = item_click != nil or (selectable and item_click == nil)

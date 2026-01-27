@@ -13,9 +13,9 @@ defmodule Cinder.Renderers.TableSelectionTest do
     Cinder.Theme.default()
     |> Map.merge(%{
       selection_checkbox_class: "test-checkbox-class",
-      selection_th_class: "test-selection-th",
-      selection_td_class: "test-selection-td",
-      selected_row_class: "test-selected-row"
+      selected_row_class: "test-selected-row",
+      th_class: "test-th-class",
+      td_class: "test-td-class"
     })
   end
 
@@ -63,7 +63,8 @@ defmodule Cinder.Renderers.TableSelectionTest do
       html = render_component(&TableRenderer.render/1, assigns)
 
       assert html =~ ~s(phx-click="toggle_select_all_page")
-      assert html =~ "test-selection-th"
+      # Selection header uses th_class with w-10 width
+      assert html =~ "test-th-class"
     end
 
     test "renders row checkboxes with correct attributes when selectable=true" do
@@ -81,7 +82,8 @@ defmodule Cinder.Renderers.TableSelectionTest do
       assert html =~ ~s(phx-click="toggle_select")
       assert html =~ ~s(phx-value-id="user-1")
       assert html =~ ~s(phx-value-id="user-2")
-      assert html =~ "test-selection-td"
+      # Selection cells use td_class with w-10 width
+      assert html =~ "test-td-class"
       assert html =~ "test-checkbox-class"
     end
 
@@ -92,9 +94,10 @@ defmodule Cinder.Renderers.TableSelectionTest do
 
       html = render_component(&TableRenderer.render/1, assigns)
 
+      # No selection checkboxes or events should be rendered
       refute html =~ "toggle_select"
-      refute html =~ "test-selection-th"
-      refute html =~ "test-selection-td"
+      refute html =~ "toggle_select_all_page"
+      refute html =~ "test-checkbox-class"
     end
 
     test "applies selected_row_class to selected rows" do

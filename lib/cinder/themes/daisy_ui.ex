@@ -169,4 +169,19 @@ defmodule Cinder.Themes.DaisyUI do
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:shadow-lg transition-shadow"
+
+  # Selection
+  set :selection_checkbox_class, "checkbox checkbox-sm"
+  set :selected_row_class, "bg-primary/5 even:bg-primary/10"
+  set :grid_selection_overlay_class, "mb-2"
+  set :selected_item_class, "ring-2 ring-primary"
+  set :list_selection_container_class, "mb-2"
+  set :bulk_actions_container_class, "flex flex-row gap-2 justify-end py-3 px-4"
+
+  # Buttons
+  set :button_class, "btn"
+  set :button_primary_class, "btn-primary"
+  set :button_secondary_class, "btn-neutral"
+  set :button_danger_class, "btn-error"
+  set :button_disabled_class, "btn-disabled"
 end

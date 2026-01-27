@@ -219,11 +219,32 @@ defmodule Cinder.Themes.Dark do
   set :sort_desc_icon, "↓"
 
   # Grid
-  set :grid_container_class, "grid gap-4 p-6"
+  set :grid_container_class, "grid gap-4 p-6 pt-0 mt-6"
 
   set :grid_item_class,
       "p-4 bg-gray-800 border border-gray-600 rounded-lg shadow-xl text-gray-200"
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:bg-gray-700/50 hover:shadow-2xl transition-all duration-150"
+
+  # Selection
+  set :selection_checkbox_class,
+      "h-4 w-4 bg-gray-700 border-gray-600 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer"
+
+  set :selected_row_class, "bg-purple-900/30 hover:bg-purple-900/40"
+  set :grid_selection_overlay_class, "mb-2"
+  set :selected_item_class, "ring-2 ring-purple-500"
+  set :list_selection_container_class, "mb-2"
+
+  set :bulk_actions_container_class, "m-6 flex gap-2 justify-end"
+
+  # Buttons
+  set :button_class, "px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150"
+  set :button_primary_class, "bg-purple-600 text-white hover:bg-purple-500"
+
+  set :button_secondary_class,
+      "bg-gray-700 border border-gray-600 text-gray-200 hover:bg-gray-600"
+
+  set :button_danger_class, "bg-red-600 text-white hover:bg-red-500"
+  set :button_disabled_class, "opacity-50 cursor-not-allowed"
 end

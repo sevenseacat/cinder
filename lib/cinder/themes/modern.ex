@@ -214,4 +214,23 @@ defmodule Cinder.Themes.Modern do
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:shadow-md transition-shadow duration-150"
+
+  # Selection
+  set :selection_checkbox_class,
+      "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+
+  set :selected_row_class, "bg-blue-50/50"
+  set :grid_selection_overlay_class, "mb-2"
+  set :selected_item_class, "ring-2 ring-blue-500"
+  set :list_selection_container_class, "mb-2"
+
+  set :bulk_actions_container_class,
+      "py-4 px-6 rounded-lg flex gap-2 justify-end bg-gradient-to-r from-gray-50 to-white"
+
+  # Buttons
+  set :button_class, "px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150"
+  set :button_primary_class, "bg-blue-600 text-white hover:bg-blue-700"
+  set :button_secondary_class, "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+  set :button_danger_class, "bg-red-600 text-white hover:bg-red-700"
+  set :button_disabled_class, "opacity-50 cursor-not-allowed"
 end

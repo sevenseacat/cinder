@@ -175,14 +175,20 @@ defmodule Cinder.Theme do
     grid_item_clickable_class: "cursor-pointer hover:shadow-md transition-shadow",
 
     # Selection
-    selection_checkbox_class: "",
-    selection_th_class: "",
-    selection_td_class: "",
-    selected_row_class: "",
-    grid_selection_overlay_class: "",
-    selected_item_class: "",
-    list_selection_container_class: "",
-    bulk_actions_container_class: ""
+    selection_checkbox_class: "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500",
+    selected_row_class: "bg-blue-50",
+    grid_selection_overlay_class: "mb-2",
+    selected_item_class: "ring-2 ring-blue-500",
+    list_selection_container_class: "mb-2",
+    bulk_actions_container_class:
+      "p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex gap-2 justify-end",
+
+    # Buttons (used by bulk actions, reusable elsewhere)
+    button_class: "px-3 py-1.5 text-sm font-medium rounded",
+    button_primary_class: "bg-blue-600 text-white hover:bg-blue-700",
+    button_secondary_class: "border border-gray-300 text-gray-700 hover:bg-gray-50",
+    button_danger_class: "bg-red-600 text-white hover:bg-red-700",
+    button_disabled_class: "opacity-50 cursor-not-allowed"
   }
 
   # Re-export the DSL functionality

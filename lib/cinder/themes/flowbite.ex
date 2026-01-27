@@ -253,4 +253,31 @@ defmodule Cinder.Themes.Flowbite do
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:shadow-lg transition-shadow"
+
+  # Selection
+  set :selection_checkbox_class,
+      "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+
+  set :selected_row_class, "bg-blue-50 dark:bg-blue-900/20"
+  set :grid_selection_overlay_class, "mb-2"
+  set :selected_item_class, "ring-2 ring-blue-500 dark:ring-blue-400"
+  set :list_selection_container_class, "mb-2"
+
+  set :bulk_actions_container_class,
+      "p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md flex gap-2 justify-end"
+
+  # Buttons
+  set :button_class,
+      "px-3 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-4"
+
+  set :button_primary_class,
+      "text-white bg-blue-700 hover:bg-blue-800 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+
+  set :button_secondary_class,
+      "text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+
+  set :button_danger_class,
+      "text-white bg-red-700 hover:bg-red-800 focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+
+  set :button_disabled_class, "opacity-50 cursor-not-allowed"
 end

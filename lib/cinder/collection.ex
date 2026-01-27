@@ -262,6 +262,17 @@ defmodule Cinder.Collection do
       doc: "Ash action atom or function/2 receiving (query, opts) like code interface functions"
     )
 
+    attr(:label, :string,
+      doc:
+        "Button label text. Supports {count} interpolation. If provided, renders a themed button."
+    )
+
+    attr(:variant, :atom,
+      values: [:primary, :secondary, :danger],
+      doc:
+        "Button style: :primary (solid), :secondary (outline), :danger (destructive). Default: :primary"
+    )
+
     attr(:action_opts, :list,
       doc:
         "Additional options passed to the Ash action (e.g., [return_records?: true, notify?: true])"
@@ -272,11 +283,13 @@ defmodule Cinder.Collection do
     )
 
     attr(:on_success, :atom,
-      doc: "Event name sent to parent on success. Payload: %{component_id, action, count, result}"
+      doc:
+        "Message name sent to parent via handle_info on success. Payload: %{component_id, action, count, result}"
     )
 
     attr(:on_error, :atom,
-      doc: "Event name sent to parent on error. Payload: %{component_id, action, reason}"
+      doc:
+        "Message name sent to parent via handle_info on error. Payload: %{component_id, action, reason}"
     )
   end
 
