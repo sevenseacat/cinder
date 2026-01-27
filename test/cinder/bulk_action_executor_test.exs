@@ -144,7 +144,9 @@ defmodule Cinder.BulkActionExecutorTest do
       assert Enum.all?(records, &(&1.status == "archived"))
     end
 
-    test "function actions wrap action_opts in bulk_options for code interface compatibility", %{ids: ids} do
+    test "function actions wrap action_opts in bulk_options for code interface compatibility", %{
+      ids: ids
+    } do
       test_pid = self()
 
       action = fn _query, opts ->

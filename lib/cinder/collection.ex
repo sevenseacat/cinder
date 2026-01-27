@@ -263,7 +263,8 @@ defmodule Cinder.Collection do
     )
 
     attr(:action_opts, :list,
-      doc: "Additional options passed to the Ash action (e.g., [return_records?: true, notify?: true])"
+      doc:
+        "Additional options passed to the Ash action (e.g., [return_records?: true, notify?: true])"
     )
 
     attr(:confirm, :string,

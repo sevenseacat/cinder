@@ -2,8 +2,37 @@ defmodule Cinder.BulkActionExecutor do
   @moduledoc """
   Executes bulk actions on selected records.
 
-  Handles both Ash action atoms (using bulk_update/bulk_destroy) and
-  function captures (passing an Ash.Query filtered to the selected IDs).
+  This module is used internally by `Cinder.LiveComponent` to execute bulk actions
+  defined in `bulk_action` slots. It handles both Ash action atoms and function
+  captures.
+
+  ## Atom Actions
+
+  When given an atom, introspects the resource to determine if it's an update or
+  destroy action, then calls `Ash.bulk_update/4` or `Ash.bulk_destroy/4`:
+
+      BulkActionExecutor.execute(:archive,
+        resource: MyApp.User,
+        ids: ["1", "2"],
+        actor: current_user
+      )
+
+  ## Function Actions
+
+  When given a function, calls it with `(query, opts)` matching the signature of
+  Ash code interface functions. The query is pre-filtered to the selected IDs:
+
+      BulkActionExecutor.execute(&MyApp.Users.archive/2,
+        resource: MyApp.User,
+        ids: ["1", "2"],
+        actor: current_user
+      )
+
+  ## Options Handling
+
+  - **Atom actions**: `action_opts` are merged directly into Ash options
+  - **Function actions**: `action_opts` are wrapped in `bulk_options: [...]` for
+    code interface compatibility
   """
 
   @type action :: atom() | (Ash.Query.t(), keyword() -> any())
@@ -30,8 +59,9 @@ defmodule Cinder.BulkActionExecutor do
 
   ## Action Types
 
-  - **Atom**: Calls `Ash.bulk_update/4` (or `Ash.bulk_destroy/4` for `:destroy`).
-    Action opts are merged directly into the Ash options.
+  - **Atom**: Introspects the resource to determine the action type. Calls
+    `Ash.bulk_update/4` for update actions or `Ash.bulk_destroy/4` for destroy
+    actions. Action opts are merged directly into the Ash options.
   - **Function/2**: Calls the function with `(query, opts)` where query is
     filtered to the selected IDs. Action opts are wrapped in `bulk_options: [...]`
     for code interface compatibility.
@@ -102,14 +132,21 @@ defmodule Cinder.BulkActionExecutor do
   # Atom actions: merge action_opts directly (for Ash.bulk_update/bulk_destroy)
   defp run_action(action, query, base_opts, action_opts) when is_atom(action) do
     opts = Keyword.merge(base_opts, action_opts)
+    resource = query.resource
 
     result =
-      case action do
-        :destroy ->
-          Ash.bulk_destroy(query, :destroy, %{}, opts)
+      case Ash.Resource.Info.action(resource, action) do
+        %{type: :destroy} ->
+          Ash.bulk_destroy(query, action, %{}, opts)
 
-        _ ->
+        %{type: :update} ->
           Ash.bulk_update(query, action, %{}, opts)
+
+        nil ->
+          {:error, "Action #{inspect(action)} not found on resource #{inspect(resource)}"}
+
+        %{type: type} ->
+          {:error, "Action #{inspect(action)} is a #{type} action, expected :update or :destroy"}
       end
 
     normalize_result(result)

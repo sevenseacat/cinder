@@ -513,12 +513,16 @@ defmodule Cinder.LiveComponent do
       |> load_data()
 
     if event_name = slot[:on_success] do
-      send(self(), {event_name, %{
-        component_id: socket.assigns.id,
-        action: slot[:action],
-        count: selected_count,
-        result: result
-      }})
+      send(
+        self(),
+        {event_name,
+         %{
+           component_id: socket.assigns.id,
+           action: slot[:action],
+           count: selected_count,
+           result: result
+         }}
+      )
     end
 
     {:noreply, socket}
@@ -528,11 +532,15 @@ defmodule Cinder.LiveComponent do
     Logger.error("Cinder: Bulk action failed: #{inspect(reason)}")
 
     if event_name = slot[:on_error] do
-      send(self(), {event_name, %{
-        component_id: socket.assigns.id,
-        action: slot[:action],
-        reason: reason
-      }})
+      send(
+        self(),
+        {event_name,
+         %{
+           component_id: socket.assigns.id,
+           action: slot[:action],
+           reason: reason
+         }}
+      )
     end
 
     {:noreply, socket}
