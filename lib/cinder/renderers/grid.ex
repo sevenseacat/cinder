@@ -10,6 +10,7 @@ defmodule Cinder.Renderers.Grid do
   use Cinder.Messages
   require Logger
 
+  alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
   alias Cinder.Renderers.SortControls
 
@@ -68,11 +69,13 @@ defmodule Cinder.Renderers.Grid do
       </div>
 
       <!-- Bulk Actions -->
-      <%= if Map.get(assigns, :selectable, false) and Map.get(assigns, :bulk_actions_slot, []) != [] do %>
-        <div class={@theme.bulk_actions_container_class} {@theme.bulk_actions_container_data}>
-          {render_slot(Map.get(assigns, :bulk_actions_slot, []), %{selected_ids: Map.get(assigns, :selected_ids, MapSet.new()), selected_count: MapSet.size(Map.get(assigns, :selected_ids, MapSet.new()))})}
-        </div>
-      <% end %>
+      <BulkActions.render
+        selectable={@selectable}
+        selected_ids={@selected_ids}
+        bulk_action_slots={@bulk_action_slots}
+        theme={@theme}
+        myself={@myself}
+      />
 
       <!-- Grid Items Container -->
       <div class={@grid_container_class} {@grid_container_data}>

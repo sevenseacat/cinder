@@ -44,7 +44,11 @@ defmodule Cinder.Renderers.ListSelectionTest do
       search_term: "",
       search_enabled: false,
       search_label: "Search",
-      search_placeholder: "Search..."
+      search_placeholder: "Search...",
+      selectable: false,
+      selected_ids: MapSet.new(),
+      id_field: :id,
+      bulk_action_slots: []
     }
   end
 

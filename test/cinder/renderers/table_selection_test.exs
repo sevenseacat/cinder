@@ -49,7 +49,8 @@ defmodule Cinder.Renderers.TableSelectionTest do
       row_click: nil,
       selectable: false,
       selected_ids: MapSet.new(),
-      id_field: :id
+      id_field: :id,
+      bulk_action_slots: []
     }
   end
 

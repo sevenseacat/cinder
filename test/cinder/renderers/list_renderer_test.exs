@@ -30,7 +30,9 @@ defmodule Cinder.Renderers.ListTest do
       list_item_class: "py-3 px-4",
       list_item_data: %{"data-key" => "list_item_class"},
       list_item_clickable_class: "cursor-pointer hover:bg-gray-50",
-      list_item_clickable_data: %{"data-key" => "list_item_clickable_class"}
+      list_item_clickable_data: %{"data-key" => "list_item_clickable_class"},
+      bulk_actions_container_class: "bulk-actions",
+      bulk_actions_container_data: %{"data-key" => "bulk_actions_container_class"}
     }
   end
 
@@ -60,7 +62,11 @@ defmodule Cinder.Renderers.ListTest do
       search_term: "",
       search_enabled: false,
       search_label: "Search",
-      search_placeholder: "Search..."
+      search_placeholder: "Search...",
+      selectable: false,
+      selected_ids: MapSet.new(),
+      bulk_action_slots: [],
+      id_field: :id
     }
   end
 

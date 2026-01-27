@@ -30,7 +30,9 @@ defmodule Cinder.Renderers.GridTest do
       grid_item_class: "p-4 bg-white border rounded-lg",
       grid_item_data: %{"data-key" => "grid_item_class"},
       grid_item_clickable_class: "cursor-pointer hover:shadow-md",
-      grid_item_clickable_data: %{"data-key" => "grid_item_clickable_class"}
+      grid_item_clickable_data: %{"data-key" => "grid_item_clickable_class"},
+      bulk_actions_container_class: "bulk-actions",
+      bulk_actions_container_data: %{"data-key" => "bulk_actions_container_class"}
     }
   end
 
@@ -61,7 +63,11 @@ defmodule Cinder.Renderers.GridTest do
       search_term: "",
       search_enabled: false,
       search_label: "Search",
-      search_placeholder: "Search..."
+      search_placeholder: "Search...",
+      selectable: false,
+      selected_ids: MapSet.new(),
+      bulk_action_slots: [],
+      id_field: :id
     }
   end
 

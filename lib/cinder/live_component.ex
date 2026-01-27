@@ -737,6 +737,8 @@ defmodule Cinder.LiveComponent do
     |> assign_new(:selected_ids, fn -> MapSet.new() end)
     |> assign(:on_selection_change, assigns[:on_selection_change])
     |> assign(:id_field, assigns[:id_field] || :id)
+    # Bulk actions
+    |> assign_new(:bulk_action_slots, fn -> [] end)
   end
 
   defp assign_column_definitions(socket) do

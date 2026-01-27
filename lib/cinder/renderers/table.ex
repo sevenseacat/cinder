@@ -9,6 +9,7 @@ defmodule Cinder.Renderers.Table do
   use Phoenix.Component
   use Cinder.Messages
 
+  alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
 
   @doc """
@@ -35,11 +36,13 @@ defmodule Cinder.Renderers.Table do
       </div>
 
       <!-- Bulk Actions -->
-      <%= if @selectable and Map.get(assigns, :bulk_actions_slot, []) != [] do %>
-        <div class={@theme.bulk_actions_container_class} {@theme.bulk_actions_container_data}>
-          {render_slot(Map.get(assigns, :bulk_actions_slot, []), %{selected_ids: @selected_ids, selected_count: MapSet.size(@selected_ids)})}
-        </div>
-      <% end %>
+      <BulkActions.render
+        selectable={@selectable}
+        selected_ids={@selected_ids}
+        bulk_action_slots={@bulk_action_slots}
+        theme={@theme}
+        myself={@myself}
+      />
 
       <!-- Main table -->
       <div class={@theme.table_wrapper_class} {@theme.table_wrapper_data}>
