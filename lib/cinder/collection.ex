@@ -576,7 +576,8 @@ defmodule Cinder.Collection do
 
       # Build filter configuration in unified format for determine_filter_type
       base_options = if filter_value, do: [value: filter_value], else: []
-      all_options = base_options ++ extra_options ++ (filter_options || [])
+      # Note: filter_options is already included in extra_options as `options: filter_options`
+      all_options = base_options ++ extra_options
 
       filter_config =
         if filter_type do
