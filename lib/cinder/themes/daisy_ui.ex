@@ -151,7 +151,7 @@ defmodule Cinder.Themes.DaisyUI do
       "cursor-pointer hover:shadow-lg transition-shadow"
 
   # Sort container - card-like panel matching filter styling
-  set :sort_container_class, "card bg-base-100 shadow-lg"
+  set :sort_container_class, "card bg-base-100"
   # Sort controls - inner flex layout (card-body for consistent padding)
   set :sort_controls_class, "card-body py-4 flex flex-row items-center gap-3"
   set :sort_controls_label_class, "text-sm font-medium"
