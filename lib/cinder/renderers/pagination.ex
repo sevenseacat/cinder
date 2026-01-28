@@ -242,12 +242,21 @@ defmodule Cinder.Renderers.Pagination do
 
   defp page_size_selector(assigns) do
     dropdown_id = "#{assigns.id}-page-size-options"
-    assigns = assign(assigns, :dropdown_id, dropdown_id)
+    # Split the translated string on {selector} to allow flexible word order
+    [before_selector, after_selector] =
+      dgettext("cinder", "Show {selector} per page")
+      |> String.split("{selector}")
+
+    assigns =
+      assigns
+      |> assign(:dropdown_id, dropdown_id)
+      |> assign(:before_selector, before_selector)
+      |> assign(:after_selector, after_selector)
 
     ~H"""
     <div class="flex items-center space-x-2">
-      <span class={@theme.page_size_label_class} {@theme.page_size_label_data}>
-        Show
+      <span :if={@before_selector != ""} class={@theme.page_size_label_class} {@theme.page_size_label_data}>
+        {@before_selector}
       </span>
       <div class="relative">
         <button
@@ -285,8 +294,8 @@ defmodule Cinder.Renderers.Pagination do
           </button>
         </div>
       </div>
-      <span class={@theme.page_size_label_class} {@theme.page_size_label_data}>
-        per page
+      <span :if={@after_selector != ""} class={@theme.page_size_label_class} {@theme.page_size_label_data}>
+        {@after_selector}
       </span>
     </div>
     """

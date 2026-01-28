@@ -34,7 +34,7 @@ defmodule Cinder.Filters.NumberRange do
           id={@min_id}
           name={field_name(@column.field, "min")}
           value={@min_value}
-          placeholder="Min"
+          placeholder={dgettext("cinder", "Min")}
           phx-debounce="300"
           class={@theme.filter_number_input_class}
           {@theme.filter_number_input_data}
@@ -49,7 +49,7 @@ defmodule Cinder.Filters.NumberRange do
           id={@max_id}
           name={field_name(@column.field, "max")}
           value={@max_value}
-          placeholder="Max"
+          placeholder={dgettext("cinder", "Max")}
           phx-debounce="300"
           class={@theme.filter_number_input_class}
           {@theme.filter_number_input_data}

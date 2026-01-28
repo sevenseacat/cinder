@@ -92,3 +92,38 @@ msgstr "Filter"
 #, elixir-autogen, elixir-format
 msgid "Sort by:"
 msgstr "Sortieren nach:"
+
+#: lib/cinder/filters/text.ex:19
+#, elixir-autogen, elixir-format
+msgid "Filter %{label}..."
+msgstr "%{label} filtern..."
+
+#: lib/cinder/filters/date_range.ex:48
+#, elixir-autogen, elixir-format
+msgid "From"
+msgstr "Von"
+
+#: lib/cinder/filters/number_range.ex:52
+#, elixir-autogen, elixir-format
+msgid "Max"
+msgstr "Max"
+
+#: lib/cinder/filters/number_range.ex:37
+#, elixir-autogen, elixir-format
+msgid "Min"
+msgstr "Min"
+
+#: lib/cinder/filters/autocomplete.ex:42
+#, elixir-autogen, elixir-format
+msgid "Search %{label}..."
+msgstr "%{label} suchen..."
+
+#: lib/cinder/renderers/pagination.ex:247
+#, elixir-autogen, elixir-format
+msgid "Show {selector} per page"
+msgstr "{selector} pro Seite"
+
+#: lib/cinder/filters/date_range.ex:62
+#, elixir-autogen, elixir-format
+msgid "To"
+msgstr "Bis"

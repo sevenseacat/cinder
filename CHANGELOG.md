@@ -9,6 +9,7 @@
 ### Bugfixes
 
 * Fix `filter_options` being added multiple times and at the incorrect level (#100)
+* Fix missing localization for filter placeholders and page size selector (#92)
 
 ## v0.9.0-beta.5 (2026-01-27)
 

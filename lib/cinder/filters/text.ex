@@ -8,13 +8,16 @@ defmodule Cinder.Filters.Text do
 
   @behaviour Cinder.Filter
   use Phoenix.Component
+  use Cinder.Messages
 
   import Cinder.Filter
 
   @impl true
   def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
-    placeholder = get_option(filter_options, :placeholder, "Filter #{column.label}...")
+
+    default_placeholder = dgettext("cinder", "Filter %{label}...", label: column.label)
+    placeholder = get_option(filter_options, :placeholder, default_placeholder)
     table_id = Map.get(assigns, :table_id)
 
     assigns = %{

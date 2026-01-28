@@ -45,7 +45,7 @@ defmodule Cinder.Filters.DateRange do
           id={@from_id}
           name={field_name(@column.field, "from")}
           value={@from_value}
-          placeholder="From"
+          placeholder={dgettext("cinder", "From")}
           class={@theme.filter_date_input_class}
           {@theme.filter_date_input_data}
         />
@@ -59,7 +59,7 @@ defmodule Cinder.Filters.DateRange do
           id={@to_id}
           name={field_name(@column.field, "to")}
           value={@to_value}
-          placeholder="To"
+          placeholder={dgettext("cinder", "To")}
           class={@theme.filter_date_input_class}
           {@theme.filter_date_input_data}
         />

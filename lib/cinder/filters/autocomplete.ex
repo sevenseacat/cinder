@@ -27,6 +27,7 @@ defmodule Cinder.Filters.Autocomplete do
 
   @behaviour Cinder.Filter
   use Phoenix.Component
+  use Cinder.Messages
 
   import Cinder.Filter, only: [get_option: 3, field_name: 1, filter_id: 2]
   alias Phoenix.LiveView.JS
@@ -37,7 +38,9 @@ defmodule Cinder.Filters.Autocomplete do
   def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
     all_options = get_option(filter_options, :options, [])
-    placeholder = get_option(filter_options, :placeholder, "Search #{column.label}...")
+
+    default_placeholder = dgettext("cinder", "Search %{label}...", label: column.label)
+    placeholder = get_option(filter_options, :placeholder, default_placeholder)
     max_results = get_option(filter_options, :max_results, @default_max_results)
 
     # Get search term from raw_filter_params (submitted via form)
