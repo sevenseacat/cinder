@@ -63,7 +63,7 @@ defmodule Cinder.MixProject do
       {:makeup_html, ">= 0.0.0", only: :dev},
       {:igniter, "~> 0.5", only: [:dev, :test]},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
-      {:mimic, "~> 1.7", only: :test},
+      {:mimic, "~> 2.3", only: :test},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
