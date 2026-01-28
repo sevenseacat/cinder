@@ -259,7 +259,7 @@ defmodule Cinder.FilterManager do
     assigns = assign(assigns, :filter_content, filter_content)
 
     ~H"""
-    <div class="flex items-center space-x-2">
+    <div class="flex items-center">
       <div class="flex-1">
         <%= @filter_content %>
       </div>
