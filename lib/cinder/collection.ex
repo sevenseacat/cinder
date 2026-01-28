@@ -163,7 +163,7 @@ defmodule Cinder.Collection do
   )
 
   attr(:empty_message, :string,
-    default: "No results found",
+    default: nil,
     doc: "Message to show when no results"
   )
 
@@ -304,10 +304,10 @@ defmodule Cinder.Collection do
       |> assign_new(:query_opts, fn -> [] end)
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
-      |> assign_new(:loading_message, fn -> "Loading..." end)
+      |> assign_new(:loading_message, fn -> dgettext("cinder", "Loading...") end)
       |> assign(:filters_label, assigns[:filters_label] || "🔍 " <> dgettext("cinder", "Filters"))
       |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
-      |> assign_new(:empty_message, fn -> "No results found" end)
+      |> assign(:empty_message, assigns.empty_message || dgettext("cinder", "No results found"))
       |> assign_new(:class, fn -> "" end)
       |> assign_new(:container_class, fn -> nil end)
       |> assign_new(:tenant, fn -> nil end)
@@ -710,7 +710,7 @@ defmodule Cinder.Collection do
     case search_config do
       nil ->
         if has_searchable_columns do
-          {"Search", "Search...", true, nil}
+          {dgettext("cinder", "Search"), dgettext("cinder", "Search..."), true, nil}
         else
           {nil, nil, false, nil}
         end
@@ -719,14 +719,14 @@ defmodule Cinder.Collection do
         {nil, nil, false, nil}
 
       config when is_list(config) ->
-        label = Keyword.get(config, :label, "Search")
-        placeholder = Keyword.get(config, :placeholder, "Search...")
+        label = Keyword.get(config, :label, dgettext("cinder", "Search"))
+        placeholder = Keyword.get(config, :placeholder, dgettext("cinder", "Search..."))
         search_fn = Keyword.get(config, :fn)
         {label, placeholder, true, search_fn}
 
       _invalid ->
         if has_searchable_columns do
-          {"Search", "Search...", true, nil}
+          {dgettext("cinder", "Search"), dgettext("cinder", "Search..."), true, nil}
         else
           {nil, nil, false, nil}
         end

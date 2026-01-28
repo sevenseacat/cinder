@@ -130,3 +130,74 @@ msgstr "Visa {selector} per sida"
 #, elixir-autogen, elixir-format
 msgid "To"
 msgstr "Till"
+
+#: lib/cinder/filter_manager.ex:815
+#: lib/cinder/filters/select.ex:19
+#, elixir-autogen, elixir-format
+msgid "All %{label}"
+msgstr "Alla %{label}"
+
+#: lib/cinder/collection.ex:713
+#: lib/cinder/collection.ex:722
+#: lib/cinder/collection.ex:729
+#: lib/cinder/filter_manager.ex:91
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr "Sök"
+
+#: lib/cinder/collection.ex:713
+#: lib/cinder/collection.ex:723
+#: lib/cinder/collection.ex:729
+#: lib/cinder/filter_manager.ex:99
+#, elixir-autogen, elixir-format
+msgid "Search..."
+msgstr "Sök..."
+
+#: lib/cinder/filters/multi_select.ex:53
+#, elixir-autogen, elixir-format
+msgid "Select options..."
+msgstr "Välj alternativ..."
+
+#: lib/cinder/filter_manager.ex:122
+#, elixir-autogen, elixir-format
+msgid "Clear search"
+msgstr "Rensa sökning"
+
+#: lib/cinder/collection.ex:307
+#, elixir-autogen, elixir-format
+msgid "Loading..."
+msgstr "Laddar..."
+
+#: lib/cinder/filters/multi_select.ex:137
+#: lib/cinder/filters/select.ex:108
+#, elixir-autogen, elixir-format
+msgid "No options available"
+msgstr "Inga alternativ tillgängliga"
+
+#: lib/cinder/collection.ex:310
+#: lib/cinder/filters/autocomplete.ex:157
+#, elixir-autogen, elixir-format
+msgid "No results found"
+msgstr "Inga resultat hittades"
+
+#: lib/cinder/filters/multi_select.ex:75
+#, elixir-autogen, elixir-format
+msgid "%{count} selected"
+msgstr "%{count} valda"
+
+#: lib/cinder/filters/boolean.ex:21
+#: lib/cinder/filters/boolean.ex:104
+#, elixir-autogen, elixir-format
+msgid "False"
+msgstr "Falskt"
+
+#: lib/cinder/filters/boolean.ex:20
+#: lib/cinder/filters/boolean.ex:103
+#, elixir-autogen, elixir-format
+msgid "True"
+msgstr "Sant"
+
+#: lib/cinder/filters/autocomplete.ex:165
+#, elixir-autogen, elixir-format
+msgid "Type to search more options..."
+msgstr "Skriv för att söka fler alternativ..."

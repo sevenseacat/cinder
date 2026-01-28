@@ -88,7 +88,7 @@ defmodule Cinder.FilterManager do
         <div class={@theme.filter_inputs_class} {@theme.filter_inputs_data}>
           <!-- Search Input (if enabled) - as first filter -->
           <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
-            <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} {@theme.filter_label_data}>{Map.get(assigns, :search_label, "Search")}:</label>
+            <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} {@theme.filter_label_data}>{Map.get(assigns, :search_label, dgettext("cinder", "Search"))}:</label>
             <div class="flex items-center space-x-2">
               <div class="flex-1 relative">
                 <input
@@ -96,7 +96,7 @@ defmodule Cinder.FilterManager do
                   id={filter_id(@table_id, "search")}
                   name="search"
                   value={Map.get(assigns, :search_term, "")}
-                  placeholder={Map.get(assigns, :search_placeholder, "Search...")}
+                  placeholder={Map.get(assigns, :search_placeholder, dgettext("cinder", "Search..."))}
                   phx-debounce="300"
                   class={@theme.search_input_class}
                   {@theme.search_input_data}
@@ -119,7 +119,7 @@ defmodule Cinder.FilterManager do
                   unless(Map.get(assigns, :search_term, "") != "", do: "invisible", else: "")
                 ]}
                 {@theme.filter_clear_button_data}
-                title="Clear search"
+                title={dgettext("cinder", "Clear search")}
               >
                 ×
               </button>
@@ -812,7 +812,7 @@ defmodule Cinder.FilterManager do
       if Keyword.get(options, :prompt) do
         options
       else
-        Keyword.put(options, :prompt, "All #{label}")
+        Keyword.put(options, :prompt, dgettext("cinder", "All %{label}", label: label))
       end
 
     case extract_enum_options(attribute) do

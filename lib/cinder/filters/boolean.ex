@@ -7,6 +7,7 @@ defmodule Cinder.Filters.Boolean do
 
   @behaviour Cinder.Filter
   use Phoenix.Component
+  use Cinder.Messages
 
   import Cinder.Filter
 
@@ -16,8 +17,8 @@ defmodule Cinder.Filters.Boolean do
     filter_options = Map.get(column, :filter_options, [])
     options = get_option(filter_options, :labels, %{})
 
-    true_label = Map.get(options, true, "True")
-    false_label = Map.get(options, false, "False")
+    true_label = Map.get(options, true, dgettext("cinder", "True"))
+    false_label = Map.get(options, false, dgettext("cinder", "False"))
 
     assigns = %{
       column: column,
@@ -99,8 +100,8 @@ defmodule Cinder.Filters.Boolean do
   def default_options do
     [
       labels: %{
-        true: "True",
-        false: "False"
+        true: dgettext("cinder", "True"),
+        false: dgettext("cinder", "False")
       }
     ]
   end

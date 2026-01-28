@@ -41,6 +41,7 @@ defmodule Cinder.Filters.MultiSelect do
 
   @behaviour Cinder.Filter
   use Phoenix.Component
+  use Cinder.Messages
 
   import Cinder.Filter, only: [get_option: 3, field_name: 1, filter_id: 2]
   alias Phoenix.LiveView.JS
@@ -49,7 +50,8 @@ defmodule Cinder.Filters.MultiSelect do
   def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
     options = get_option(filter_options, :options, [])
-    prompt = get_option(filter_options, :prompt, "Select options...")
+    default_prompt = dgettext("cinder", "Select options...")
+    prompt = get_option(filter_options, :prompt, default_prompt)
     selected_values = current_value || []
 
     # Create a lookup map for labels
@@ -70,7 +72,7 @@ defmodule Cinder.Filters.MultiSelect do
           )
 
         count ->
-          "#{count} selected"
+          dgettext("cinder", "%{count} selected", count: count)
       end
 
     table_id = Map.get(assigns, :table_id)
@@ -132,7 +134,7 @@ defmodule Cinder.Filters.MultiSelect do
         </label>
 
         <div :if={Enum.empty?(@options)} class={@theme.filter_multiselect_empty_class} {@theme.filter_multiselect_empty_data}>
-          No options available
+          {dgettext("cinder", "No options available")}
         </div>
       </div>
     </div>

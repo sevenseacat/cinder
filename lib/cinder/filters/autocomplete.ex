@@ -154,7 +154,7 @@ defmodule Cinder.Filters.Autocomplete do
           class={@theme.filter_select_empty_class}
           {@theme.filter_select_empty_data}
         >
-          No results found
+          {dgettext("cinder", "No results found")}
         </div>
 
         <div
@@ -162,7 +162,7 @@ defmodule Cinder.Filters.Autocomplete do
           class={[@theme.filter_select_empty_class, "text-xs italic"]}
           {@theme.filter_select_empty_data}
         >
-          Type to search more options...
+          {dgettext("cinder", "Type to search more options...")}
         </div>
       </div>
 

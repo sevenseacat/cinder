@@ -127,3 +127,74 @@ msgstr "{selector} pro Seite"
 #, elixir-autogen, elixir-format
 msgid "To"
 msgstr "Bis"
+
+#: lib/cinder/filter_manager.ex:815
+#: lib/cinder/filters/select.ex:19
+#, elixir-autogen, elixir-format
+msgid "All %{label}"
+msgstr "Alle %{label}"
+
+#: lib/cinder/collection.ex:713
+#: lib/cinder/collection.ex:722
+#: lib/cinder/collection.ex:729
+#: lib/cinder/filter_manager.ex:91
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr "Suchen"
+
+#: lib/cinder/collection.ex:713
+#: lib/cinder/collection.ex:723
+#: lib/cinder/collection.ex:729
+#: lib/cinder/filter_manager.ex:99
+#, elixir-autogen, elixir-format
+msgid "Search..."
+msgstr "Suchen..."
+
+#: lib/cinder/filters/multi_select.ex:53
+#, elixir-autogen, elixir-format
+msgid "Select options..."
+msgstr "Optionen auswählen..."
+
+#: lib/cinder/filter_manager.ex:122
+#, elixir-autogen, elixir-format
+msgid "Clear search"
+msgstr "Suche löschen"
+
+#: lib/cinder/collection.ex:307
+#, elixir-autogen, elixir-format
+msgid "Loading..."
+msgstr "Laden..."
+
+#: lib/cinder/filters/multi_select.ex:137
+#: lib/cinder/filters/select.ex:108
+#, elixir-autogen, elixir-format
+msgid "No options available"
+msgstr "Keine Optionen verfügbar"
+
+#: lib/cinder/collection.ex:310
+#: lib/cinder/filters/autocomplete.ex:157
+#, elixir-autogen, elixir-format
+msgid "No results found"
+msgstr "Keine Ergebnisse gefunden"
+
+#: lib/cinder/filters/multi_select.ex:75
+#, elixir-autogen, elixir-format
+msgid "%{count} selected"
+msgstr "%{count} ausgewählt"
+
+#: lib/cinder/filters/boolean.ex:21
+#: lib/cinder/filters/boolean.ex:104
+#, elixir-autogen, elixir-format
+msgid "False"
+msgstr "Falsch"
+
+#: lib/cinder/filters/boolean.ex:20
+#: lib/cinder/filters/boolean.ex:103
+#, elixir-autogen, elixir-format
+msgid "True"
+msgstr "Wahr"
+
+#: lib/cinder/filters/autocomplete.ex:165
+#, elixir-autogen, elixir-format
+msgid "Type to search more options..."
+msgstr "Tippen, um weitere Optionen zu suchen..."

@@ -7,6 +7,7 @@ defmodule Cinder.Filters.Select do
 
   @behaviour Cinder.Filter
   use Phoenix.Component
+  use Cinder.Messages
 
   import Cinder.Filter, only: [get_option: 3, field_name: 1, filter_id: 2]
   alias Phoenix.LiveView.JS
@@ -15,7 +16,8 @@ defmodule Cinder.Filters.Select do
   def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
     options = get_option(filter_options, :options, [])
-    prompt = get_option(filter_options, :prompt, "All #{column.label}")
+    default_prompt = dgettext("cinder", "All %{label}", label: column.label)
+    prompt = get_option(filter_options, :prompt, default_prompt)
 
     current_value = current_value || ""
 
@@ -103,7 +105,7 @@ defmodule Cinder.Filters.Select do
         </label>
 
         <div :if={Enum.empty?(@options)} class={@theme.filter_select_empty_class} {@theme.filter_select_empty_data}>
-          No options available
+          {dgettext("cinder", "No options available")}
         </div>
       </div>
     </div>
