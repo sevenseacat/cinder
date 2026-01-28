@@ -7,6 +7,8 @@ defmodule Cinder.Column do
   Supports relationship fields using dot notation (e.g., "user.name").
   """
 
+  require Logger
+
   @type t :: %__MODULE__{
           field: String.t(),
           label: String.t(),
@@ -178,7 +180,12 @@ defmodule Cinder.Column do
         default_column_config()
       end
     rescue
-      _ -> default_column_config()
+      e ->
+        Logger.warning(
+          "Cinder: Column inference failed for #{inspect(key)}: #{Exception.message(e)}"
+        )
+
+        default_column_config()
     catch
       _ -> default_column_config()
     end
