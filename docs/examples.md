@@ -675,6 +675,28 @@ Customize with `cycle`:
 <:col field="completed_at" sort={[cycle: [:desc_nils_last, :asc_nils_first, nil]]} />
 ```
 
+### Sort Mode
+
+By default, clicking multiple column headers creates multi-column sorting ("sort by A, then by B"). Use `sort_mode` to change this behavior:
+
+```heex
+<!-- Default: additive sorting (clicking B while sorted by A gives "A then B") -->
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" sort>{user.name}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+</Cinder.collection>
+
+<!-- Exclusive: clicking a column replaces existing sorts -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} sort_mode="exclusive">
+  <:col :let={user} field="name" sort>{user.name}</:col>
+  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
+</Cinder.collection>
+```
+
+Sort modes:
+- `"additive"` (default) - New sorts are added to existing ones
+- `"exclusive"` - Clicking a column replaces all existing sorts
+
 ### Default Sort Order
 
 Provide a default sort via the `query` parameter. User sorting replaces (not adds to) the default:

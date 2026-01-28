@@ -317,6 +317,7 @@ defmodule Cinder.Collection do
       |> assign_new(:pagination, fn -> :offset end)
       |> assign_new(:selectable, fn -> false end)
       |> assign_new(:on_selection_change, fn -> nil end)
+      |> assign(:sort_mode, normalize_sort_mode(assigns[:sort_mode]))
 
     # Validate and normalize query/resource parameters
     normalized_query = normalize_query_params(assigns[:resource], assigns[:query])
@@ -426,6 +427,7 @@ defmodule Cinder.Collection do
         selectable={@selectable}
         on_selection_change={@on_selection_change}
         bulk_action_slots={@bulk_action_slots}
+        sort_mode={@sort_mode}
       />
     </div>
     """
@@ -749,6 +751,12 @@ defmodule Cinder.Collection do
   defp normalize_layout("grid"), do: :grid
   defp normalize_layout(layout) when is_atom(layout), do: layout
   defp normalize_layout(_), do: :table
+
+  defp normalize_sort_mode("exclusive"), do: :exclusive
+  defp normalize_sort_mode("additive"), do: :additive
+  defp normalize_sort_mode(:exclusive), do: :exclusive
+  defp normalize_sort_mode(:additive), do: :additive
+  defp normalize_sort_mode(_), do: :additive
 
   defp layout_class(:table), do: "cinder-table"
   defp layout_class(:list), do: "cinder-list"

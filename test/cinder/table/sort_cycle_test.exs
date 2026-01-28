@@ -163,6 +163,69 @@ defmodule Cinder.Table.SortCycleTest do
     end
   end
 
+  describe "toggle_sort_with_cycle/4 with sort_mode" do
+    test "additive mode (default) preserves existing sorts when adding new column" do
+      current_sort = [{"other_field", :desc}]
+
+      # Explicit :additive mode should behave same as 3-arity version
+      result = QueryBuilder.toggle_sort_with_cycle(current_sort, "name", nil, :additive)
+
+      assert result == [{"name", :asc}, {"other_field", :desc}]
+    end
+
+    test "exclusive mode replaces existing sorts when adding new column" do
+      current_sort = [{"other_field", :desc}, {"another_field", :asc}]
+
+      result = QueryBuilder.toggle_sort_with_cycle(current_sort, "name", nil, :exclusive)
+
+      # Only the new sort should remain
+      assert result == [{"name", :asc}]
+    end
+
+    test "exclusive mode cycles through directions for same column" do
+      # First click on column
+      sort1 = QueryBuilder.toggle_sort_with_cycle([], "name", nil, :exclusive)
+      assert sort1 == [{"name", :asc}]
+
+      # Second click cycles to desc
+      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "name", nil, :exclusive)
+      assert sort2 == [{"name", :desc}]
+
+      # Third click removes sort
+      sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "name", nil, :exclusive)
+      assert sort3 == []
+    end
+
+    test "exclusive mode with custom cycle" do
+      cycle = [nil, :desc_nils_last, :asc_nils_first]
+      current_sort = [{"other_field", :desc}]
+
+      # Click new column - should replace existing sort
+      result = QueryBuilder.toggle_sort_with_cycle(current_sort, "created_at", cycle, :exclusive)
+
+      assert result == [{"created_at", :desc_nils_last}]
+    end
+
+    test "exclusive mode clears all sorts when cycling to nil" do
+      # Set up with multiple sorts (shouldn't happen in exclusive mode, but test edge case)
+      current_sort = [{"name", :desc}, {"other", :asc}]
+
+      # Cycling name to nil should clear everything in exclusive mode
+      result = QueryBuilder.toggle_sort_with_cycle(current_sort, "name", nil, :exclusive)
+
+      assert result == []
+    end
+
+    test "additive mode preserves behavior when cycling existing column" do
+      current_sort = [{"name", :asc}, {"other", :desc}]
+
+      # Cycling existing column should update in place
+      result = QueryBuilder.toggle_sort_with_cycle(current_sort, "name", nil, :additive)
+
+      assert result == [{"name", :desc}, {"other", :desc}]
+    end
+  end
+
   describe "URL encoding/decoding with custom sort directions" do
     test "encodes and decodes Ash built-in null handling directions" do
       # Test Ash built-in directions using elegant prefix syntax

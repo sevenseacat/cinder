@@ -294,7 +294,13 @@ defmodule Cinder.LiveComponent do
     column = Enum.find(socket.assigns.col, &(&1.field == key))
     sort_cycle = if column, do: column.sort_cycle, else: nil
 
-    new_sort = Cinder.QueryBuilder.toggle_sort_with_cycle(current_sort, key, sort_cycle)
+    new_sort =
+      Cinder.QueryBuilder.toggle_sort_with_cycle(
+        current_sort,
+        key,
+        sort_cycle,
+        socket.assigns.sort_mode
+      )
 
     # Check if URL sync is enabled
     url_sync_enabled = !!socket.assigns[:on_state_change]
@@ -847,6 +853,7 @@ defmodule Cinder.LiveComponent do
     |> assign_new(:selected_ids, fn -> MapSet.new() end)
     |> assign(:on_selection_change, assigns[:on_selection_change])
     |> assign(:id_field, assigns[:id_field] || :id)
+    |> assign(:sort_mode, assigns[:sort_mode] || :additive)
     # Bulk actions
     |> assign_new(:bulk_action_slots, fn -> [] end)
   end

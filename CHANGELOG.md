@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* Add `sort_mode` attribute to switch between additive (default) and exclusive sorting (#98)
+
+### Bugfixes
+
+* Fix `filter_options` being added multiple times and at the incorrect level (#100)
+
 ## v0.9.0-beta.5 (2026-01-27)
 
 ### Features

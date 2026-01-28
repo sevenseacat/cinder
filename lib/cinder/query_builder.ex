@@ -718,8 +718,14 @@ defmodule Cinder.QueryBuilder do
   Supports custom sort cycles like [nil, :desc_nils_last, :asc_nils_first].
 
   Falls back to standard toggle_sort_direction/2 if no custom cycle provided.
+
+  ## Options
+
+  * `sort_mode` - `:additive` (default) adds to existing sorts, `:exclusive` replaces them
   """
-  def toggle_sort_with_cycle(current_sort, key, sort_cycle \\ nil) do
+  def toggle_sort_with_cycle(current_sort, key, sort_cycle \\ nil, sort_mode \\ :additive)
+
+  def toggle_sort_with_cycle(current_sort, key, sort_cycle, sort_mode) do
     cycle = sort_cycle || [nil, :asc, :desc]
 
     case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
@@ -730,13 +736,13 @@ defmodule Cinder.QueryBuilder do
 
         if next_index >= length(cycle) do
           # End of cycle, remove sort (nil state)
-          Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
+          remove_sort(current_sort, key, sort_mode)
         else
           next_direction = Enum.at(cycle, next_index)
 
           if next_direction == nil do
             # Next state is nil, remove sort
-            Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
+            remove_sort(current_sort, key, sort_mode)
           else
             # Update to next direction in cycle
             Enum.map(current_sort, fn
@@ -751,12 +757,21 @@ defmodule Cinder.QueryBuilder do
         first_direction = Enum.find(cycle, &(&1 != nil))
 
         if first_direction do
-          [{key, first_direction} | current_sort]
+          add_sort(current_sort, key, first_direction, sort_mode)
         else
           # Cycle has no non-nil values, fall back to standard
           toggle_sort_direction(current_sort, key)
         end
     end
+  end
+
+  defp add_sort(_current_sort, key, direction, :exclusive), do: [{key, direction}]
+  defp add_sort(current_sort, key, direction, :additive), do: [{key, direction} | current_sort]
+
+  defp remove_sort(_current_sort, _key, :exclusive), do: []
+
+  defp remove_sort(current_sort, key, :additive) do
+    Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
   end
 
   @doc """
