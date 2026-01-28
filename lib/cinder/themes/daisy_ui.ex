@@ -14,7 +14,7 @@ defmodule Cinder.Themes.DaisyUI do
 
   # Table
   set :container_class, "card bg-base-100"
-  set :controls_class, "pb-4 shadow-lg "
+  set :controls_class, "shadow-lg mb-6"
   set :table_wrapper_class, "overflow-x-auto"
   set :table_class, "table table-zebra w-full"
   set :thead_class, ""
@@ -36,7 +36,7 @@ defmodule Cinder.Themes.DaisyUI do
   set :filter_clear_all_class, "btn btn-ghost btn-xs"
 
   set :filter_inputs_class,
-      "flex flex-wrap gap-4 px-6 pb-6"
+      "flex flex-wrap gap-4 px-6"
 
   set :filter_input_wrapper_class, "form-control"
   set :filter_label_class, "label whitespace-nowrap"
