@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.0 (2026-02-03)
+
+### Bugfixes 
+
+* Fix association between checkbox/label for multi-checkboxes filter ([#103](https://github.com/sevenseacat/cinder/pull/103))
+* 
 ## v0.9.0-beta.6 (2026-01-28)
 
 ### Features
