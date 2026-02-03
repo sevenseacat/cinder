@@ -1409,7 +1409,7 @@ defmodule Cinder.QueryBuilder do
     do: false
 
   defp valid_table_sort?({field, _direction}, columns)
-       when is_list(columns) and length(columns) > 0 do
+       when is_list(columns) and columns != [] do
     field_name = if is_atom(field), do: Atom.to_string(field), else: field
 
     Enum.any?(columns, fn column ->

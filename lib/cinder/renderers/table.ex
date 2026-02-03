@@ -191,7 +191,7 @@ defmodule Cinder.Renderers.Table do
 
   defp row_click_action(nil, false, _item, _id_field, _myself), do: nil
 
-  defp all_page_selected?(selected_ids, data, id_field) when is_list(data) and length(data) > 0 do
+  defp all_page_selected?(selected_ids, data, id_field) when is_list(data) and data != [] do
     Enum.all?(data, fn item ->
       item_selected?(selected_ids, item, id_field)
     end)
