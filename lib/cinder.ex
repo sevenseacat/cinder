@@ -213,7 +213,7 @@ defmodule Cinder do
       :ok ->
         configured_filters = Application.get_env(:cinder, :filters, [])
 
-        if length(configured_filters) > 0 do
+        if configured_filters != [] do
           filter_names = configured_filters |> Keyword.keys() |> Enum.join(", ")
           require Logger
 
