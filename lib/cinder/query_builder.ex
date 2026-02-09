@@ -115,7 +115,12 @@ defmodule Cinder.QueryBuilder do
     before_keyset = Keyword.get(options, :before_keyset)
 
     try do
-      # Query tenant as final fallback
+      # Query actor/tenant as final fallback
+      effective_actor =
+        actor ||
+          if is_struct(resource_or_query, Ash.Query),
+            do: get_in(resource_or_query.context, [:private, :actor])
+
       effective_tenant =
         tenant || if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant
 
@@ -123,7 +128,7 @@ defmodule Cinder.QueryBuilder do
       {base_query, resource} =
         normalize_resource_or_query(
           resource_or_query,
-          actor,
+          effective_actor,
           effective_tenant,
           scope_opts,
           query_opts
@@ -147,7 +152,7 @@ defmodule Cinder.QueryBuilder do
                 :keyset ->
                   execute_with_keyset_pagination(
                     prepared_query,
-                    actor,
+                    effective_actor,
                     effective_tenant,
                     scope_opts,
                     query_opts,
@@ -159,7 +164,7 @@ defmodule Cinder.QueryBuilder do
                 :offset ->
                   execute_with_pagination(
                     prepared_query,
-                    actor,
+                    effective_actor,
                     effective_tenant,
                     scope_opts,
                     query_opts,
@@ -182,7 +187,7 @@ defmodule Cinder.QueryBuilder do
 
               execute_without_pagination(
                 prepared_query,
-                actor,
+                effective_actor,
                 effective_tenant,
                 scope_opts,
                 query_opts,

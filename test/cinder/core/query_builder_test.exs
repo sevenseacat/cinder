@@ -1575,6 +1575,40 @@ defmodule Cinder.QueryBuilderTest do
   end
 
   describe "scope passthrough" do
+    test "preserves query actor when scope has no actor" do
+      query_with_actor =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, actor: :query_actor)
+
+      scope = %{tenant: "scope_tenant"}
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(query_with_actor, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :actor) == :query_actor
+      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
+    end
+
     test "extracts actor/tenant from scope when no explicit values provided" do
       scope = %TestScope{
         current_user: :scope_actor,
