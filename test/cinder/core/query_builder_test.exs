@@ -1103,6 +1103,18 @@ defmodule Cinder.QueryBuilderTest do
       result = QueryBuilder.extract_query_sorts(query, columns)
       assert result == [{"settings__address__city", :asc}]
     end
+
+    test "extracts sorts from relationship field calc expressions" do
+      query =
+        TestAlbum
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{"artist.name", :desc}])
+
+      columns = [%{field: "title"}, %{field: "artist.name"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"artist.name", :desc}]
+    end
   end
 
   describe "build_ash_options/3 timeout handling" do

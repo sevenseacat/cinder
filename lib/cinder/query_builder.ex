@@ -1395,6 +1395,12 @@ defmodule Cinder.QueryBuilder do
         field_str = field_path |> Enum.map_join("__", &to_string/1)
         {"#{embed_str}__#{field_str}", direction}
 
+      %{relationship_path: rel_path, attribute: attr}
+      when is_list(rel_path) and rel_path != [] and not is_nil(attr) ->
+        relationship = Enum.map_join(rel_path, ".", &to_string/1)
+        attribute = to_string(attr)
+        {"#{relationship}.#{attribute}", direction}
+
       _ ->
         nil
     end
