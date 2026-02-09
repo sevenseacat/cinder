@@ -135,6 +135,68 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  defmodule AggregateArtist do
+    use Ash.Resource,
+      domain: nil,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:name, :string, public?: true)
+    end
+
+    calculations do
+      calculate(:name_upper, :string, expr(name))
+    end
+
+    relationships do
+      has_many(:albums, AggregateAlbum, destination_attribute: :artist_id)
+    end
+
+    aggregates do
+      count(:album_count, :albums)
+    end
+
+    actions do
+      defaults([:read])
+    end
+  end
+
+  defmodule AggregateAlbum do
+    use Ash.Resource,
+      domain: nil,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:title, :string, public?: true)
+      attribute(:artist_id, :uuid, public?: true)
+    end
+
+    relationships do
+      belongs_to :artist, AggregateArtist do
+        source_attribute(:artist_id)
+        destination_attribute(:id)
+        public?(true)
+        attribute_writable?(true)
+      end
+    end
+
+    actions do
+      defaults([:read])
+    end
+  end
+
   defmodule TestDomain do
     use Ash.Domain, validate_config_inclusion?: false
 
@@ -924,6 +986,54 @@ defmodule Cinder.QueryBuilderTest do
 
       result = QueryBuilder.extract_query_sorts(query, columns)
       assert result == [{"name", :desc}, {"email", :asc}]
+    end
+
+    test "extracts sorts from calculation fields" do
+      query =
+        Album
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> Ash.Query.sort([{:track_count, :desc}])
+
+      columns = [%{field: "title"}, %{field: "track_count"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"track_count", :desc}]
+    end
+
+    test "extracts sorts from aggregate fields" do
+      query =
+        AggregateArtist
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{:album_count, :asc}])
+
+      columns = [%{field: "name"}, %{field: "album_count"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"album_count", :asc}]
+    end
+
+    test "extracts sorts from relationship calculation fields" do
+      query =
+        AggregateAlbum
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{"artist.name_upper", :desc}])
+
+      columns = [%{field: "title"}, %{field: "artist.name_upper"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"artist.name_upper", :desc}]
+    end
+
+    test "extracts sorts from relationship aggregate fields" do
+      query =
+        AggregateAlbum
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{"artist.album_count", :asc}])
+
+      columns = [%{field: "title"}, %{field: "artist.album_count"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"artist.album_count", :asc}]
     end
 
     test "returns empty list for resource module" do
