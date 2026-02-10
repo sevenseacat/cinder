@@ -57,7 +57,7 @@ defmodule Cinder.MixProject do
       {:phoenix_live_view, "~> 1.0"},
       {:spark, "~> 2.0"},
       {:gettext, "~> 1.0.0"},
-      {:usage_rules, "~> 0.1", only: [:dev]},
+      {:usage_rules, "~> 1.0", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
       {:makeup_eex, "~> 2.0", only: :dev},
       {:makeup_html, ">= 0.0.0", only: :dev},
