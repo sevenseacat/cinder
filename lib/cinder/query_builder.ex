@@ -115,7 +115,12 @@ defmodule Cinder.QueryBuilder do
     before_keyset = Keyword.get(options, :before_keyset)
 
     try do
-      # Query tenant as final fallback
+      # Query actor/tenant as final fallback
+      effective_actor =
+        actor ||
+          if is_struct(resource_or_query, Ash.Query),
+            do: get_in(resource_or_query.context, [:private, :actor])
+
       effective_tenant =
         tenant || if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant
 
@@ -123,7 +128,7 @@ defmodule Cinder.QueryBuilder do
       {base_query, resource} =
         normalize_resource_or_query(
           resource_or_query,
-          actor,
+          effective_actor,
           effective_tenant,
           scope_opts,
           query_opts
@@ -147,7 +152,7 @@ defmodule Cinder.QueryBuilder do
                 :keyset ->
                   execute_with_keyset_pagination(
                     prepared_query,
-                    actor,
+                    effective_actor,
                     effective_tenant,
                     scope_opts,
                     query_opts,
@@ -159,7 +164,7 @@ defmodule Cinder.QueryBuilder do
                 :offset ->
                   execute_with_pagination(
                     prepared_query,
-                    actor,
+                    effective_actor,
                     effective_tenant,
                     scope_opts,
                     query_opts,
@@ -182,7 +187,7 @@ defmodule Cinder.QueryBuilder do
 
               execute_without_pagination(
                 prepared_query,
-                actor,
+                effective_actor,
                 effective_tenant,
                 scope_opts,
                 query_opts,
@@ -1381,7 +1386,17 @@ defmodule Cinder.QueryBuilder do
     {field, :asc}
   end
 
-  # Handle calc expressions from embedded field sorts (e.g., weather__clear)
+  # Handle calc expressions for calculations
+  # These are stored with a simple atom as the calc_name
+  defp normalize_sort_tuple({
+         %{module: Ash.Resource.Calculation.Expression, calc_name: calc_name},
+         direction
+       })
+       when is_atom(calc_name) and not is_nil(calc_name) and direction in [:asc, :desc] do
+    {calc_name, direction}
+  end
+
+  # Handle calc expressions from embedded field sorts (e.g., weather__clear) and relationship field sorts (e.g., artist.name)
   # The sort is an Ash.Query.Calculation with module: Ash.Resource.Calculation.Expression
   # and opts containing expr: %Ash.Query.Call{name: :get_path, args: [{:_ref, [], :field}, [:path]]}
   defp normalize_sort_tuple({
@@ -1394,6 +1409,19 @@ defmodule Cinder.QueryBuilder do
         embed_str = to_string(embed_name)
         field_str = field_path |> Enum.map_join("__", &to_string/1)
         {"#{embed_str}__#{field_str}", direction}
+
+      %{relationship_path: rel_path, attribute: attr}
+      when is_list(rel_path) and rel_path != [] and not is_nil(attr) ->
+        relationship = Enum.map_join(rel_path, ".", &to_string/1)
+
+        attribute =
+          case attr do
+            # Handles calculations & aggregates on relationships
+            %Ash.Query.Calculation{calc_name: cn, name: n} -> cn || n
+            v -> v
+          end
+
+        {"#{relationship}.#{attribute}", direction}
 
       _ ->
         nil

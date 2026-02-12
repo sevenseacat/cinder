@@ -931,6 +931,12 @@ defmodule Cinder.LiveComponent do
   # Normalize scope by extracting IDs from nested structs
   defp normalize_scope(nil), do: nil
 
+  defp normalize_scope(%_{} = scope) do
+    scope
+    |> Map.from_struct()
+    |> normalize_scope()
+  end
+
   defp normalize_scope(scope) when is_map(scope) do
     scope
     |> Enum.map(fn

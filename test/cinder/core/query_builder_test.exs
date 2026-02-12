@@ -135,6 +135,68 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  defmodule AggregateArtist do
+    use Ash.Resource,
+      domain: nil,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:name, :string, public?: true)
+    end
+
+    calculations do
+      calculate(:name_upper, :string, expr(name))
+    end
+
+    relationships do
+      has_many(:albums, AggregateAlbum, destination_attribute: :artist_id)
+    end
+
+    aggregates do
+      count(:album_count, :albums)
+    end
+
+    actions do
+      defaults([:read])
+    end
+  end
+
+  defmodule AggregateAlbum do
+    use Ash.Resource,
+      domain: nil,
+      data_layer: Ash.DataLayer.Ets,
+      validate_domain_inclusion?: false
+
+    ets do
+      private?(true)
+    end
+
+    attributes do
+      uuid_primary_key(:id)
+      attribute(:title, :string, public?: true)
+      attribute(:artist_id, :uuid, public?: true)
+    end
+
+    relationships do
+      belongs_to :artist, AggregateArtist do
+        source_attribute(:artist_id)
+        destination_attribute(:id)
+        public?(true)
+        attribute_writable?(true)
+      end
+    end
+
+    actions do
+      defaults([:read])
+    end
+  end
+
   defmodule TestDomain do
     use Ash.Domain, validate_config_inclusion?: false
 
@@ -926,6 +988,54 @@ defmodule Cinder.QueryBuilderTest do
       assert result == [{"name", :desc}, {"email", :asc}]
     end
 
+    test "extracts sorts from calculation fields" do
+      query =
+        Album
+        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
+        |> Ash.Query.sort([{:track_count, :desc}])
+
+      columns = [%{field: "title"}, %{field: "track_count"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"track_count", :desc}]
+    end
+
+    test "extracts sorts from aggregate fields" do
+      query =
+        AggregateArtist
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{:album_count, :asc}])
+
+      columns = [%{field: "name"}, %{field: "album_count"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"album_count", :asc}]
+    end
+
+    test "extracts sorts from relationship calculation fields" do
+      query =
+        AggregateAlbum
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{"artist.name_upper", :desc}])
+
+      columns = [%{field: "title"}, %{field: "artist.name_upper"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"artist.name_upper", :desc}]
+    end
+
+    test "extracts sorts from relationship aggregate fields" do
+      query =
+        AggregateAlbum
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{"artist.album_count", :asc}])
+
+      columns = [%{field: "title"}, %{field: "artist.album_count"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"artist.album_count", :asc}]
+    end
+
     test "returns empty list for resource module" do
       result = QueryBuilder.extract_query_sorts(TestUser, [])
       assert result == []
@@ -1102,6 +1212,18 @@ defmodule Cinder.QueryBuilderTest do
 
       result = QueryBuilder.extract_query_sorts(query, columns)
       assert result == [{"settings__address__city", :asc}]
+    end
+
+    test "extracts sorts from relationship field calc expressions" do
+      query =
+        TestAlbum
+        |> Ash.Query.new()
+        |> Ash.Query.sort([{"artist.name", :desc}])
+
+      columns = [%{field: "title"}, %{field: "artist.name"}]
+
+      result = QueryBuilder.extract_query_sorts(query, columns)
+      assert result == [{"artist.name", :desc}]
     end
   end
 
@@ -1563,6 +1685,40 @@ defmodule Cinder.QueryBuilderTest do
   end
 
   describe "scope passthrough" do
+    test "preserves query actor when scope has no actor" do
+      query_with_actor =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, actor: :query_actor)
+
+      scope = %{tenant: "scope_tenant"}
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: []
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(query_with_actor, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :actor) == :query_actor
+      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
+    end
+
     test "extracts actor/tenant from scope when no explicit values provided" do
       scope = %TestScope{
         current_user: :scope_actor,

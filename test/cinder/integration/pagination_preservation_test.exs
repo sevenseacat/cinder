@@ -11,6 +11,10 @@ defmodule Cinder.Integration.PaginationPreservationTest do
 
   alias Cinder.LiveComponent
 
+  defmodule TestScopeStruct do
+    defstruct [:current_user, :current_tenant]
+  end
+
   # Simulate a socket with all the assigns a loaded Cinder component would have
   defp make_loaded_socket do
     page = %Ash.Page.Offset{
@@ -137,6 +141,26 @@ defmodule Cinder.Integration.PaginationPreservationTest do
 
       # Data should be preserved
       assert updated_socket.assigns.data == original_data
+    end
+
+    test "handles struct scope without crashing on update" do
+      scope = %TestScopeStruct{current_user: %{id: 1}, current_tenant: "scope_tenant"}
+      socket = make_loaded_socket()
+
+      new_assigns = %{
+        id: "test-table",
+        query: nil,
+        query_opts: [],
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        col: [],
+        item_slot: [],
+        search_fn: nil
+      }
+
+      assert {:ok, updated_socket} = LiveComponent.update(new_assigns, socket)
+      assert updated_socket.assigns.page != nil
     end
   end
 end
