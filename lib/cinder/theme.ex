@@ -66,7 +66,6 @@ defmodule Cinder.Theme do
     row_class: "",
     th_class: "text-left whitespace-nowrap",
     td_class: "",
-    loading_class: "text-center py-4",
     empty_class: "text-center py-4",
     error_container_class: "text-red-600 text-sm",
     error_message_class: "",
@@ -80,7 +79,6 @@ defmodule Cinder.Theme do
     filter_inputs_class: "",
     filter_input_wrapper_class: "",
     filter_label_class: "",
-    filter_placeholder_class: "",
     filter_clear_button_class: "",
     filter_text_input_class: "",
     filter_date_input_class: "",
@@ -148,11 +146,8 @@ defmodule Cinder.Theme do
     loading_spinner_path_class: "",
 
     # Search
-    search_container_class: "",
-    search_wrapper_class: "relative",
     search_input_class: "w-full px-3 py-2 border rounded",
     search_icon_class: "w-4 h-4",
-    search_label_class: "",
 
     # List
     list_container_class: "divide-y divide-gray-200",

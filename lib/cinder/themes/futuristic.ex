@@ -32,7 +32,6 @@ defmodule Cinder.Themes.Futuristic do
       "px-6 py-4 text-left text-sm font-light text-blue-100 tracking-wider whitespace-nowrap border-b border-blue-500/30 bg-gradient-to-r from-transparent to-blue-500/5"
 
   set :td_class, "px-6 py-4 text-sm text-slate-200 font-light"
-  set :loading_class, "text-center py-12 text-blue-400 font-light tracking-wider"
   set :empty_class, "text-center py-12 text-green-400 italic font-light tracking-wide"
 
   set :error_container_class,
@@ -62,9 +61,6 @@ defmodule Cinder.Themes.Futuristic do
 
   set :filter_label_class,
       "block text-sm font-light text-blue-100 tracking-wide whitespace-nowrap"
-
-  set :filter_placeholder_class,
-      "text-sm text-slate-400 italic p-3 border border-blue-500/30 bg-slate-900/50 font-light backdrop-blur-sm"
 
   set :filter_clear_button_class,
       "text-green-400 hover:text-green-300 transition-colors duration-300 ml-2 font-light hover:drop-shadow-sm hover:drop-shadow-green-400/50"
@@ -188,14 +184,10 @@ defmodule Cinder.Themes.Futuristic do
   set :sort_none_icon_class, "w-3 h-3 text-slate-400 opacity-65"
 
   # Search
-  set :search_container_class, ""
-  set :search_wrapper_class, ""
-
   set :search_input_class,
       "w-full pl-10 px-4 py-3 border border-blue-500/40 bg-slate-900/60 text-blue-100 text-sm focus:outline-none focus:border-green-400/60 focus:shadow-lg focus:shadow-green-400/20 transition-all duration-300 font-light placeholder-slate-500 backdrop-blur-sm"
 
   set :search_icon_class, "w-4 h-4 text-blue-300"
-  set :search_label_class, ""
 
   # Loading
   set :loading_overlay_class, "absolute top-10 right-10 z-10"

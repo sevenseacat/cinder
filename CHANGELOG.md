@@ -17,6 +17,10 @@
 
 * **Removed `_data` theme keys.** Theme maps no longer contain `_data` companion keys (e.g. `container_data`, `th_data`). The `data-key` attributes are now hardcoded directly in templates. If you have custom filter templates that spread `_data` theme keys (e.g. `{@theme.filter_text_input_data}`), replace them with a hardcoded `data-key` attribute matching the `_class` key name (e.g. `data-key="filter_text_input_class"`). See the [upgrading guide](docs/upgrading.md) for details. ([#117](https://github.com/sevenseacat/cinder/issues/117))
 
+### Chores
+
+* Remove unused theme keys: `loading_class`, `filter_placeholder_class`, `search_container_class`, `search_label_class`, `search_wrapper_class`
+
 ## v0.9.1 (2026-02-13)
 
 ### Bugfixes

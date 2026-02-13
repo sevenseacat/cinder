@@ -28,7 +28,6 @@ defmodule Cinder.Themes.Modern do
       "px-6 py-4 text-left text-sm font-semibold text-gray-900 tracking-wide whitespace-nowrap"
 
   set :td_class, "px-6 py-4 text-sm text-gray-700"
-  set :loading_class, "text-center py-12 text-gray-500"
   set :empty_class, "text-center py-12 text-gray-500 italic"
   set :error_container_class, "bg-red-50 border border-red-200 rounded-lg p-4 text-red-700"
   set :error_message_class, "text-sm"
@@ -52,9 +51,6 @@ defmodule Cinder.Themes.Modern do
 
   set :filter_label_class,
       "block text-sm font-medium text-gray-700 whitespace-nowrap"
-
-  set :filter_placeholder_class,
-      "text-sm text-gray-400 italic p-3 border border-gray-200 rounded-lg bg-gray-50"
 
   set :filter_clear_button_class,
       "text-gray-400 hover:text-red-500 transition-colors duration-150 ml-2"
@@ -171,16 +167,10 @@ defmodule Cinder.Themes.Modern do
   set :loading_spinner_path_class, "opacity-75"
 
   # Search
-  # Search now uses filter input wrapper and label classes
-  set :search_container_class, ""
-  set :search_wrapper_class, ""
-
   set :search_input_class,
       "w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
 
   set :search_icon_class, "w-4 h-4 text-gray-400"
-  # Now uses filter_label_class from filter theme
-  set :search_label_class, ""
 
   # List
   set :list_container_class, "divide-y divide-gray-200 border-y border-gray-200"

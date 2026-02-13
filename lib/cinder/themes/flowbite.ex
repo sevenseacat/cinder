@@ -34,7 +34,6 @@ defmodule Cinder.Themes.Flowbite do
 
   set :th_class, "px-6 py-3 whitespace-nowrap font-medium"
   set :td_class, "px-6 py-4"
-  set :loading_class, "text-center py-8 text-gray-500 dark:text-gray-400"
   set :empty_class, "text-center py-8 text-gray-500 dark:text-gray-400"
 
   set :error_container_class,
@@ -66,9 +65,6 @@ defmodule Cinder.Themes.Flowbite do
 
   set :filter_label_class,
       "block text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap"
-
-  set :filter_placeholder_class,
-      "text-sm text-gray-500 dark:text-gray-400 italic p-2.5 border border-gray-300 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
 
   set :filter_clear_button_class,
       "text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-2 inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
@@ -190,14 +186,10 @@ defmodule Cinder.Themes.Flowbite do
   set :page_size_selected_class, "bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300"
 
   # Search
-  set :search_container_class, "mb-4"
-  set :search_wrapper_class, "relative"
-
   set :search_input_class,
       "block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
 
   set :search_icon_class, "w-4 h-4 text-gray-500 dark:text-gray-400"
-  set :search_label_class, "sr-only"
 
   # Sorting
   set :sort_indicator_class, "ml-1.5 inline-flex items-center align-baseline"

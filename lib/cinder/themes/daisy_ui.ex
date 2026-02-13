@@ -23,7 +23,6 @@ defmodule Cinder.Themes.DaisyUI do
   set :row_class, ""
   set :th_class, "text-left font-semibold whitespace-nowrap"
   set :td_class, ""
-  set :loading_class, "text-center py-8 loading loading-spinner loading-md"
   set :empty_class, "text-center py-8 text-base-content/60"
   set :error_container_class, "alert alert-error"
   set :error_message_class, ""
@@ -40,9 +39,6 @@ defmodule Cinder.Themes.DaisyUI do
 
   set :filter_input_wrapper_class, "form-control"
   set :filter_label_class, "label whitespace-nowrap"
-
-  set :filter_placeholder_class,
-      "text-base-content/40 italic p-3 border border-base-300 rounded bg-base-200"
 
   set :filter_clear_button_class, "btn btn-ghost btn-xs ml-2"
   # Input styling
@@ -120,14 +116,10 @@ defmodule Cinder.Themes.DaisyUI do
   set :page_size_selected_class, "bg-primary text-primary-content"
 
   # Search
-  set :search_container_class, ""
-  set :search_wrapper_class, ""
-
   set :search_input_class,
       "input input-bordered w-full pl-10"
 
   set :search_icon_class, "w-4 h-4"
-  set :search_label_class, ""
 
   # Sorting
   set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"

@@ -31,7 +31,6 @@ defmodule Cinder.Themes.Retro do
       "px-6 py-4 text-left text-sm font-bold text-cyan-100 tracking-widest uppercase whitespace-nowrap border-b-2 border-cyan-400"
 
   set :td_class, "px-6 py-4 text-sm text-cyan-100 font-medium"
-  set :loading_class, "text-center py-12 text-cyan-400 font-bold uppercase tracking-wide"
 
   set :empty_class,
       "text-center py-12 text-cyan-100 italic font-bold bg-gray-800/50 border border-cyan-400"
@@ -63,9 +62,6 @@ defmodule Cinder.Themes.Retro do
 
   set :filter_label_class,
       "block text-sm font-bold text-cyan-100 uppercase tracking-wide whitespace-nowrap"
-
-  set :filter_placeholder_class,
-      "text-sm text-gray-400 italic p-3 border-2 border-purple-600 bg-gray-800 font-bold"
 
   set :filter_clear_button_class,
       "text-yellow-400 hover:text-yellow-300 transition-colors duration-200 ml-2 font-bold"
@@ -181,14 +177,10 @@ defmodule Cinder.Themes.Retro do
   set :page_size_selected_class, "bg-gradient-to-r from-cyan-800 to-fuchsia-800 text-yellow-400"
 
   # Search
-  set :search_container_class, ""
-  set :search_wrapper_class, ""
-
   set :search_input_class,
       "w-full pl-10 px-4 py-3 border-2 border-cyan-400 bg-gray-800 text-cyan-100 text-sm focus:outline-none focus:border-fuchsia-400 focus:shadow-lg focus:shadow-fuchsia-400/30 transition-all duration-200 font-bold placeholder-gray-500"
 
   set :search_icon_class, "w-4 h-4 text-cyan-400"
-  set :search_label_class, ""
 
   # Sorting
   set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"

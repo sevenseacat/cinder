@@ -30,7 +30,6 @@ defmodule Cinder.Themes.Dark do
       "px-6 py-4 text-left text-sm font-semibold text-gray-200 tracking-wide whitespace-nowrap"
 
   set :td_class, "px-6 py-4 text-sm text-gray-300"
-  set :loading_class, "text-center py-12 text-gray-400"
   set :empty_class, "text-center py-12 text-gray-400 italic"
 
   set :error_container_class,
@@ -60,9 +59,6 @@ defmodule Cinder.Themes.Dark do
 
   set :filter_label_class,
       "block text-sm font-medium text-gray-300 whitespace-nowrap"
-
-  set :filter_placeholder_class,
-      "text-sm text-gray-500 italic p-3 border border-gray-600 rounded-lg bg-gray-700"
 
   set :filter_clear_button_class,
       "text-gray-400 hover:text-red-400 transition-colors duration-200 ml-2"
@@ -180,16 +176,10 @@ defmodule Cinder.Themes.Dark do
   set :loading_spinner_path_class, "opacity-75"
 
   # Search
-  # Search now uses filter input wrapper and label classes
-  set :search_container_class, ""
-  set :search_wrapper_class, ""
-
   set :search_input_class,
       "w-full pl-10 px-4 py-3 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 placeholder-gray-400"
 
   set :search_icon_class, "w-4 h-4 text-gray-400"
-  # Now uses filter_label_class from filter theme
-  set :search_label_class, ""
 
   # List
   set :list_container_class, "divide-y divide-gray-700"
