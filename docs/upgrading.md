@@ -2,6 +2,47 @@
 
 This guide covers breaking changes, deprecations, and migration paths for Cinder.
 
+## Upgrading to 0.10.0
+
+### Removed: `_data` Theme Keys
+
+Theme maps no longer contain `_data` companion keys. Previously, every `_class` key had an auto-generated `_data` counterpart (e.g. `container_data`, `filter_text_input_data`) that was spread in templates to produce `data-key` attributes for browser inspector debugging. These `data-key` attributes are now hardcoded directly in templates.
+
+**This only affects you if you have custom filter modules that reference `_data` theme keys.** If you only use built-in filters and themes, no changes are needed.
+
+#### Custom filter templates
+
+If your custom filter's `render/4` function spreads `_data` theme keys, replace them with hardcoded `data-key` attributes:
+
+```heex
+<%!-- Before --%>
+<input
+  class={@theme.filter_text_input_class}
+  {@theme.filter_text_input_data}
+/>
+
+<%!-- After --%>
+<input
+  class={@theme.filter_text_input_class}
+  data-key="filter_text_input_class"
+/>
+```
+
+The `data-key` value is always the name of the corresponding `_class` key.
+
+#### Custom themes
+
+If your custom theme sets `_data` keys, remove them — they are no longer recognized:
+
+```elixir
+# Before
+set :filter_text_input_class, "my-input-class"
+set :filter_text_input_data, %{"data-key" => "filter_text_input_class"}  # remove this
+
+# After
+set :filter_text_input_class, "my-input-class"
+```
+
 ## Upgrading to 0.9.0
 
 ### New Unified Collection API
@@ -181,4 +222,5 @@ All deprecated features will be removed in version 1.0. To prepare:
 |---------|---------|
 | 0.5.4 | `filter_options` deprecated |
 | 0.9.0 | `Cinder.Table.table` deprecated, module relocations, `pastel` theme removed, theme `component/2` syntax deprecated |
+| 0.10.0 | `_data` theme keys removed |
 | 1.0.0 | All deprecated features removed |

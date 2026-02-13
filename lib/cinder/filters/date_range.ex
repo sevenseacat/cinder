@@ -38,8 +38,8 @@ defmodule Cinder.Filters.DateRange do
     }
 
     ~H"""
-    <div class={@theme.filter_range_container_class} {@theme.filter_range_container_data}>
-      <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
+    <div class={@theme.filter_range_container_class} data-key="filter_range_container_class">
+      <div class={@theme.filter_range_input_group_class} data-key="filter_range_input_group_class">
         <input
           type={@input_type}
           id={@from_id}
@@ -47,13 +47,13 @@ defmodule Cinder.Filters.DateRange do
           value={@from_value}
           placeholder={dgettext("cinder", "From")}
           class={@theme.filter_date_input_class}
-          {@theme.filter_date_input_data}
+          data-key="filter_date_input_class"
         />
       </div>
-      <div class={@theme.filter_range_separator_class} {@theme.filter_range_separator_data}>
+      <div class={@theme.filter_range_separator_class} data-key="filter_range_separator_class">
         {dgettext("cinder", "to")}
       </div>
-      <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
+      <div class={@theme.filter_range_input_group_class} data-key="filter_range_input_group_class">
         <input
           type={@input_type}
           id={@to_id}
@@ -61,7 +61,7 @@ defmodule Cinder.Filters.DateRange do
           value={@to_value}
           placeholder={dgettext("cinder", "To")}
           class={@theme.filter_date_input_class}
-          {@theme.filter_date_input_data}
+          data-key="filter_date_input_class"
         />
       </div>
     </div>

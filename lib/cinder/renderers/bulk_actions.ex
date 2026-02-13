@@ -42,7 +42,7 @@ defmodule Cinder.Renderers.BulkActions do
       |> assign(:slots, slots)
 
     ~H"""
-    <div class={@theme.bulk_actions_container_class} {@theme.bulk_actions_container_data}>
+    <div class={@theme.bulk_actions_container_class} data-key="bulk_actions_container_class">
       <%= for {slot, index} <- Enum.with_index(@slots) do %>
         <span
           phx-click={JS.push("bulk_action_execute", value: %{index: index}, target: @myself)}

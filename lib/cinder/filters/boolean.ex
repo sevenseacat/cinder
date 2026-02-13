@@ -29,7 +29,7 @@ defmodule Cinder.Filters.Boolean do
     }
 
     ~H"""
-    <div class={@theme.filter_boolean_container_class} {@theme.filter_boolean_container_data}>
+    <div class={@theme.filter_boolean_container_class} data-key="filter_boolean_container_class">
       <.option name={field_name(@column.field)} label={@true_label} value="true" checked={@current_boolean_value == "true"} theme={@theme} />
       <.option name={field_name(@column.field)} label={@false_label} value="false" checked={@current_boolean_value == "false"} theme={@theme} />
     </div>
@@ -44,7 +44,7 @@ defmodule Cinder.Filters.Boolean do
 
   defp option(assigns) do
     ~H"""
-    <label class={@theme.filter_boolean_option_class} {@theme.filter_boolean_option_data}>
+    <label class={@theme.filter_boolean_option_class} data-key="filter_boolean_option_class">
       <input
         type="radio"
         name={@name}
@@ -52,9 +52,9 @@ defmodule Cinder.Filters.Boolean do
         checked={@checked}
         class={@theme.filter_boolean_radio_class}
         aria-label={@label}
-        {@theme.filter_boolean_radio_data}
+        data-key="filter_boolean_radio_class"
       />
-      <span class={@theme.filter_boolean_label_class} {@theme.filter_boolean_label_data}>{@label}</span>
+      <span class={@theme.filter_boolean_label_class} data-key="filter_boolean_label_class">{@label}</span>
     </label>
     """
   end

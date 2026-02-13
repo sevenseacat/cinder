@@ -8,31 +8,18 @@ defmodule Cinder.Renderers.ListTest do
   defp build_theme do
     %{
       container_class: "container",
-      container_data: %{"data-key" => "container_class"},
       controls_class: "controls",
-      controls_data: %{"data-key" => "controls_class"},
       empty_class: "empty",
-      empty_data: %{"data-key" => "empty_class"},
       loading_overlay_class: "loading-overlay",
-      loading_overlay_data: %{"data-key" => "loading_overlay_class"},
       loading_container_class: "loading-container",
-      loading_container_data: %{"data-key" => "loading_container_class"},
       loading_spinner_class: "spinner",
-      loading_spinner_data: %{"data-key" => "loading_spinner_class"},
       loading_spinner_circle_class: "spinner-circle",
-      loading_spinner_circle_data: %{"data-key" => "loading_spinner_circle_class"},
       loading_spinner_path_class: "spinner-path",
-      loading_spinner_path_data: %{"data-key" => "loading_spinner_path_class"},
       pagination_wrapper_class: "pagination",
-      pagination_wrapper_data: %{"data-key" => "pagination_wrapper_class"},
       list_container_class: "divide-y divide-gray-200",
-      list_container_data: %{"data-key" => "list_container_class"},
       list_item_class: "py-3 px-4",
-      list_item_data: %{"data-key" => "list_item_class"},
       list_item_clickable_class: "cursor-pointer hover:bg-gray-50",
-      list_item_clickable_data: %{"data-key" => "list_item_clickable_class"},
-      bulk_actions_container_class: "bulk-actions",
-      bulk_actions_container_data: %{"data-key" => "bulk_actions_container_class"}
+      bulk_actions_container_class: "bulk-actions"
     }
   end
 
@@ -103,7 +90,7 @@ defmodule Cinder.Renderers.ListTest do
       assert html =~ ~s(data-key="list_item_clickable_class")
     end
 
-    test "does not include data-key when custom container_class is provided" do
+    test "includes data-key even when custom container_class is provided" do
       assigns =
         base_assigns()
         |> Map.put(:container_class, "my-custom-container")
@@ -111,7 +98,7 @@ defmodule Cinder.Renderers.ListTest do
       html = render_component(&ListRenderer.render/1, assigns)
 
       assert html =~ "my-custom-container"
-      refute html =~ ~s(data-key="list_container_class")
+      assert html =~ ~s(data-key="list_container_class")
     end
 
     test "multiple items each have data-key attribute" do

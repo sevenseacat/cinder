@@ -17,9 +17,9 @@ defmodule Cinder.Renderers.Table do
   """
   def render(assigns) do
     ~H"""
-    <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
+    <div class={[@theme.container_class, "relative"]} data-key="container_class">
       <!-- Filter Controls (including search) -->
-      <div :if={@show_filters} class={@theme.controls_class} {@theme.controls_data}>
+      <div :if={@show_filters} class={@theme.controls_class} data-key="controls_class">
         <Cinder.FilterManager.render_filter_controls
           table_id={@id}
           columns={Map.get(assigns, :query_columns, @columns)}
@@ -45,11 +45,11 @@ defmodule Cinder.Renderers.Table do
       />
 
       <!-- Main table -->
-      <div class={@theme.table_wrapper_class} {@theme.table_wrapper_data}>
-        <table class={@theme.table_class} {@theme.table_data}>
-          <thead class={@theme.thead_class} {@theme.thead_data}>
-            <tr class={@theme.header_row_class} {@theme.header_row_data}>
-              <th :if={@selectable} class={[@theme.th_class, "w-10"]} {@theme.th_data}>
+      <div class={@theme.table_wrapper_class} data-key="table_wrapper_class">
+        <table class={@theme.table_class} data-key="table_class">
+          <thead class={@theme.thead_class} data-key="thead_class">
+            <tr class={@theme.header_row_class} data-key="header_row_class">
+              <th :if={@selectable} class={[@theme.th_class, "w-10"]} data-key="th_class">
                 <input
                   type="checkbox"
                   checked={all_page_selected?(@selected_ids, @data, @id_field)}
@@ -58,14 +58,14 @@ defmodule Cinder.Renderers.Table do
                   class={@theme.selection_checkbox_class}
                 />
               </th>
-              <th :for={column <- @columns} class={[@theme.th_class, column.class]} {@theme.th_data}>
+              <th :for={column <- @columns} class={[@theme.th_class, column.class]} data-key="th_class">
                 <div :if={column.sortable}
                      class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
                      phx-click="toggle_sort"
                      phx-value-key={column.field}
                      phx-target={@myself}>
                      {column.label}
-                     <span class={@theme.sort_indicator_class} {@theme.sort_indicator_data}>
+                     <span class={@theme.sort_indicator_class} data-key="sort_indicator_class">
                        <.sort_arrow sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@loading} />
                      </span>
                 </div>
@@ -75,12 +75,12 @@ defmodule Cinder.Renderers.Table do
               </th>
             </tr>
           </thead>
-          <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} {@theme.tbody_data}>
+          <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} data-key="tbody_class">
             <tr :for={item <- @data}
                 class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
-                {@theme.row_data}
+                data-key="row_class"
                 phx-click={row_click_action(@row_click, @selectable, item, @id_field, @myself)}>
-              <td :if={@selectable} class={[@theme.td_class, "w-10"]} {@theme.td_data}>
+              <td :if={@selectable} class={[@theme.td_class, "w-10"]} data-key="td_class">
                 <input
                   type="checkbox"
                   checked={item_selected?(@selected_ids, item, @id_field)}
@@ -90,12 +90,12 @@ defmodule Cinder.Renderers.Table do
                   class={@theme.selection_checkbox_class}
                 />
               </td>
-              <td :for={column <- @columns} class={[@theme.td_class, column.class]} {@theme.td_data}>
+              <td :for={column <- @columns} class={[@theme.td_class, column.class]} data-key="td_class">
                 {render_slot(column.slot, item)}
               </td>
             </tr>
             <tr :if={@data == [] and not @loading}>
-              <td colspan={column_count(@columns, @selectable)} class={@theme.empty_class} {@theme.empty_data}>
+              <td colspan={column_count(@columns, @selectable)} class={@theme.empty_class} data-key="empty_class">
                 {@empty_message}
               </td>
             </tr>
@@ -104,11 +104,11 @@ defmodule Cinder.Renderers.Table do
       </div>
 
       <!-- Loading indicator -->
-      <div :if={@loading} class={@theme.loading_overlay_class} {@theme.loading_overlay_data}>
-        <div class={@theme.loading_container_class} {@theme.loading_container_data}>
-          <svg class={@theme.loading_spinner_class} {@theme.loading_spinner_data} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class={@theme.loading_spinner_circle_class} {@theme.loading_spinner_circle_data} cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class={@theme.loading_spinner_path_class} {@theme.loading_spinner_path_data} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
+        <div class={@theme.loading_container_class} data-key="loading_container_class">
+          <svg class={@theme.loading_spinner_class} data-key="loading_spinner_class" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class={@theme.loading_spinner_circle_class} data-key="loading_spinner_circle_class" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class={@theme.loading_spinner_path_class} data-key="loading_spinner_path_class" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           {@loading_message}
         </div>

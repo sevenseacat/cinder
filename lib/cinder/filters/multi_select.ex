@@ -105,7 +105,7 @@ defmodule Cinder.Filters.MultiSelect do
         type="button"
         id={"#{@dropdown_id}-button"}
         class={[@theme.filter_select_input_class, "flex items-center justify-between"]}
-        {@theme.filter_select_input_data}
+        data-key="filter_select_input_class"
         phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
         <span class={[if(Enum.empty?(@selected_values), do: @theme.filter_select_placeholder_class, else: ""), "truncate"]}>{@display_text}</span>
@@ -118,22 +118,22 @@ defmodule Cinder.Filters.MultiSelect do
       <div
         id={"#{@dropdown_id}-options"}
         class={[@theme.filter_multiselect_dropdown_class, "hidden"]}
-        {@theme.filter_multiselect_dropdown_data}
+        data-key="filter_multiselect_dropdown_class"
         phx-click-away={JS.hide(to: "##{@dropdown_id}-options")}
       >
-        <label :for={{label, value} <- @options} class={[@theme.filter_multiselect_option_class, "flex items-center"]} {@theme.filter_multiselect_option_data}>
+        <label :for={{label, value} <- @options} class={[@theme.filter_multiselect_option_class, "flex items-center"]} data-key="filter_multiselect_option_class">
           <input
             type="checkbox"
             name={@field_name <> "[]"}
             value={to_string(value)}
             checked={to_string(value) in Enum.map(@selected_values, &to_string/1)}
             class={@theme.filter_multiselect_checkbox_class}
-            {@theme.filter_multiselect_checkbox_data}
+            data-key="filter_multiselect_checkbox_class"
           />
-          <span class={@theme.filter_multiselect_label_class} {@theme.filter_multiselect_label_data}>{label}</span>
+          <span class={@theme.filter_multiselect_label_class} data-key="filter_multiselect_label_class">{label}</span>
         </label>
 
-        <div :if={Enum.empty?(@options)} class={@theme.filter_multiselect_empty_class} {@theme.filter_multiselect_empty_data}>
+        <div :if={Enum.empty?(@options)} class={@theme.filter_multiselect_empty_class} data-key="filter_multiselect_empty_class">
           {dgettext("cinder", "No options available")}
         </div>
       </div>

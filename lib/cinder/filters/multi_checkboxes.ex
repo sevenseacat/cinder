@@ -57,8 +57,8 @@ defmodule Cinder.Filters.MultiCheckboxes do
     }
 
     ~H"""
-    <div class={@theme.filter_multicheckboxes_container_class} {@theme.filter_multicheckboxes_container_data}>
-      <div :for={{label, value} <- @options} class={@theme.filter_multicheckboxes_option_class} {@theme.filter_multicheckboxes_option_data}>
+    <div class={@theme.filter_multicheckboxes_container_class} data-key="filter_multicheckboxes_container_class">
+      <div :for={{label, value} <- @options} class={@theme.filter_multicheckboxes_option_class} data-key="filter_multicheckboxes_option_class">
         <label>
           <input
             type="checkbox"
@@ -66,9 +66,9 @@ defmodule Cinder.Filters.MultiCheckboxes do
             value={to_string(value)}
             checked={to_string(value) in Enum.map(@selected_values, &to_string/1)}
             class={@theme.filter_multicheckboxes_checkbox_class}
-            {@theme.filter_multicheckboxes_checkbox_data}
+            data-key="filter_multicheckboxes_checkbox_class"
           />
-          <span class={@theme.filter_multicheckboxes_label_class} {@theme.filter_multicheckboxes_label_data}>{label}</span>
+          <span class={@theme.filter_multicheckboxes_label_class} data-key="filter_multicheckboxes_label_class">{label}</span>
         </label>
       </div>
     </div>

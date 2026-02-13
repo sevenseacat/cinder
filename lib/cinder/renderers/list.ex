@@ -24,23 +24,20 @@ defmodule Cinder.Renderers.List do
       Logger.warning("Cinder.List: No <:item> slot provided. Items will not be rendered.")
     end
 
-    {container_class, container_data} =
-      get_container_class(assigns.container_class, assigns.theme)
-
-    {item_class, item_data} = get_item_classes(assigns.theme, assigns.item_click)
+    container_class = get_container_class(assigns.container_class, assigns.theme)
+    {item_class, item_data_key} = get_item_classes(assigns.theme, assigns.item_click)
 
     assigns =
       assigns
       |> assign(:has_item_slot, has_item_slot)
       |> assign(:list_container_class, container_class)
-      |> assign(:list_container_data, container_data)
       |> assign(:list_item_class, item_class)
-      |> assign(:list_item_data, item_data)
+      |> assign(:list_item_data_key, item_data_key)
 
     ~H"""
-    <div class={[@theme.container_class, "relative"]} {@theme.container_data}>
+    <div class={[@theme.container_class, "relative"]} data-key="container_class">
       <!-- Controls Area (filters + sort) -->
-      <div :if={@show_filters or (@show_sort && SortControls.has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} {@theme.controls_data}>
+      <div :if={@show_filters or (@show_sort && SortControls.has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} data-key="controls_class">
         <!-- Filter Controls (including search) -->
         <Cinder.FilterManager.render_filter_controls
           :if={@show_filters}
@@ -78,12 +75,12 @@ defmodule Cinder.Renderers.List do
       />
 
       <!-- List Items Container -->
-      <div class={@list_container_class} {@list_container_data}>
+      <div class={@list_container_class} data-key="list_container_class">
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data}
             class={get_item_classes_with_selection(@list_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
-            {@list_item_data}
+            data-key={@list_item_data_key}
             phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), item, Map.get(assigns, :id_field, :id), @myself)}
           >
             <div
@@ -103,23 +100,23 @@ defmodule Cinder.Renderers.List do
           </div>
         <% else %>
           <!-- No item slot provided - render message -->
-          <div :if={not @loading} class={@theme.empty_class} {@theme.empty_data}>
+          <div :if={not @loading} class={@theme.empty_class} data-key="empty_class">
             No item template provided. Add an &lt;:item&gt; slot to render items.
           </div>
         <% end %>
 
         <!-- Empty State -->
-        <div :if={@data == [] and not @loading and @has_item_slot} class={@theme.empty_class} {@theme.empty_data}>
+        <div :if={@data == [] and not @loading and @has_item_slot} class={@theme.empty_class} data-key="empty_class">
           {@empty_message}
         </div>
       </div>
 
       <!-- Loading indicator -->
-      <div :if={@loading} class={@theme.loading_overlay_class} {@theme.loading_overlay_data}>
-        <div class={@theme.loading_container_class} {@theme.loading_container_data}>
-          <svg class={@theme.loading_spinner_class} {@theme.loading_spinner_data} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class={@theme.loading_spinner_circle_class} {@theme.loading_spinner_circle_data} cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class={@theme.loading_spinner_path_class} {@theme.loading_spinner_path_data} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
+        <div class={@theme.loading_container_class} data-key="loading_container_class">
+          <svg class={@theme.loading_spinner_class} data-key="loading_spinner_class" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class={@theme.loading_spinner_circle_class} data-key="loading_spinner_circle_class" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class={@theme.loading_spinner_path_class} data-key="loading_spinner_path_class" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           {@loading_message}
         </div>
@@ -144,16 +141,13 @@ defmodule Cinder.Renderers.List do
   # ============================================================================
 
   defp get_container_class(nil, theme) do
-    class = Map.get(theme, :list_container_class, "divide-y divide-gray-200")
-    data = Map.get(theme, :list_container_data, %{})
-    {class, data}
+    Map.get(theme, :list_container_class, "divide-y divide-gray-200")
   end
 
-  defp get_container_class(custom_class, _theme), do: {custom_class, %{}}
+  defp get_container_class(custom_class, _theme), do: custom_class
 
   defp get_item_classes(theme, item_click) do
     base = Map.get(theme, :list_item_class, "")
-    base_data = Map.get(theme, :list_item_data, %{})
 
     if item_click do
       clickable =
@@ -163,10 +157,9 @@ defmodule Cinder.Renderers.List do
           "cursor-pointer hover:bg-gray-50 transition-colors"
         )
 
-      clickable_data = Map.get(theme, :list_item_clickable_data, %{})
-      {[base, clickable], Map.merge(base_data, clickable_data)}
+      {[base, clickable], "list_item_clickable_class"}
     else
-      {base, base_data}
+      {base, "list_item_class"}
     end
   end
 

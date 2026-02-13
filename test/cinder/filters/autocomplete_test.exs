@@ -174,15 +174,10 @@ defmodule Cinder.Filters.AutocompleteTest do
       theme = %{
         filter_select_container_class: "container",
         filter_text_input_class: "input",
-        filter_text_input_data: [],
         filter_select_dropdown_class: "dropdown",
-        filter_select_dropdown_data: [],
         filter_select_option_class: "option",
-        filter_select_option_data: [],
         filter_select_label_class: "label",
-        filter_select_label_data: [],
-        filter_select_empty_class: "empty",
-        filter_select_empty_data: []
+        filter_select_empty_class: "empty"
       }
 
       assigns = %{target: nil, raw_filter_params: %{}}
@@ -218,15 +213,10 @@ defmodule Cinder.Filters.AutocompleteTest do
       theme = %{
         filter_select_container_class: "container",
         filter_text_input_class: "input",
-        filter_text_input_data: [],
         filter_select_dropdown_class: "dropdown",
-        filter_select_dropdown_data: [],
         filter_select_option_class: "option",
-        filter_select_option_data: [],
         filter_select_label_class: "label",
-        filter_select_label_data: [],
-        filter_select_empty_class: "empty",
-        filter_select_empty_data: []
+        filter_select_empty_class: "empty"
       }
 
       assigns = %{target: nil, raw_filter_params: %{}}
@@ -253,15 +243,10 @@ defmodule Cinder.Filters.AutocompleteTest do
       theme = %{
         filter_select_container_class: "container",
         filter_text_input_class: "input",
-        filter_text_input_data: [],
         filter_select_dropdown_class: "dropdown",
-        filter_select_dropdown_data: [],
         filter_select_option_class: "option",
-        filter_select_option_data: [],
         filter_select_label_class: "label",
-        filter_select_label_data: [],
-        filter_select_empty_class: "empty",
-        filter_select_empty_data: []
+        filter_select_empty_class: "empty"
       }
 
       # Search for "elec" should only match Electronics
@@ -288,15 +273,10 @@ defmodule Cinder.Filters.AutocompleteTest do
       theme = %{
         filter_select_container_class: "container",
         filter_text_input_class: "input",
-        filter_text_input_data: [],
         filter_select_dropdown_class: "dropdown",
-        filter_select_dropdown_data: [],
         filter_select_option_class: "option",
-        filter_select_option_data: [],
         filter_select_label_class: "label",
-        filter_select_label_data: [],
-        filter_select_empty_class: "empty",
-        filter_select_empty_data: []
+        filter_select_empty_class: "empty"
       }
 
       # Simulate a search that matches nothing
@@ -325,15 +305,10 @@ defmodule Cinder.Filters.AutocompleteTest do
       theme = %{
         filter_select_container_class: "container",
         filter_text_input_class: "input",
-        filter_text_input_data: [],
         filter_select_dropdown_class: "dropdown",
-        filter_select_dropdown_data: [],
         filter_select_option_class: "option",
-        filter_select_option_data: [],
         filter_select_label_class: "label",
-        filter_select_label_data: [],
-        filter_select_empty_class: "empty",
-        filter_select_empty_data: []
+        filter_select_empty_class: "empty"
       }
 
       assigns = %{target: nil, raw_filter_params: %{}}
@@ -363,15 +338,10 @@ defmodule Cinder.Filters.AutocompleteTest do
       theme = %{
         filter_select_container_class: "container",
         filter_text_input_class: "input",
-        filter_text_input_data: [],
         filter_select_dropdown_class: "dropdown",
-        filter_select_dropdown_data: [],
         filter_select_option_class: "option",
-        filter_select_option_data: [],
         filter_select_label_class: "label",
-        filter_select_label_data: [],
-        filter_select_empty_class: "empty",
-        filter_select_empty_data: []
+        filter_select_empty_class: "empty"
       }
 
       assigns = %{target: nil, raw_filter_params: %{}}

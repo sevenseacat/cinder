@@ -37,7 +37,7 @@ defmodule Cinder.Filters.Text do
       placeholder={@placeholder}
       phx-debounce="300"
       class={@theme.filter_text_input_class}
-      {@theme.filter_text_input_data}
+      data-key="filter_text_input_class"
     />
     """
   end

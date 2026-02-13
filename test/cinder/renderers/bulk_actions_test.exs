@@ -6,7 +6,6 @@ defmodule Cinder.Renderers.BulkActionsTest do
 
   @theme %{
     bulk_actions_container_class: "flex gap-2",
-    bulk_actions_container_data: [],
     button_class: "btn",
     button_primary_class: "btn-primary",
     button_secondary_class: "btn-outline",

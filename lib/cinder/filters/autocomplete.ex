@@ -118,7 +118,7 @@ defmodule Cinder.Filters.Autocomplete do
         value={if @current_value != "", do: @current_label, else: @search_term}
         placeholder={@placeholder}
         class={@theme.filter_text_input_class}
-        {@theme.filter_text_input_data}
+        data-key="filter_text_input_class"
         autocomplete="off"
         phx-debounce="300"
         phx-focus={JS.show(to: "##{@dropdown_id}-options")}
@@ -128,13 +128,13 @@ defmodule Cinder.Filters.Autocomplete do
       <div
         id={"#{@dropdown_id}-options"}
         class={[@theme.filter_select_dropdown_class, "hidden"]}
-        {@theme.filter_select_dropdown_data}
+        data-key="filter_select_dropdown_class"
         phx-click-away={JS.hide(to: "##{@dropdown_id}-options")}
       >
         <label
           :for={{label, value} <- @filtered_options}
           class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]}
-          {@theme.filter_select_option_data}
+          data-key="filter_select_option_class"
         >
           <input
             type="radio"
@@ -144,7 +144,7 @@ defmodule Cinder.Filters.Autocomplete do
             class="sr-only"
             phx-click={JS.hide(to: "##{@dropdown_id}-options")}
           />
-          <span class={@theme.filter_select_label_class} {@theme.filter_select_label_data}>
+          <span class={@theme.filter_select_label_class} data-key="filter_select_label_class">
             {label}
           </span>
         </label>
@@ -152,7 +152,7 @@ defmodule Cinder.Filters.Autocomplete do
         <div
           :if={@filtered_options == []}
           class={@theme.filter_select_empty_class}
-          {@theme.filter_select_empty_data}
+          data-key="filter_select_empty_class"
         >
           {dgettext("cinder", "No results found")}
         </div>
@@ -160,7 +160,7 @@ defmodule Cinder.Filters.Autocomplete do
         <div
           :if={@has_more}
           class={[@theme.filter_select_empty_class, "text-xs italic"]}
-          {@theme.filter_select_empty_data}
+          data-key="filter_select_empty_class"
         >
           {dgettext("cinder", "Type to search more options...")}
         </div>

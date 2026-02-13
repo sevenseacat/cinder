@@ -205,7 +205,6 @@ defmodule Cinder.Theme do
   def default do
     complete_default()
     |> apply_theme_property_mapping()
-    |> apply_theme_data_attributes()
   end
 
   @doc """
@@ -258,59 +257,51 @@ defmodule Cinder.Theme do
   def merge(theme_config)
 
   def merge("default"),
-    do: default() |> apply_theme_property_mapping() |> apply_theme_data_attributes()
+    do: default() |> apply_theme_property_mapping()
 
   def merge("modern"),
     do:
       Cinder.Themes.Modern.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
 
   def merge("retro"),
     do:
       Cinder.Themes.Retro.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
 
   def merge("futuristic"),
     do:
       Cinder.Themes.Futuristic.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
 
   def merge("dark"),
     do:
       Cinder.Themes.Dark.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
 
   def merge("daisy_ui"),
     do:
       Cinder.Themes.DaisyUI.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
 
   def merge("flowbite"),
     do:
       Cinder.Themes.Flowbite.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
 
   def merge("compact"),
     do:
       Cinder.Themes.Compact.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
 
   def merge(nil),
-    do: default() |> apply_theme_property_mapping() |> apply_theme_data_attributes()
+    do: default() |> apply_theme_property_mapping()
 
   def merge(theme_module) when is_atom(theme_module) do
     # Check if it's a DSL-based theme module
     try do
       theme_module.resolve_theme()
       |> apply_theme_property_mapping()
-      |> apply_theme_data_attributes()
     rescue
       _e in UndefinedFunctionError ->
         reraise ArgumentError,
@@ -399,25 +390,4 @@ defmodule Cinder.Theme do
   # Applies theme property mapping for backwards compatibility.
   # Currently a no-op since all properties are properly namespaced.
   defp apply_theme_property_mapping(theme), do: theme
-
-  # Applies theme data attributes by converting class properties to include data attributes.
-  defp apply_theme_data_attributes(theme) do
-    theme
-    |> Enum.map(fn {key, value} ->
-      if String.ends_with?(to_string(key), "_class") do
-        property_key = to_string(key)
-        data_key = String.replace_suffix(property_key, "_class", "_data")
-
-        # Create both the class and data attribute entries
-        [
-          {key, value},
-          {String.to_atom(data_key), %{"data-key" => property_key}}
-        ]
-      else
-        [{key, value}]
-      end
-    end)
-    |> List.flatten()
-    |> Enum.into(%{})
-  end
 end

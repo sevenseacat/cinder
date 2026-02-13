@@ -27,8 +27,8 @@ defmodule Cinder.Filters.NumberRange do
     }
 
     ~H"""
-    <div class={@theme.filter_range_container_class} {@theme.filter_range_container_data}>
-      <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
+    <div class={@theme.filter_range_container_class} data-key="filter_range_container_class">
+      <div class={@theme.filter_range_input_group_class} data-key="filter_range_input_group_class">
         <input
           type="number"
           id={@min_id}
@@ -37,13 +37,13 @@ defmodule Cinder.Filters.NumberRange do
           placeholder={dgettext("cinder", "Min")}
           phx-debounce="300"
           class={@theme.filter_number_input_class}
-          {@theme.filter_number_input_data}
+          data-key="filter_number_input_class"
         />
       </div>
-      <div class={@theme.filter_range_separator_class} {@theme.filter_range_separator_data}>
+      <div class={@theme.filter_range_separator_class} data-key="filter_range_separator_class">
         {dgettext("cinder", "to")}
       </div>
-      <div class={@theme.filter_range_input_group_class} {@theme.filter_range_input_group_data}>
+      <div class={@theme.filter_range_input_group_class} data-key="filter_range_input_group_class">
         <input
           type="number"
           id={@max_id}
@@ -52,7 +52,7 @@ defmodule Cinder.Filters.NumberRange do
           placeholder={dgettext("cinder", "Max")}
           phx-debounce="300"
           class={@theme.filter_number_input_class}
-          {@theme.filter_number_input_data}
+          data-key="filter_number_input_class"
         />
       </div>
     </div>

@@ -7,29 +7,17 @@ defmodule Cinder.Renderers.PaginationTest do
   defp build_theme do
     %{
       pagination_wrapper_class: "pagination-wrapper",
-      pagination_wrapper_data: %{},
       pagination_container_class: "pagination-container",
-      pagination_container_data: %{},
       pagination_info_class: "pagination-info",
-      pagination_info_data: %{},
       pagination_count_class: "pagination-count",
-      pagination_count_data: %{},
       pagination_nav_class: "pagination-nav",
-      pagination_nav_data: %{},
       pagination_button_class: "pagination-button",
-      pagination_button_data: %{},
       pagination_current_class: "pagination-current",
-      pagination_current_data: %{},
       page_size_container_class: "page-size-container",
-      page_size_container_data: %{},
       page_size_label_class: "page-size-label",
-      page_size_label_data: %{},
       page_size_dropdown_class: "page-size-dropdown",
-      page_size_dropdown_data: %{},
       page_size_dropdown_container_class: "page-size-dropdown-container",
-      page_size_dropdown_container_data: %{},
       page_size_option_class: "page-size-option",
-      page_size_option_data: %{},
       page_size_selected_class: "page-size-selected"
     }
   end

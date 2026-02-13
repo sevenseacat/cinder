@@ -64,12 +64,12 @@ defmodule Cinder.FilterManager do
 
     ~H"""
     <!-- Filter Controls (including search) -->
-    <div :if={@filterable_columns != [] or Map.get(assigns, :show_search, false)} class={@theme.filter_container_class} {@theme.filter_container_data}>
+    <div :if={@filterable_columns != [] or Map.get(assigns, :show_search, false)} class={@theme.filter_container_class} data-key="filter_container_class">
       <!-- Filter Header -->
-      <div class={@theme.filter_header_class} {@theme.filter_header_data}>
-        <span class={@theme.filter_title_class} {@theme.filter_title_data}>
+      <div class={@theme.filter_header_class} data-key="filter_header_class">
+        <span class={@theme.filter_title_class} data-key="filter_title_class">
           {@filters_label}
-          <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} {@theme.filter_count_data}>
+          <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} data-key="filter_count_class">
             ({@active_filters} {dngettext("cinder", "active", "active", @active_filters)})
           </span>
         </span>
@@ -78,17 +78,17 @@ defmodule Cinder.FilterManager do
           phx-click="clear_all_filters"
           phx-target={@target}
           class={[@theme.filter_clear_all_class, if(@active_filters == 0, do: "invisible", else: "")]}
-          {@theme.filter_clear_all_data}
+          data-key="filter_clear_all_class"
         >
           {dgettext("cinder", "Clear all")}
         </button>
       </div>
 
       <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
-        <div class={@theme.filter_inputs_class} {@theme.filter_inputs_data}>
+        <div class={@theme.filter_inputs_class} data-key="filter_inputs_class">
           <!-- Search Input (if enabled) - as first filter -->
-          <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
-            <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} {@theme.filter_label_data}>{Map.get(assigns, :search_label, dgettext("cinder", "Search"))}:</label>
+          <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
+            <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} data-key="filter_label_class">{Map.get(assigns, :search_label, dgettext("cinder", "Search"))}:</label>
             <div class="flex items-center space-x-2">
               <div class="flex-1 relative">
                 <input
@@ -99,10 +99,10 @@ defmodule Cinder.FilterManager do
                   placeholder={Map.get(assigns, :search_placeholder, dgettext("cinder", "Search..."))}
                   phx-debounce="300"
                   class={@theme.search_input_class}
-                  {@theme.search_input_data}
+                  data-key="search_input_class"
                 />
                 <div class="absolute inset-y-0 left-0 z-10 flex items-center pl-3 pointer-events-none">
-                  <svg class={@theme.search_icon_class} {@theme.search_icon_data} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class={@theme.search_icon_class} data-key="search_icon_class" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -118,7 +118,7 @@ defmodule Cinder.FilterManager do
                   @theme.filter_clear_button_class,
                   unless(Map.get(assigns, :search_term, "") != "", do: "invisible", else: "")
                 ]}
-                {@theme.filter_clear_button_data}
+                data-key="filter_clear_button_class"
                 title={dgettext("cinder", "Clear search")}
               >
                 ×
@@ -126,7 +126,7 @@ defmodule Cinder.FilterManager do
             </div>
           </div>
 
-          <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} {@theme.filter_input_wrapper_data}>
+          <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
             <.filter_label
               column={column}
               table_id={@table_id}
@@ -160,7 +160,7 @@ defmodule Cinder.FilterManager do
       ]}
       for={label_for_attr(@column.filter_type, @table_id, @column.field)}
       phx-click={label_click_action(@column.filter_type, @table_id, @column.field)}
-      {@theme.filter_label_data}
+      data-key="filter_label_class"
     >{@column.label}:</label>
     """
   end
@@ -274,7 +274,7 @@ defmodule Cinder.FilterManager do
           @theme.filter_clear_button_class,
           unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible", else: "")
         ]}
-        {@theme.filter_clear_button_data}
+        data-key="filter_clear_button_class"
         title={dgettext("cinder", "Clear filter")}
       >
         ×

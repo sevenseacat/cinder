@@ -148,11 +148,8 @@ defmodule Cinder.Filters.CheckboxTest do
     setup do
       theme = %{
         filter_checkbox_container_class: "checkbox-container",
-        filter_checkbox_container_data: [],
         filter_checkbox_input_class: "checkbox-input",
-        filter_checkbox_input_data: [],
-        filter_checkbox_label_class: "checkbox-label",
-        filter_checkbox_label_data: []
+        filter_checkbox_label_class: "checkbox-label"
       }
 
       %{theme: theme}

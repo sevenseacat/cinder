@@ -62,7 +62,7 @@ defmodule Cinder.Filters.Select do
         type="button"
         id={"#{@dropdown_id}-button"}
         class={[@theme.filter_select_input_class, "flex items-center justify-between"]}
-        {@theme.filter_select_input_data}
+        data-key="filter_select_input_class"
         phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
         <span class={[if(@current_value == "", do: @theme.filter_select_placeholder_class, else: ""), "truncate"]}>{@display_text}</span>
@@ -77,10 +77,10 @@ defmodule Cinder.Filters.Select do
       <div
         id={"#{@dropdown_id}-options"}
         class={[@theme.filter_select_dropdown_class, "hidden"]}
-        {@theme.filter_select_dropdown_data}
+        data-key="filter_select_dropdown_class"
         phx-click-away={JS.hide(to: "##{@dropdown_id}-options")}
       >
-        <label class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} {@theme.filter_select_option_data}>
+        <label class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} data-key="filter_select_option_class">
           <input
             type="radio"
             name={field_name(@column.field)}
@@ -89,10 +89,10 @@ defmodule Cinder.Filters.Select do
             class="sr-only"
             phx-click={JS.hide(to: "##{@dropdown_id}-options")}
           />
-          <span class={@theme.filter_select_label_class} {@theme.filter_select_label_data}>{@prompt}</span>
+          <span class={@theme.filter_select_label_class} data-key="filter_select_label_class">{@prompt}</span>
         </label>
 
-        <label :for={{label, value} <- @options} class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} {@theme.filter_select_option_data}>
+        <label :for={{label, value} <- @options} class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} data-key="filter_select_option_class">
           <input
             type="radio"
             name={field_name(@column.field)}
@@ -101,10 +101,10 @@ defmodule Cinder.Filters.Select do
             class="sr-only"
             phx-click={JS.hide(to: "##{@dropdown_id}-options")}
           />
-          <span class={@theme.filter_select_label_class} {@theme.filter_select_label_data}>{label}</span>
+          <span class={@theme.filter_select_label_class} data-key="filter_select_label_class">{label}</span>
         </label>
 
-        <div :if={Enum.empty?(@options)} class={@theme.filter_select_empty_class} {@theme.filter_select_empty_data}>
+        <div :if={Enum.empty?(@options)} class={@theme.filter_select_empty_class} data-key="filter_select_empty_class">
           {dgettext("cinder", "No options available")}
         </div>
       </div>
