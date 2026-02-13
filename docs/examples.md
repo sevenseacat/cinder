@@ -441,6 +441,27 @@ Radio buttons for true/false filtering:
 </:col>
 ```
 
+### Radio Group Filter
+
+Radio buttons for selecting one value from a set of mutually exclusive options. Unlike boolean (which is limited to true/false), radio group supports arbitrary options:
+
+```heex
+<!-- Status filter with custom options -->
+<:col
+  :let={order}
+  field="status"
+  filter={[type: :radio_group, options: [
+    {"Pending", "pending"},
+    {"Shipped", "shipped"},
+    {"Delivered", "delivered"}
+  ]]}
+>
+  {order.status}
+</:col>
+```
+
+The boolean filter delegates to radio group internally — use `:boolean` for true/false fields and `:radio_group` when you need custom options.
+
 ### Checkbox Filter
 
 Single checkbox for "show only X" filtering:
