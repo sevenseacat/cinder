@@ -98,14 +98,14 @@ defmodule Cinder.Themes.Futuristic do
       "px-3 py-2 text-blue-300/70 italic font-light tracking-wide text-sm"
 
   set :filter_select_placeholder_class, "text-slate-400"
-  # Boolean filter
-  set :filter_boolean_container_class, "flex space-x-8 h-[48px] items-center"
-  set :filter_boolean_option_class, "flex items-center space-x-2"
+  # Radio group filter
+  set :filter_radio_group_container_class, "flex space-x-8 h-[48px] items-center"
+  set :filter_radio_group_option_class, "flex items-center space-x-2"
 
-  set :filter_boolean_radio_class,
+  set :filter_radio_group_radio_class,
       "h-4 w-4 bg-slate-900 border-blue-500/40 checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer"
 
-  set :filter_boolean_label_class,
+  set :filter_radio_group_label_class,
       "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
 
   # Checkbox filter

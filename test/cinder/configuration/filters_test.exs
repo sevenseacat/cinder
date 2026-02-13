@@ -8,6 +8,7 @@ defmodule Cinder.FiltersTest do
     DateRange,
     MultiSelect,
     NumberRange,
+    RadioGroup,
     Registry,
     Select,
     Text
@@ -68,6 +69,7 @@ defmodule Cinder.FiltersTest do
       assert filters[:date_range] == DateRange
       assert filters[:number_range] == NumberRange
       assert filters[:boolean] == Boolean
+      assert filters[:radio_group] == RadioGroup
     end
 
     test "get_filter/1 returns correct module for filter type" do
@@ -92,6 +94,7 @@ defmodule Cinder.FiltersTest do
       assert :date_range in types
       assert :number_range in types
       assert :boolean in types
+      assert :radio_group in types
     end
 
     test "infer_filter_type/2 correctly infers types from Ash attributes" do
@@ -574,6 +577,41 @@ defmodule Cinder.FiltersTest do
       assert Boolean.empty?(true) == false
       assert Boolean.empty?(false) == false
       assert Boolean.empty?(%{value: true}) == false
+    end
+  end
+
+  describe "Cinder.Filters.RadioGroup" do
+    test "process/2 handles radio group input correctly" do
+      column = %{filter_options: []}
+
+      result = RadioGroup.process("active", column)
+
+      assert result == %{
+               type: :radio_group,
+               value: "active",
+               operator: :equals
+             }
+
+      # Empty values should return nil
+      assert RadioGroup.process("", column) == nil
+    end
+
+    test "validate/1 validates radio group filter values" do
+      valid_filter = %{type: :radio_group, value: "active", operator: :equals}
+      assert RadioGroup.validate(valid_filter) == true
+
+      invalid_filter = %{type: :radio_group, value: "", operator: :equals}
+      assert RadioGroup.validate(invalid_filter) == false
+    end
+
+    test "empty?/1 correctly identifies empty radio group values" do
+      assert RadioGroup.empty?(nil) == true
+      assert RadioGroup.empty?("") == true
+      assert RadioGroup.empty?(%{value: nil}) == true
+      assert RadioGroup.empty?(%{value: ""}) == true
+
+      assert RadioGroup.empty?("active") == false
+      assert RadioGroup.empty?(%{value: "active"}) == false
     end
   end
 

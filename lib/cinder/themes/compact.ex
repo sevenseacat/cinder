@@ -96,14 +96,14 @@ defmodule Cinder.Themes.Compact do
 
   set :filter_select_empty_class, "px-2 py-1.5 text-gray-500 italic text-xs"
   set :filter_select_placeholder_class, "text-gray-400"
-  # Boolean filter
-  set :filter_boolean_container_class, "flex space-x-4 h-[34px] items-center"
-  set :filter_boolean_option_class, "flex items-center space-x-1"
+  # Radio group filter
+  set :filter_radio_group_container_class, "flex space-x-4 h-[34px] items-center"
+  set :filter_radio_group_option_class, "flex items-center space-x-1"
 
-  set :filter_boolean_radio_class,
+  set :filter_radio_group_radio_class,
       "h-3 w-3 bg-white border-gray-300 checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer"
 
-  set :filter_boolean_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
+  set :filter_radio_group_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
   # Checkbox filter
   set :filter_checkbox_container_class, "flex items-center h-[34px]"
 

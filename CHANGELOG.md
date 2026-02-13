@@ -2,7 +2,13 @@
 
 ## v0.10.0 (unreleased)
 
+### Features
+
+* Add new `radio_group` filter type, for any set of mutually exclusive options. The existing `boolean` filter now delegates to `radio_group` internally. ([#115](https://github.com/sevenseacat/cinder/issues/115))
+
 ### Breaking Changes
+
+* **Renamed `filter_boolean_*` theme keys to `filter_radio_group_*`.** Theme keys `filter_boolean_container_class`, `filter_boolean_option_class`, `filter_boolean_radio_class`, and `filter_boolean_label_class` have been renamed to their `filter_radio_group_*` equivalents. Run `mix cinder.upgrade 0.9.1 0.10.0` to automatically update custom themes. See the [upgrading guide](docs/upgrading.md) for details. ([#115](https://github.com/sevenseacat/cinder/issues/115))
 
 * **Removed `_data` theme keys.** Theme maps no longer contain `_data` companion keys (e.g. `container_data`, `th_data`). The `data-key` attributes are now hardcoded directly in templates. If you have custom filter templates that spread `_data` theme keys (e.g. `{@theme.filter_text_input_data}`), replace them with a hardcoded `data-key` attribute matching the `_class` key name (e.g. `data-key="filter_text_input_class"`). See the [upgrading guide](docs/upgrading.md) for details. ([#117](https://github.com/sevenseacat/cinder/issues/117))
 

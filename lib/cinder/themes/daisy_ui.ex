@@ -66,11 +66,11 @@ defmodule Cinder.Themes.DaisyUI do
   set :filter_select_empty_class, "px-3 py-2 text-base-content/50 italic text-sm"
   set :filter_select_arrow_class, ""
   set :filter_select_placeholder_class, "text-base-content/40"
-  # Boolean filter
-  set :filter_boolean_container_class, "flex space-x-4 h-10 items-center"
-  set :filter_boolean_option_class, "flex items-center space-x-2"
-  set :filter_boolean_radio_class, "radio radio-sm"
-  set :filter_boolean_label_class, "text-sm cursor-pointer"
+  # Radio group filter
+  set :filter_radio_group_container_class, "flex space-x-4 h-10 items-center"
+  set :filter_radio_group_option_class, "flex items-center space-x-2"
+  set :filter_radio_group_radio_class, "radio radio-sm"
+  set :filter_radio_group_label_class, "text-sm cursor-pointer"
   # Checkbox filter
   set :filter_checkbox_container_class, "flex items-center h-10"
   set :filter_checkbox_input_class, "checkbox checkbox-sm mr-2"

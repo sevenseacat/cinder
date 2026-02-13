@@ -4,6 +4,41 @@ This guide covers breaking changes, deprecations, and migration paths for Cinder
 
 ## Upgrading to 0.10.0
 
+### Renamed: `filter_boolean_*` Theme Keys
+
+The boolean filter theme keys have been renamed to `filter_radio_group_*`:
+
+| Old Key | New Key |
+|---------|---------|
+| `filter_boolean_container_class` | `filter_radio_group_container_class` |
+| `filter_boolean_option_class` | `filter_radio_group_option_class` |
+| `filter_boolean_radio_class` | `filter_radio_group_radio_class` |
+| `filter_boolean_label_class` | `filter_radio_group_label_class` |
+
+**This only affects you if you have custom themes that set these keys.**
+
+#### Automatic Migration
+
+Run the upgrade task to automatically rename the keys in your custom themes:
+
+```bash
+mix cinder.upgrade 0.9.1 0.10.0
+```
+
+#### Manual Migration
+
+If you prefer to migrate manually, rename the keys in your custom theme module:
+
+```elixir
+# Before
+set :filter_boolean_container_class, "flex space-x-6"
+set :filter_boolean_radio_class, "h-4 w-4"
+
+# After
+set :filter_radio_group_container_class, "flex space-x-6"
+set :filter_radio_group_radio_class, "h-4 w-4"
+```
+
 ### Removed: `_data` Theme Keys
 
 Theme maps no longer contain `_data` companion keys. Previously, every `_class` key had an auto-generated `_data` counterpart (e.g. `container_data`, `filter_text_input_data`) that was spread in templates to produce `data-key` attributes for browser inspector debugging. These `data-key` attributes are now hardcoded directly in templates.
@@ -222,5 +257,5 @@ All deprecated features will be removed in version 1.0. To prepare:
 |---------|---------|
 | 0.5.4 | `filter_options` deprecated |
 | 0.9.0 | `Cinder.Table.table` deprecated, module relocations, `pastel` theme removed, theme `component/2` syntax deprecated |
-| 0.10.0 | `_data` theme keys removed |
+| 0.10.0 | `_data` theme keys removed, `filter_boolean_*` theme keys renamed to `filter_radio_group_*` |
 | 1.0.0 | All deprecated features removed |

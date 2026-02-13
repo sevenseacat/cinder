@@ -3,60 +3,27 @@ defmodule Cinder.Filters.Boolean do
   Boolean filter implementation for Cinder tables.
 
   Provides boolean filtering with radio button inputs for true/false options.
+  Delegates rendering to `Cinder.Filters.RadioGroup` with hardcoded true/false options.
   """
 
   @behaviour Cinder.Filter
-  use Phoenix.Component
   use Cinder.Messages
 
   import Cinder.Filter
 
+  alias Cinder.Filters.RadioGroup
+
   @impl true
-  def render(column, current_value, theme, _assigns) do
-    current_boolean_value = current_value || ""
+  def render(column, current_value, theme, assigns) do
     filter_options = Map.get(column, :filter_options, [])
-    options = get_option(filter_options, :labels, %{})
+    labels = get_option(filter_options, :labels, %{})
 
-    true_label = Map.get(options, true, dgettext("cinder", "True"))
-    false_label = Map.get(options, false, dgettext("cinder", "False"))
+    true_label = Map.get(labels, true, dgettext("cinder", "True"))
+    false_label = Map.get(labels, false, dgettext("cinder", "False"))
 
-    assigns = %{
-      column: column,
-      current_boolean_value: current_boolean_value,
-      true_label: true_label,
-      false_label: false_label,
-      theme: theme
-    }
-
-    ~H"""
-    <div class={@theme.filter_boolean_container_class} data-key="filter_boolean_container_class">
-      <.option name={field_name(@column.field)} label={@true_label} value="true" checked={@current_boolean_value == "true"} theme={@theme} />
-      <.option name={field_name(@column.field)} label={@false_label} value="false" checked={@current_boolean_value == "false"} theme={@theme} />
-    </div>
-    """
-  end
-
-  attr :name, :string, required: true
-  attr :label, :string, required: true
-  attr :value, :string, required: true
-  attr :checked, :boolean, required: true
-  attr :theme, :map, required: true
-
-  defp option(assigns) do
-    ~H"""
-    <label class={@theme.filter_boolean_option_class} data-key="filter_boolean_option_class">
-      <input
-        type="radio"
-        name={@name}
-        value={@value}
-        checked={@checked}
-        class={@theme.filter_boolean_radio_class}
-        aria-label={@label}
-        data-key="filter_boolean_radio_class"
-      />
-      <span class={@theme.filter_boolean_label_class} data-key="filter_boolean_label_class">{@label}</span>
-    </label>
-    """
+    # Delegate to RadioGroup with boolean-specific options
+    radio_column = Map.put(column, :filter_options, [options: [{true_label, "true"}, {false_label, "false"}]])
+    RadioGroup.render(radio_column, current_value, theme, assigns)
   end
 
   @impl true
@@ -120,7 +87,6 @@ defmodule Cinder.Filters.Boolean do
   def build_query(query, field, filter_value) do
     %{value: value} = filter_value
 
-    # Use the centralized helper which supports direct, relationship, and embedded fields
     Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
   end
 end

@@ -21,6 +21,7 @@ defmodule Cinder.FilterManager do
           | :date_range
           | :number_range
           | :boolean
+          | :radio_group
           | :checkbox
   @type filter_value ::
           String.t()

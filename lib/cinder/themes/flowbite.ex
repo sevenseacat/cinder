@@ -104,14 +104,14 @@ defmodule Cinder.Themes.Flowbite do
   set :filter_select_placeholder_class,
       "text-gray-500 dark:text-gray-400"
 
-  # Boolean filter - radio buttons (Flowbite styled)
-  set :filter_boolean_container_class, "flex items-center space-x-6 min-h-[42px]"
-  set :filter_boolean_option_class, "flex items-center"
+  # Radio group filter - radio buttons (Flowbite styled)
+  set :filter_radio_group_container_class, "flex items-center space-x-6 min-h-[42px]"
+  set :filter_radio_group_option_class, "flex items-center"
 
-  set :filter_boolean_radio_class,
+  set :filter_radio_group_radio_class,
       "w-4 h-4 text-neutral-primary border border-default-medium bg-neutral-secondary-medium rounded-full checked:border-brand focus:ring-2 focus:outline-none focus:ring-brand-subtle appearance-none"
 
-  set :filter_boolean_label_class,
+  set :filter_radio_group_label_class,
       "ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer"
 
   # Checkbox filter - single checkbox (Flowbite styled)

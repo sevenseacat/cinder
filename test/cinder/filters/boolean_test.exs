@@ -4,6 +4,61 @@ defmodule Cinder.Filters.BooleanTest do
   alias Cinder.Filters.Boolean
   alias TestResourceForInference
 
+  describe "render/4 delegates to RadioGroup" do
+    test "renders true/false radio buttons" do
+      column = %{field: "active", filter_options: []}
+      theme = Cinder.Theme.default()
+
+      rendered = Boolean.render(column, nil, theme, %{})
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+
+      assert html =~ "True"
+      assert html =~ "False"
+      assert html =~ ~s(value="true")
+      assert html =~ ~s(value="false")
+      assert html =~ ~s(type="radio")
+      assert html =~ ~s(name="filters[active]")
+    end
+
+    test "renders with custom labels" do
+      column = %{
+        field: "active",
+        filter_options: [labels: %{true: "Yes", false: "No"}]
+      }
+
+      theme = Cinder.Theme.default()
+
+      rendered = Boolean.render(column, nil, theme, %{})
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+
+      assert html =~ "Yes"
+      assert html =~ "No"
+      refute html =~ "True"
+      refute html =~ "False"
+    end
+
+    test "uses radio_group theme keys" do
+      column = %{field: "active", filter_options: []}
+      theme = Cinder.Theme.default()
+
+      rendered = Boolean.render(column, nil, theme, %{})
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+
+      assert html =~ "filter_radio_group_container_class"
+      assert html =~ "filter_radio_group_radio_class"
+    end
+
+    test "marks current value as checked" do
+      column = %{field: "active", filter_options: []}
+      theme = Cinder.Theme.default()
+
+      rendered = Boolean.render(column, "true", theme, %{})
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+
+      assert html =~ "checked"
+    end
+  end
+
   describe "Boolean filter build_query/3 for array fields" do
     setup do
       query = Ash.Query.new(TestResourceForInference)

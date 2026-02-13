@@ -20,11 +20,11 @@ defmodule Cinder.ThemeVerificationTest do
     :filter_multiselect_empty_class
   ]
 
-  @required_boolean_properties [
-    :filter_boolean_container_class,
-    :filter_boolean_option_class,
-    :filter_boolean_radio_class,
-    :filter_boolean_label_class
+  @required_radio_group_properties [
+    :filter_radio_group_container_class,
+    :filter_radio_group_option_class,
+    :filter_radio_group_radio_class,
+    :filter_radio_group_label_class
   ]
 
   @required_pagination_properties [
@@ -53,14 +53,14 @@ defmodule Cinder.ThemeVerificationTest do
     end
   end
 
-  describe "theme boolean filter properties" do
+  describe "theme radio group filter properties" do
     for theme_module <- @themes do
-      test "#{theme_module} has all required boolean filter properties" do
+      test "#{theme_module} has all required radio group filter properties" do
         theme = unquote(theme_module).resolve_theme()
 
-        for property <- @required_boolean_properties do
+        for property <- @required_radio_group_properties do
           assert Map.has_key?(theme, property),
-                 "#{unquote(theme_module)} missing boolean filter property: #{property}"
+                 "#{unquote(theme_module)} missing radio group filter property: #{property}"
 
           assert is_binary(theme[property]),
                  "#{unquote(theme_module)} property #{property} should be string, got: #{inspect(theme[property])}"
@@ -114,20 +114,20 @@ defmodule Cinder.ThemeVerificationTest do
     end
   end
 
-  describe "boolean filter height consistency" do
+  describe "radio group filter height consistency" do
     for theme_module <- @themes do
-      test "#{theme_module} boolean filter has consistent height with other inputs" do
+      test "#{theme_module} radio group filter has consistent height with other inputs" do
         theme = unquote(theme_module).resolve_theme()
 
-        boolean_container = theme[:filter_boolean_container_class]
+        radio_group_container = theme[:filter_radio_group_container_class]
 
         # Should have explicit height for consistency (h-10, h-12, h-[42px], etc.)
-        assert Regex.match?(~r/\bh-(\d+|\[)/, boolean_container),
-               "#{unquote(theme_module)} boolean filter container should have explicit height for alignment"
+        assert Regex.match?(~r/\bh-(\d+|\[)/, radio_group_container),
+               "#{unquote(theme_module)} radio group filter container should have explicit height for alignment"
 
         # Should include items-center for vertical alignment
-        assert String.contains?(boolean_container, "items-center"),
-               "#{unquote(theme_module)} boolean filter container should center items vertically"
+        assert String.contains?(radio_group_container, "items-center"),
+               "#{unquote(theme_module)} radio group filter container should center items vertically"
       end
     end
   end

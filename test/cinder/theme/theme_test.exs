@@ -53,11 +53,11 @@ defmodule Cinder.ThemeTest do
         :filter_number_input_class,
         :filter_select_input_class,
         :filter_clear_button_class,
-        # Boolean filter styling
-        :filter_boolean_container_class,
-        :filter_boolean_option_class,
-        :filter_boolean_radio_class,
-        :filter_boolean_label_class,
+        # Radio group filter styling
+        :filter_radio_group_container_class,
+        :filter_radio_group_option_class,
+        :filter_radio_group_radio_class,
+        :filter_radio_group_label_class,
         # Checkbox filter styling
         :filter_checkbox_container_class,
         :filter_checkbox_input_class,

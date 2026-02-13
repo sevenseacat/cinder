@@ -99,14 +99,14 @@ defmodule Cinder.Themes.Retro do
       "px-3 py-2 text-fuchsia-300 italic font-bold uppercase tracking-wide text-sm"
 
   set :filter_select_placeholder_class, "text-gray-400"
-  # Boolean filter
-  set :filter_boolean_container_class, "flex space-x-8 h-[48px] items-center"
-  set :filter_boolean_option_class, "flex items-center space-x-2"
+  # Radio group filter
+  set :filter_radio_group_container_class, "flex space-x-8 h-[48px] items-center"
+  set :filter_radio_group_option_class, "flex items-center space-x-2"
 
-  set :filter_boolean_radio_class,
+  set :filter_radio_group_radio_class,
       "h-5 w-5 bg-gray-800 border-cyan-400 border-2 checked:bg-fuchsia-500 checked:border-fuchsia-500 focus:ring-fuchsia-400 focus:ring-2 cursor-pointer"
 
-  set :filter_boolean_label_class,
+  set :filter_radio_group_label_class,
       "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"
 
   # Checkbox filter
