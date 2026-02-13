@@ -1143,6 +1143,36 @@ Customize the loading spinner, empty message, and error display using slots. The
 </Cinder.collection>
 ```
 
+#### Empty Slot Context
+
+The `<:empty>` slot receives context via `:let` to distinguish between "no records exist" and "filters returned no results":
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort search>{user.name}</:col>
+
+  <:empty :let={context}>
+    <%= if context.filtered? do %>
+      <div class="text-center p-8">
+        <p>No users match your filters.</p>
+        <p class="text-sm text-gray-500">Try adjusting your search or filters.</p>
+      </div>
+    <% else %>
+      <div class="text-center p-8">
+        <p>No users yet.</p>
+        <.link navigate={~p"/users/new"} class="text-blue-600 underline">Create one</.link>
+      </div>
+    <% end %>
+  </:empty>
+</Cinder.collection>
+```
+
+The context map contains:
+
+- `filtered?` — `true` when any filter has a meaningful value or a search term is active
+- `filters` — the full filters map (e.g. `%{"name" => %{type: :text, value: "bob", ...}}`)
+- `search_term` — the current search string
+
 ### Custom Error State
 
 ```heex

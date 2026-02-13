@@ -9,6 +9,8 @@ defmodule Cinder.Renderers.Table do
   use Phoenix.Component
   use Cinder.Messages
 
+  import Cinder.Renderers.Helpers
+
   alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
 
@@ -110,7 +112,7 @@ defmodule Cinder.Renderers.Table do
             <tr :if={@data == [] and not @loading and not @error}>
               <td colspan={column_count(@columns, @selectable)} class={@theme.empty_class} data-key="empty_class">
                 <%= if has_slot?(assigns, :empty_slot) do %>
-                  {render_slot(@empty_slot)}
+                  {render_slot(@empty_slot, empty_context(assigns))}
                 <% else %>
                   {@empty_message}
                 <% end %>
@@ -228,12 +230,5 @@ defmodule Cinder.Renderers.Table do
   defp column_count(columns, selectable) do
     base_count = length(columns)
     if selectable, do: base_count + 1, else: base_count
-  end
-
-  defp has_slot?(assigns, key) do
-    case Map.get(assigns, key) do
-      slots when is_list(slots) and slots != [] -> true
-      _ -> false
-    end
   end
 end

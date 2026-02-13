@@ -10,6 +10,8 @@ defmodule Cinder.Renderers.Grid do
   use Cinder.Messages
   require Logger
 
+  import Cinder.Renderers.Helpers
+
   alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
   alias Cinder.Renderers.SortControls
@@ -121,7 +123,7 @@ defmodule Cinder.Renderers.Grid do
         <!-- Empty State (only when not loading and not error) -->
         <div :if={@data == [] and not @loading and not @error and @has_item_slot} class={[@theme.empty_class, "col-span-full"]} data-key="empty_class">
           <%= if has_slot?(assigns, :empty_slot) do %>
-            {render_slot(@empty_slot)}
+            {render_slot(@empty_slot, empty_context(assigns))}
           <% else %>
             {@empty_message}
           <% end %>
@@ -259,13 +261,6 @@ defmodule Cinder.Renderers.Grid do
   defp item_selected?(selected_ids, item, id_field) do
     id = to_string(Map.get(item, id_field))
     MapSet.member?(selected_ids, id)
-  end
-
-  defp has_slot?(assigns, key) do
-    case Map.get(assigns, key) do
-      slots when is_list(slots) and slots != [] -> true
-      _ -> false
-    end
   end
 
   # Tailwind safelist - these classes are dynamically generated, keep them here for purge detection:

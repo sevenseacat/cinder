@@ -164,6 +164,10 @@ defmodule Cinder.Renderers.StateSlotsTest do
     [%{__slot__: :custom, inner_block: fn _, _ -> content end}]
   end
 
+  defp make_slot_with_let(render_fn) do
+    [%{__slot__: :custom, inner_block: fn _changed, ctx -> render_fn.(ctx) end}]
+  end
+
   # ============================================================================
   # TABLE RENDERER
   # ============================================================================
@@ -218,6 +222,76 @@ defmodule Cinder.Renderers.StateSlotsTest do
 
       assert html =~ "Nothing to see here"
       refute html =~ "No results found"
+    end
+
+    test "empty slot receives filtered? false when no filters active" do
+      assigns =
+        table_assigns(%{
+          empty_slot:
+            make_slot_with_let(fn ctx ->
+              if ctx.filtered?, do: "HAS_FILTERS", else: "NO_FILTERS"
+            end)
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ "NO_FILTERS"
+      refute html =~ "HAS_FILTERS"
+    end
+
+    test "empty slot receives filtered? true and filter data when filters active" do
+      assigns =
+        table_assigns(%{
+          filters: %{
+            "name" => %{type: :text, value: "bob", operator: :contains}
+          },
+          empty_slot:
+            make_slot_with_let(fn ctx ->
+              if ctx.filtered?,
+                do: "filtered: #{inspect(ctx.filters)}",
+                else: "no filters"
+            end)
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ "filtered:"
+      assert html =~ "bob"
+      refute html =~ "no filters"
+    end
+
+    test "empty slot receives filtered? false when filter present but value empty" do
+      assigns =
+        table_assigns(%{
+          filters: %{
+            "name" => %{type: :text, value: "", operator: :contains}
+          },
+          empty_slot:
+            make_slot_with_let(fn ctx ->
+              if ctx.filtered?, do: "HAS_FILTERS", else: "NO_FILTERS"
+            end)
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ "NO_FILTERS"
+    end
+
+    test "empty slot receives filtered? true when search term active" do
+      assigns =
+        table_assigns(%{
+          search_term: "hello",
+          empty_slot:
+            make_slot_with_let(fn ctx ->
+              if ctx.filtered?,
+                do: "searched: #{ctx.search_term}",
+                else: "no search"
+            end)
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ "searched: hello"
     end
 
     test "custom error slot replaces default error message" do
