@@ -198,7 +198,7 @@ defmodule Cinder.Themes.Futuristic do
   set :search_label_class, ""
 
   # Loading
-  set :loading_overlay_class, "absolute top-4 right-4"
+  set :loading_overlay_class, "absolute top-10 right-10 z-10"
 
   set :loading_container_class,
       "flex items-center text-sm text-green-400 font-light tracking-wide"

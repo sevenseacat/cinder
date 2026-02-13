@@ -173,7 +173,7 @@ defmodule Cinder.Themes.Dark do
   set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-75"
 
   # Loading
-  set :loading_overlay_class, "absolute top-4 right-4"
+  set :loading_overlay_class, "absolute top-10 right-10"
   set :loading_container_class, "flex items-center text-sm text-purple-400 font-medium"
   set :loading_spinner_class, "animate-spin h-5 w-5 text-green-400 mr-2"
   set :loading_spinner_circle_class, "opacity-25"

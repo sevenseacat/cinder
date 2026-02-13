@@ -207,7 +207,7 @@ defmodule Cinder.Themes.Flowbite do
   set :sort_none_icon_class, "w-3 h-3 text-gray-400 dark:text-gray-500"
 
   # Loading
-  set :loading_overlay_class, "absolute top-4 right-4 z-10"
+  set :loading_overlay_class, "absolute top-8 right-8 z-50"
   set :loading_container_class, "flex items-center text-sm text-gray-500 dark:text-gray-400"
 
   set :loading_spinner_class,

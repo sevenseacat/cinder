@@ -7,6 +7,10 @@
 * Add new `radio_group` filter type, for any set of mutually exclusive options. The existing `boolean` filter now delegates to `radio_group` internally. ([#115](https://github.com/sevenseacat/cinder/issues/115))
 * Add `<:loading>`, `<:empty>`, and `<:error>` slots for custom state content, plus `error_message` attribute ([#20](https://github.com/sevenseacat/cinder/issues/20))
 
+### Bugfixes
+
+* Fix loading overlay positioning in built-in themes ([#20](https://github.com/sevenseacat/cinder/issues/20))
+
 ### Breaking Changes
 
 * **Renamed `filter_boolean_*` theme keys to `filter_radio_group_*`.** Theme keys `filter_boolean_container_class`, `filter_boolean_option_class`, `filter_boolean_radio_class`, and `filter_boolean_label_class` have been renamed to their `filter_radio_group_*` equivalents. Run `mix cinder.upgrade 0.9.1 0.10.0` to automatically update custom themes. See the [upgrading guide](docs/upgrading.md) for details. ([#115](https://github.com/sevenseacat/cinder/issues/115))
