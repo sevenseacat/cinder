@@ -5,6 +5,7 @@
 ### Features
 
 * Add new `radio_group` filter type, for any set of mutually exclusive options. The existing `boolean` filter now delegates to `radio_group` internally. ([#115](https://github.com/sevenseacat/cinder/issues/115))
+* Add `<:loading>`, `<:empty>`, and `<:error>` slots for custom state content, plus `error_message` attribute ([#20](https://github.com/sevenseacat/cinder/issues/20))
 
 ### Breaking Changes
 

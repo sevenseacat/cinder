@@ -76,7 +76,7 @@ defmodule Cinder.Renderers.Table do
             </tr>
           </thead>
           <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} data-key="tbody_class">
-            <tr :for={item <- @data}
+            <tr :for={item <- @data} :if={not @error}
                 class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
                 data-key="row_class"
                 phx-click={row_click_action(@row_click, @selectable, item, @id_field, @myself)}>
@@ -94,9 +94,26 @@ defmodule Cinder.Renderers.Table do
                 {render_slot(column.slot, item)}
               </td>
             </tr>
-            <tr :if={@data == [] and not @loading}>
+            <!-- Error State -->
+            <tr :if={@error and not @loading}>
+              <td colspan={column_count(@columns, @selectable)} class={@theme.empty_class} data-key="error_class">
+                <%= if has_slot?(assigns, :error_slot) do %>
+                  {render_slot(@error_slot)}
+                <% else %>
+                  <div class={@theme.error_container_class} data-key="error_container_class">
+                    <span class={@theme.error_message_class} data-key="error_message_class">{@error_message}</span>
+                  </div>
+                <% end %>
+              </td>
+            </tr>
+            <!-- Empty State (only when not loading and not error) -->
+            <tr :if={@data == [] and not @loading and not @error}>
               <td colspan={column_count(@columns, @selectable)} class={@theme.empty_class} data-key="empty_class">
-                {@empty_message}
+                <%= if has_slot?(assigns, :empty_slot) do %>
+                  {render_slot(@empty_slot)}
+                <% else %>
+                  {@empty_message}
+                <% end %>
               </td>
             </tr>
           </tbody>
@@ -105,13 +122,17 @@ defmodule Cinder.Renderers.Table do
 
       <!-- Loading indicator -->
       <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
-        <div class={@theme.loading_container_class} data-key="loading_container_class">
-          <svg class={@theme.loading_spinner_class} data-key="loading_spinner_class" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class={@theme.loading_spinner_circle_class} data-key="loading_spinner_circle_class" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class={@theme.loading_spinner_path_class} data-key="loading_spinner_path_class" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {@loading_message}
-        </div>
+        <%= if has_slot?(assigns, :loading_slot) do %>
+          {render_slot(@loading_slot)}
+        <% else %>
+          <div class={@theme.loading_container_class} data-key="loading_container_class">
+            <svg class={@theme.loading_spinner_class} data-key="loading_spinner_class" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class={@theme.loading_spinner_circle_class} data-key="loading_spinner_circle_class" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class={@theme.loading_spinner_path_class} data-key="loading_spinner_path_class" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {@loading_message}
+          </div>
+        <% end %>
       </div>
 
       <!-- Pagination -->
@@ -207,5 +228,12 @@ defmodule Cinder.Renderers.Table do
   defp column_count(columns, selectable) do
     base_count = length(columns)
     if selectable, do: base_count + 1, else: base_count
+  end
+
+  defp has_slot?(assigns, key) do
+    case Map.get(assigns, key) do
+      slots when is_list(slots) and slots != [] -> true
+      _ -> false
+    end
   end
 end

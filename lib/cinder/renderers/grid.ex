@@ -80,7 +80,7 @@ defmodule Cinder.Renderers.Grid do
       <div class={@grid_container_class} data-key="grid_container_class">
         <%= if @has_item_slot do %>
           <div
-            :for={item <- @data}
+            :for={item <- @data} :if={not @error}
             class={get_item_classes_with_selection(@grid_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
             data-key={@grid_item_data_key}
             phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), item, Map.get(assigns, :id_field, :id), @myself)}
@@ -107,21 +107,40 @@ defmodule Cinder.Renderers.Grid do
           </div>
         <% end %>
 
-        <!-- Empty State -->
-        <div :if={@data == [] and not @loading and @has_item_slot} class={[@theme.empty_class, "col-span-full"]} data-key="empty_class">
-          {@empty_message}
+        <!-- Error State -->
+        <div :if={@error and not @loading} class={[@theme.empty_class, "col-span-full"]} data-key="error_class">
+          <%= if has_slot?(assigns, :error_slot) do %>
+            {render_slot(@error_slot)}
+          <% else %>
+            <div class={@theme.error_container_class} data-key="error_container_class">
+              <span class={@theme.error_message_class} data-key="error_message_class">{@error_message}</span>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Empty State (only when not loading and not error) -->
+        <div :if={@data == [] and not @loading and not @error and @has_item_slot} class={[@theme.empty_class, "col-span-full"]} data-key="empty_class">
+          <%= if has_slot?(assigns, :empty_slot) do %>
+            {render_slot(@empty_slot)}
+          <% else %>
+            {@empty_message}
+          <% end %>
         </div>
       </div>
 
       <!-- Loading indicator -->
       <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
-        <div class={@theme.loading_container_class} data-key="loading_container_class">
-          <svg class={@theme.loading_spinner_class} data-key="loading_spinner_class" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class={@theme.loading_spinner_circle_class} data-key="loading_spinner_circle_class" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class={@theme.loading_spinner_path_class} data-key="loading_spinner_path_class" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {@loading_message}
-        </div>
+        <%= if has_slot?(assigns, :loading_slot) do %>
+          {render_slot(@loading_slot)}
+        <% else %>
+          <div class={@theme.loading_container_class} data-key="loading_container_class">
+            <svg class={@theme.loading_spinner_class} data-key="loading_spinner_class" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class={@theme.loading_spinner_circle_class} data-key="loading_spinner_circle_class" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class={@theme.loading_spinner_path_class} data-key="loading_spinner_path_class" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {@loading_message}
+          </div>
+        <% end %>
       </div>
 
       <!-- Pagination -->
@@ -240,6 +259,13 @@ defmodule Cinder.Renderers.Grid do
   defp item_selected?(selected_ids, item, id_field) do
     id = to_string(Map.get(item, id_field))
     MapSet.member?(selected_ids, id)
+  end
+
+  defp has_slot?(assigns, key) do
+    case Map.get(assigns, key) do
+      slots when is_list(slots) and slots != [] -> true
+      _ -> false
+    end
   end
 
   # Tailwind safelist - these classes are dynamically generated, keep them here for purge detection:

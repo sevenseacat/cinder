@@ -86,12 +86,12 @@ msgstr "Volgende pagina"
 msgid "Prev"
 msgstr "Vorige"
 
-#: lib/cinder/collection.ex:308
+#: lib/cinder/collection.ex:317
 #, elixir-autogen, elixir-format
 msgid "Filters"
 msgstr "Filters"
 
-#: lib/cinder/collection.ex:309
+#: lib/cinder/collection.ex:318
 #, elixir-autogen, elixir-format
 msgid "Sort by:"
 msgstr "Sorteer op:"
@@ -137,17 +137,17 @@ msgstr "Tot"
 msgid "All %{label}"
 msgstr "Alle %{label}"
 
-#: lib/cinder/collection.ex:713
-#: lib/cinder/collection.ex:722
-#: lib/cinder/collection.ex:729
+#: lib/cinder/collection.ex:739
+#: lib/cinder/collection.ex:748
+#: lib/cinder/collection.ex:755
 #: lib/cinder/filter_manager.ex:92
 #, elixir-autogen, elixir-format
 msgid "Search"
 msgstr "Zoeken"
 
-#: lib/cinder/collection.ex:713
-#: lib/cinder/collection.ex:723
-#: lib/cinder/collection.ex:729
+#: lib/cinder/collection.ex:739
+#: lib/cinder/collection.ex:749
+#: lib/cinder/collection.ex:755
 #: lib/cinder/filter_manager.ex:100
 #, elixir-autogen, elixir-format
 msgid "Search..."
@@ -163,7 +163,7 @@ msgstr "Selecteer opties..."
 msgid "Clear search"
 msgstr "Zoekopdracht wissen"
 
-#: lib/cinder/collection.ex:307
+#: lib/cinder/collection.ex:316
 #, elixir-autogen, elixir-format
 msgid "Loading..."
 msgstr "Laden..."
@@ -174,7 +174,7 @@ msgstr "Laden..."
 msgid "No options available"
 msgstr "Geen opties beschikbaar"
 
-#: lib/cinder/collection.ex:310
+#: lib/cinder/collection.ex:319
 #: lib/cinder/filters/autocomplete.ex:157
 #, elixir-autogen, elixir-format
 msgid "No results found"
@@ -201,3 +201,8 @@ msgstr "Waar"
 #, elixir-autogen, elixir-format
 msgid "Type to search more options..."
 msgstr "Typ om meer opties te zoeken..."
+
+#: lib/cinder/collection.ex:323
+#, elixir-autogen, elixir-format
+msgid "An error occurred while loading data"
+msgstr "Er is een fout opgetreden bij het laden van gegevens"

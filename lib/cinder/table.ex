@@ -58,6 +58,7 @@ defmodule Cinder.Table do
   attr :filters_label, :string, default: "🔍 Filters", doc: "Label for the filters component"
   attr :search, :any, default: nil, doc: "Search configuration"
   attr :empty_message, :string, default: "No results found", doc: "Message when no results"
+  attr :error_message, :string, default: nil, doc: "Message to show on error"
   attr :class, :string, default: "", doc: "Additional CSS classes"
   attr :row_click, :any, default: nil, doc: "Function to call when a row is clicked"
 
@@ -76,6 +77,10 @@ defmodule Cinder.Table do
     attr :filter, :any
     attr :label, :string
   end
+
+  slot :loading, required: false, doc: "Custom loading state content"
+  slot :empty, required: false, doc: "Custom empty state content"
+  slot :error, required: false, doc: "Custom error state content"
 
   @doc """
   Renders a data table.

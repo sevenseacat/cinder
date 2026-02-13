@@ -21,6 +21,7 @@ This document provides comprehensive examples and detailed reference for all Cin
 - [Embedded Resources](#embedded-resources)
 - [Action Columns](#action-columns)
 - [Collection Refresh](#collection-refresh)
+- [Loading, Empty & Error States](#loading-empty-error-states)
 - [Performance Optimization](#performance-optimization)
 - [Localization](#localization)
 - [Selection & Bulk Actions](#selection--bulk-actions)
@@ -1086,6 +1087,77 @@ The `*_if_visible` variants never call your function if the item isn't displayed
 - These functions modify in-memory data only. Computed fields, aggregates, and calculations from the database will NOT be recalculated.
 - For changes that affect derived data, use `refresh_table/2` instead.
 - If the item is not found in the current page, the update is silently ignored.
+
+## Loading, Empty & Error States
+
+Customize the loading spinner, empty message, and error display using slots. These replace the default string messages with rich content.
+
+### Custom Loading State
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+
+  <:loading>
+    <div class="flex items-center gap-2 p-8 justify-center">
+      <MyAppWeb.Components.spinner />
+      <span>Fetching users...</span>
+    </div>
+  </:loading>
+</Cinder.collection>
+```
+
+### Custom Empty State
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+
+  <:empty>
+    <div class="text-center p-8">
+      <img src="/images/no-results.svg" class="mx-auto w-32" />
+      <p class="mt-4 text-gray-500">No users found</p>
+    </div>
+  </:empty>
+</Cinder.collection>
+```
+
+### Custom Error State
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+
+  <:error>
+    <div class="text-center p-8 text-red-600">
+      <p>Something went wrong loading users.</p>
+      <button phx-click="retry" class="mt-2 underline">Try again</button>
+    </div>
+  </:error>
+</Cinder.collection>
+```
+
+### String Message Attributes
+
+For simple text customization without slots, use the message attributes:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  loading_message="Fetching users..."
+  empty_message="No users yet"
+  error_message="Failed to load users"
+>
+  <:col :let={user} field="name">{user.name}</:col>
+</Cinder.collection>
+```
+
+Slots take precedence over message attributes when both are provided.
+
+### State Precedence
+
+When multiple states are active, they follow this display order: **loading > error > empty > data**. Error state hides any stale data rows, and loading overlays the entire content area.
 
 ## Performance Optimization
 

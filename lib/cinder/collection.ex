@@ -167,6 +167,11 @@ defmodule Cinder.Collection do
     doc: "Message to show when no results"
   )
 
+  attr(:error_message, :string,
+    default: nil,
+    doc: "Message to show on error"
+  )
+
   attr(:class, :string, default: "", doc: "Additional CSS classes for the outer container")
 
   attr(:container_class, :string,
@@ -293,6 +298,10 @@ defmodule Cinder.Collection do
     )
   end
 
+  slot(:loading, required: false, doc: "Custom loading state content")
+  slot(:empty, required: false, doc: "Custom empty state content")
+  slot(:error, required: false, doc: "Custom error state content")
+
   def collection(assigns) do
     assigns =
       assigns
@@ -308,6 +317,11 @@ defmodule Cinder.Collection do
       |> assign(:filters_label, assigns[:filters_label] || "🔍 " <> dgettext("cinder", "Filters"))
       |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
       |> assign(:empty_message, assigns.empty_message || dgettext("cinder", "No results found"))
+      |> assign(
+        :error_message,
+        assigns.error_message ||
+          dgettext("cinder", "An error occurred while loading data")
+      )
       |> assign_new(:class, fn -> "" end)
       |> assign_new(:container_class, fn -> nil end)
       |> assign_new(:tenant, fn -> nil end)
@@ -358,6 +372,11 @@ defmodule Cinder.Collection do
     # Get the bulk_action slots
     bulk_action_slots = Map.get(assigns, :bulk_action, [])
 
+    # Get state content slots
+    loading_slot = Map.get(assigns, :loading, [])
+    empty_slot = Map.get(assigns, :empty, [])
+    error_slot = Map.get(assigns, :error, [])
+
     # Resolve theme
     resolved_theme = resolve_theme(assigns.theme)
 
@@ -381,6 +400,9 @@ defmodule Cinder.Collection do
       |> assign(:renderer, renderer)
       |> assign(:item_slot, item_slot)
       |> assign(:bulk_action_slots, bulk_action_slots)
+      |> assign(:loading_slot, loading_slot)
+      |> assign(:empty_slot, empty_slot)
+      |> assign(:error_slot, error_slot)
       |> assign(:row_click, row_click)
       |> assign(:item_click, item_click)
       |> assign(:resolved_theme, resolved_theme)
@@ -411,6 +433,10 @@ defmodule Cinder.Collection do
         filters_label={@filters_label}
         sort_label={@sort_label}
         empty_message={@empty_message}
+        error_message={@error_message}
+        loading_slot={@loading_slot}
+        empty_slot={@empty_slot}
+        error_slot={@error_slot}
         col={@processed_columns}
         query_columns={@query_columns}
         row_click={@row_click}

@@ -584,6 +584,7 @@ defmodule Cinder.LiveComponent do
     socket =
       socket
       |> assign(:loading, false)
+      |> assign(:error, false)
       |> assign(:data, page.results)
       |> assign(:page, page)
       # Update keyset cursors for navigation (only relevant in keyset mode)
@@ -608,6 +609,7 @@ defmodule Cinder.LiveComponent do
     socket =
       socket
       |> assign(:loading, false)
+      |> assign(:error, true)
       |> assign(:data, [])
       |> assign(:page, nil)
 
@@ -630,6 +632,7 @@ defmodule Cinder.LiveComponent do
     socket =
       socket
       |> assign(:loading, false)
+      |> assign(:error, true)
       |> assign(:data, [])
       |> assign(:page, nil)
 
@@ -834,6 +837,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:page_size_config, updated_page_size_config)
     |> assign(:current_page, assigns[:current_page] || 1)
     |> assign(:loading, false)
+    |> assign(:error, assigns[:error] || false)
     |> assign(:data, assigns[:data] || [])
     |> assign(:sort_by, assigns[:sort_by] || extract_initial_sorts(assigns))
     |> assign(:filters, assigns[:filters] || %{})
@@ -1008,6 +1012,7 @@ defmodule Cinder.LiveComponent do
 
     socket
     |> assign(:loading, true)
+    |> assign(:error, false)
     |> start_async(:load_data, fn ->
       Cinder.QueryBuilder.build_and_execute(resource_var, options)
     end)
