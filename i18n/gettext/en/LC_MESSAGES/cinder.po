@@ -16,7 +16,7 @@ msgstr ""
 msgid "Clear all"
 msgstr ""
 
-#: lib/cinder/filter_manager.ex:279
+#: lib/cinder/filter_manager.ex:286
 #, elixir-autogen
 msgid "Clear filter"
 msgstr ""
@@ -131,7 +131,7 @@ msgstr ""
 msgid "To"
 msgstr ""
 
-#: lib/cinder/filter_manager.ex:816
+#: lib/cinder/filter_manager.ex:823
 #: lib/cinder/filters/select.ex:19
 #, elixir-autogen, elixir-format
 msgid "All %{label}"

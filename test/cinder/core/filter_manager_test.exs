@@ -741,4 +741,61 @@ defmodule Cinder.FilterManagerRuntimeTest do
       refute label_html =~ ~r/for="/
     end
   end
+
+  describe "custom filter labels" do
+    setup do
+      theme = Cinder.Theme.default()
+      %{theme: theme}
+    end
+
+    test "filter label uses column label by default", %{theme: theme} do
+      column = %{field: "name", label: "Full Name", filter_type: :text, filter_options: []}
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      assert html =~ "Full Name:"
+    end
+
+    test "filter label option overrides column label", %{theme: theme} do
+      column = %{
+        field: "printed_at",
+        label: "Printed at (UTC)",
+        filter_type: :date_range,
+        filter_options: [label: "Printed at"]
+      }
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      assert html =~ "Printed at:"
+      refute html =~ "Printed at (UTC)"
+    end
+
+    test "filter label option works for text filters", %{theme: theme} do
+      column = %{
+        field: "email",
+        label: "Email Address",
+        filter_type: :text,
+        filter_options: [label: "Email"]
+      }
+
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      assert html =~ "Email:"
+      refute html =~ "Email Address"
+    end
+
+    test "filter label handles nil filter_options gracefully", %{theme: theme} do
+      column = %{field: "name", label: "Name", filter_type: :text, filter_options: nil}
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      assert html =~ "Name:"
+    end
+  end
 end

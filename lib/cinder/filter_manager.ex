@@ -162,8 +162,15 @@ defmodule Cinder.FilterManager do
       for={label_for_attr(@column.filter_type, @table_id, @column.field)}
       phx-click={label_click_action(@column.filter_type, @table_id, @column.field)}
       data-key="filter_label_class"
-    >{@column.label}:</label>
+    >{filter_label_text(@column)}:</label>
     """
+  end
+
+  defp filter_label_text(column) do
+    case Keyword.get(column.filter_options || [], :label) do
+      nil -> column.label
+      label -> label
+    end
   end
 
   # For single-input filters, return the filter ID for the `for` attribute
