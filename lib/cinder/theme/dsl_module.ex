@@ -86,12 +86,12 @@ defmodule Cinder.Theme.DslModule do
   Deprecated: component grouping is no longer needed.
 
   This macro is kept for backwards compatibility but does nothing.
-  Run `mix cinder.migrate.theme` to update your themes to the new flat syntax.
+  Run `mix cinder.upgrade` to update your themes to the new flat syntax.
   """
   defmacro component(_component, do: block) do
     IO.warn(
       "component/2 is deprecated in Cinder themes and will be removed in a future version. " <>
-        "Run `mix cinder.migrate.theme` to update your theme files.",
+        "Run `mix cinder.upgrade` to update your theme files.",
       Macro.Env.stacktrace(__CALLER__)
     )
 

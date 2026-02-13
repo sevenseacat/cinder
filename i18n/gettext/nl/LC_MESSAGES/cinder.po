@@ -11,17 +11,17 @@ msgstr ""
 "Language: nl\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/cinder/filter_manager.ex:83
+#: lib/cinder/filter_manager.ex:84
 #, elixir-autogen
 msgid "Clear all"
 msgstr "Alles wissen"
 
-#: lib/cinder/filter_manager.ex:278
+#: lib/cinder/filter_manager.ex:279
 #, elixir-autogen
 msgid "Clear filter"
 msgstr "Filter wissen"
 
-#: lib/cinder/filter_manager.ex:73
+#: lib/cinder/filter_manager.ex:74
 #, elixir-autogen
 msgid "active"
 msgid_plural "active"
@@ -131,7 +131,7 @@ msgstr "Toon {selector} per pagina"
 msgid "To"
 msgstr "Tot"
 
-#: lib/cinder/filter_manager.ex:815
+#: lib/cinder/filter_manager.ex:816
 #: lib/cinder/filters/select.ex:19
 #, elixir-autogen, elixir-format
 msgid "All %{label}"
@@ -140,7 +140,7 @@ msgstr "Alle %{label}"
 #: lib/cinder/collection.ex:713
 #: lib/cinder/collection.ex:722
 #: lib/cinder/collection.ex:729
-#: lib/cinder/filter_manager.ex:91
+#: lib/cinder/filter_manager.ex:92
 #, elixir-autogen, elixir-format
 msgid "Search"
 msgstr "Zoeken"
@@ -148,7 +148,7 @@ msgstr "Zoeken"
 #: lib/cinder/collection.ex:713
 #: lib/cinder/collection.ex:723
 #: lib/cinder/collection.ex:729
-#: lib/cinder/filter_manager.ex:99
+#: lib/cinder/filter_manager.ex:100
 #, elixir-autogen, elixir-format
 msgid "Search..."
 msgstr "Zoeken..."
@@ -158,7 +158,7 @@ msgstr "Zoeken..."
 msgid "Select options..."
 msgstr "Selecteer opties..."
 
-#: lib/cinder/filter_manager.ex:122
+#: lib/cinder/filter_manager.ex:123
 #, elixir-autogen, elixir-format
 msgid "Clear search"
 msgstr "Zoekopdracht wissen"
@@ -185,14 +185,14 @@ msgstr "Geen resultaten gevonden"
 msgid "%{count} selected"
 msgstr "%{count} geselecteerd"
 
-#: lib/cinder/filters/boolean.ex:21
-#: lib/cinder/filters/boolean.ex:104
+#: lib/cinder/filters/boolean.ex:22
+#: lib/cinder/filters/boolean.ex:73
 #, elixir-autogen, elixir-format
 msgid "False"
 msgstr "Onwaar"
 
-#: lib/cinder/filters/boolean.ex:20
-#: lib/cinder/filters/boolean.ex:103
+#: lib/cinder/filters/boolean.ex:21
+#: lib/cinder/filters/boolean.ex:72
 #, elixir-autogen, elixir-format
 msgid "True"
 msgstr "Waar"

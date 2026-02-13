@@ -193,10 +193,10 @@ end
 
 #### Automatic Migration
 
-Run the migration task to automatically convert your theme files:
+Run the upgrade task to automatically convert your theme files:
 
 ```bash
-mix cinder.migrate.theme MyApp.CustomTheme
+mix cinder.upgrade 0.8.1 0.9.0
 ```
 
 The old `component/2` syntax will continue to work but shows deprecation warnings at compile time.
@@ -219,7 +219,7 @@ Available themes: `modern`, `retro`, `futuristic`, `dark`, `daisy_ui`, `flowbite
 3. [ ] Update `import Cinder.Table.Refresh` to `import Cinder.Refresh`
 4. [ ] Update `use Cinder.Table.UrlSync` to `use Cinder.UrlSync`
 5. [ ] Replace `theme="pastel"` with another theme
-6. [ ] Migrate custom themes: `mix cinder.migrate.theme MyApp.CustomTheme`
+6. [ ] Migrate custom themes: `mix cinder.upgrade 0.8.1 0.9.0`
 7. [ ] Run your test suite and fix any deprecation warnings
 
 ## Upgrading to 0.5.4

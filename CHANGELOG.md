@@ -58,7 +58,7 @@
 ### Improvements
 
 * Simplify theme DSL - flat `set :property, "value"` syntax replaces `component` blocks
-  * Run `mix cinder.migrate.theme MyApp.CustomTheme` to automatically migrate custom themes
+  * Run `mix cinder.upgrade 0.8.1 0.9.0` to automatically migrate custom themes
 * Improve checkbox and radio button styling across all themes for consistent appearance with `@tailwindcss/forms` plugin
 * Update Flowbite theme to use Flowbite design token classes for form inputs
 

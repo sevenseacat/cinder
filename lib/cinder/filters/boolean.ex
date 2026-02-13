@@ -22,7 +22,9 @@ defmodule Cinder.Filters.Boolean do
     false_label = Map.get(labels, false, dgettext("cinder", "False"))
 
     # Delegate to RadioGroup with boolean-specific options
-    radio_column = Map.put(column, :filter_options, [options: [{true_label, "true"}, {false_label, "false"}]])
+    radio_column =
+      Map.put(column, :filter_options, options: [{true_label, "true"}, {false_label, "false"}])
+
     RadioGroup.render(radio_column, current_value, theme, assigns)
   end
 
