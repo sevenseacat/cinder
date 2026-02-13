@@ -1,11 +1,19 @@
 # Changelog
 
+## v0.9.1 (2026-02-13)
+
+### Bugfixes
+
+* Fix crash when passing a struct as scope ([#110](https://github.com/sevenseacat/cinder/issues/110))
+* Fix query actor not being respected when no explicit actor or scope actor provided ([#111](https://github.com/sevenseacat/cinder/pull/111))
+* Fix sorting on relationship fields, calculations, and aggregates ([#111](https://github.com/sevenseacat/cinder/pull/111))
+
 ## v0.9.0 (2026-02-03)
 
-### Bugfixes 
+### Bugfixes
 
 * Fix association between checkbox/label for multi-checkboxes filter ([#103](https://github.com/sevenseacat/cinder/pull/103))
-* 
+
 ## v0.9.0-beta.6 (2026-01-28)
 
 ### Features
