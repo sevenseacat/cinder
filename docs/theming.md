@@ -208,6 +208,26 @@ set :filter_text_input_class, "w-full px-4 py-3 border-2 border-blue-500 rounded
 # 3. Refresh to see changes
 ```
 
+### Custom CSS Selectors
+
+The `data-key` attributes also work as CSS selectors, useful if you prefer writing traditional CSS over Tailwind classes:
+
+```css
+[data-key="th_class"] {
+  font-weight: 600;
+  color: #1a202c;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+[data-key="filter_text_input_class"] {
+  border: 1px solid #cbd5e0;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+```
+
+Note that some structural Tailwind classes (e.g. `relative`, `flex`, `cursor-pointer`) are hardcoded in the component templates and not controlled by theme properties. You may need to use higher specificity or `!important` to override these.
+
 ## Component Reference
 
 <!-- theme-properties-begin -->
