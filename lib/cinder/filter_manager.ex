@@ -90,7 +90,7 @@ defmodule Cinder.FilterManager do
           <!-- Search Input (if enabled) - as first filter -->
           <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
             <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} data-key="filter_label_class">{Map.get(assigns, :search_label, dgettext("cinder", "Search"))}:</label>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center">
               <div class="flex-1 relative">
                 <input
                   type="text"
