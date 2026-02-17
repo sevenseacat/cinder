@@ -58,6 +58,7 @@ defmodule Cinder.Renderers.Table do
                   phx-click="toggle_select_all_page"
                   phx-target={@myself}
                   class={@theme.selection_checkbox_class}
+                  data-key="selection_checkbox_class"
                 />
               </th>
               <th :for={column <- @columns} class={[@theme.th_class, column.class]} data-key="th_class">
@@ -90,6 +91,7 @@ defmodule Cinder.Renderers.Table do
                   phx-value-id={to_string(Map.get(item, @id_field))}
                   phx-target={@myself}
                   class={@theme.selection_checkbox_class}
+                  data-key="selection_checkbox_class"
                 />
               </td>
               <td :for={column <- @columns} class={[@theme.td_class, column.class]} data-key="td_class">

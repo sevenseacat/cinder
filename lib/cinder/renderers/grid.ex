@@ -90,6 +90,7 @@ defmodule Cinder.Renderers.Grid do
             <div
               :if={Map.get(assigns, :selectable, false)}
               class={@theme.grid_selection_overlay_class}
+              data-key="grid_selection_overlay_class"
             >
               <input
                 type="checkbox"
@@ -98,6 +99,7 @@ defmodule Cinder.Renderers.Grid do
                 phx-value-id={to_string(Map.get(item, Map.get(assigns, :id_field, :id)))}
                 phx-target={@myself}
                 class={@theme.selection_checkbox_class}
+                data-key="selection_checkbox_class"
               />
             </div>
             {render_slot(@item_slot, item)}

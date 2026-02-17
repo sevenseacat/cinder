@@ -102,7 +102,7 @@ defmodule Cinder.Filters.Autocomplete do
     }
 
     ~H"""
-    <div class={@theme.filter_select_container_class} id={@dropdown_id}>
+    <div class={@theme.filter_select_container_class} data-key="filter_select_container_class" id={@dropdown_id}>
       <!-- Hidden input for the actual filter value -->
       <input
         type="hidden"

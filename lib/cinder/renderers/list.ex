@@ -88,6 +88,7 @@ defmodule Cinder.Renderers.List do
             <div
               :if={Map.get(assigns, :selectable, false)}
               class={@theme.list_selection_container_class}
+              data-key="list_selection_container_class"
             >
               <input
                 type="checkbox"
@@ -96,6 +97,7 @@ defmodule Cinder.Renderers.List do
                 phx-value-id={to_string(Map.get(item, Map.get(assigns, :id_field, :id)))}
                 phx-target={@myself}
                 class={@theme.selection_checkbox_class}
+                data-key="selection_checkbox_class"
               />
             </div>
             {render_slot(@item_slot, item)}

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Chores
+
+* Add missing `data-key` attributes to theme-styled elements in filters and renderers
+
 ## v0.10.0 (2026-02-14)
 
 ### Features

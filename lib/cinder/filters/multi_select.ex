@@ -99,7 +99,7 @@ defmodule Cinder.Filters.MultiSelect do
     }
 
     ~H"""
-    <div class={@theme.filter_multiselect_container_class} id={@dropdown_id}>
+    <div class={@theme.filter_multiselect_container_class} data-key="filter_multiselect_container_class" id={@dropdown_id}>
       <!-- Main dropdown button that looks like a select input -->
       <button
         type="button"
@@ -109,7 +109,7 @@ defmodule Cinder.Filters.MultiSelect do
         phx-click={JS.toggle(to: "##{@dropdown_id}-options")}
       >
         <span class={[if(Enum.empty?(@selected_values), do: @theme.filter_select_placeholder_class, else: ""), "truncate"]}>{@display_text}</span>
-        <svg :if={@theme.filter_select_arrow_class != ""} class={@theme.filter_select_arrow_class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg :if={@theme.filter_select_arrow_class != ""} class={@theme.filter_select_arrow_class} data-key="filter_select_arrow_class" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
       </button>
