@@ -1,7 +1,7 @@
 defmodule Cinder.MixProject do
   use Mix.Project
 
-  @version "0.10.0"
+  @version "0.11.0"
   @source_url "https://github.com/sevenseacat/cinder"
 
   def project do
@@ -112,7 +112,8 @@ defmodule Cinder.MixProject do
           Cinder.UrlManager
         ],
         Refresh: [
-          Cinder.Refresh
+          Cinder.Refresh,
+          Cinder.Update
         ],
         "Filter Types": [
           Cinder.Filter,
@@ -139,7 +140,9 @@ defmodule Cinder.MixProject do
           Cinder.QueryBuilder,
           Cinder.Column,
           Cinder.FilterManager,
-          Cinder.Filter.Debug
+          Cinder.Filter.Debug,
+          Cinder.PageSize,
+          Cinder.BulkActionExecutor
         ],
         Deprecated: [
           Cinder.Table,
