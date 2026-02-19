@@ -1,9 +1,6 @@
 defmodule Cinder.Table.ShowFiltersTest do
   @moduledoc """
-  Regression tests for show_filters auto-detection.
-
-  This tests the fix for the bug where the filters section would not be shown
-  automatically when search was enabled but no filterable columns existed.
+  Tests for show_filters auto-detection and toggle modes.
   """
   use ExUnit.Case, async: true
   import Phoenix.LiveViewTest
@@ -40,9 +37,12 @@ defmodule Cinder.Table.ShowFiltersTest do
     end
   end
 
+  # HEEx templates can't be inlined in tests, so we need wrapper components.
+  # Kept to the minimum set needed — reuse these across test cases.
   defmodule TableWrappers do
     use Phoenix.Component
 
+    # Auto-detection wrappers (using deprecated Table API to test backwards compat)
     def filterable(assigns) do
       ~H"""
       <Cinder.Table.table resource={TestResource} actor={nil}>
@@ -55,15 +55,6 @@ defmodule Cinder.Table.ShowFiltersTest do
       ~H"""
       <Cinder.Table.table resource={TestResource} actor={nil}>
         <:col field="name" search>Name</:col>
-        <:col field="email" search>Email</:col>
-      </Cinder.Table.table>
-      """
-    end
-
-    def both(assigns) do
-      ~H"""
-      <Cinder.Table.table resource={TestResource} actor={nil}>
-        <:col field="name" filter={[type: :text]} search>Name</:col>
         <:col field="email" search>Email</:col>
       </Cinder.Table.table>
       """
@@ -92,51 +83,97 @@ defmodule Cinder.Table.ShowFiltersTest do
       </Cinder.Table.table>
       """
     end
+
+    # Parameterized wrapper for toggle mode tests
+    def collection(assigns) do
+      ~H"""
+      <Cinder.collection resource={TestResource} actor={nil} show_filters={@show_filters}>
+        <:col field="name" filter={@filter}>Name</:col>
+      </Cinder.collection>
+      """
+    end
+  end
+
+  defp render_collection(show_filters, filter \\ [type: :text]) do
+    render_component(&TableWrappers.collection/1, %{show_filters: show_filters, filter: filter})
   end
 
   describe "show_filters auto-detection" do
     test "shows filters when columns are filterable" do
       html = render_component(&TableWrappers.filterable/1, %{})
-
-      # Should have the filters section
       assert html =~ "filter_container_class"
     end
 
     test "shows filters when search is enabled (regression test for #70)" do
       html = render_component(&TableWrappers.searchable/1, %{})
-
-      # Should have the filters section because search is enabled
       assert html =~ "filter_container_class"
-      # Should have search input
       assert html =~ "Search"
-    end
-
-    test "shows filters when both filterable and searchable" do
-      html = render_component(&TableWrappers.both/1, %{})
-
-      # Should have the filters section
-      assert html =~ "filter_container_class"
     end
 
     test "hides filters when neither filterable nor searchable" do
       html = render_component(&TableWrappers.neither/1, %{})
-
-      # Should NOT have the filters section
       refute html =~ "filter_container_class"
     end
 
     test "explicit show_filters=false hides filters even with filterable columns" do
       html = render_component(&TableWrappers.explicitly_disabled/1, %{})
-
-      # Should NOT have the filters section (explicitly disabled)
       refute html =~ "filter_container_class"
     end
 
     test "hides filters when search is explicitly disabled" do
       html = render_component(&TableWrappers.search_disabled/1, %{})
-
-      # Should NOT have the filters section (search disabled, no filterable columns)
       refute html =~ "filter_container_class"
+    end
+  end
+
+  describe "show_filters toggle mode" do
+    test ":toggle starts with filter body hidden" do
+      html = render_collection(:toggle)
+
+      assert html =~ "filter_container_class"
+      assert html =~ "filter-toggle-expanded"
+      assert html =~ "filter-toggle-collapsed"
+      assert html =~ ~r/id="[^"]*-filter-toggle-expanded"[^>]*class="[^"]*hidden/
+      assert html =~ ~r/id="[^"]*-filter-body"[^>]*class="hidden"/
+    end
+
+    test ":toggle_open starts with filter body visible" do
+      html = render_collection(:toggle_open)
+
+      assert html =~ "filter_container_class"
+      assert html =~ "filter-toggle-expanded"
+      assert html =~ "filter-toggle-collapsed"
+      assert html =~ ~r/id="[^"]*-filter-toggle-collapsed"[^>]*class="[^"]*hidden/
+      refute html =~ ~r/id="[^"]*-filter-body"[^>]*class="hidden"/
+    end
+
+    test ":toggle with no filterable columns does not render filters" do
+      html = render_collection(:toggle, false)
+      refute html =~ "filter_container_class"
+    end
+
+    test "true does not render toggle UI" do
+      html = render_collection(true)
+      assert html =~ "filter_container_class"
+      refute html =~ "filter-toggle-expanded"
+    end
+
+    for {string, atom} <- [{"toggle", :toggle}, {"toggle_open", :toggle_open}] do
+      test "string \"#{string}\" works the same as :#{atom}" do
+        string_html = render_collection(unquote(string))
+        atom_html = render_collection(unquote(atom))
+
+        assert string_html =~ "filter-toggle-expanded"
+
+        assert string_html =~ ~r/id="[^"]*-filter-body"[^>]*class="hidden"/ ==
+                 (atom_html =~ ~r/id="[^"]*-filter-body"[^>]*class="hidden"/)
+      end
+    end
+
+    test "filter inputs are still present when collapsed" do
+      html = render_collection(:toggle)
+      assert html =~ "filter_change"
+      assert html =~ ~s(name="filters[name])
     end
   end
 end

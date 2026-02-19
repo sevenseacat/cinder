@@ -112,6 +112,8 @@ defmodule Cinder.Theme do
     filter_range_container_class: "",
     filter_range_input_group_class: "",
     filter_range_separator_class: "flex items-center px-2 text-sm text-gray-500",
+    filter_toggle_class: "cursor-pointer select-none inline-flex items-center gap-1",
+    filter_toggle_icon_class: "w-4 h-4",
 
     # Pagination
     pagination_wrapper_class: "",

@@ -844,7 +844,7 @@ defmodule Cinder.TableTest do
       # Default loading message should be present (component starts in loading state)
       assert html =~ "Loading..."
       # Default filters label should be present
-      assert html =~ "🔍 Filters"
+      assert html =~ "Filters"
       # Note: "No results found" is only shown when data is empty AND not loading,
       # which doesn't occur in static render tests
     end

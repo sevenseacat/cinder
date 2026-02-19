@@ -7,6 +7,7 @@ defmodule Cinder.FilterManager do
   """
 
   use Phoenix.Component
+  alias Phoenix.LiveView.JS
 
   alias Cinder.Filters.Registry
   use Cinder.Messages
@@ -55,6 +56,9 @@ defmodule Cinder.FilterManager do
     active_filters = count_active_filters(assigns.filters)
     filter_values = build_filter_values(filterable_columns, assigns.filters)
     raw_filter_params = Map.get(assigns, :raw_filter_params, %{})
+    filter_mode = Map.get(assigns, :filter_mode, true)
+    collapsible = filter_mode in [:toggle, :toggle_open]
+    initially_collapsed = filter_mode == :toggle
 
     assigns =
       assigns
@@ -62,18 +66,39 @@ defmodule Cinder.FilterManager do
       |> assign(:active_filters, active_filters)
       |> assign(:filter_values, filter_values)
       |> assign(:raw_filter_params, raw_filter_params)
+      |> assign(:collapsible, collapsible)
+      |> assign(:initially_collapsed, initially_collapsed)
 
     ~H"""
     <!-- Filter Controls (including search) -->
     <div :if={@filterable_columns != [] or Map.get(assigns, :show_search, false)} class={@theme.filter_container_class} data-key="filter_container_class">
       <!-- Filter Header -->
       <div class={@theme.filter_header_class} data-key="filter_header_class">
-        <span class={@theme.filter_title_class} data-key="filter_title_class">
-          {@filters_label}
-          <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} data-key="filter_count_class">
-            ({@active_filters} {dngettext("cinder", "active", "active", @active_filters)})
+        <%= if @collapsible do %>
+          <span
+            class={[@theme.filter_title_class, @theme.filter_toggle_class]}
+            data-key="filter_title_class"
+            phx-click={toggle_filters_js(@table_id)}
+          >
+            <span id={"#{@table_id}-filter-toggle-expanded"} class={if(@initially_collapsed, do: "hidden")}>
+              <span class={[@theme.filter_toggle_icon_class, "hero-chevron-down"]} />
+            </span>
+            <span id={"#{@table_id}-filter-toggle-collapsed"} class={unless(@initially_collapsed, do: "hidden")}>
+              <span class={[@theme.filter_toggle_icon_class, "hero-chevron-right"]} />
+            </span>
+            {@filters_label}
+            <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} data-key="filter_count_class">
+              ({@active_filters} {dngettext("cinder", "active", "active", @active_filters)})
+            </span>
           </span>
-        </span>
+        <% else %>
+          <span class={@theme.filter_title_class} data-key="filter_title_class">
+            {@filters_label}
+            <span class={[@theme.filter_count_class, if(@active_filters == 0, do: "invisible", else: "")]} data-key="filter_count_class">
+              ({@active_filters} {dngettext("cinder", "active", "active", @active_filters)})
+            </span>
+          </span>
+        <% end %>
         <button
           :if={@filterable_columns != []}
           phx-click="clear_all_filters"
@@ -85,68 +110,76 @@ defmodule Cinder.FilterManager do
         </button>
       </div>
 
-      <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
-        <div class={@theme.filter_inputs_class} data-key="filter_inputs_class">
-          <!-- Search Input (if enabled) - as first filter -->
-          <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
-            <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} data-key="filter_label_class">{Map.get(assigns, :search_label, dgettext("cinder", "Search"))}:</label>
-            <div class="flex items-center">
-              <div class="flex-1 relative">
-                <input
-                  type="text"
-                  id={filter_id(@table_id, "search")}
-                  name="search"
-                  value={Map.get(assigns, :search_term, "")}
-                  placeholder={Map.get(assigns, :search_placeholder, dgettext("cinder", "Search..."))}
-                  phx-debounce="300"
-                  class={@theme.search_input_class}
-                  data-key="search_input_class"
-                />
-                <div class="absolute inset-y-0 left-0 z-10 flex items-center pl-3 pointer-events-none">
-                  <svg class={@theme.search_icon_class} data-key="search_icon_class" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+      <div id={"#{@table_id}-filter-body"} class={if(@collapsible and @initially_collapsed, do: "hidden")}>
+        <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
+          <div class={@theme.filter_inputs_class} data-key="filter_inputs_class">
+            <!-- Search Input (if enabled) - as first filter -->
+            <div :if={Map.get(assigns, :show_search, false)} class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
+              <label for={filter_id(@table_id, "search")} class={@theme.filter_label_class} data-key="filter_label_class">{Map.get(assigns, :search_label, dgettext("cinder", "Search"))}:</label>
+              <div class="flex items-center">
+                <div class="flex-1 relative">
+                  <input
+                    type="text"
+                    id={filter_id(@table_id, "search")}
+                    name="search"
+                    value={Map.get(assigns, :search_term, "")}
+                    placeholder={Map.get(assigns, :search_placeholder, dgettext("cinder", "Search..."))}
+                    phx-debounce="300"
+                    class={@theme.search_input_class}
+                    data-key="search_input_class"
+                  />
+                  <div class="absolute inset-y-0 left-0 z-10 flex items-center pl-3 pointer-events-none">
+                    <svg class={@theme.search_icon_class} data-key="search_icon_class" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Clear search button - consistent with filter clear buttons -->
-              <button
-                type="button"
-                phx-click="clear_filter"
-                phx-value-key="search"
-                phx-target={@target}
-                class={[
-                  @theme.filter_clear_button_class,
-                  unless(Map.get(assigns, :search_term, "") != "", do: "invisible", else: "")
-                ]}
-                data-key="filter_clear_button_class"
-                title={dgettext("cinder", "Clear search")}
-              >
-                ×
-              </button>
+                <!-- Clear search button - consistent with filter clear buttons -->
+                <button
+                  type="button"
+                  phx-click="clear_filter"
+                  phx-value-key="search"
+                  phx-target={@target}
+                  class={[
+                    @theme.filter_clear_button_class,
+                    unless(Map.get(assigns, :search_term, "") != "", do: "invisible", else: "")
+                  ]}
+                  data-key="filter_clear_button_class"
+                  title={dgettext("cinder", "Clear search")}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
+              <.filter_label
+                column={column}
+                table_id={@table_id}
+                theme={@theme}
+              />
+              <.filter_input
+                column={column}
+                table_id={@table_id}
+                current_value={Map.get(@filter_values, column.field, "")}
+                filter_values={@filter_values}
+                raw_filter_params={@raw_filter_params}
+                theme={@theme}
+                target={@target}
+              />
             </div>
           </div>
-
-          <div :for={column <- @filterable_columns} class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
-            <.filter_label
-              column={column}
-              table_id={@table_id}
-              theme={@theme}
-            />
-            <.filter_input
-              column={column}
-              table_id={@table_id}
-              current_value={Map.get(@filter_values, column.field, "")}
-              filter_values={@filter_values}
-              raw_filter_params={@raw_filter_params}
-              theme={@theme}
-              target={@target}
-            />
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
     """
+  end
+
+  defp toggle_filters_js(table_id) do
+    JS.toggle(to: "##{table_id}-filter-body")
+    |> JS.toggle(to: "##{table_id}-filter-toggle-expanded")
+    |> JS.toggle(to: "##{table_id}-filter-toggle-collapsed")
   end
 
   @doc """

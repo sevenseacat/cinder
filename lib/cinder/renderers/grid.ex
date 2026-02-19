@@ -51,6 +51,7 @@ defmodule Cinder.Renderers.Grid do
           theme={@theme}
           target={@myself}
           filters_label={@filters_label}
+          filter_mode={@show_filters}
           search_term={@search_term}
           show_search={@search_enabled}
           search_label={@search_label}

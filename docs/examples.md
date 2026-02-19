@@ -12,6 +12,7 @@ This document provides comprehensive examples and detailed reference for all Cin
 - [Column Configuration](#column-configuration)
 - [Filter Types](#filter-types)
 - [Filter-Only Slots](#filter-only-slots)
+- [Collapsible Filters](#collapsible-filters)
 - [Global Search](#global-search)
 - [Sorting](#sorting)
 - [Custom Filter Functions](#custom-filter-functions)
@@ -587,6 +588,56 @@ Add filtering capability for fields without displaying them as columns. Useful f
 - Add filters for fields shown elsewhere on the page
 - Create admin interfaces with many filter options
 - Keep tables focused on essential information
+
+## Collapsible Filters
+
+For tables with many filters, you can make the filter section collapsible. The filter header (label, active count, "Clear all") stays visible while the filter inputs toggle on click—entirely client-side with no server round-trip.
+
+### Per-Component
+
+```heex
+<!-- Filters start collapsed -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} show_filters={:toggle}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="status" filter={:select}>{user.status}</:col>
+</Cinder.collection>
+
+<!-- Filters start expanded (with toggle button to collapse) -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} show_filters={:toggle_open}>
+  ...
+</Cinder.collection>
+```
+
+String values `"toggle"` and `"toggle_open"` are also accepted.
+
+### Global Default
+
+Set the default for all collections in your config, so you don't have to add `show_filters` to every component:
+
+```elixir
+# config/config.exs
+config :cinder, show_filters: :toggle
+```
+
+Individual collections can still override:
+
+```heex
+<!-- This collection always shows filters (overrides global :toggle) -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} show_filters={true}>
+  ...
+</Cinder.collection>
+```
+
+### All `show_filters` Values
+
+| Value | Behaviour |
+|-------|-----------|
+| `nil` (default) | Auto-detect: show if filterable columns or search exist |
+| `true` | Always show filters |
+| `false` | Never show filters |
+| `:toggle` / `"toggle"` | Collapsible, starts collapsed |
+| `:toggle_open` / `"toggle_open"` | Collapsible, starts expanded |
 
 ## Global Search
 
@@ -1313,7 +1364,7 @@ Gettext.put_locale("nl")
 # Cinder UI automatically shows Dutch text
 ```
 
-Available languages: English (en), Dutch (nl), Swedish (sv).
+Available languages: Danish (da), Dutch (nl), English (en), German (de), Norwegian (no), Swedish (sv).
 
 ## Selection & Bulk Actions
 

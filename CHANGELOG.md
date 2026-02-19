@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Features
+
+- Add collapsible filter toggle via `show_filters={:toggle}` (starts collapsed) and `show_filters={:toggle_open}` (starts expanded). Can be set globally via `config :cinder, show_filters: :toggle`.
+- Add Danish translation ([#121](https://github.com/sevenseacat/cinder/pull/121))
+
 ### Chores
 
 * Add missing `data-key` attributes to theme-styled elements in filters and renderers

@@ -135,9 +135,12 @@ defmodule Cinder.Collection do
       "Pagination mode: :offset (default) or :keyset. Keyset pagination is faster for large datasets but only supports prev/next navigation."
   )
 
-  attr(:show_filters, :boolean,
+  attr(:show_filters, :any,
     default: nil,
-    doc: "Whether to show filter controls (auto-detected if nil)"
+    doc:
+      "Controls filter visibility. true = always visible, false = hidden, nil = auto-detect, " <>
+        ":toggle/\"toggle\" = collapsible starting collapsed, :toggle_open/\"toggle_open\" = collapsible starting expanded. " <>
+        "Can also be set globally via `config :cinder, show_filters: :toggle`."
   )
 
   attr(:show_sort, :boolean,
@@ -314,7 +317,7 @@ defmodule Cinder.Collection do
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
       |> assign_new(:loading_message, fn -> dgettext("cinder", "Loading...") end)
-      |> assign(:filters_label, assigns[:filters_label] || "🔍 " <> dgettext("cinder", "Filters"))
+      |> assign(:filters_label, assigns[:filters_label] || dgettext("cinder", "Filters"))
       |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
       |> assign(:empty_message, assigns.empty_message || dgettext("cinder", "No results found"))
       |> assign(
@@ -784,6 +787,10 @@ defmodule Cinder.Collection do
   defp normalize_sort_mode(:additive), do: :additive
   defp normalize_sort_mode(_), do: :additive
 
+  defp normalize_show_filters("toggle"), do: :toggle
+  defp normalize_show_filters("toggle_open"), do: :toggle_open
+  defp normalize_show_filters(other), do: other
+
   defp layout_class(:table), do: "cinder-table"
   defp layout_class(:list), do: "cinder-list"
   defp layout_class(:grid), do: "cinder-grid"
@@ -821,14 +828,24 @@ defmodule Cinder.Collection do
   # PRIVATE HELPERS - Show/Hide Logic
   # ============================================================================
 
-  defp determine_show_filters(%{show_filters: explicit}, _columns, _search_enabled)
-       when is_boolean(explicit) do
-    explicit
-  end
+  defp determine_show_filters(assigns, columns, search_enabled) do
+    explicit = Map.get(assigns, :show_filters)
+    has_content = Enum.any?(columns, & &1.filterable) or search_enabled
 
-  defp determine_show_filters(_assigns, columns, search_enabled) do
-    has_filterable = Enum.any?(columns, & &1.filterable)
-    has_filterable or search_enabled
+    mode =
+      case explicit do
+        nil -> Application.get_env(:cinder, :show_filters, nil)
+        other -> other
+      end
+
+    case normalize_show_filters(mode) do
+      false -> false
+      true -> has_content
+      :toggle -> if has_content, do: :toggle, else: false
+      :toggle_open -> if has_content, do: :toggle_open, else: false
+      # nil = auto-detect (backwards compat)
+      _ -> has_content
+    end
   end
 
   defp determine_show_sort(%{show_sort: explicit}, _columns) when is_boolean(explicit) do

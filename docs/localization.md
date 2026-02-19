@@ -17,8 +17,11 @@ No additional configuration needed!
 
 ## Available Translations
 
+- **Danish** (da)
+- **Dutch** (nl)
 - **English** (en) - Default
-- **Dutch** (nl) 
+- **German** (de)
+- **Norwegian** (no)
 - **Swedish** (sv)
 
 ## Phoenix LiveView Example
@@ -34,16 +37,27 @@ defmodule MyAppWeb.UserLive.Index do
 end
 ```
 
-## Custom Backend (Optional)
+## Using Your App's Gettext Backend
 
-If needed, you can use your app's Gettext backend:
+By default, Cinder uses its own built-in Gettext backend. To override labels or provide your own translations, point Cinder at your app's backend:
 
 ```elixir
 # config/config.exs
 config :cinder, gettext_backend: MyAppWeb.Gettext
 ```
 
-Note: Requires copying Cinder's translations to your app's `priv/gettext`.
+Then create a `cinder.po` file in your app's gettext directory. You only need to include the strings you want to change — anything missing falls back to the default English text:
+
+```po
+# priv/gettext/en/LC_MESSAGES/cinder.po
+msgid "Filters"
+msgstr "Filter"
+
+msgid "Loading..."
+msgstr "Please wait..."
+```
+
+For a full list of available strings, see `i18n/gettext/cinder.pot` in the Cinder source.
 
 ## Contributing Translations
 

@@ -55,7 +55,7 @@ defmodule Cinder.Table do
   attr :show_pagination, :boolean, default: true, doc: "Whether to show pagination controls"
   attr :show_filters, :boolean, default: nil, doc: "Whether to show filter controls"
   attr :loading_message, :string, default: "Loading...", doc: "Message to show while loading"
-  attr :filters_label, :string, default: "🔍 Filters", doc: "Label for the filters component"
+  attr :filters_label, :string, default: "Filters", doc: "Label for the filters component"
   attr :search, :any, default: nil, doc: "Search configuration"
   attr :empty_message, :string, default: "No results found", doc: "Message when no results"
   attr :error_message, :string, default: nil, doc: "Message to show on error"
