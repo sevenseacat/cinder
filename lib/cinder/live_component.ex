@@ -844,6 +844,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:search_term, assigns[:search_term] || "")
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
+    |> assign_new(:action, fn -> nil end)
     |> assign_new(:page, fn -> nil end)
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
     # Keyset pagination state
@@ -991,10 +992,13 @@ defmodule Cinder.LiveComponent do
     # Use query_columns for filtering and searching (includes filter-only slots)
     query_columns = Map.get(socket.assigns, :query_columns, columns)
 
+    action = Map.get(socket.assigns, :action)
+
     options = [
       actor: actor,
       tenant: tenant,
       scope: scope,
+      action: action,
       query_opts: query_opts,
       filters: filters,
       sort_by: sort_by,

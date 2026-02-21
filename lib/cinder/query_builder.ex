@@ -108,6 +108,7 @@ defmodule Cinder.QueryBuilder do
     query_opts = Keyword.get(options, :query_opts, [])
     search_term = Keyword.get(options, :search_term, "")
     search_fn = Keyword.get(options, :search_fn)
+    action = Keyword.get(options, :action)
 
     # Keyset pagination options
     pagination_mode = Keyword.get(options, :pagination_mode, :offset)
@@ -124,15 +125,8 @@ defmodule Cinder.QueryBuilder do
       effective_tenant =
         tenant || if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant
 
-      # Normalize input to a query and extract resource for logging
-      {base_query, resource} =
-        normalize_resource_or_query(
-          resource_or_query,
-          effective_actor,
-          effective_tenant,
-          scope_opts,
-          query_opts
-        )
+      base_query = Ash.Query.new(resource_or_query)
+      resource = base_query.resource
 
       # Validate sort fields before applying them to prevent crashes
       case validate_sortable_fields(sort_by, resource) do
@@ -144,6 +138,7 @@ defmodule Cinder.QueryBuilder do
             |> apply_filters(filters, columns)
             |> apply_search(search_term, columns, search_fn)
             |> apply_sorting(sort_by)
+            |> apply_action(action, actor, tenant, scope_opts, query_opts)
 
           # Handle pagination based on action support
           case action_supports_pagination?(prepared_query) do
@@ -224,39 +219,36 @@ defmodule Cinder.QueryBuilder do
     end
   end
 
-  # Normalize input to always return {query, resource} tuple
-  defp normalize_resource_or_query(%Ash.Query{} = query, actor, tenant, _scope_opts, query_opts) do
-    # Fix nil action edge case
-    updated_query =
-      if is_nil(query.action) do
-        %{query | action: Ash.Resource.Info.action(query.resource, :read)}
-      else
-        query
+  # Ensure resource has an action set
+  defp apply_action(query, action, actor, tenant, scope_opts, query_opts) do
+    query
+    |> maybe_set_tenant(tenant)
+    |> maybe_set_actor(actor)
+    |> apply_query_opts(query_opts)
+    |> then(fn query ->
+      cond do
+        query.action ->
+          query
+
+        action ->
+          Ash.Query.for_read(
+            query,
+            action,
+            %{},
+            build_ash_options(actor, tenant, scope_opts, query_opts)
+          )
+
+        true ->
+          primary_read = Ash.Resource.Info.primary_action!(query.resource, :read)
+
+          Ash.Query.for_read(
+            query,
+            primary_read.name,
+            %{},
+            build_ash_options(actor, tenant, scope_opts, query_opts)
+          )
       end
-
-    # Apply actor/tenant context to query for hooks and sub-queries
-    context_query =
-      updated_query
-      |> maybe_set_tenant(tenant)
-      |> maybe_set_actor(actor)
-
-    # Apply query_opts (load, select, etc.) to the existing query
-    final_query = apply_query_opts(context_query, query_opts)
-
-    {final_query, query.resource}
-  end
-
-  defp normalize_resource_or_query(resource, actor, tenant, scope_opts, query_opts)
-       when is_atom(resource) do
-    query =
-      Ash.Query.for_read(
-        resource,
-        :read,
-        %{},
-        build_ash_options(actor, tenant, scope_opts, query_opts)
-      )
-
-    {query, resource}
+    end)
   end
 
   defp maybe_set_tenant(query, nil), do: query
