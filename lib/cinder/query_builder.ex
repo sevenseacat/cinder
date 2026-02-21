@@ -134,7 +134,6 @@ defmodule Cinder.QueryBuilder do
           # Continue with normal query building
           prepared_query =
             base_query
-            |> apply_query_opts(query_opts)
             |> apply_filters(filters, columns)
             |> apply_search(search_term, columns, search_fn)
             |> apply_sorting(sort_by)
