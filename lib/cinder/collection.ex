@@ -97,6 +97,11 @@ defmodule Cinder.Collection do
     doc: "The Ash query to execute (use either resource or query, not both)"
   )
 
+  attr(:action, :atom,
+    default: nil,
+    doc: "The read action to use. Defaults to the primary read action."
+  )
+
   attr(:actor, :any, default: nil, doc: "Actor for authorization")
   attr(:tenant, :any, default: nil, doc: "Tenant for multi-tenant resources")
   attr(:scope, :any, default: nil, doc: "Ash scope containing actor and tenant")
@@ -418,6 +423,7 @@ defmodule Cinder.Collection do
         id={@id}
         renderer={@renderer}
         query={@normalized_query}
+        action={@action}
         actor={@actor}
         tenant={@tenant}
         scope={@scope}

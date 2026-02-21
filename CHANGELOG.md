@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.11.1 (unreleased)
+
+### Features
+
+* Add `action` attribute to collections for specifying a custom read action ([#125](https://github.com/sevenseacat/cinder/pull/125))
+
+### Bugfixes
+
+* Use primary read action instead of hardcoded `:read` when no action is specified ([#125](https://github.com/sevenseacat/cinder/pull/125))
+
 ## v0.11.0 (2026-02-19)
 
 ### Features
