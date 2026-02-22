@@ -60,6 +60,16 @@ defmodule Cinder.Renderers.ListTest do
   end
 
   describe "data-key attributes" do
+    test "supports toggle filter mode without raising" do
+      assigns =
+        base_assigns()
+        |> Map.put(:show_filters, :toggle)
+
+      html = render_component(&ListRenderer.render/1, assigns)
+
+      assert html =~ ~s(data-key="controls_class")
+    end
+
     test "includes data-key for list container when using theme classes" do
       assigns = base_assigns()
 
