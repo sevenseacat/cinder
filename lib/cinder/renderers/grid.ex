@@ -41,7 +41,7 @@ defmodule Cinder.Renderers.Grid do
     ~H"""
     <div class={[@theme.container_class, "relative"]} data-key="container_class">
       <!-- Controls Area (filters + sort) -->
-      <div :if={@show_filters or (@show_sort && SortControls.has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} data-key="controls_class">
+      <div :if={@show_filters || (@show_sort && SortControls.has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} data-key="controls_class">
         <!-- Filter Controls (including search) -->
         <Cinder.FilterManager.render_filter_controls
           :if={@show_filters}
