@@ -432,7 +432,7 @@ defmodule Cinder.Collection do
         url_filters={get_url_filters(@url_state)}
         url_page={get_url_page(@url_state)}
         url_sort={get_url_sort(@url_state)}
-        url_raw_params={get_raw_url_params(@url_state)}
+        url_state = {@url_state}
         query_opts={@query_opts}
         on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
         show_filters={@show_filters}
@@ -912,12 +912,6 @@ defmodule Cinder.Collection do
   end
 
   defp get_url_sort(_), do: nil
-
-  defp get_raw_url_params(url_state) when is_map(url_state) do
-    Map.get(url_state, :filters, %{})
-  end
-
-  defp get_raw_url_params(_), do: %{}
 
   defp get_state_change_handler(url_state, custom_handler, _component_id)
        when is_map(url_state) do

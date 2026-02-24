@@ -132,6 +132,16 @@ defmodule Cinder.UrlManager do
     }
   end
 
+  def get_filters(url_state) when is_map(url_state), do: Map.get(url_state, :filters, %{})
+  def get_filters(_), do: %{}
+
+  def get_search(url_state) do
+    url_state
+    |> get_filters()
+    |> Map.get("search", "")
+    |> decode_search()
+  end
+
   # Decodes search parameter from URL
   defp decode_search(nil), do: ""
   defp decode_search(""), do: ""
