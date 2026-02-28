@@ -23,6 +23,7 @@ This document provides comprehensive examples and detailed reference for all Cin
 - [Action Columns](#action-columns)
 - [Collection Refresh](#collection-refresh)
 - [Loading, Empty & Error States](#loading-empty-error-states)
+- [Custom Controls Layout](#custom-controls-layout)
 - [Performance Optimization](#performance-optimization)
 - [Localization](#localization)
 - [Selection & Bulk Actions](#selection--bulk-actions)
@@ -1260,6 +1261,112 @@ Slots take precedence over message attributes when both are provided.
 ### State Precedence
 
 When multiple states are active, they follow this display order: **loading > error > empty > data**. Error state hides any stale data rows, and loading overlays the entire content area.
+
+## Custom Controls Layout
+
+The `:controls` slot lets you customize how filters and search are rendered while keeping Cinder's state management, URL sync, and query building intact. This is useful when you need to reorder filters, add custom content between them, or use a completely different layout.
+
+### Basic Usage
+
+The slot receives a controls data map via `:let`:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort search>{user.name}</:col>
+  <:col :let={user} field="status" filter={:select}>{user.status}</:col>
+
+  <:controls :let={controls}>
+    <div class="flex items-center gap-4 mb-4">
+      <Cinder.Controls.render_search
+        search={controls.search}
+        theme={controls.theme}
+        target={controls.target}
+      />
+      <button phx-click="export">Export</button>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <Cinder.Controls.render_filter
+        :for={{_name, filter} <- controls.filters}
+        filter={filter}
+        theme={controls.theme}
+        target={controls.target}
+      />
+    </div>
+  </:controls>
+</Cinder.collection>
+```
+
+### Available Helpers
+
+- `Cinder.Controls.render_filter/1` — renders a single filter (label + input + clear button)
+- `Cinder.Controls.render_search/1` — renders the search input
+- `Cinder.Controls.render_header/1` — renders the default header (title, active count, clear all, toggle)
+
+### Controls Data Map
+
+The `:let` binding provides:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `filters` | keyword list | Filters keyed by field atom, preserving column order. Access by name: `controls.filters[:status]` |
+| `search` | map or nil | Search input data (value, name, label, placeholder, id), or nil when disabled |
+| `active_filter_count` | integer | Number of currently active filters |
+| `target` | any | LiveComponent target for `phx-target` |
+| `theme` | map | Resolved theme map |
+| `table_id` | string | DOM ID prefix |
+| `filters_label` | string | Translated label for filters section |
+| `filter_mode` | any | Current filter display mode |
+| `filter_values` | map | Shared filter values (for render helpers) |
+| `raw_filter_params` | map | Raw form params (for autocomplete filters) |
+
+### Selective Rendering
+
+Filters is a keyword list, so you can access individual filters directly by field name:
+
+```heex
+<:controls :let={controls}>
+  <Cinder.Controls.render_header {controls} />
+  <div class="flex gap-2">
+    <Cinder.Controls.render_filter
+      filter={controls.filters[:status]}
+      theme={controls.theme}
+      target={controls.target}
+    />
+    <Cinder.Controls.render_filter
+      filter={controls.filters[:name]}
+      theme={controls.theme}
+      target={controls.target}
+    />
+  </div>
+</:controls>
+```
+
+### Mixing Custom and Default Rendering
+
+You can use the render helpers for some filters and your own markup for others. As long as your custom inputs use the correct `name` attribute (e.g., `name="filters[status]"` for a field called "status"), Cinder's form handling picks them up automatically:
+
+```heex
+<:controls :let={controls}>
+  <Cinder.Controls.render_header {controls} />
+  <div class="flex gap-4">
+    <Cinder.Controls.render_filter
+      filter={controls.filters[:name]}
+      theme={controls.theme}
+      target={controls.target}
+    />
+    <%!-- Custom select with your own component --%>
+    <.my_custom_select
+      name="filters[status]"
+      value={controls.filters[:status].value}
+      options={[{"Active", "active"}, {"Inactive", "inactive"}]}
+    />
+  </div>
+</:controls>
+```
+
+### How It Works
+
+The `:controls` slot replaces the entire controls section (header + filter inputs) but **not** the form wrapper. Cinder automatically wraps your slot content in a `<form>` with `phx-change="filter_change"`, so filter state, URL sync, and query building continue to work without any extra setup.
 
 ## Performance Optimization
 

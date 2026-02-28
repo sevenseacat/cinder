@@ -11,18 +11,18 @@ msgstr ""
 "Language: da\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/cinder/filter_manager.ex:109
+#: lib/cinder/controls.ex:324
 #, elixir-autogen
 msgid "Clear all"
 msgstr "Ryd alle"
 
-#: lib/cinder/filter_manager.ex:319
+#: lib/cinder/filter_manager.ex:267
 #, elixir-autogen
 msgid "Clear filter"
 msgstr "Ryd filter"
 
-#: lib/cinder/filter_manager.ex:91
-#: lib/cinder/filter_manager.ex:98
+#: lib/cinder/controls.ex:306
+#: lib/cinder/controls.ex:313
 #, elixir-autogen
 msgid "active"
 msgid_plural "active"
@@ -87,12 +87,12 @@ msgstr "Næste"
 msgid "Prev"
 msgstr "Forrige"
 
-#: lib/cinder/collection.ex:325
+#: lib/cinder/collection.ex:357
 #, elixir-autogen, elixir-format
 msgid "Filters"
 msgstr "Filtre"
 
-#: lib/cinder/collection.ex:326
+#: lib/cinder/collection.ex:358
 #, elixir-autogen, elixir-format
 msgid "Sort by:"
 msgstr "Sortér efter:"
@@ -132,24 +132,24 @@ msgstr "Vis {selector} per side"
 msgid "To"
 msgstr "Til"
 
-#: lib/cinder/filter_manager.ex:856
+#: lib/cinder/filter_manager.ex:804
 #: lib/cinder/filters/select.ex:19
 #, elixir-autogen, elixir-format
 msgid "All %{label}"
 msgstr "Alle %{label}"
 
-#: lib/cinder/collection.ex:748
-#: lib/cinder/collection.ex:757
-#: lib/cinder/collection.ex:764
-#: lib/cinder/filter_manager.ex:118
+#: lib/cinder/collection.ex:783
+#: lib/cinder/collection.ex:792
+#: lib/cinder/collection.ex:799
+#: lib/cinder/controls.ex:114
 #, elixir-autogen, elixir-format
 msgid "Search"
 msgstr "Søg"
 
-#: lib/cinder/collection.ex:748
-#: lib/cinder/collection.ex:758
-#: lib/cinder/collection.ex:764
-#: lib/cinder/filter_manager.ex:126
+#: lib/cinder/collection.ex:783
+#: lib/cinder/collection.ex:793
+#: lib/cinder/collection.ex:799
+#: lib/cinder/controls.ex:115
 #, elixir-autogen, elixir-format
 msgid "Search..."
 msgstr "Søg..."
@@ -159,12 +159,12 @@ msgstr "Søg..."
 msgid "Select options..."
 msgstr "Vælg muligheder..."
 
-#: lib/cinder/filter_manager.ex:149
+#: lib/cinder/controls.ex:250
 #, elixir-autogen, elixir-format
 msgid "Clear search"
 msgstr "Ryd søgning"
 
-#: lib/cinder/collection.ex:324
+#: lib/cinder/collection.ex:356
 #, elixir-autogen, elixir-format
 msgid "Loading..."
 msgstr "Indlæser..."
@@ -175,7 +175,7 @@ msgstr "Indlæser..."
 msgid "No options available"
 msgstr "Ingen muligheder tilgængelige"
 
-#: lib/cinder/collection.ex:327
+#: lib/cinder/collection.ex:359
 #: lib/cinder/filters/autocomplete.ex:157
 #, elixir-autogen, elixir-format
 msgid "No results found"
@@ -203,7 +203,7 @@ msgstr "Sand"
 msgid "Type to search more options..."
 msgstr "Skriv for at søge flere muligheder..."
 
-#: lib/cinder/collection.ex:331
+#: lib/cinder/collection.ex:363
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Der opstod en fejl under indlæsning af data"

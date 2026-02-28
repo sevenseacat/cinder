@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.0 (unreleased)
+
+### Features
+
+* Add `<:controls>` slot for custom filter/search control layouts. See [Examples guide](examples.md#custom-controls-layout) for examples of how to use it!
+
 ## v0.11.1 (2026-02-21)
 
 ### Features

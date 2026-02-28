@@ -80,6 +80,30 @@ defmodule Cinder.Collection do
   | `container_class` | ❌ N/A | ✅ Override | ✅ Override | Custom container CSS |
   | `grid_columns` | ❌ N/A | ❌ N/A | ✅ Column count | Number of grid columns |
   | `click` | ✅ Row click | ✅ Item click | ✅ Item click | Click handler |
+
+  ## Custom Controls Layout
+
+  Use the `:controls` slot to customize how filters and search are rendered while
+  keeping Cinder's state management, URL sync, and query building intact:
+
+  ```heex
+  <Cinder.collection resource={MyApp.User} actor={@current_user}>
+    <:col :let={user} field="name" filter sort search>{user.name}</:col>
+    <:col :let={user} field="status" filter={:select}>{user.status}</:col>
+
+    <:controls :let={controls}>
+      <Cinder.Controls.render_header {controls} />
+      <div class="grid grid-cols-2 gap-4">
+        <Cinder.Controls.render_filter
+          :for={filter <- controls.filters}
+          filter={filter}
+        />
+      </div>
+    </:controls>
+  </Cinder.collection>
+  ```
+
+  See `Cinder.Controls` for the full API and more examples.
   """
 
   use Phoenix.Component
@@ -306,6 +330,14 @@ defmodule Cinder.Collection do
     )
   end
 
+  slot(:controls,
+    required: false,
+    doc:
+      "Custom layout for the filter/search controls area. " <>
+        "Receives a controls data map via :let with filters, search, and metadata. " <>
+        "Use Cinder.Controls helpers to render individual filters, search, and headers."
+  )
+
   slot(:loading, required: false, doc: "Custom loading state content")
   slot(:empty, required: false, doc: "Custom empty state content")
   slot(:error, required: false, doc: "Custom error state content")
@@ -381,6 +413,7 @@ defmodule Cinder.Collection do
     bulk_action_slots = Map.get(assigns, :bulk_action, [])
 
     # Get state content slots
+    controls_slot = Map.get(assigns, :controls, [])
     loading_slot = Map.get(assigns, :loading, [])
     empty_slot = Map.get(assigns, :empty, [])
     error_slot = Map.get(assigns, :error, [])
@@ -408,6 +441,7 @@ defmodule Cinder.Collection do
       |> assign(:renderer, renderer)
       |> assign(:item_slot, item_slot)
       |> assign(:bulk_action_slots, bulk_action_slots)
+      |> assign(:controls_slot, controls_slot)
       |> assign(:loading_slot, loading_slot)
       |> assign(:empty_slot, empty_slot)
       |> assign(:error_slot, error_slot)
@@ -443,6 +477,7 @@ defmodule Cinder.Collection do
         sort_label={@sort_label}
         empty_message={@empty_message}
         error_message={@error_message}
+        controls_slot={@controls_slot}
         loading_slot={@loading_slot}
         empty_slot={@empty_slot}
         error_slot={@error_slot}
