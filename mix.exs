@@ -19,7 +19,8 @@ defmodule Cinder.MixProject do
       name: "Cinder",
       aliases: aliases(),
       source_url: @source_url,
-      dialyzer: [plt_add_apps: [:mix]]
+      dialyzer: [plt_add_apps: [:mix]],
+      gettext: [write_reference_line_numbers: false]
     ]
   end
 
@@ -93,18 +94,23 @@ defmodule Cinder.MixProject do
       source_url: @source_url,
       extras: [
         "README.md",
-        "docs/examples.md",
+        "docs/getting-started.md",
+        "docs/filters.md",
+        "docs/sorting.md",
+        "docs/advanced.md",
         "docs/theming.md",
         "docs/theme-showcase.md",
         "docs/custom-filters.md",
         "docs/localization.md",
         "docs/upgrading.md",
+        "docs/examples.md",
         "CHANGELOG.md"
       ],
       groups_for_modules: [
         "Core Components": [
           Cinder,
           Cinder.Collection,
+          Cinder.Controls,
           Cinder.LiveComponent
         ],
         "URL State Management": [
