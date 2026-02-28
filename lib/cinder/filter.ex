@@ -435,4 +435,6 @@ defmodule Cinder.Filter do
 
   def filter_id(table_id, field, suffix),
     do: "#{table_id}-filter-#{sanitized_field_name(field)}-#{suffix}"
+
+  def form_id(table_id, form), do: "#{table_id}-form-#{form}"
 end

@@ -704,71 +704,76 @@ defmodule Cinder.LiveComponent do
   # PRIVATE FUNCTIONS - URL State Decoding
   # ============================================================================
 
-  defp decode_url_state(socket, assigns) do
-    if Map.has_key?(assigns, :url_raw_params) do
-      raw_params = assigns.url_raw_params
-
-      decoded_filters =
-        Cinder.UrlManager.decode_filters(raw_params, socket.assigns.query_columns)
-
-      decoded_sorts =
-        Cinder.UrlManager.decode_sort(Map.get(raw_params, "sort"), socket.assigns.columns)
-
-      decoded_state = %{
-        filters: decoded_filters,
-        current_page: Cinder.UrlManager.decode_page(Map.get(raw_params, "page")),
-        sort_by: decoded_sorts,
-        page_size: Cinder.UrlManager.decode_page_size(Map.get(raw_params, "page_size")),
-        search_term: Map.get(raw_params, "search", ""),
-        after: Cinder.UrlManager.decode_cursor(Map.get(raw_params, "after")),
-        before: Cinder.UrlManager.decode_cursor(Map.get(raw_params, "before"))
-      }
-
-      final_sort_by =
-        cond do
-          decoded_state.sort_by != [] ->
-            decoded_state.sort_by
-
-          Map.get(socket.assigns, :user_has_interacted, false) ->
-            []
-
-          true ->
-            socket.assigns.sort_by
-        end
-
-      updated_socket =
-        if Map.has_key?(raw_params, "page_size") do
-          updated_page_size_config = %{
-            socket.assigns.page_size_config
-            | selected_page_size: decoded_state.page_size
-          }
-
-          socket
-          |> assign(:page_size, decoded_state.page_size)
-          |> assign(:page_size_config, updated_page_size_config)
-        else
-          socket
-        end
-
-      # Handle keyset cursors from URL (after/before params)
-      updated_socket =
-        if socket.assigns.pagination_mode == :keyset do
-          updated_socket
-          |> maybe_assign_cursor(:after_keyset, decoded_state.after)
-          |> maybe_assign_cursor(:before_keyset, decoded_state.before)
-        else
-          updated_socket
-        end
-
-      updated_socket
-      |> assign(:filters, decoded_state.filters)
-      |> assign(:current_page, decoded_state.current_page)
-      |> assign(:sort_by, final_sort_by)
-      |> assign(:search_term, decoded_state.search_term)
-    else
-      decode_url_state_legacy(socket, assigns)
-    end
+  defp get_raw_url_params(url_state) when is_map(url_state) do
+    Map.get(url_state, :filters, %{})
   end
+
+  defp get_raw_url_params(_), do: %{}
+
+  defp decode_url_state(socket, %{url_state: url_state}) do
+    raw_params = get_raw_url_params(url_state)
+
+    decoded_filters =
+      Cinder.UrlManager.decode_filters(raw_params, socket.assigns.query_columns)
+
+    decoded_sorts =
+      Cinder.UrlManager.decode_sort(Map.get(raw_params, "sort"), socket.assigns.columns)
+
+    decoded_search_term = Cinder.UrlManager.get_search(url_state)
+
+    decoded_state = %{
+      filters: decoded_filters,
+      current_page: Cinder.UrlManager.decode_page(Map.get(raw_params, "page")),
+      sort_by: decoded_sorts,
+      page_size: Cinder.UrlManager.decode_page_size(Map.get(raw_params, "page_size")),
+      after: Cinder.UrlManager.decode_cursor(Map.get(raw_params, "after")),
+      before: Cinder.UrlManager.decode_cursor(Map.get(raw_params, "before"))
+    }
+
+    final_sort_by =
+      cond do
+        decoded_state.sort_by != [] ->
+          decoded_state.sort_by
+
+        Map.get(socket.assigns, :user_has_interacted, false) ->
+          []
+
+        true ->
+          socket.assigns.sort_by
+      end
+
+    updated_socket =
+      if Map.has_key?(raw_params, "page_size") do
+        updated_page_size_config = %{
+          socket.assigns.page_size_config
+          | selected_page_size: decoded_state.page_size
+        }
+
+        socket
+        |> assign(:page_size, decoded_state.page_size)
+        |> assign(:page_size_config, updated_page_size_config)
+      else
+        socket
+      end
+
+    # Handle keyset cursors from URL (after/before params)
+    updated_socket =
+      if socket.assigns.pagination_mode == :keyset do
+        updated_socket
+        |> maybe_assign_cursor(:after_keyset, decoded_state.after)
+        |> maybe_assign_cursor(:before_keyset, decoded_state.before)
+      else
+        updated_socket
+      end
+
+    updated_socket
+    |> assign(:filters, decoded_state.filters)
+    |> assign(:current_page, decoded_state.current_page)
+    |> assign(:sort_by, final_sort_by)
+    |> assign(:search_term, decoded_search_term)
+  end
+
+  defp decode_url_state(socket, assigns), do: decode_url_state_legacy(socket, assigns)
 
   defp maybe_assign_cursor(socket, _key, nil), do: socket
   defp maybe_assign_cursor(socket, key, cursor), do: assign(socket, key, cursor)

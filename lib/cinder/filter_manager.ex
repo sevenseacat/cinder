@@ -11,7 +11,7 @@ defmodule Cinder.FilterManager do
   alias Cinder.Filters.Registry
   use Cinder.Messages
 
-  import Cinder.Filter, only: [filter_id: 2, filter_id: 3]
+  import Cinder.Filter, only: [filter_id: 2, filter_id: 3, form_id: 2]
 
   @type filter_type ::
           :text
@@ -107,7 +107,7 @@ defmodule Cinder.FilterManager do
       />
 
       <div id={"#{@table_id}-filter-body"} class={if(@collapsible and @initially_collapsed, do: "hidden")}>
-        <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
+        <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target} id={form_id(@table_id, "filter")}>
           <div class={@theme.filter_inputs_class} data-key="filter_inputs_class">
             <Cinder.Controls.render_search
               :if={@controls_data.search != nil}
