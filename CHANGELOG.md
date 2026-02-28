@@ -7,6 +7,10 @@
 * Add `<:controls>` slot for custom filter/search control layouts. See the [Filters guide](filters.md#custom-controls-layout) for examples of how to use it!
 * Add Brazilian Portuguese translation ([#134](https://github.com/sevenseacat/cinder/pull/134))
 
+### Bugfixes
+
+* Fix sort cycles without `nil` (e.g. `[:asc, :desc]`) injecting a phantom unsorted state instead of wrapping around ([#132](https://github.com/sevenseacat/cinder/issues/132))
+
 ## v0.11.1 (2026-02-21)
 
 ### Features

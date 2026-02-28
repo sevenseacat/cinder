@@ -163,6 +163,97 @@ defmodule Cinder.Table.SortCycleTest do
     end
   end
 
+  describe "toggle_sort_with_cycle/3 with no-nil cycles (#132)" do
+    test "[:asc, :desc] wraps without injecting nil" do
+      cycle = [:asc, :desc]
+
+      # First click: not sorted -> :asc
+      sort1 = QueryBuilder.toggle_sort_with_cycle([], "name", cycle)
+      assert sort1 == [{"name", :asc}]
+
+      # Second click: :asc -> :desc
+      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "name", cycle)
+      assert sort2 == [{"name", :desc}]
+
+      # Third click: :desc -> :asc (wrap), NOT nil
+      sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "name", cycle)
+      assert sort3 == [{"name", :asc}]
+
+      # Fourth click: :asc -> :desc (continues wrapping)
+      sort4 = QueryBuilder.toggle_sort_with_cycle(sort3, "name", cycle)
+      assert sort4 == [{"name", :desc}]
+    end
+
+    test "[:desc, :asc] wraps without injecting nil" do
+      cycle = [:desc, :asc]
+
+      sort1 = QueryBuilder.toggle_sort_with_cycle([], "created_at", cycle)
+      assert sort1 == [{"created_at", :desc}]
+
+      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "created_at", cycle)
+      assert sort2 == [{"created_at", :asc}]
+
+      # Wraps back to :desc
+      sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "created_at", cycle)
+      assert sort3 == [{"created_at", :desc}]
+    end
+
+    test "[:asc, :desc, nil] still supports explicit nil at end" do
+      cycle = [:asc, :desc, nil]
+
+      sort1 = QueryBuilder.toggle_sort_with_cycle([], "name", cycle)
+      assert sort1 == [{"name", :asc}]
+
+      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "name", cycle)
+      assert sort2 == [{"name", :desc}]
+
+      # nil is explicit in cycle, so sort is removed
+      sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "name", cycle)
+      assert sort3 == []
+
+      # Re-entering the cycle starts at first non-nil
+      sort4 = QueryBuilder.toggle_sort_with_cycle(sort3, "name", cycle)
+      assert sort4 == [{"name", :asc}]
+    end
+
+    test "[:desc_nils_last, :asc_nils_first] wraps without nil" do
+      cycle = [:desc_nils_last, :asc_nils_first]
+
+      sort1 = QueryBuilder.toggle_sort_with_cycle([], "date", cycle)
+      assert sort1 == [{"date", :desc_nils_last}]
+
+      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "date", cycle)
+      assert sort2 == [{"date", :asc_nils_first}]
+
+      sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "date", cycle)
+      assert sort3 == [{"date", :desc_nils_last}]
+    end
+
+    test "no-nil cycle with query-extracted sort wraps correctly" do
+      # Simulates: query has sort(name: :asc), column has cycle: [:asc, :desc]
+      # The query extraction sets initial state to [{"name", :asc}]
+      cycle = [:asc, :desc]
+      initial_sort = [{"name", :asc}]
+
+      # First user click: asc -> desc
+      sort1 = QueryBuilder.toggle_sort_with_cycle(initial_sort, "name", cycle)
+      assert sort1 == [{"name", :desc}]
+
+      # Second user click: desc -> asc (wrap), NOT nil
+      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "name", cycle)
+      assert sort2 == [{"name", :asc}]
+    end
+
+    test "no-nil cycle preserves other sorts during wrap" do
+      cycle = [:asc, :desc]
+      current_sort = [{"name", :desc}, {"other", :asc}]
+
+      # Wraps back to :asc, preserves other
+      result = QueryBuilder.toggle_sort_with_cycle(current_sort, "name", cycle)
+      assert result == [{"name", :asc}, {"other", :asc}]
+    end
+  end
+
   describe "toggle_sort_with_cycle/4 with sort_mode" do
     test "additive mode (default) preserves existing sorts when adding new column" do
       current_sort = [{"other_field", :desc}]

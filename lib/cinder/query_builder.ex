@@ -726,26 +726,21 @@ defmodule Cinder.QueryBuilder do
 
     case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
       {^key, current_direction} ->
-        # Find current position in cycle and advance to next
+        # Find current position in cycle and advance, wrapping around
         current_index = Enum.find_index(cycle, &(&1 == current_direction))
-        next_index = if current_index, do: current_index + 1, else: 1
+        next_index = if current_index, do: rem(current_index + 1, length(cycle)), else: 1
 
-        if next_index >= length(cycle) do
-          # End of cycle, remove sort (nil state)
+        next_direction = Enum.at(cycle, next_index)
+
+        if next_direction == nil do
+          # Next state is nil, remove sort
           remove_sort(current_sort, key, sort_mode)
         else
-          next_direction = Enum.at(cycle, next_index)
-
-          if next_direction == nil do
-            # Next state is nil, remove sort
-            remove_sort(current_sort, key, sort_mode)
-          else
-            # Update to next direction in cycle
-            Enum.map(current_sort, fn
-              {^key, _} -> {key, next_direction}
-              other -> other
-            end)
-          end
+          # Update to next direction in cycle
+          Enum.map(current_sort, fn
+            {^key, _} -> {key, next_direction}
+            other -> other
+          end)
         end
 
       nil ->
