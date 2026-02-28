@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.12.0 (unreleased)
+## v0.12.0 (2026-03-01)
 
 ### Features
 
