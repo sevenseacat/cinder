@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.1 (2026-03-01)
+
+### Bugfixes
+
+* Fix "Clear all" button in `render_header` not working inside `<:controls>` slot
+
 ## v0.12.0 (2026-03-01)
 
 ### Features

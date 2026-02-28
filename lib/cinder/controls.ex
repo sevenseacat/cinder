@@ -316,6 +316,7 @@ defmodule Cinder.Controls do
       <% end %>
       <button
         :if={@has_filters}
+        type="button"
         phx-click="clear_all_filters"
         phx-target={@target}
         class={[@theme.filter_clear_all_class, if(@active_filter_count == 0, do: "invisible", else: "")]}
