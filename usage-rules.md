@@ -1,12 +1,12 @@
 # Cinder Usage Rules
 
-Cinder is a data collection component for Phoenix LiveView with Ash Framework integration. It supports table, list, and grid layouts with shared filtering, sorting, and pagination.
+Cinder is a data collection component for Phoenix LiveView with Ash Framework integration. It supports table, list, and grid layouts with shared filtering, sorting, search, and pagination.
 
 ## Basic Usage
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="name" filter sort search>{user.name}</:col>
   <:col :let={user} field="email" filter>{user.email}</:col>
   <:col :let={user} field="created_at" sort>{user.created_at}</:col>
 </Cinder.collection>
@@ -64,6 +64,7 @@ Cinder is a data collection component for Phoenix LiveView with Ash Framework in
 - `sort` - enables sorting
 - `search` - includes field in global search
 - `label="Custom"` - override column header
+- `class="css-class"` - CSS class for table cells
 
 ### Filter Configuration
 ```heex
@@ -93,6 +94,15 @@ Cinder is a data collection component for Phoenix LiveView with Ash Framework in
 <:col field="created_at" sort={[cycle: [:desc, :asc, nil]]} />
 ```
 
+### Sort Mode
+```heex
+<!-- Additive (default): clicking B while sorted by A gives "A then B" -->
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+
+<!-- Exclusive: clicking a column replaces existing sorts -->
+<Cinder.collection resource={MyApp.User} actor={@current_user} sort_mode="exclusive">
+```
+
 ### Action Columns
 ```heex
 <:col :let={user} label="Actions">
@@ -108,7 +118,7 @@ Filter on fields without displaying them as columns:
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
-  
+
   <!-- Filter-only fields -->
   <:filter field="department.name" type="select" options={@departments} />
   <:filter field="active" type="boolean" />
@@ -132,6 +142,7 @@ Filter on fields without displaying them as columns:
 - `click={fn item -> JS.navigate(~p"/path/#{item.id}") end}` - row/item click handler
 - `query_opts={[timeout: 30_000, load: [:association]]}` - Ash query options
 - `tenant={@tenant}` - multi-tenancy support
+- `scope={@scope}` - Ash scope for authorization context
 
 ### Search Configuration
 ```heex
@@ -141,15 +152,33 @@ Filter on fields without displaying them as columns:
 <!-- Custom search configuration -->
 <Cinder.collection search={[label: "Search users", placeholder: "Enter name or email"]}>
 
+<!-- Custom search function -->
+<Cinder.collection search={[fn: &MyApp.CustomSearch.search/3]}>
+
 <!-- Disable search -->
 <Cinder.collection search={false}>
 ```
 
+### Collapsible Filters
+```heex
+<!-- Collapsed by default -->
+<Cinder.collection show_filters={:toggle}>
+
+<!-- Expanded by default with toggle button -->
+<Cinder.collection show_filters={:toggle_open}>
+
+<!-- Always show / always hide -->
+<Cinder.collection show_filters={true}>
+<Cinder.collection show_filters={false}>
+```
+
+Global default: `config :cinder, show_filters: :toggle`
+
 ### Display Options
-- `empty_message="No records found"` - custom empty state
-- `loading_message="Loading..."` - custom loading state
-- `show_filters={true}` - show/hide filter UI
-- `filters_label="🔍 Filters"` - customize filter section label
+- `empty_message="No records found"` - custom empty state text
+- `loading_message="Loading..."` - custom loading state text
+- `error_message="Failed to load"` - custom error state text
+- `filters_label="Filters"` - customize filter section label
 - `sort_label="Sort by:"` - label for sort controls (list/grid layouts)
 
 ## Built-in Filter Types
@@ -165,6 +194,12 @@ Auto-detected from Ash resource attributes:
 | `Ash.Type.Enum` | `:select` | Dropdown with enum values |
 | `{:array, _}` | `:multi_select` | Multi-select dropdown |
 
+Additional filter types:
+- `:radio_group` - Radio buttons for arbitrary options (not just boolean)
+- `:multi_checkboxes` - Checkbox list for multi-value selection
+- `:checkbox` - Single checkbox for "show only X" filtering
+- `:autocomplete` - Searchable dropdown for large option lists
+
 ### Filter Type Options
 
 - **Text**: `operator`, `case_sensitive`, `placeholder`
@@ -173,7 +208,71 @@ Auto-detected from Ash resource attributes:
 - **Date Range**: `include_time`
 - **Number Range**: `min`, `max`, `step`
 - **Multi-Select**: `options`, `prompt`, `match_mode` (`:any`/`:all`)
+- **Multi-Checkboxes**: `options`, `match_mode` (`:any`/`:all`)
 - **Checkbox**: `value`, `label`
+- **Radio Group**: `options`
+- **Autocomplete**: `options`, `placeholder`, `max_results`
+
+## Custom Controls Layout
+
+The `<:controls>` slot replaces the default filter/search layout while keeping state management intact:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name" filter sort search>{user.name}</:col>
+  <:col :let={user} field="status" filter={:select}>{user.status}</:col>
+
+  <:controls :let={controls}>
+    <Cinder.Controls.render_header {controls} />
+    <div class="flex gap-4">
+      <Cinder.Controls.render_search search={controls.search} theme={controls.theme} target={controls.target} />
+      <Cinder.Controls.render_filter
+        :for={{_name, filter} <- controls.filters}
+        filter={filter} theme={controls.theme} target={controls.target}
+      />
+    </div>
+  </:controls>
+</Cinder.collection>
+```
+
+### Controls Data Map (`:let` binding)
+- `filters` - keyword list of filters keyed by field atom
+- `search` - search input data (or nil)
+- `active_filter_count` - number of active filters
+- `target` - LiveComponent target for `phx-target`
+- `theme` - resolved theme map
+- `table_id`, `filters_label`, `filter_mode`, `filter_values`, `raw_filter_params`
+
+### Available Helpers
+- `Cinder.Controls.render_filter/1` - single filter (label + input + clear)
+- `Cinder.Controls.render_search/1` - search input
+- `Cinder.Controls.render_header/1` - default header (title, active count, clear all, toggle)
+
+## Loading, Empty & Error State Slots
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user}>
+  <:col :let={user} field="name">{user.name}</:col>
+
+  <:loading>
+    <div class="flex items-center gap-2 p-8 justify-center">Loading...</div>
+  </:loading>
+
+  <:empty :let={context}>
+    <%= if context.filtered? do %>
+      <p>No results match your filters.</p>
+    <% else %>
+      <p>No records yet.</p>
+    <% end %>
+  </:empty>
+
+  <:error>
+    <p>Something went wrong.</p>
+  </:error>
+</Cinder.collection>
+```
+
+Empty slot context: `filtered?`, `filters`, `search_term`. State precedence: loading > error > empty > data.
 
 ## URL State Management
 
@@ -213,9 +312,26 @@ end
 
 # Refresh multiple collections
 {:noreply, refresh_tables(socket, ["collection1", "collection2"])}
+```
 
-# Or use top-level delegates
-Cinder.refresh_table(socket, "collection-id")
+### In-Memory Updates
+
+For PubSub-driven updates without re-querying:
+
+```elixir
+import Cinder.Update
+
+# Update single item by ID
+{:noreply, update_item(socket, "table-id", user_id, fn user -> %{user | status: :active} end)}
+
+# Update multiple items
+{:noreply, update_items(socket, "table-id", user_ids, fn user -> %{user | active: false} end)}
+
+# Only update if visible on current page (avoids unnecessary DB calls)
+{:noreply, update_if_visible(socket, "table-id", raw_user, fn raw ->
+  {:ok, loaded} = Ash.load(raw, [:department])
+  loaded
+end)}
 ```
 
 ## Custom Filters
@@ -347,6 +463,12 @@ def handle_info({:delete_failed, %{reason: reason}}, socket) do
   {:noreply, put_flash(socket, :error, "Failed: #{inspect(reason)}")}
 end
 ```
+
+## Localization
+
+All user-facing strings use `dgettext("cinder", ...)`. Supported locales: Brazilian Portuguese (pt_BR), Danish (da), Dutch (nl), English (en), German (de), Norwegian (no), Swedish (sv).
+
+Set locale in mount: `Gettext.put_locale("nl")`
 
 ## Testing
 

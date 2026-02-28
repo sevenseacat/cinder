@@ -17,6 +17,7 @@ No additional configuration needed!
 
 ## Available Translations
 
+- **Brazilian Portuguese** (pt_BR)
 - **Danish** (da)
 - **Dutch** (nl)
 - **English** (en) - Default

@@ -3,7 +3,7 @@ defmodule Cinder.Renderers.BulkActions do
   Shared bulk actions component used by Table, List, and Grid renderers.
 
   Supports themed buttons via `label`/`variant` attributes, or custom rendering
-  via inner content. See the [Examples Guide](examples.md#selection--bulk-actions)
+  via inner content. See the [Advanced Features guide](advanced.md#selection--bulk-actions)
   for comprehensive documentation.
   """
 

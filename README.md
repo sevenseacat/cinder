@@ -80,7 +80,10 @@ For list or grid layouts:
 
 ## Documentation
 
-- **[Examples Guide](docs/examples.md)** - Comprehensive usage examples for all features
+- **[Getting Started](docs/getting-started.md)** - Basic usage, layouts, column configuration, and theming
+- **[Filters](docs/filters.md)** - Filter types, search, and custom controls layout
+- **[Sorting](docs/sorting.md)** - Sort cycles, modes, and defaults
+- **[Advanced Features](docs/advanced.md)** - URL state, relationships, refresh, performance, and bulk actions
 - **[Theming Guide](docs/theming.md)** - Built-in themes and custom theme creation
 - **[Localization Guide](docs/localization.md)** - Internationalization support
 - **[Upgrading Guide](docs/upgrading.md)** - Migration instructions from older versions
