@@ -709,6 +709,28 @@ defmodule Cinder.QueryBuilder do
   end
 
   @doc """
+  Applies default sorts for columns with nil-less sort cycles.
+
+  Columns whose `sort_cycle` does not contain `nil` imply "always sorted".
+  For any such column not already present in `query_sorts`, the first value
+  in the cycle is appended as a default sort (preserving declaration order).
+
+  Query sorts always take precedence.
+  """
+  def default_sorts_from_cycles(columns, query_sorts) do
+    sorted_fields = MapSet.new(query_sorts, fn {field, _dir} -> field end)
+
+    cycle_defaults =
+      columns
+      |> Enum.filter(fn col ->
+        col.sortable && nil not in col.sort_cycle && col.field not in sorted_fields
+      end)
+      |> Enum.map(fn col -> {col.field, hd(col.sort_cycle)} end)
+
+    query_sorts ++ cycle_defaults
+  end
+
+  @doc """
   Toggles sort direction using custom cycle configuration.
 
   Supports custom sort cycles like [nil, :desc_nils_last, :asc_nils_first].

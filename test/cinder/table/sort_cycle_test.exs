@@ -406,6 +406,77 @@ defmodule Cinder.Table.SortCycleTest do
     end
   end
 
+  describe "default_sorts_from_cycles/2" do
+    test "nil-less cycle applies first value as default sort" do
+      columns = [
+        %{field: "name", sort_cycle: [:asc, :desc], sortable: true}
+      ]
+
+      result = QueryBuilder.default_sorts_from_cycles(columns, [])
+      assert result == [{"name", :asc}]
+    end
+
+    test "cycle containing nil does not apply default sort" do
+      columns = [
+        %{field: "name", sort_cycle: [nil, :asc, :desc], sortable: true}
+      ]
+
+      result = QueryBuilder.default_sorts_from_cycles(columns, [])
+      assert result == []
+    end
+
+    test "does not override existing query sort" do
+      columns = [
+        %{field: "name", sort_cycle: [:asc, :desc], sortable: true}
+      ]
+
+      query_sorts = [{"name", :desc}]
+      result = QueryBuilder.default_sorts_from_cycles(columns, query_sorts)
+      assert result == [{"name", :desc}]
+    end
+
+    test "adds defaults only for unsorted nil-less columns" do
+      columns = [
+        %{field: "name", sort_cycle: [:asc, :desc], sortable: true},
+        %{field: "age", sort_cycle: [:desc, :asc], sortable: true}
+      ]
+
+      query_sorts = [{"name", :asc}]
+      result = QueryBuilder.default_sorts_from_cycles(columns, query_sorts)
+      assert result == [{"name", :asc}, {"age", :desc}]
+    end
+
+    test "multiple nil-less columns all get defaults in declaration order" do
+      columns = [
+        %{field: "name", sort_cycle: [:asc, :desc], sortable: true},
+        %{field: "created_at", sort_cycle: [:desc_nils_last, :asc_nils_first], sortable: true}
+      ]
+
+      result = QueryBuilder.default_sorts_from_cycles(columns, [])
+      assert result == [{"name", :asc}, {"created_at", :desc_nils_last}]
+    end
+
+    test "mix of nil-less and default cycles" do
+      columns = [
+        %{field: "name", sort_cycle: [nil, :asc, :desc], sortable: true},
+        %{field: "priority", sort_cycle: [:asc, :desc], sortable: true},
+        %{field: "created_at", sort_cycle: [nil, :desc, :asc], sortable: true}
+      ]
+
+      result = QueryBuilder.default_sorts_from_cycles(columns, [])
+      assert result == [{"priority", :asc}]
+    end
+
+    test "non-sortable columns are ignored" do
+      columns = [
+        %{field: "name", sort_cycle: [:asc, :desc], sortable: false}
+      ]
+
+      result = QueryBuilder.default_sorts_from_cycles(columns, [])
+      assert result == []
+    end
+  end
+
   describe "end-to-end sort cycle demonstration" do
     test "demonstrates custom sort cycles working through the full stack" do
       # This test shows how sort cycles work from table configuration

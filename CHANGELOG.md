@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.2 (unreleased)
+
+### Bugfixes
+
+* Sort cycles without `nil` (e.g. `cycle: [:asc, :desc]`) now apply the first cycle value as the default sort on initial load, instead of starting unsorted ([#132](https://github.com/sevenseacat/cinder/issues/132))
+
 ## v0.12.1 (2026-03-01)
 
 ### Bugfixes

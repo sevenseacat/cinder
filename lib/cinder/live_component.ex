@@ -903,10 +903,13 @@ defmodule Cinder.LiveComponent do
         %{field: field_name}
       end)
 
-    case query do
-      nil -> []
-      query -> Cinder.QueryBuilder.extract_query_sorts(query, simple_columns)
-    end
+    query_sorts =
+      case query do
+        nil -> []
+        query -> Cinder.QueryBuilder.extract_query_sorts(query, simple_columns)
+      end
+
+    Cinder.QueryBuilder.default_sorts_from_cycles(columns, query_sorts)
   end
 
   # ============================================================================
