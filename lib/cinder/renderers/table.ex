@@ -83,6 +83,7 @@ defmodule Cinder.Renderers.Table do
           <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} data-key="tbody_class">
             <tr :for={item <- @data} :if={not @error}
                 class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
+                data-item-id={to_string(Map.get(item, @id_field))}
                 data-key="row_class"
                 phx-click={row_click_action(@row_click, @selectable, item, @id_field, @myself)}>
               <td :if={@selectable} class={[@theme.td_class, "w-10"]} data-key="td_class">
