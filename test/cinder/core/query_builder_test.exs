@@ -1963,7 +1963,7 @@ defmodule Cinder.QueryBuilderTest do
       assert {:error, _message} = QueryBuilder.build_query(TestUser, options)
     end
 
-    test "build_and_execute still works identically after refactor" do
+    test "build_and_execute delegates to build_query internally" do
       options = [
         actor: nil,
         filters: %{},

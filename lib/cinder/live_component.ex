@@ -560,7 +560,9 @@ defmodule Cinder.LiveComponent do
     end
   end
 
-  defp notify_query_change(socket, query) do
+  defp maybe_notify_query_change(socket, nil), do: socket
+
+  defp maybe_notify_query_change(socket, query) do
     if event_name = socket.assigns[:on_query_change] do
       send(self(), {event_name, %{query: query, id: socket.assigns.id}})
     end
@@ -588,7 +590,7 @@ defmodule Cinder.LiveComponent do
   # ============================================================================
 
   @impl true
-  def handle_async(:load_data, {:ok, {:ok, page}}, socket) do
+  def handle_async(:load_data, {:ok, {{:ok, page}, query}}, socket) do
     socket =
       socket
       |> assign(:loading, false)
@@ -597,12 +599,13 @@ defmodule Cinder.LiveComponent do
       |> assign(:page, page)
       # Update keyset cursors for navigation (only relevant in keyset mode)
       |> maybe_update_keyset_cursors(page)
+      |> maybe_notify_query_change(query)
 
     {:noreply, socket}
   end
 
   @impl true
-  def handle_async(:load_data, {:ok, {:error, error}}, socket) do
+  def handle_async(:load_data, {:ok, {{:error, error}, _query}}, socket) do
     Logger.error(
       "Cinder query failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
       %{
@@ -1026,22 +1029,28 @@ defmodule Cinder.LiveComponent do
       before_keyset: before_keyset
     ]
 
-    # Build query and notify parent if callback is set
-    socket =
-      if socket.assigns[:on_query_change] do
-        case Cinder.QueryBuilder.build_query(resource_var, options) do
-          {:ok, query} -> notify_query_change(socket, query)
-          {:error, _} -> socket
-        end
-      else
-        socket
-      end
+    notify_query? = !!socket.assigns[:on_query_change]
 
     socket
     |> assign(:loading, true)
     |> assign(:error, false)
     |> start_async(:load_data, fn ->
-      Cinder.QueryBuilder.build_and_execute(resource_var, options)
+      # Build query once, reuse for both notification and execution
+      case Cinder.QueryBuilder.build_query(resource_var, options) do
+        {:ok, prepared_query} ->
+          result =
+            Cinder.QueryBuilder.build_and_execute_from_query(
+              resource_var,
+              prepared_query,
+              options
+            )
+
+          query_for_notification = if notify_query?, do: prepared_query, else: nil
+          {result, query_for_notification}
+
+        {:error, _} = error ->
+          {error, nil}
+      end
     end)
   end
 end
