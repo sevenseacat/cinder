@@ -10,6 +10,7 @@ This guide covers URL state management, relationships, embedded resources, refre
 - [Collection Refresh](#collection-refresh)
 - [Loading, Empty & Error States](#loading-empty-error-states)
 - [Performance Optimization](#performance-optimization)
+- [Query Access](#query-access)
 - [Selection & Bulk Actions](#selection--bulk-actions)
 
 **See also:** [Filters](filters.md) | [Sorting](sorting.md)
@@ -437,6 +438,62 @@ For slow queries, configure a timeout:
 >
   ...
 </Cinder.collection>
+```
+
+## Query Access
+
+Access the built Ash query whenever filters, sorting, or search change. This is useful for exporting data, persisting filter state, or modifying the query with additional UI elements.
+
+### `on_query_change` Callback
+
+Add `on_query_change` to receive the query in your parent LiveView via `handle_info`:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  on_query_change={:query_changed}
+  id="users-table"
+>
+  <:col :let={user} field="name" filter sort search>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+</Cinder.collection>
+```
+
+```elixir
+def handle_info({:query_changed, %{query: query, id: "users-table"}}, socket) do
+  # Store the query for later use (e.g., export)
+  {:noreply, assign(socket, :current_query, query)}
+end
+```
+
+The callback fires on initial load and whenever filters, sorting, or search change. The received query includes all filters and sorts but no pagination, so you can use it directly for exports.
+
+### Export Example
+
+```elixir
+def handle_event("export_csv", _params, socket) do
+  query = socket.assigns.current_query
+
+  # Read all matching records (no pagination)
+  {:ok, records} = Ash.read(query, actor: socket.assigns.current_user)
+
+  # Generate CSV from records...
+  {:noreply, push_download(socket, content: csv_data, filename: "export.csv")}
+end
+```
+
+### Standalone Query Building
+
+You can also build queries directly without a collection component using `Cinder.build_query/2`:
+
+```elixir
+{:ok, query} = Cinder.build_query(MyApp.User, [
+  actor: current_user,
+  filters: %{"name" => %{type: :text, value: "John", operator: :contains}},
+  sort_by: [{"name", :asc}],
+  columns: columns
+])
 ```
 
 ## Selection & Bulk Actions

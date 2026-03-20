@@ -560,6 +560,14 @@ defmodule Cinder.LiveComponent do
     end
   end
 
+  defp notify_query_change(socket, query) do
+    if event_name = socket.assigns[:on_query_change] do
+      send(self(), {event_name, %{query: query, id: socket.assigns.id}})
+    end
+
+    socket
+  end
+
   defp notify_selection_change(socket, action) do
     if event_name = socket.assigns[:on_selection_change] do
       payload = %{
@@ -857,6 +865,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:selectable, assigns[:selectable] || false)
     |> assign_new(:selected_ids, fn -> MapSet.new() end)
     |> assign(:on_selection_change, assigns[:on_selection_change])
+    |> assign(:on_query_change, assigns[:on_query_change])
     |> assign(:id_field, assigns[:id_field] || :id)
     |> assign(:sort_mode, assigns[:sort_mode] || :additive)
     # Bulk actions
@@ -1016,6 +1025,17 @@ defmodule Cinder.LiveComponent do
       after_keyset: after_keyset,
       before_keyset: before_keyset
     ]
+
+    # Build query and notify parent if callback is set
+    socket =
+      if socket.assigns[:on_query_change] do
+        case Cinder.QueryBuilder.build_query(resource_var, options) do
+          {:ok, query} -> notify_query_change(socket, query)
+          {:error, _} -> socket
+        end
+      else
+        socket
+      end
 
     socket
     |> assign(:loading, true)
