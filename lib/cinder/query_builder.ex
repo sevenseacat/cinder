@@ -28,7 +28,86 @@ defmodule Cinder.QueryBuilder do
         ]
 
   @doc """
-  Builds a complete query with filters, sorting, and pagination.
+  Builds a query with filters, sorting, and action applied, but does not execute it.
+
+  Returns `{:ok, prepared_query}` or `{:error, reason}`.
+
+  This is useful when you need the query object itself (e.g., for exports or
+  additional modifications) without pagination or execution.
+
+  ## Parameters
+
+  Accepts the same `resource_or_query` and `options` as `build_and_execute/2`.
+
+  ## Examples
+
+      {:ok, query} = Cinder.QueryBuilder.build_query(MyApp.User, [
+        actor: current_user,
+        filters: %{"name" => %{type: :text, value: "John", operator: :contains}},
+        sort_by: [{"name", :asc}],
+        columns: columns
+      ])
+
+      # Use the query for export (no pagination)
+      {:ok, all_matching} = Ash.read(query, actor: current_user)
+  """
+  def build_query(resource_or_query, options) do
+    explicit_actor = Keyword.fetch!(options, :actor)
+    explicit_tenant = Keyword.get(options, :tenant)
+    scope = Keyword.get(options, :scope)
+    scope_opts = extract_scope_options(scope)
+
+    actor = explicit_actor || scope_opts[:actor]
+    tenant = explicit_tenant || scope_opts[:tenant]
+    filters = Keyword.get(options, :filters, %{})
+    sort_by = Keyword.get(options, :sort_by, [])
+    columns = Keyword.get(options, :columns, [])
+    query_opts = Keyword.get(options, :query_opts, [])
+    search_term = Keyword.get(options, :search_term, "")
+    search_fn = Keyword.get(options, :search_fn)
+    action = Keyword.get(options, :action)
+
+    try do
+      base_query = Ash.Query.new(resource_or_query)
+      resource = base_query.resource
+
+      case validate_sortable_fields(sort_by, resource) do
+        :ok ->
+          prepared_query =
+            base_query
+            |> apply_filters(filters, columns)
+            |> apply_search(search_term, columns, search_fn)
+            |> apply_sorting(sort_by)
+            |> apply_action(action, actor, tenant, scope_opts, query_opts)
+
+          {:ok, prepared_query}
+
+        {:error, _message} = error ->
+          error
+      end
+    rescue
+      error ->
+        resource = extract_resource_for_logging(resource_or_query)
+
+        Logger.error(
+          "Cinder query building crashed with exception for #{inspect(resource)}: #{inspect(error)}",
+          %{
+            resource: resource,
+            filters: filters,
+            sort_by: sort_by,
+            query_opts: query_opts,
+            tenant: tenant,
+            exception: inspect(error),
+            stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+          }
+        )
+
+        {:error, error}
+    end
+  end
+
+  @doc """
+  Builds a complete query with filters, sorting, and pagination, then executes it.
 
   ## Parameters
   - `resource_or_query`: The Ash resource to query or a pre-built Ash.Query
@@ -90,6 +169,28 @@ defmodule Cinder.QueryBuilder do
   not match non-paginated results. Use `page.results` for consistent access.
   """
   def build_and_execute(resource_or_query, options) do
+    case build_query(resource_or_query, options) do
+      {:ok, prepared_query} ->
+        build_and_execute_from_query(resource_or_query, prepared_query, options)
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Executes an already-built query with pagination.
+
+  This is useful when you've already called `build_query/2` and want to execute
+  the resulting query without rebuilding it. Used internally to avoid double
+  query building when `on_query_change` is set.
+
+  ## Parameters
+  - `resource_or_query`: The original resource or query (used for actor/tenant fallback)
+  - `prepared_query`: The query returned by `build_query/2`
+  - `options`: Same options as `build_and_execute/2`
+  """
+  def build_and_execute_from_query(resource_or_query, prepared_query, options) do
     explicit_actor = Keyword.fetch!(options, :actor)
     explicit_tenant = Keyword.get(options, :tenant)
     scope = Keyword.get(options, :scope)
@@ -98,17 +199,11 @@ defmodule Cinder.QueryBuilder do
     # Explicit actor/tenant override scope values
     actor = explicit_actor || scope_opts[:actor]
     tenant = explicit_tenant || scope_opts[:tenant]
-    filters = Keyword.get(options, :filters, %{})
-    sort_by = Keyword.get(options, :sort_by, [])
     raw_page_size = Keyword.get(options, :page_size, 25)
     # Strip negative page sizes - use default instead
     page_size = if raw_page_size > 0, do: raw_page_size, else: 25
     current_page = Keyword.get(options, :current_page, 1)
-    columns = Keyword.get(options, :columns, [])
     query_opts = Keyword.get(options, :query_opts, [])
-    search_term = Keyword.get(options, :search_term, "")
-    search_fn = Keyword.get(options, :search_fn)
-    action = Keyword.get(options, :action)
 
     # Keyset pagination options
     pagination_mode = Keyword.get(options, :pagination_mode, :offset)
@@ -125,61 +220,24 @@ defmodule Cinder.QueryBuilder do
       effective_tenant =
         tenant || if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant
 
-      base_query = Ash.Query.new(resource_or_query)
-      resource = base_query.resource
+      # Handle pagination based on action support
+      case action_supports_pagination?(prepared_query) do
+        true ->
+          case pagination_mode do
+            :keyset ->
+              execute_with_keyset_pagination(
+                prepared_query,
+                effective_actor,
+                effective_tenant,
+                scope_opts,
+                query_opts,
+                page_size,
+                after_keyset,
+                before_keyset
+              )
 
-      # Validate sort fields before applying them to prevent crashes
-      case validate_sortable_fields(sort_by, resource) do
-        :ok ->
-          # Continue with normal query building
-          prepared_query =
-            base_query
-            |> apply_filters(filters, columns)
-            |> apply_search(search_term, columns, search_fn)
-            |> apply_sorting(sort_by)
-            |> apply_action(action, actor, tenant, scope_opts, query_opts)
-
-          # Handle pagination based on action support
-          case action_supports_pagination?(prepared_query) do
-            true ->
-              case pagination_mode do
-                :keyset ->
-                  execute_with_keyset_pagination(
-                    prepared_query,
-                    effective_actor,
-                    effective_tenant,
-                    scope_opts,
-                    query_opts,
-                    page_size,
-                    after_keyset,
-                    before_keyset
-                  )
-
-                :offset ->
-                  execute_with_pagination(
-                    prepared_query,
-                    effective_actor,
-                    effective_tenant,
-                    scope_opts,
-                    query_opts,
-                    current_page,
-                    page_size
-                  )
-              end
-
-            false ->
-              # Check if user has configured pagination but action doesn't support it
-              if Keyword.get(options, :pagination_configured, false) do
-                require Logger
-
-                Logger.warning(
-                  "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
-                    "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
-                    "https://hexdocs.pm/ash/pagination.html"
-                )
-              end
-
-              execute_without_pagination(
+            :offset ->
+              execute_with_pagination(
                 prepared_query,
                 effective_actor,
                 effective_tenant,
@@ -190,21 +248,36 @@ defmodule Cinder.QueryBuilder do
               )
           end
 
-        {:error, message} ->
-          # Return validation error instead of crashing
-          {:error, message}
+        false ->
+          # Check if user has configured pagination but action doesn't support it
+          if Keyword.get(options, :pagination_configured, false) do
+            require Logger
+
+            Logger.warning(
+              "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
+                "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
+                "https://hexdocs.pm/ash/pagination.html"
+            )
+          end
+
+          execute_without_pagination(
+            prepared_query,
+            effective_actor,
+            effective_tenant,
+            scope_opts,
+            query_opts,
+            current_page,
+            page_size
+          )
       end
     rescue
       error ->
-        # Log exceptions (like calculation errors) with full context
         resource = extract_resource_for_logging(resource_or_query)
 
         Logger.error(
           "Cinder table query crashed with exception for #{inspect(resource)}: #{inspect(error)}",
           %{
             resource: resource,
-            filters: filters,
-            sort_by: sort_by,
             current_page: current_page,
             page_size: page_size,
             query_opts: query_opts,

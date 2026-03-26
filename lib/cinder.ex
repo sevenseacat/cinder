@@ -142,6 +142,9 @@ defmodule Cinder do
   # Unified collection component
   defdelegate collection(assigns), to: Cinder.Collection
 
+  # Query building
+  defdelegate build_query(resource_or_query, options), to: Cinder.QueryBuilder
+
   # Refresh functions
   defdelegate refresh_table(socket, table_id), to: Cinder.Refresh
   defdelegate refresh_tables(socket, table_ids), to: Cinder.Refresh

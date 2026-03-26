@@ -156,6 +156,14 @@ defmodule Cinder.Collection do
   )
 
   attr(:on_state_change, :any, default: nil, doc: "Custom state change handler")
+
+  attr(:on_query_change, :any,
+    default: nil,
+    doc:
+      "Event name sent to parent when the query changes. " <>
+        "Parent receives {event_name, %{query: Ash.Query.t(), id: string()}}."
+  )
+
   attr(:show_pagination, :boolean, default: true, doc: "Whether to show pagination controls")
 
   attr(:pagination, :any,
@@ -352,6 +360,7 @@ defmodule Cinder.Collection do
       |> assign_new(:url_state, fn -> false end)
       |> assign_new(:query_opts, fn -> [] end)
       |> assign_new(:on_state_change, fn -> nil end)
+      |> assign_new(:on_query_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
       |> assign_new(:loading_message, fn -> dgettext("cinder", "Loading...") end)
       |> assign(:filters_label, assigns[:filters_label] || dgettext("cinder", "Filters"))
@@ -496,6 +505,7 @@ defmodule Cinder.Collection do
         id_field={@id_field}
         selectable={@selectable}
         on_selection_change={@on_selection_change}
+        on_query_change={@on_query_change}
         bulk_action_slots={@bulk_action_slots}
         sort_mode={@sort_mode}
       />
