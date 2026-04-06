@@ -168,23 +168,4 @@ defmodule Cinder.Filters.Select do
     # Use the centralized helper which supports direct, relationship, and embedded fields
     Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
   end
-
-  @doc """
-  Handles selecting an option in the single-select filter.
-
-  This function should be called from the parent LiveView/LiveComponent
-  to handle the "select_option" event.
-  """
-  def handle_select_option(socket, field, value) do
-    current_filters = Map.get(socket.assigns, :filters, %{})
-
-    updated_filters =
-      if value == "" do
-        Map.delete(current_filters, field)
-      else
-        Map.put(current_filters, field, value)
-      end
-
-    assign(socket, :filters, updated_filters)
-  end
 end

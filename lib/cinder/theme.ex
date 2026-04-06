@@ -360,15 +360,6 @@ defmodule Cinder.Theme do
   end
 
   @doc """
-  Gets all available theme properties.
-  """
-  def all_theme_properties do
-    @theme_defaults
-    |> Map.keys()
-    |> Enum.sort()
-  end
-
-  @doc """
   Gets the complete default theme.
   """
   def complete_default do

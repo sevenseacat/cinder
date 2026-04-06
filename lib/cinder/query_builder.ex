@@ -684,9 +684,6 @@ defmodule Cinder.QueryBuilder do
 
   Provides a predictable three-step cycle:
   - none → ascending → descending → none
-
-  When starting with extracted query sorts, use `toggle_sort_from_query/2`
-  for better UX that handles the transition from query state to user control.
   """
   def toggle_sort_direction(current_sort, key) do
     case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
@@ -784,39 +781,6 @@ defmodule Cinder.QueryBuilder do
 
   defp remove_sort(current_sort, key, :additive) do
     Enum.reject(current_sort, fn {sort_key, _direction} -> sort_key == key end)
-  end
-
-  @doc """
-  Toggles sort direction with special handling for query-extracted sorts.
-
-  When a column has a sort from query extraction, the first user click
-  provides intuitive behavior:
-  - desc (from query) → asc (user takes control)
-  - asc (from query) → desc (user takes control)
-
-  After first click, follows standard toggle cycle.
-  """
-  def toggle_sort_from_query(current_sort, key) do
-    case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
-      {^key, :asc} ->
-        # Currently ascending, change to descending
-        Enum.map(current_sort, fn
-          {^key, :asc} -> {key, :desc}
-          other -> other
-        end)
-
-      {^key, :desc} ->
-        # Currently descending, flip to ascending (better UX than removing)
-        # This gives users the opposite direction first, then normal cycle
-        Enum.map(current_sort, fn
-          {^key, :desc} -> {key, :asc}
-          other -> other
-        end)
-
-      nil ->
-        # Not currently sorted, add ascending sort
-        [{key, :asc} | current_sort]
-    end
   end
 
   @doc """
