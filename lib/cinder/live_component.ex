@@ -776,51 +776,12 @@ defmodule Cinder.LiveComponent do
       |> assign(:sort_by, final_sort_by)
       |> assign(:search_term, decoded_state.search_term)
     else
-      decode_url_state_legacy(socket, assigns)
+      socket
     end
   end
 
   defp maybe_assign_cursor(socket, _key, nil), do: socket
   defp maybe_assign_cursor(socket, key, cursor), do: assign(socket, key, cursor)
-
-  defp decode_url_state_legacy(socket, assigns) do
-    url_params =
-      %{
-        "page" => Map.get(assigns, :url_page),
-        "sort" => Map.get(assigns, :url_sort)
-      }
-      |> Map.merge(Map.get(assigns, :url_filters, %{}))
-      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-      |> Enum.into(%{})
-
-    if Enum.empty?(url_params) do
-      socket
-    else
-      decoded_state =
-        Cinder.UrlManager.decode_state(
-          url_params,
-          socket.assigns.columns
-        )
-
-      final_sort_by =
-        cond do
-          decoded_state.sort_by != [] ->
-            decoded_state.sort_by
-
-          Map.get(socket.assigns, :user_has_interacted, false) ->
-            []
-
-          true ->
-            socket.assigns.sort_by
-        end
-
-      socket
-      |> assign(:filters, decoded_state.filters)
-      |> assign(:current_page, decoded_state.current_page)
-      |> assign(:sort_by, final_sort_by)
-      |> assign(:search_term, decoded_state.search_term)
-    end
-  end
 
   # ============================================================================
   # PRIVATE FUNCTIONS - Initialization

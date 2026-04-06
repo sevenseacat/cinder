@@ -463,9 +463,6 @@ defmodule Cinder.Collection do
         scope={@scope}
         page_size_config={@page_size_config}
         theme={@resolved_theme}
-        url_filters={get_url_filters(@url_state)}
-        url_page={get_url_page(@url_state)}
-        url_sort={get_url_sort(@url_state)}
         url_raw_params={get_raw_url_params(@url_state)}
         query_opts={@query_opts}
         on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
@@ -932,21 +929,6 @@ defmodule Cinder.Collection do
   # ============================================================================
   # PRIVATE HELPERS - URL State
   # ============================================================================
-
-  defp get_url_filters(url_state) when is_map(url_state), do: Map.get(url_state, :filters, %{})
-  defp get_url_filters(_), do: %{}
-
-  defp get_url_page(url_state) when is_map(url_state), do: Map.get(url_state, :current_page, nil)
-  defp get_url_page(_), do: nil
-
-  defp get_url_sort(url_state) when is_map(url_state) do
-    case Map.get(url_state, :sort_by, []) do
-      [] -> nil
-      sort -> sort
-    end
-  end
-
-  defp get_url_sort(_), do: nil
 
   defp get_raw_url_params(url_state) when is_map(url_state) do
     Map.get(url_state, :filters, %{})
