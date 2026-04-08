@@ -52,6 +52,12 @@ defmodule Cinder.Table do
   attr :url_state, :any, default: false, doc: "URL state object from UrlSync.handle_params"
   attr :query_opts, :list, default: [], doc: "Additional Ash query options"
   attr :on_state_change, :any, default: nil, doc: "Custom state change handler"
+
+  attr :on_query_change, :any,
+    default: nil,
+    doc:
+      "Event name sent to parent when the query changes. " <>
+        "Parent receives {event_name, %{query: Ash.Query.t(), id: string()}}."
   attr :show_pagination, :boolean, default: true, doc: "Whether to show pagination controls"
   attr :show_filters, :boolean, default: nil, doc: "Whether to show filter controls"
   attr :loading_message, :string, default: "Loading...", doc: "Message to show while loading"

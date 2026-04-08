@@ -285,7 +285,7 @@ defmodule Cinder.QueryBuilderTest do
           assert {:error, _} = result
         end)
 
-      assert log_output =~ "Cinder table query crashed with exception for"
+      assert log_output =~ "Cinder query building crashed with exception for"
       assert log_output =~ "TestResource"
     end
 
@@ -325,7 +325,7 @@ defmodule Cinder.QueryBuilderTest do
 
       # Should show the resource name and actual error details
       assert log_output =~ "TestResourceWithCalculation"
-      assert log_output =~ "Cinder table query crashed with exception for"
+      assert log_output =~ "Cinder query building crashed with exception for"
     end
   end
 
@@ -1887,6 +1887,97 @@ defmodule Cinder.QueryBuilderTest do
       assert_received {:ash_read_called, ash_opts}
       assert Keyword.get(ash_opts, :actor) == :explicit_actor
       assert Keyword.get(ash_opts, :tenant) == "explicit_tenant"
+    end
+  end
+
+  describe "build_query/2" do
+    test "returns {:ok, query} with filters applied" do
+      columns = [
+        %{
+          field: "name",
+          filterable: true,
+          filter_type: :text,
+          filter_fn: nil
+        }
+      ]
+
+      filters = %{
+        "name" => %{type: :text, value: "John", operator: :contains}
+      }
+
+      options = [
+        actor: nil,
+        filters: filters,
+        sort_by: [],
+        columns: columns,
+        query_opts: [],
+        search_term: ""
+      ]
+
+      assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(TestUser, options)
+      # The query should have a filter applied
+      assert query.filter != nil
+    end
+
+    test "returns {:ok, query} with sorts applied" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [{"name", :asc}],
+        columns: [],
+        query_opts: [],
+        search_term: ""
+      ]
+
+      assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(TestUser, options)
+      assert query.sort != nil
+      assert query.sort != []
+    end
+
+    test "returns {:ok, query} with no pagination" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [],
+        columns: [],
+        query_opts: [],
+        search_term: "",
+        page_size: 25,
+        current_page: 2
+      ]
+
+      # build_query should NOT apply pagination even if page_size/current_page are passed
+      assert {:ok, %Ash.Query{}} = QueryBuilder.build_query(TestUser, options)
+    end
+
+    test "returns {:error, _} for invalid sort fields" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [{"nonexistent_field", :asc}],
+        columns: [],
+        query_opts: [],
+        search_term: ""
+      ]
+
+      assert {:error, _message} = QueryBuilder.build_query(TestUser, options)
+    end
+
+    test "build_and_execute delegates to build_query internally" do
+      options = [
+        actor: nil,
+        filters: %{},
+        sort_by: [{"name", :asc}],
+        page_size: 10,
+        current_page: 1,
+        columns: [],
+        query_opts: [],
+        search_term: ""
+      ]
+
+      result = QueryBuilder.build_and_execute(TestUser, options)
+      assert {:ok, page} = result
+      assert is_list(page.results)
     end
   end
 end
