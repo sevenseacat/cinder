@@ -580,21 +580,26 @@ defmodule Cinder.LiveComponent do
   # ============================================================================
 
   @impl true
-  def handle_async(:load_data, {:ok, {:ok, page}}, socket) do
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:error, false)
-      |> assign(:data, page.results)
-      |> assign(:page, page)
-      # Update keyset cursors for navigation (only relevant in keyset mode)
-      |> maybe_update_keyset_cursors(page)
-
-    {:noreply, socket}
+  def handle_async(:load_data, {:ok, result}, socket) do
+    {:noreply, handle_result(result, socket)}
   end
 
   @impl true
-  def handle_async(:load_data, {:ok, {:error, error}}, socket) do
+  def handle_async(:load_data, {:exit, reason}, socket) do
+    {:noreply, handle_result({:error, reason}, socket)}
+  end
+
+  defp handle_result({:ok, page}, socket) do
+    socket
+    |> assign(:loading, false)
+    |> assign(:error, false)
+    |> assign(:data, page.results)
+    |> assign(:page, page)
+    # Update keyset cursors for navigation (only relevant in keyset mode)
+    |> maybe_update_keyset_cursors(page)
+  end
+
+  defp handle_result({:error, error}, socket) do
     Logger.error(
       "Cinder query failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
       %{
@@ -606,37 +611,11 @@ defmodule Cinder.LiveComponent do
       }
     )
 
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:error, true)
-      |> assign(:data, [])
-      |> assign(:page, nil)
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_async(:load_data, {:exit, reason}, socket) do
-    Logger.error(
-      "Cinder query crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
-      %{
-        resource: socket.assigns.query,
-        filters: socket.assigns.filters,
-        sort_by: socket.assigns.sort_by,
-        current_page: socket.assigns.current_page,
-        reason: inspect(reason)
-      }
-    )
-
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:error, true)
-      |> assign(:data, [])
-      |> assign(:page, nil)
-
-    {:noreply, socket}
+    socket
+    |> assign(:loading, false)
+    |> assign(:error, true)
+    |> assign(:data, [])
+    |> assign(:page, nil)
   end
 
   defp maybe_update_keyset_cursors(socket, %Ash.Page.Keyset{} = page) do
@@ -1020,8 +999,16 @@ defmodule Cinder.LiveComponent do
     socket
     |> assign(:loading, true)
     |> assign(:error, false)
-    |> start_async(:load_data, fn ->
-      Cinder.QueryBuilder.build_and_execute(resource_var, options)
+    |> then(fn socket ->
+      if Application.get_env(:ash, :disable_async?) do
+        resource_var
+        |> Cinder.QueryBuilder.build_and_execute(options)
+        |> handle_result(socket)
+      else
+        start_async(socket, :load_data, fn ->
+          Cinder.QueryBuilder.build_and_execute(resource_var, options)
+        end)
+      end
     end)
   end
 end
