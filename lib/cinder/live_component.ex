@@ -1025,9 +1025,13 @@ defmodule Cinder.LiveComponent do
     |> assign(:error, false)
     |> then(fn socket ->
       if Application.get_env(:ash, :disable_async?) do
-        resource_var
-        |> Cinder.QueryBuilder.build_and_execute(options)
-        |> handle_result(socket)
+        try do
+          resource_var
+          |> Cinder.QueryBuilder.build_and_execute(options)
+          |> handle_result(socket)
+        rescue
+          e -> handle_result({:exit, e}, socket)
+        end
       else
         start_async(socket, :load_data, fn ->
           Cinder.QueryBuilder.build_and_execute(resource_var, options)
