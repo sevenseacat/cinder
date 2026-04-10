@@ -580,13 +580,18 @@ defmodule Cinder.LiveComponent do
   # ============================================================================
 
   @impl true
-  def handle_async(:load_data, {:ok, result}, socket) do
-    {:noreply, handle_result(result, socket)}
+  def handle_async(:load_data, {:ok, {:ok, page}}, socket) do
+    {:noreply, handle_result({:ok, page}, socket)}
+  end
+
+  @impl true
+  def handle_async(:load_data, {:ok, {:error, error}}, socket) do
+    {:noreply, handle_result({:error, error}, socket)}
   end
 
   @impl true
   def handle_async(:load_data, {:exit, reason}, socket) do
-    {:noreply, handle_result({:error, reason}, socket)}
+    {:noreply, handle_result({:exit, reason}, socket)}
   end
 
   defp handle_result({:ok, page}, socket) do
@@ -608,6 +613,25 @@ defmodule Cinder.LiveComponent do
         sort_by: socket.assigns.sort_by,
         current_page: socket.assigns.current_page,
         error: inspect(error)
+      }
+    )
+
+    socket
+    |> assign(:loading, false)
+    |> assign(:error, true)
+    |> assign(:data, [])
+    |> assign(:page, nil)
+  end
+
+  defp handle_result({:exit, reason}, socket) do
+    Logger.error(
+      "Cinder query crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
+      %{
+        resource: socket.assigns.query,
+        filters: socket.assigns.filters,
+        sort_by: socket.assigns.sort_by,
+        current_page: socket.assigns.current_page,
+        reason: inspect(reason)
       }
     )
 
