@@ -1,0 +1,200 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#: lib/cinder/controls.ex
+#, elixir-autogen
+msgid "Clear all"
+msgstr "Limpiar todo"
+
+#: lib/cinder/filter_manager.ex
+#, elixir-autogen
+msgid "Clear filter"
+msgstr "Limpiar filtro"
+
+#: lib/cinder/controls.ex
+#, elixir-autogen
+msgid "active"
+msgid_plural "active"
+msgstr[0] "activo"
+msgstr[1] "activos"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen
+msgid "Page %{current} of %{total}"
+msgstr "Página %{current} de %{total}"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen
+msgid "showing %{start}-%{end} of %{total}"
+msgstr "Mostrando %{start}-%{end} de %{total}"
+
+#: lib/cinder/filters/date_range.ex
+#: lib/cinder/filters/number_range.ex
+#, elixir-autogen
+msgid "to"
+msgstr "a"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen
+msgid "Next page"
+msgstr "Siguiente página"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen
+msgid "Previous page"
+msgstr "Página anterior"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen
+msgid "First page"
+msgstr "Primera página"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen
+msgid "Last page"
+msgstr "Última página"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen
+msgid "Go to page %{page}"
+msgstr "Ir a la página %{page}"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "%{total} items"
+msgstr "%{total} objetos"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Next"
+msgstr "Siguiente"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Prev"
+msgstr "Anterior"
+
+#: lib/cinder/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Filters"
+msgstr "Filtros"
+
+#: lib/cinder/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Sort by:"
+msgstr "Ordenar por:"
+
+#: lib/cinder/filters/text.ex
+#, elixir-autogen, elixir-format
+msgid "Filter %{label}..."
+msgstr "Filtrar %{label}..."
+
+#: lib/cinder/filters/date_range.ex
+#, elixir-autogen, elixir-format
+msgid "From"
+msgstr "De"
+
+#: lib/cinder/filters/number_range.ex
+#, elixir-autogen, elixir-format
+msgid "Max"
+msgstr "Max"
+
+#: lib/cinder/filters/number_range.ex
+#, elixir-autogen, elixir-format
+msgid "Min"
+msgstr "Min"
+
+#: lib/cinder/filters/autocomplete.ex
+#, elixir-autogen, elixir-format
+msgid "Search %{label}..."
+msgstr "Buscar %{label}..."
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Show {selector} per page"
+msgstr "Mostrar {selector} por página"
+
+#: lib/cinder/filters/date_range.ex
+#, elixir-autogen, elixir-format
+msgid "To"
+msgstr "a"
+
+#: lib/cinder/filter_manager.ex
+#: lib/cinder/filters/select.ex
+#, elixir-autogen, elixir-format
+msgid "All %{label}"
+msgstr "Todos los %{label}"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/controls.ex
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr "Buscar"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/controls.ex
+#, elixir-autogen, elixir-format
+msgid "Search..."
+msgstr "Buscar..."
+
+#: lib/cinder/filters/multi_select.ex
+#, elixir-autogen, elixir-format
+msgid "Select options..."
+msgstr "Seleccionar opciones..."
+
+#: lib/cinder/controls.ex
+#, elixir-autogen, elixir-format
+msgid "Clear search"
+msgstr "Limpiar búsqueda"
+
+#: lib/cinder/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Loading..."
+msgstr "Cargando..."
+
+#: lib/cinder/filters/multi_select.ex
+#: lib/cinder/filters/select.ex
+#, elixir-autogen, elixir-format
+msgid "No options available"
+msgstr "Sin opciones"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/filters/autocomplete.ex
+#, elixir-autogen, elixir-format
+msgid "No results found"
+msgstr "Sin resultados"
+
+#: lib/cinder/filters/multi_select.ex
+#, elixir-autogen, elixir-format
+msgid "%{count} selected"
+msgstr "%{count} seleccionados"
+
+#: lib/cinder/filters/boolean.ex
+#, elixir-autogen, elixir-format
+msgid "False"
+msgstr "Falso"
+
+#: lib/cinder/filters/boolean.ex
+#, elixir-autogen, elixir-format
+msgid "True"
+msgstr "Verdadero"
+
+#: lib/cinder/filters/autocomplete.ex
+#, elixir-autogen, elixir-format
+msgid "Type to search more options..."
+msgstr "Escriba para buscar más opciones"
+
+#: lib/cinder/collection.ex
+#, elixir-autogen, elixir-format
+msgid "An error occurred while loading data"
+msgstr "Ocurrió un error al cargar los datos"
