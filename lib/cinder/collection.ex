@@ -177,7 +177,7 @@ defmodule Cinder.Collection do
     doc: "Whether to show sort controls (auto-detected if nil, list/grid only)"
   )
 
-  attr(:loading_message, :string, default: "Loading...", doc: "Message to show while loading")
+  attr(:loading_message, :string, default: nil, doc: "Message to show while loading")
 
   attr(:filters_label, :string,
     default: nil,
@@ -353,7 +353,7 @@ defmodule Cinder.Collection do
       |> assign_new(:query_opts, fn -> [] end)
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
-      |> assign_new(:loading_message, fn -> dgettext("cinder", "Loading...") end)
+      |> assign(:loading_message, assigns[:loading_message] || dgettext("cinder", "Loading..."))
       |> assign(:filters_label, assigns[:filters_label] || dgettext("cinder", "Filters"))
       |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
       |> assign(:empty_message, assigns.empty_message || dgettext("cinder", "No results found"))
