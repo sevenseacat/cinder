@@ -488,6 +488,7 @@ defmodule Cinder.LiveComponent do
             id_field: socket.assigns[:id_field] || :id,
             actor: socket.assigns[:actor],
             tenant: socket.assigns[:tenant],
+            scope: socket.assigns[:scope],
             action_opts: slot[:action_opts] || []
           )
 

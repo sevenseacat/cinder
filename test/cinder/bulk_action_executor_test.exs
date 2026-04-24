@@ -4,6 +4,18 @@ defmodule Cinder.BulkActionExecutorTest do
   alias Cinder.BulkActionExecutor
   alias Cinder.Support.SearchTestResource
 
+  defmodule TestScope do
+    defstruct [:current_user, :current_tenant]
+
+    defimpl Ash.Scope.ToOpts do
+      def get_actor(%{current_user: current_user}), do: {:ok, current_user}
+      def get_tenant(%{current_tenant: current_tenant}), do: {:ok, current_tenant}
+      def get_context(_), do: :error
+      def get_tracer(_), do: :error
+      def get_authorize?(_), do: :error
+    end
+  end
+
   setup do
     # Create some test records
     {:ok, record1} = Ash.create(SearchTestResource, %{title: "Record 1", status: "active"})
@@ -187,6 +199,80 @@ defmodule Cinder.BulkActionExecutorTest do
 
       assert_receive {:called_with_opts, opts}
       refute Keyword.has_key?(opts, :bulk_options)
+    end
+  end
+
+  describe "scope" do
+    test "extracts actor and tenant from scope when not passed explicitly", %{ids: ids} do
+      test_pid = self()
+
+      action = fn _query, opts ->
+        send(test_pid, {:called_with_opts, opts})
+        {:ok, :done}
+      end
+
+      scope = %TestScope{current_user: :scope_actor, current_tenant: "scope_tenant"}
+
+      result =
+        BulkActionExecutor.execute(action,
+          resource: SearchTestResource,
+          ids: ids,
+          scope: scope
+        )
+
+      assert {:ok, :done} = result
+
+      assert_receive {:called_with_opts, opts}
+      assert opts[:actor] == :scope_actor
+      assert opts[:tenant] == "scope_tenant"
+    end
+
+    test "explicit actor and tenant override scope values", %{ids: ids} do
+      test_pid = self()
+
+      action = fn _query, opts ->
+        send(test_pid, {:called_with_opts, opts})
+        {:ok, :done}
+      end
+
+      scope = %TestScope{current_user: :scope_actor, current_tenant: "scope_tenant"}
+
+      result =
+        BulkActionExecutor.execute(action,
+          resource: SearchTestResource,
+          ids: ids,
+          scope: scope,
+          actor: :explicit_actor,
+          tenant: "explicit_tenant"
+        )
+
+      assert {:ok, :done} = result
+
+      assert_receive {:called_with_opts, opts}
+      assert opts[:actor] == :explicit_actor
+      assert opts[:tenant] == "explicit_tenant"
+    end
+
+    test "nil scope does not crash and leaves actor/tenant unset", %{ids: ids} do
+      test_pid = self()
+
+      action = fn _query, opts ->
+        send(test_pid, {:called_with_opts, opts})
+        {:ok, :done}
+      end
+
+      result =
+        BulkActionExecutor.execute(action,
+          resource: SearchTestResource,
+          ids: ids,
+          scope: nil
+        )
+
+      assert {:ok, :done} = result
+
+      assert_receive {:called_with_opts, opts}
+      refute Keyword.has_key?(opts, :actor)
+      refute Keyword.has_key?(opts, :tenant)
     end
   end
 

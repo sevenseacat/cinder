@@ -90,14 +90,13 @@ defmodule Cinder.QueryBuilder do
   not match non-paginated results. Use `page.results` for consistent access.
   """
   def build_and_execute(resource_or_query, options) do
-    explicit_actor = Keyword.fetch!(options, :actor)
-    explicit_tenant = Keyword.get(options, :tenant)
-    scope = Keyword.get(options, :scope)
-    scope_opts = extract_scope_options(scope)
+    {actor, tenant, scope_opts} =
+      Cinder.AshOptions.resolve(
+        Keyword.fetch!(options, :actor),
+        Keyword.get(options, :tenant),
+        Keyword.get(options, :scope)
+      )
 
-    # Explicit actor/tenant override scope values
-    actor = explicit_actor || scope_opts[:actor]
-    tenant = explicit_tenant || scope_opts[:tenant]
     filters = Keyword.get(options, :filters, %{})
     sort_by = Keyword.get(options, :sort_by, [])
     raw_page_size = Keyword.get(options, :page_size, 25)
@@ -828,17 +827,6 @@ defmodule Cinder.QueryBuilder do
     case Enum.find(sort_by, fn {sort_key, _direction} -> sort_key == key end) do
       {^key, direction} -> direction
       nil -> nil
-    end
-  end
-
-  # Extract options from an Ash scope, returning empty list if scope is nil or invalid
-  defp extract_scope_options(nil), do: []
-
-  defp extract_scope_options(scope) do
-    try do
-      Ash.Scope.to_opts(scope)
-    rescue
-      _ -> []
     end
   end
 
