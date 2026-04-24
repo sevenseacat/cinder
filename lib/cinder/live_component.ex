@@ -180,19 +180,17 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("goto_page", %{"page" => page}, socket) do
-    # Only works in offset pagination mode
-    if socket.assigns.pagination_mode == :offset do
-      page = String.to_integer(page)
-
+    with :offset <- socket.assigns.pagination_mode,
+         {parsed, ""} when parsed > 0 <- Integer.parse(to_string(page)) do
       socket =
         socket
-        |> assign(:current_page, page)
+        |> assign(:current_page, parsed)
         |> notify_state_change()
         |> load_data()
 
       {:noreply, socket}
     else
-      {:noreply, socket}
+      _ -> {:noreply, socket}
     end
   end
 
@@ -232,21 +230,26 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("change_page_size", %{"page_size" => page_size}, socket) do
-    page_size = String.to_integer(page_size)
-    updated_config = %{socket.assigns.page_size_config | selected_page_size: page_size}
+    with {parsed, ""} <- Integer.parse(to_string(page_size)),
+         validated when validated == parsed <-
+           Cinder.PageSize.validate(parsed, socket.assigns.page_size_config) do
+      updated_config = %{socket.assigns.page_size_config | selected_page_size: validated}
 
-    socket =
-      socket
-      |> assign(:page_size, page_size)
-      |> assign(:page_size_config, updated_config)
-      |> assign(:current_page, 1)
-      # Clear keyset cursors to restart from beginning when page size changes
-      |> assign(:after_keyset, nil)
-      |> assign(:before_keyset, nil)
-      |> notify_state_change()
-      |> load_data()
+      socket =
+        socket
+        |> assign(:page_size, validated)
+        |> assign(:page_size_config, updated_config)
+        |> assign(:current_page, 1)
+        # Clear keyset cursors to restart from beginning when page size changes
+        |> assign(:after_keyset, nil)
+        |> assign(:before_keyset, nil)
+        |> notify_state_change()
+        |> load_data()
 
-    {:noreply, socket}
+      {:noreply, socket}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 
   @impl true
@@ -742,13 +745,16 @@ defmodule Cinder.LiveComponent do
 
       updated_socket =
         if Map.has_key?(raw_params, "page_size") do
+          validated_page_size =
+            Cinder.PageSize.validate(decoded_state.page_size, socket.assigns.page_size_config)
+
           updated_page_size_config = %{
             socket.assigns.page_size_config
-            | selected_page_size: decoded_state.page_size
+            | selected_page_size: validated_page_size
           }
 
           socket
-          |> assign(:page_size, decoded_state.page_size)
+          |> assign(:page_size, validated_page_size)
           |> assign(:page_size_config, updated_page_size_config)
         else
           socket

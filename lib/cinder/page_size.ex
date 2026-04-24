@@ -64,4 +64,26 @@ defmodule Cinder.PageSize do
   def get_default_page_size do
     Application.get_env(:cinder, :default_page_size, @default_page_size)
   end
+
+  @doc """
+  Validates a requested page size against the table's configuration.
+
+  Non-configurable tables (e.g. `page_size={100}`) ignore any requested value
+  and always return the developer's configured size — the user has no UI to
+  change it, so the URL must not be able to either.
+
+  Configurable tables accept only values present in `page_size_options`; any
+  other value falls back to `default_page_size`.
+  """
+  @spec validate(term(), map()) :: integer()
+  def validate(_requested, %{configurable: false, selected_page_size: selected}),
+    do: selected
+
+  def validate(requested, %{
+        configurable: true,
+        page_size_options: options,
+        default_page_size: default
+      }) do
+    if requested in options, do: requested, else: default
+  end
 end

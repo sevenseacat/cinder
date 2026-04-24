@@ -10,6 +10,7 @@
 ### Bugfixes
 
 * Fix bulk actions ignoring `scope={@scope}` and running with `nil` actor and tenant, bypassing policies that depend on either. Bulk actions now resolve the scope the same way reads do.
+* Validate `page_size` values from the URL and dropdown against the table's configuration, so they can't exceed or bypass the developer's intent.
 * Fix `loading_message`, `filters_label`, and `empty_message` attributes not being translated when using gettext ([#165](https://github.com/sevenseacat/cinder/pull/165))
 * Sort cycles without `nil` (e.g. `cycle: [:asc, :desc]`) now apply the first cycle value as the default sort on initial load, instead of starting unsorted ([#132](https://github.com/sevenseacat/cinder/issues/132))
 
