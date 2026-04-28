@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.13.1 (unreleased)
+
+### Chores
+
+* Re-worked DaisyUI theme to be more aligned with the DaisyUI look and feel 
+
 ## v0.13.0 (2026-04-27)
 
 ### Features

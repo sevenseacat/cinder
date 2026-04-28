@@ -13,9 +13,9 @@ defmodule Cinder.Themes.DaisyUI do
   use Cinder.Theme
 
   # Table
-  set :container_class, "card bg-base-100"
-  set :controls_class, "shadow-lg mb-6"
-  set :table_wrapper_class, "overflow-x-auto"
+  set :container_class, ""
+  set :controls_class, "card card-sm card-border bg-base-100 mb-4"
+  set :table_wrapper_class, "card card-border bg-base-100"
   set :table_class, "table table-zebra w-full"
   set :thead_class, ""
   set :tbody_class, ""
@@ -28,14 +28,13 @@ defmodule Cinder.Themes.DaisyUI do
   set :error_message_class, ""
 
   # Filters
-  set :filter_container_class, "card bg-base-100 mb-6"
-  set :filter_header_class, "card-body pb-4 flex flex-row items-center justify-between"
-  set :filter_title_class, "card-title"
+  set :filter_container_class, "card-body"
+  set :filter_header_class, "card-title justify-between"
+  set :filter_title_class, "flex items-center gap-2"
   set :filter_count_class, "badge badge-primary badge-sm"
   set :filter_clear_all_class, "btn btn-ghost btn-xs"
 
-  set :filter_inputs_class,
-      "flex flex-wrap gap-4 px-6"
+  set :filter_inputs_class, "fieldset flex flex-wrap gap-4"
 
   set :filter_input_wrapper_class, "form-control"
   set :filter_label_class, "label whitespace-nowrap"
@@ -61,7 +60,7 @@ defmodule Cinder.Themes.DaisyUI do
   set :filter_select_label_class, "text-sm cursor-pointer select-none flex-1"
   set :filter_select_empty_class, "px-3 py-2 text-base-content/50 italic text-sm"
   set :filter_select_arrow_class, ""
-  set :filter_select_placeholder_class, "text-base-content/40"
+  set :filter_select_placeholder_class, "text-base-content/50"
   # Radio group filter
   set :filter_radio_group_container_class, "flex space-x-4 h-10 items-center"
   set :filter_radio_group_option_class, "flex items-center space-x-2"
@@ -98,10 +97,10 @@ defmodule Cinder.Themes.DaisyUI do
   # Pagination
   set :pagination_wrapper_class, "p-4"
   set :pagination_container_class, "flex items-center justify-between"
-  set :pagination_info_class, "text-base-content/70 text-sm"
+  set :pagination_info_class, "text-sm"
   set :pagination_count_class, "text-base-content/50 text-xs ml-2"
   set :pagination_nav_class, "flex items-center space-x-1"
-  set :pagination_button_class, "btn btn-sm"
+  set :pagination_button_class, "btn btn-sm bg-base-100"
   set :pagination_current_class, "btn btn-primary btn-sm"
   set :page_size_container_class, "flex items-center space-x-2"
   set :page_size_label_class, "text-base-content/70 text-sm"
