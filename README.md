@@ -30,7 +30,7 @@ Cinder automatically provides:
 - **🌐 Relationship Support**: Dot notation for related fields (`user.department.name`)
 - **📦 Embedded Resources**: Double underscore notation (`profile__country`) with automatic enum detection
 - **🎨 Theming**: 9 built-in themes plus DSL for custom themes
-- **🌍 Internationalization**: Built-in translations (English, Dutch, Swedish)
+- **🌍 Internationalization**: Built-in translations ([seven languages](https://hexdocs.pm/cinder/localization.html#available-translations) and counting!)
 
 ## Installation
 
@@ -80,13 +80,13 @@ For list or grid layouts:
 
 ## Documentation
 
-- **[Getting Started](docs/getting-started.md)** - Basic usage, layouts, column configuration, and theming
-- **[Filters](docs/filters.md)** - Filter types, search, and custom controls layout
-- **[Sorting](docs/sorting.md)** - Sort cycles, modes, and defaults
-- **[Advanced Features](docs/advanced.md)** - URL state, relationships, refresh, performance, and bulk actions
-- **[Theming Guide](docs/theming.md)** - Built-in themes and custom theme creation
-- **[Localization Guide](docs/localization.md)** - Internationalization support
-- **[Upgrading Guide](docs/upgrading.md)** - Migration instructions from older versions
+- **[Getting Started](https://hexdocs.pm/cinder/getting-started.html)** - Basic usage, layouts, column configuration, and theming
+- **[Filters](https://hexdocs.pm/cinder/filters.html)** - Filter types, search, and custom controls layout
+- **[Sorting](https://hexdocs.pm/cinder/sorting.html)** - Sort cycles, modes, and defaults
+- **[Advanced Features](https://hexdocs.pm/cinder/advanced.html)** - URL state, relationships, refresh, performance, and bulk actions
+- **[Theming Guide](https://hexdocs.pm/cinder/theming.html)** - Built-in themes and custom theme creation
+- **[Localization Guide](https://hexdocs.pm/cinder/localization.html)** - Internationalization support
+- **[Upgrading Guide](https://hexdocs.pm/cinder/upgrading.html)** - Migration instructions from older versions
 - **[HexDocs](https://hexdocs.pm/cinder)** - Full API reference
 
 ## Requirements
