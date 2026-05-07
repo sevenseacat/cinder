@@ -223,4 +223,11 @@ defmodule Cinder.Themes.Modern do
   set :button_secondary_class, "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
   set :button_danger_class, "bg-red-600 text-white hover:bg-red-700"
   set :button_disabled_class, "opacity-50 cursor-not-allowed"
+
+  # Column preferences (Edit columns drawer)
+  set :column_prefs_button_class,
+      "inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+
+  set :column_prefs_done_button_class,
+      "px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-150"
 end

@@ -265,4 +265,39 @@ defmodule Cinder.Themes.Futuristic do
       "bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30 hover:shadow-red-500/20 hover:shadow-lg"
 
   set :button_disabled_class, "opacity-50 cursor-not-allowed"
+
+  # Column preferences (Edit columns drawer)
+  set :column_prefs_button_class,
+      "inline-flex items-center gap-1 px-4 py-2 text-sm font-light tracking-wide border border-blue-500/40 bg-slate-900/60 text-blue-100 hover:border-green-400/60 hover:bg-slate-800/60 transition-all duration-300 backdrop-blur-sm"
+
+  set :column_prefs_panel_class,
+      "fixed top-0 right-0 h-full w-80 max-w-full bg-slate-950 text-blue-100 border-l border-blue-500/30 shadow-2xl shadow-blue-500/10 flex flex-col z-50 backdrop-blur-sm transition-transform duration-500 ease-in-out"
+
+  set :column_prefs_header_class,
+      "flex items-center justify-between px-4 py-3 border-b border-blue-500/30"
+
+  set :column_prefs_title_class, "text-base font-light tracking-wider text-blue-100"
+
+  set :column_prefs_close_button_class,
+      "p-1 text-blue-100/70 hover:text-green-400 transition-colors duration-300"
+
+  set :column_prefs_item_class,
+      "flex items-center gap-2 px-4 py-2 border-b border-blue-500/20 last:border-b-0"
+
+  set :column_prefs_drag_handle_class, "cinder-drag-handle text-blue-500/60"
+  set :column_prefs_pinned_icon_class, "text-slate-500 w-4 h-4"
+
+  set :column_prefs_checkbox_class,
+      "h-4 w-4 bg-slate-900 border-blue-500/40 checked:bg-green-500 checked:border-green-400 focus:ring-green-400 focus:ring-1 cursor-pointer disabled:cursor-not-allowed"
+
+  set :column_prefs_label_class, "flex-1 text-sm font-light text-blue-100 select-none"
+
+  set :column_prefs_footer_class,
+      "border-t border-blue-500/30 px-4 py-3 flex justify-between"
+
+  set :column_prefs_reset_button_class,
+      "text-sm font-light text-blue-100/70 hover:text-green-400 transition-colors duration-300"
+
+  set :column_prefs_done_button_class,
+      "px-4 py-2 text-sm font-light tracking-wide border border-green-500 bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:shadow-green-500/20 hover:shadow-lg transition-all duration-300"
 end

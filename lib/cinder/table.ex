@@ -52,6 +52,15 @@ defmodule Cinder.Table do
   attr :url_state, :any, default: false, doc: "URL state object from UrlSync.handle_params"
   attr :query_opts, :list, default: [], doc: "Additional Ash query options"
   attr :on_state_change, :any, default: nil, doc: "Custom state change handler"
+
+  attr :column_preferences?, :boolean,
+    default: false,
+    doc: "Enable end-user column visibility/order editing. See `Cinder.collection`."
+
+  attr :on_columns_change, :any,
+    default: nil,
+    doc: "Event name sent to parent when column prefs change. See `Cinder.collection`."
+
   attr :show_pagination, :boolean, default: true, doc: "Whether to show pagination controls"
   attr :show_filters, :boolean, default: nil, doc: "Whether to show filter controls"
   attr :loading_message, :string, default: nil, doc: "Message to show while loading"
@@ -70,6 +79,9 @@ defmodule Cinder.Table do
     attr :search, :boolean
     attr :label, :string
     attr :class, :string
+    attr :hideable, :boolean
+    attr :reorderable, :boolean
+    attr :default_visible, :boolean
   end
 
   slot :filter do

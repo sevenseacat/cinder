@@ -175,4 +175,31 @@ defmodule Cinder.Themes.DaisyUI do
   set :button_secondary_class, "btn-neutral"
   set :button_danger_class, "btn-error"
   set :button_disabled_class, "btn-disabled"
+
+  # Column preferences (Edit columns drawer)
+  set :column_prefs_button_class, "btn btn-sm"
+
+  set :column_prefs_panel_class,
+      "fixed top-0 right-0 h-full w-80 max-w-full bg-base-100 text-base-content shadow-2xl flex flex-col z-50 transition-transform duration-300 ease-in-out"
+
+  set :column_prefs_header_class,
+      "flex items-center justify-between px-4 py-3 border-b border-base-300"
+
+  set :column_prefs_title_class, "text-base font-semibold"
+
+  set :column_prefs_close_button_class, "btn btn-ghost btn-sm btn-square"
+
+  set :column_prefs_item_class,
+      "flex items-center gap-2 px-4 py-2 border-b border-base-300 last:border-b-0"
+
+  set :column_prefs_drag_handle_class, "cinder-drag-handle text-base-content/40"
+  set :column_prefs_pinned_icon_class, "text-base-content/30 w-4 h-4"
+  set :column_prefs_checkbox_class, "checkbox checkbox-sm"
+  set :column_prefs_label_class, "flex-1 text-sm select-none"
+
+  set :column_prefs_footer_class,
+      "border-t border-base-300 px-4 py-3 flex justify-between"
+
+  set :column_prefs_reset_button_class, "btn btn-ghost btn-sm"
+  set :column_prefs_done_button_class, "btn btn-primary btn-sm"
 end

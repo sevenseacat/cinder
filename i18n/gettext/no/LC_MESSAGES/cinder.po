@@ -198,3 +198,28 @@ msgstr "Skriv for å søke flere alternativer..."
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Det oppstod en feil under lasting av data"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr "Lukk"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Done"
+msgstr "Ferdig"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Drag to reorder"
+msgstr "Dra for å omorganisere"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Edit columns"
+msgstr "Rediger kolonner"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Reset to defaults"
+msgstr "Tilbakestill til standard"

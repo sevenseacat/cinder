@@ -185,7 +185,37 @@ defmodule Cinder.Theme do
     button_primary_class: "bg-blue-600 text-white hover:bg-blue-700",
     button_secondary_class: "border border-gray-300 text-gray-700 hover:bg-gray-50",
     button_danger_class: "bg-red-600 text-white hover:bg-red-700",
-    button_disabled_class: "opacity-50 cursor-not-allowed"
+    button_disabled_class: "opacity-50 cursor-not-allowed",
+
+    # Column preferences (Edit columns drawer)
+    column_prefs_container_class: "cinder-column-prefs",
+    column_prefs_button_class:
+      "inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded text-gray-900 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700",
+    column_prefs_button_icon_class: "w-4 h-4",
+    column_prefs_backdrop_class:
+      "fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ease-in-out",
+    column_prefs_panel_class:
+      "fixed top-0 right-0 h-full w-80 max-w-full bg-white text-gray-900 shadow-xl flex flex-col z-50 dark:bg-gray-800 dark:text-white transition-transform duration-300 ease-in-out",
+    column_prefs_header_class:
+      "flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700",
+    column_prefs_title_class: "text-base font-semibold text-gray-900 dark:text-white",
+    column_prefs_close_button_class: "p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700",
+    column_prefs_close_icon_class: "w-5 h-5",
+    column_prefs_list_class: "flex-1 overflow-y-auto py-2",
+    column_prefs_item_class:
+      "flex items-center gap-2 px-4 py-2 border-b border-gray-200 last:border-b-0 dark:border-gray-700",
+    column_prefs_item_reorderable_class: "cursor-grab",
+    column_prefs_item_pinned_class: "opacity-90",
+    column_prefs_drag_handle_class: "cinder-drag-handle text-gray-400 dark:text-gray-500",
+    column_prefs_drag_handle_icon_class: "w-4 h-4",
+    column_prefs_pinned_icon_class: "text-gray-300 w-4 h-4 dark:text-gray-600",
+    column_prefs_checkbox_class: "cursor-pointer disabled:cursor-not-allowed",
+    column_prefs_label_class: "flex-1 text-sm select-none text-gray-900 dark:text-white",
+    column_prefs_footer_class:
+      "border-t border-gray-200 px-4 py-3 flex justify-between dark:border-gray-700",
+    column_prefs_reset_button_class: "text-sm text-gray-600 hover:underline dark:text-gray-400",
+    column_prefs_done_button_class:
+      "text-sm font-medium px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
   }
 
   # Re-export the DSL functionality

@@ -237,4 +237,38 @@ defmodule Cinder.Themes.Dark do
 
   set :button_danger_class, "bg-red-600 text-white hover:bg-red-500"
   set :button_disabled_class, "opacity-50 cursor-not-allowed"
+
+  # Column preferences (Edit columns drawer)
+  set :column_prefs_button_class,
+      "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-700 hover:border-gray-500 transition-colors duration-150"
+
+  set :column_prefs_panel_class,
+      "fixed top-0 right-0 h-full w-80 max-w-full bg-gray-900 text-gray-200 border-l border-gray-700 shadow-2xl flex flex-col z-50 transition-transform duration-300 ease-in-out"
+
+  set :column_prefs_header_class,
+      "flex items-center justify-between px-4 py-3 border-b border-gray-700"
+
+  set :column_prefs_title_class, "text-base font-semibold text-gray-200"
+
+  set :column_prefs_close_button_class,
+      "p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-gray-200"
+
+  set :column_prefs_item_class,
+      "flex items-center gap-2 px-4 py-2 border-b border-gray-700 last:border-b-0"
+
+  set :column_prefs_drag_handle_class, "cinder-drag-handle text-gray-500"
+  set :column_prefs_pinned_icon_class, "text-gray-600 w-4 h-4"
+
+  set :column_prefs_checkbox_class,
+      "h-4 w-4 bg-gray-700 border-gray-600 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer disabled:cursor-not-allowed"
+
+  set :column_prefs_label_class, "flex-1 text-sm select-none text-gray-200"
+
+  set :column_prefs_footer_class,
+      "border-t border-gray-700 px-4 py-3 flex justify-between"
+
+  set :column_prefs_reset_button_class, "text-sm font-medium text-gray-400 hover:text-gray-200"
+
+  set :column_prefs_done_button_class,
+      "px-3 py-1.5 text-sm font-medium rounded-lg bg-purple-600 text-white hover:bg-purple-500 transition-colors duration-150"
 end
