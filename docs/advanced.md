@@ -11,6 +11,7 @@ This guide covers URL state management, relationships, embedded resources, refre
 - [Loading, Empty & Error States](#loading-empty-error-states)
 - [Performance Optimization](#performance-optimization)
 - [Query Access](#query-access)
+- [Column Preferences](#column-preferences)
 - [Selection & Bulk Actions](#selection--bulk-actions)
 
 **See also:** [Filters](filters.md) | [Sorting](sorting.md)
@@ -486,6 +487,97 @@ def handle_event("export_csv", _params, socket) do
   {:noreply, push_download(socket, content: csv_data, filename: "export.csv")}
 end
 ```
+
+## Column Preferences
+
+Let end users customise which columns are visible and what order they appear in. Preferences persist to `localStorage` keyed by the table's `id`, so each user's choices survive across reloads.
+
+### Setup
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  id="users-table"
+  column_preferences?
+>
+  <:col :let={user} field="id" hideable={false}>{user.id}</:col>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="last_login_at" default_visible={false}>{user.last_login_at}</:col>
+  <:col reorderable={false}>
+    <.link navigate={~p"/users/#{user}"}>Edit</.link>
+  </:col>
+</Cinder.collection>
+```
+
+This adds an "Edit columns" button. Clicking it opens a side drawer with checkboxes and drag handles.
+
+### Per-column attributes
+
+| Attribute         | Default | Effect                                                      |
+| ----------------- | ------- | ----------------------------------------------------------- |
+| `hideable`        | `true`  | When `false`, the column can never be hidden by the user.   |
+| `reorderable`     | `true`  | When `false`, the column is pinned at its declared position. |
+| `default_visible` | `true`  | When `false`, the column ships hidden until the user opts in. |
+
+Action columns (no `field`) are automatically pinned and always visible.
+
+### JavaScript hook setup
+
+`mix cinder.install` does most of the wiring automatically:
+
+- adds `"cinder": "file:../deps/cinder/assets"` and `"sortablejs"` to your `assets/package.json`
+- prints the exact two-line addition you need to make in `assets/js/app.js`
+
+After running it:
+
+```sh
+mix cinder.install        # one-time, also configures Tailwind
+cd assets && npm install  # or pnpm / yarn
+```
+
+Then add the import + hook spread to `assets/js/app.js`:
+
+```js
+import { createCinderHooks } from "cinder"
+import Sortable from "sortablejs" // optional — only needed for drag-to-reorder
+
+let liveSocket = new LiveSocket("/live", Socket, {
+  // ...
+  hooks: {
+    ...createCinderHooks({ Sortable }),
+    // ...your existing hooks
+  }
+})
+```
+
+Without `sortablejs`, column visibility (checkboxes) still works — only drag-to-reorder is disabled. Without the hook entirely, prefs reset on every reload but the UI still functions during a session.
+
+### Server-side persistence (optional)
+
+To persist preferences on the server (per-user database row, ETS, etc.) instead of `localStorage`, listen to `on_columns_change`:
+
+```heex
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  id="users-table"
+  column_preferences?
+  on_columns_change={:columns_changed}
+>
+  ...
+</Cinder.collection>
+```
+
+```elixir
+def handle_info({:columns_changed, %{prefs: prefs, id: "users-table"}}, socket) do
+  MyApp.UserPrefs.save_table_layout(socket.assigns.current_user, "users-table", prefs)
+  {:noreply, socket}
+end
+```
+
+`prefs` has the shape `%{order: [field] | nil, hidden: [field]}`. To hydrate from server-side storage on mount, send the `apply_column_preferences` event to the LiveComponent with that same shape.
 
 ## Selection & Bulk Actions
 

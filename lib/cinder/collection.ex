@@ -245,6 +245,20 @@ defmodule Cinder.Collection do
       "Event name (atom or string) sent to parent when selection changes. Parent receives {event_name, %{selected_ids: MapSet.t(), selected_count: integer(), component_id: string(), action: atom()}}."
   )
 
+  attr(:column_preferences?, :boolean,
+    default: false,
+    doc:
+      "Enable user-editable column visibility and ordering. When true, an \"Edit columns\" control is rendered, prefs are persisted to localStorage by table id, and on_columns_change fires on every change. Requires a stable :id."
+  )
+
+  attr(:on_columns_change, :any,
+    default: nil,
+    doc:
+      "Event name (atom or string) sent to parent when column visibility or order changes. " <>
+        "Parent receives {event_name, %{prefs: %{order: [field], hidden: [field]}, id: string()}}. " <>
+        "Use this to persist preferences server-side instead of (or in addition to) localStorage."
+  )
+
   slot :col do
     attr(:field, :string,
       required: false,
@@ -267,6 +281,21 @@ defmodule Cinder.Collection do
     attr(:search, :boolean, doc: "Enable global search on this column")
     attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
     attr(:class, :string, doc: "CSS classes for table column (table layout only)")
+
+    attr(:hideable, :boolean,
+      doc:
+        "Whether end users can hide this column via the column-prefs UI. Defaults to true. Set to false for required columns (id, primary identifier, action buttons)."
+    )
+
+    attr(:reorderable, :boolean,
+      doc:
+        "Whether end users can reorder this column via drag. Defaults to true. Set to false to pin a column at its declared position."
+    )
+
+    attr(:default_visible, :boolean,
+      doc:
+        "Whether this column is visible by default. Defaults to true. Set to false to declare a column that ships hidden until the user opts in."
+    )
   end
 
   slot(:item,
@@ -361,6 +390,8 @@ defmodule Cinder.Collection do
       |> assign_new(:query_opts, fn -> [] end)
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:on_query_change, fn -> nil end)
+      |> assign_new(:column_preferences?, fn -> false end)
+      |> assign_new(:on_columns_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
       |> assign(:loading_message, assigns[:loading_message] || dgettext("cinder", "Loading..."))
       |> assign(:filters_label, assigns[:filters_label] || dgettext("cinder", "Filters"))
@@ -503,6 +534,8 @@ defmodule Cinder.Collection do
         selectable={@selectable}
         on_selection_change={@on_selection_change}
         on_query_change={@on_query_change}
+        column_preferences?={@column_preferences?}
+        on_columns_change={@on_columns_change}
         bulk_action_slots={@bulk_action_slots}
         sort_mode={@sort_mode}
       />
@@ -611,6 +644,9 @@ defmodule Cinder.Collection do
         filter_fn: parsed_column.filter_fn,
         searchable: parsed_column.searchable,
         sort_cycle: sort_config.cycle || [nil, :asc, :desc],
+        hideable: field != nil && Map.get(slot, :hideable, true),
+        reorderable: field != nil && Map.get(slot, :reorderable, true),
+        default_visible: Map.get(slot, :default_visible, true),
         __slot__: :col
       }
     end)

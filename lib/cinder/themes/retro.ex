@@ -259,4 +259,39 @@ defmodule Cinder.Themes.Retro do
       "bg-red-500 border-red-400 text-white hover:bg-red-400 hover:shadow-red-400/50 hover:shadow-lg"
 
   set :button_disabled_class, "opacity-50 cursor-not-allowed"
+
+  # Column preferences (Edit columns drawer)
+  set :column_prefs_button_class,
+      "inline-flex items-center gap-1 px-4 py-2 text-sm font-bold uppercase tracking-wide border-2 border-cyan-400 bg-gray-800 text-cyan-100 hover:bg-cyan-400/20 transition-all duration-150"
+
+  set :column_prefs_panel_class,
+      "fixed top-0 right-0 h-full w-80 max-w-full bg-gray-900 text-cyan-100 border-l-2 border-cyan-400 shadow-2xl shadow-cyan-400/20 flex flex-col z-50 transition-transform duration-300 ease-in-out"
+
+  set :column_prefs_header_class,
+      "flex items-center justify-between px-4 py-3 border-b-2 border-cyan-400"
+
+  set :column_prefs_title_class, "text-base font-bold uppercase tracking-widest text-cyan-100"
+
+  set :column_prefs_close_button_class,
+      "p-1 text-cyan-100 hover:text-yellow-400 transition-colors duration-150"
+
+  set :column_prefs_item_class,
+      "flex items-center gap-2 px-4 py-2 border-b border-cyan-400/40 last:border-b-0"
+
+  set :column_prefs_drag_handle_class, "cinder-drag-handle text-cyan-400/70"
+  set :column_prefs_pinned_icon_class, "text-cyan-400/40 w-4 h-4"
+
+  set :column_prefs_checkbox_class,
+      "h-4 w-4 bg-gray-800 border-2 border-cyan-400 checked:bg-fuchsia-500 checked:border-fuchsia-400 focus:ring-fuchsia-400 focus:ring-1 cursor-pointer disabled:cursor-not-allowed"
+
+  set :column_prefs_label_class, "flex-1 text-sm font-bold uppercase tracking-wide text-cyan-100 select-none"
+
+  set :column_prefs_footer_class,
+      "border-t-2 border-cyan-400 px-4 py-3 flex justify-between"
+
+  set :column_prefs_reset_button_class,
+      "text-sm font-bold uppercase text-cyan-100 hover:text-yellow-400 transition-colors duration-150"
+
+  set :column_prefs_done_button_class,
+      "px-4 py-2 text-sm font-bold uppercase tracking-wide border-2 border-cyan-400 bg-fuchsia-500 text-white hover:bg-fuchsia-400 hover:shadow-fuchsia-400/50 hover:shadow-lg transition-all duration-150"
 end

@@ -115,4 +115,63 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
       igniter.rewrite |> Rewrite.source!(path) |> Rewrite.Source.get(:content)
     end
   end
+
+  describe "inject_into_dependencies/3" do
+    if Code.ensure_loaded?(Igniter) do
+      test "inserts the new dep at the top of the dependencies block" do
+        content = ~s({\n  "name": "demo",\n  "dependencies": {\n    "phoenix": "^1.7"\n  }\n})
+
+        result =
+          Mix.Tasks.Cinder.Install.inject_into_dependencies(
+            content,
+            "cinder",
+            "file:../deps/cinder/assets"
+          )
+
+        assert result =~ ~s("cinder": "file:../deps/cinder/assets",)
+        assert result =~ ~s("phoenix": "^1.7")
+        # New entry must come BEFORE phoenix (alphabetisation isn't enforced;
+        # we just inject at the top to keep the change minimal).
+        cinder_idx = result |> :binary.match(~s("cinder")) |> elem(0)
+        phoenix_idx = result |> :binary.match(~s("phoenix")) |> elem(0)
+        assert cinder_idx < phoenix_idx
+      end
+
+      test "preserves the existing indentation style (2-space)" do
+        content = ~s({\n  "dependencies": {\n    "phoenix": "^1.7"\n  }\n})
+
+        result = Mix.Tasks.Cinder.Install.inject_into_dependencies(content, "cinder", "0.1.0")
+
+        assert result =~ ~s(    "cinder": "0.1.0",)
+      end
+
+      test "preserves the existing indentation style (tab)" do
+        content = "{\n\t\"dependencies\": {\n\t\t\"phoenix\": \"^1.7\"\n\t}\n}"
+
+        result = Mix.Tasks.Cinder.Install.inject_into_dependencies(content, "cinder", "0.1.0")
+
+        assert result =~ "\t\t\"cinder\": \"0.1.0\","
+      end
+
+      test "tolerates whitespace variations in the dependencies opener" do
+        content = ~s({\n  "dependencies":{\n    "phoenix": "^1.7"\n  }\n})
+
+        result = Mix.Tasks.Cinder.Install.inject_into_dependencies(content, "cinder", "0.1.0")
+
+        assert result =~ ~s("cinder": "0.1.0",)
+        assert result =~ ~s("phoenix": "^1.7")
+      end
+
+      test "does not mangle other JSON keys" do
+        content = ~s({\n  "name": "demo",\n  "version": "1.0.0",\n  "dependencies": {\n    "phoenix": "^1.7"\n  }\n})
+
+        result = Mix.Tasks.Cinder.Install.inject_into_dependencies(content, "cinder", "0.1.0")
+
+        assert result =~ ~s("name": "demo")
+        assert result =~ ~s("version": "1.0.0")
+        assert result =~ ~s("phoenix": "^1.7")
+        assert result =~ ~s("cinder": "0.1.0",)
+      end
+    end
+  end
 end
