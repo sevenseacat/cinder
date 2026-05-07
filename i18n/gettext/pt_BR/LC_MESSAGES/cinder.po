@@ -195,3 +195,28 @@ msgstr "Digite para pesquisar mais opções..."
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Um erro ocorreu ao carregar os dados"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr "Fechar"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Done"
+msgstr "Concluído"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Drag to reorder"
+msgstr "Arraste para reordenar"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Edit columns"
+msgstr "Editar colunas"
+
+#: lib/cinder/renderers/column_prefs.ex
+#, elixir-autogen, elixir-format
+msgid "Reset to defaults"
+msgstr "Restaurar padrões"

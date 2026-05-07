@@ -37,6 +37,24 @@ defmodule Cinder.ThemeVerificationTest do
     :pagination_current_class
   ]
 
+  @required_column_prefs_properties [
+    :column_prefs_button_class,
+    :column_prefs_panel_class,
+    :column_prefs_backdrop_class,
+    :column_prefs_header_class,
+    :column_prefs_title_class,
+    :column_prefs_close_button_class,
+    :column_prefs_list_class,
+    :column_prefs_item_class,
+    :column_prefs_label_class,
+    :column_prefs_footer_class,
+    :column_prefs_reset_button_class,
+    :column_prefs_done_button_class,
+    :column_prefs_checkbox_class,
+    :column_prefs_drag_handle_class,
+    :column_prefs_pinned_icon_class
+  ]
+
   describe "theme multi-select properties" do
     for theme_module <- @themes do
       test "#{theme_module} has all required multi-select dropdown properties" do
@@ -80,6 +98,27 @@ defmodule Cinder.ThemeVerificationTest do
 
           assert is_binary(theme[property]),
                  "#{unquote(theme_module)} property #{property} should be string, got: #{inspect(theme[property])}"
+        end
+      end
+    end
+  end
+
+  describe "theme column-prefs drawer properties" do
+    for theme_module <- @themes do
+      test "#{theme_module} has all required column-prefs properties as non-empty strings" do
+        theme = unquote(theme_module).resolve_theme()
+
+        for property <- @required_column_prefs_properties do
+          assert Map.has_key?(theme, property),
+                 "#{unquote(theme_module)} missing column-prefs property: #{property}"
+
+          value = theme[property]
+
+          assert is_binary(value),
+                 "#{unquote(theme_module)} property #{property} should be string, got: #{inspect(value)}"
+
+          assert value != "",
+                 "#{unquote(theme_module)} property #{property} should not be empty"
         end
       end
     end

@@ -72,6 +72,7 @@ if Code.ensure_loaded?(Igniter) do
       |> Igniter.Project.Formatter.import_dep(:cinder)
       |> configure_tailwind()
       |> configure_default_theme()
+      |> configure_js_hooks()
     end
 
     @tailwind_v3_prefix """
@@ -211,6 +212,109 @@ if Code.ensure_loaded?(Igniter) do
           "modern"
         )
       end
+    end
+
+    # Auto-patches assets/package.json with the npm deps; emits a notice
+    # for the app.js wireup since that's too varied to patch reliably.
+    defp configure_js_hooks(igniter) do
+      if Igniter.exists?(igniter, "assets/package.json") do
+        igniter
+        |> ensure_js_dependency("cinder", "file:../deps/cinder/assets")
+        |> ensure_js_dependency("sortablejs", "^1.15.0")
+        |> add_app_js_notice()
+      else
+        igniter
+      end
+    end
+
+    defp ensure_js_dependency(igniter, name, version) do
+      igniter = Igniter.include_glob(igniter, "assets/package.json")
+      source = Rewrite.source!(igniter.rewrite, "assets/package.json")
+      content = Rewrite.Source.get(source, :content)
+
+      cond do
+        already_declared?(content, name) ->
+          igniter
+
+        has_dependencies_block?(content) ->
+          inject_dep(igniter, source, content, name, version)
+
+        true ->
+          Igniter.add_notice(igniter, missing_deps_block_notice())
+      end
+    end
+
+    defp already_declared?(content, name) do
+      Regex.match?(~r/"#{Regex.escape(name)}"\s*:/, content)
+    end
+
+    defp has_dependencies_block?(content) do
+      Regex.match?(~r/"dependencies"\s*:\s*\{/, content)
+    end
+
+    defp missing_deps_block_notice do
+      """
+      Cinder JS Setup:
+
+      Could not find a "dependencies" block in assets/package.json. Add
+      these entries manually so Cinder's hooks (and drag-to-reorder)
+      can be wired into your bundler:
+
+          "cinder": "file:../deps/cinder/assets",
+          "sortablejs": "^1.15.0"
+
+      Then run `npm install` (or `pnpm install` / `yarn`).
+      """
+    end
+
+    defp inject_dep(igniter, source, content, name, version) do
+      updated = inject_into_dependencies(content, name, version)
+      source = Rewrite.Source.update(source, :content, updated)
+      %{igniter | rewrite: Rewrite.update!(igniter.rewrite, source)}
+    end
+
+    @doc false
+    def inject_into_dependencies(content, name, version) do
+      [head, rest] = Regex.split(~r/"dependencies"\s*:\s*\{/, content, parts: 2)
+      opener = Regex.run(~r/"dependencies"\s*:\s*\{/, content) |> List.first()
+      indent = detect_indent(rest)
+      new_line = ~s(#{indent}"#{name}": "#{version}",\n)
+      head <> opener <> "\n" <> new_line <> String.trim_leading(rest, "\n")
+    end
+
+    defp detect_indent(rest) do
+      case Regex.run(~r/\n([ \t]+)"/, rest) do
+        [_, ws] -> ws
+        _ -> "    "
+      end
+    end
+
+    defp add_app_js_notice(igniter) do
+      Igniter.add_notice(igniter, """
+      Cinder JS Hooks — Manual app.js Step:
+
+      Cinder's column-preferences feature uses LiveView hooks for localStorage
+      persistence and drag-to-reorder. We've added `cinder` and `sortablejs`
+      to your assets/package.json. After `npm install` (or pnpm/yarn), wire
+      the hooks into assets/js/app.js:
+
+          import { createCinderHooks } from "cinder"
+          import Sortable from "sortablejs"
+
+          let liveSocket = new LiveSocket("/live", Socket, {
+            // ...
+            hooks: {
+              ...createCinderHooks({ Sortable }),
+              // ...your existing hooks
+            }
+          })
+
+      The hooks are no-op when no Cinder table on the page uses
+      `column_preferences?`, so this addition is safe even if you don't use
+      that feature yet. The Sortable import is only needed for
+      drag-to-reorder; column visibility (checkboxes) and localStorage
+      persistence work without it.
+      """)
     end
   end
 else

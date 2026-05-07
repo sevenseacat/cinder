@@ -272,4 +272,40 @@ defmodule Cinder.Themes.Flowbite do
       "text-white bg-red-700 hover:bg-red-800 focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
 
   set :button_disabled_class, "opacity-50 cursor-not-allowed"
+
+  # Column preferences (Edit columns drawer)
+  set :column_prefs_button_class,
+      "inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+
+  set :column_prefs_panel_class,
+      "fixed top-0 right-0 h-full w-80 max-w-full bg-white text-gray-900 shadow-xl flex flex-col z-50 dark:bg-gray-800 dark:text-white transition-transform duration-300 ease-in-out"
+
+  set :column_prefs_header_class,
+      "flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700"
+
+  set :column_prefs_title_class, "text-base font-semibold text-gray-900 dark:text-white"
+
+  set :column_prefs_close_button_class,
+      "p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+
+  set :column_prefs_item_class,
+      "flex items-center gap-2 px-4 py-2 border-b border-gray-200 last:border-b-0 dark:border-gray-700"
+
+  set :column_prefs_label_class, "flex-1 text-sm select-none text-gray-900 dark:text-white"
+
+  set :column_prefs_footer_class,
+      "border-t border-gray-200 px-4 py-3 flex justify-between dark:border-gray-700"
+
+  set :column_prefs_reset_button_class,
+      "text-sm font-medium text-gray-700 hover:underline dark:text-gray-300"
+
+  set :column_prefs_done_button_class,
+      "px-3 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+
+  set :column_prefs_checkbox_class,
+      "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 cursor-pointer disabled:cursor-not-allowed"
+
+  set :column_prefs_drag_handle_class, "cinder-drag-handle text-gray-400 dark:text-gray-500"
+
+  set :column_prefs_pinned_icon_class, "text-gray-300 w-4 h-4 dark:text-gray-600"
 end
