@@ -167,7 +167,7 @@ defmodule Cinder.QueryBuilder do
   # like timeout/authorize?/tracer/context are still resolved here so they
   # can be passed to `Ash.read/2`.
   def execute(%Ash.Query{} = prepared_query, options) do
-    {_, _, scope_opts} =
+    {resolved_actor, resolved_tenant, scope_opts} =
       Cinder.AshOptions.resolve(
         Keyword.get(options, :actor),
         Keyword.get(options, :tenant),
@@ -185,13 +185,15 @@ defmodule Cinder.QueryBuilder do
     after_keyset = Keyword.get(options, :after_keyset)
     before_keyset = Keyword.get(options, :before_keyset)
 
-    # Actor/tenant already applied to prepared_query during build_query/2;
-    # read them back off the query to pass into Ash.read.
+    # build_query/2 bakes actor/tenant onto the prepared query, so read them
+    # back off it first. Fall through to the resolved options (explicit →
+    # scope_opts) when a caller hands us a query that wasn't built by us.
     actor =
       prepared_query.context[:actor] ||
-        get_in(prepared_query.context, [:private, :actor])
+        get_in(prepared_query.context, [:private, :actor]) ||
+        resolved_actor
 
-    tenant = prepared_query.tenant
+    tenant = prepared_query.tenant || resolved_tenant
 
     try do
       case action_supports_pagination?(prepared_query) do
