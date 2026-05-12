@@ -483,19 +483,6 @@ def handle_event("export_csv", _params, socket) do
 end
 ```
 
-### Standalone Query Building
-
-You can also build queries directly without a collection component using `Cinder.build_query/2`:
-
-```elixir
-{:ok, query} = Cinder.build_query(MyApp.User, [
-  actor: current_user,
-  filters: %{"name" => %{type: :text, value: "John", operator: :contains}},
-  sort_by: [{"name", :asc}],
-  columns: columns
-])
-```
-
 ## Selection & Bulk Actions
 
 Enable row/item selection with checkboxes and execute bulk operations on selected records.

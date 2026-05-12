@@ -58,6 +58,7 @@ defmodule Cinder.Table do
     doc:
       "Event name sent to parent when the query changes. " <>
         "Parent receives {event_name, %{query: Ash.Query.t(), id: string()}}."
+
   attr :show_pagination, :boolean, default: true, doc: "Whether to show pagination controls"
   attr :show_filters, :boolean, default: nil, doc: "Whether to show filter controls"
   attr :loading_message, :string, default: "Loading...", doc: "Message to show while loading"

@@ -1029,24 +1029,16 @@ defmodule Cinder.LiveComponent do
       before_keyset: before_keyset
     ]
 
-    notify_query? = !!socket.assigns[:on_query_change]
-
     socket
     |> assign(:loading, true)
     |> assign(:error, false)
     |> start_async(:load_data, fn ->
-      # Build query once, reuse for both notification and execution
+      # Build the query once so we can both execute it and hand it to the
+      # on_query_change callback (if one is configured). maybe_notify_query_change/2
+      # decides whether to actually notify.
       case Cinder.QueryBuilder.build_query(resource_var, options) do
         {:ok, prepared_query} ->
-          result =
-            Cinder.QueryBuilder.build_and_execute_from_query(
-              resource_var,
-              prepared_query,
-              options
-            )
-
-          query_for_notification = if notify_query?, do: prepared_query, else: nil
-          {result, query_for_notification}
+          {Cinder.QueryBuilder.execute(prepared_query, options), prepared_query}
 
         {:error, _} = error ->
           {error, nil}

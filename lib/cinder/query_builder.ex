@@ -27,30 +27,11 @@ defmodule Cinder.QueryBuilder do
           | {:max_concurrency, pos_integer()}
         ]
 
-  @doc """
-  Builds a query with filters, sorting, and action applied, but does not execute it.
-
-  Returns `{:ok, prepared_query}` or `{:error, reason}`.
-
-  This is useful when you need the query object itself (e.g., for exports or
-  additional modifications) without pagination or execution.
-
-  ## Parameters
-
-  Accepts the same `resource_or_query` and `options` as `build_and_execute/2`.
-
-  ## Examples
-
-      {:ok, query} = Cinder.QueryBuilder.build_query(MyApp.User, [
-        actor: current_user,
-        filters: %{"name" => %{type: :text, value: "John", operator: :contains}},
-        sort_by: [{"name", :asc}],
-        columns: columns
-      ])
-
-      # Use the query for export (no pagination)
-      {:ok, all_matching} = Ash.read(query, actor: current_user)
-  """
+  @doc false
+  # Builds a query with filters, sorting, and action applied, but does not execute it.
+  # Returns `{:ok, prepared_query}` or `{:error, reason}`. Internal helper used
+  # by `build_and_execute/2` and the LiveComponent's on_query_change path to
+  # capture the pre-pagination query for notification to parent LiveViews.
   def build_query(resource_or_query, options) do
     explicit_actor = Keyword.fetch!(options, :actor)
     explicit_tenant = Keyword.get(options, :tenant)
@@ -171,34 +152,22 @@ defmodule Cinder.QueryBuilder do
   def build_and_execute(resource_or_query, options) do
     case build_query(resource_or_query, options) do
       {:ok, prepared_query} ->
-        build_and_execute_from_query(resource_or_query, prepared_query, options)
+        execute(prepared_query, options)
 
       {:error, _} = error ->
         error
     end
   end
 
-  @doc """
-  Executes an already-built query with pagination.
-
-  This is useful when you've already called `build_query/2` and want to execute
-  the resulting query without rebuilding it. Used internally to avoid double
-  query building when `on_query_change` is set.
-
-  ## Parameters
-  - `resource_or_query`: The original resource or query (used for actor/tenant fallback)
-  - `prepared_query`: The query returned by `build_query/2`
-  - `options`: Same options as `build_and_execute/2`
-  """
-  def build_and_execute_from_query(resource_or_query, prepared_query, options) do
-    explicit_actor = Keyword.fetch!(options, :actor)
-    explicit_tenant = Keyword.get(options, :tenant)
+  @doc false
+  # Executes an already-built query with pagination. Internal helper so the
+  # LiveComponent can build the query once (for on_query_change notification)
+  # and then execute it without rebuilding. Actor/tenant are read off the
+  # prepared query (they were applied during `build_query/2`).
+  def execute(%Ash.Query{} = prepared_query, options) do
     scope = Keyword.get(options, :scope)
     scope_opts = extract_scope_options(scope)
 
-    # Explicit actor/tenant override scope values
-    actor = explicit_actor || scope_opts[:actor]
-    tenant = explicit_tenant || scope_opts[:tenant]
     raw_page_size = Keyword.get(options, :page_size, 25)
     # Strip negative page sizes - use default instead
     page_size = if raw_page_size > 0, do: raw_page_size, else: 25
@@ -210,25 +179,23 @@ defmodule Cinder.QueryBuilder do
     after_keyset = Keyword.get(options, :after_keyset)
     before_keyset = Keyword.get(options, :before_keyset)
 
+    # Actor/tenant already applied to prepared_query during build_query/2;
+    # read them back off the query to pass into Ash.read.
+    actor =
+      prepared_query.context[:actor] ||
+        get_in(prepared_query.context, [:private, :actor])
+
+    tenant = prepared_query.tenant
+
     try do
-      # Query actor/tenant as final fallback
-      effective_actor =
-        actor ||
-          if is_struct(resource_or_query, Ash.Query),
-            do: get_in(resource_or_query.context, [:private, :actor])
-
-      effective_tenant =
-        tenant || if is_struct(resource_or_query, Ash.Query), do: resource_or_query.tenant
-
-      # Handle pagination based on action support
       case action_supports_pagination?(prepared_query) do
         true ->
           case pagination_mode do
             :keyset ->
               execute_with_keyset_pagination(
                 prepared_query,
-                effective_actor,
-                effective_tenant,
+                actor,
+                tenant,
                 scope_opts,
                 query_opts,
                 page_size,
@@ -239,8 +206,8 @@ defmodule Cinder.QueryBuilder do
             :offset ->
               execute_with_pagination(
                 prepared_query,
-                effective_actor,
-                effective_tenant,
+                actor,
+                tenant,
                 scope_opts,
                 query_opts,
                 current_page,
@@ -251,8 +218,6 @@ defmodule Cinder.QueryBuilder do
         false ->
           # Check if user has configured pagination but action doesn't support it
           if Keyword.get(options, :pagination_configured, false) do
-            require Logger
-
             Logger.warning(
               "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
                 "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
@@ -262,8 +227,8 @@ defmodule Cinder.QueryBuilder do
 
           execute_without_pagination(
             prepared_query,
-            effective_actor,
-            effective_tenant,
+            actor,
+            tenant,
             scope_opts,
             query_opts,
             current_page,
@@ -272,12 +237,10 @@ defmodule Cinder.QueryBuilder do
       end
     rescue
       error ->
-        resource = extract_resource_for_logging(resource_or_query)
-
         Logger.error(
-          "Cinder table query crashed with exception for #{inspect(resource)}: #{inspect(error)}",
+          "Cinder table query crashed with exception for #{inspect(prepared_query.resource)}: #{inspect(error)}",
           %{
-            resource: resource,
+            resource: prepared_query.resource,
             current_page: current_page,
             page_size: page_size,
             query_opts: query_opts,
