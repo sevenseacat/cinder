@@ -33,13 +33,13 @@ defmodule Cinder.QueryBuilder do
   # by `build_and_execute/2` and the LiveComponent's on_query_change path to
   # capture the pre-pagination query for notification to parent LiveViews.
   def build_query(resource_or_query, options) do
-    explicit_actor = Keyword.fetch!(options, :actor)
-    explicit_tenant = Keyword.get(options, :tenant)
-    scope = Keyword.get(options, :scope)
-    scope_opts = extract_scope_options(scope)
+    {actor, tenant, scope_opts} =
+      Cinder.AshOptions.resolve(
+        Keyword.fetch!(options, :actor),
+        Keyword.get(options, :tenant),
+        Keyword.get(options, :scope)
+      )
 
-    actor = explicit_actor || scope_opts[:actor]
-    tenant = explicit_tenant || scope_opts[:tenant]
     filters = Keyword.get(options, :filters, %{})
     sort_by = Keyword.get(options, :sort_by, [])
     columns = Keyword.get(options, :columns, [])
@@ -163,10 +163,16 @@ defmodule Cinder.QueryBuilder do
   # Executes an already-built query with pagination. Internal helper so the
   # LiveComponent can build the query once (for on_query_change notification)
   # and then execute it without rebuilding. Actor/tenant are read off the
-  # prepared query (they were applied during `build_query/2`).
+  # prepared query (they were applied during `build_query/2`); scope options
+  # like timeout/authorize?/tracer/context are still resolved here so they
+  # can be passed to `Ash.read/2`.
   def execute(%Ash.Query{} = prepared_query, options) do
-    scope = Keyword.get(options, :scope)
-    scope_opts = extract_scope_options(scope)
+    {_, _, scope_opts} =
+      Cinder.AshOptions.resolve(
+        Keyword.get(options, :actor),
+        Keyword.get(options, :tenant),
+        Keyword.get(options, :scope)
+      )
 
     raw_page_size = Keyword.get(options, :page_size, 25)
     # Strip negative page sizes - use default instead
@@ -721,9 +727,6 @@ defmodule Cinder.QueryBuilder do
 
   Provides a predictable three-step cycle:
   - none → ascending → descending → none
-
-  When starting with extracted query sorts, use `toggle_sort_from_query/2`
-  for better UX that handles the transition from query state to user control.
   """
   def toggle_sort_direction(current_sort, key) do
     case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
@@ -824,39 +827,6 @@ defmodule Cinder.QueryBuilder do
   end
 
   @doc """
-  Toggles sort direction with special handling for query-extracted sorts.
-
-  When a column has a sort from query extraction, the first user click
-  provides intuitive behavior:
-  - desc (from query) → asc (user takes control)
-  - asc (from query) → desc (user takes control)
-
-  After first click, follows standard toggle cycle.
-  """
-  def toggle_sort_from_query(current_sort, key) do
-    case Enum.find(current_sort, fn {sort_key, _direction} -> sort_key == key end) do
-      {^key, :asc} ->
-        # Currently ascending, change to descending
-        Enum.map(current_sort, fn
-          {^key, :asc} -> {key, :desc}
-          other -> other
-        end)
-
-      {^key, :desc} ->
-        # Currently descending, flip to ascending (better UX than removing)
-        # This gives users the opposite direction first, then normal cycle
-        Enum.map(current_sort, fn
-          {^key, :desc} -> {key, :asc}
-          other -> other
-        end)
-
-      nil ->
-        # Not currently sorted, add ascending sort
-        [{key, :asc} | current_sort]
-    end
-  end
-
-  @doc """
   Gets the current sort direction for a given key.
   """
 
@@ -864,17 +834,6 @@ defmodule Cinder.QueryBuilder do
     case Enum.find(sort_by, fn {sort_key, _direction} -> sort_key == key end) do
       {^key, direction} -> direction
       nil -> nil
-    end
-  end
-
-  # Extract options from an Ash scope, returning empty list if scope is nil or invalid
-  defp extract_scope_options(nil), do: []
-
-  defp extract_scope_options(scope) do
-    try do
-      Ash.Scope.to_opts(scope)
-    rescue
-      _ -> []
     end
   end
 

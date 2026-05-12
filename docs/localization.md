@@ -23,6 +23,7 @@ No additional configuration needed!
 - **English** (en) - Default
 - **German** (de)
 - **Norwegian** (no)
+- **Spanish** (es)
 - **Swedish** (sv)
 
 ## Phoenix LiveView Example

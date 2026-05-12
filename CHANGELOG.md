@@ -1,9 +1,23 @@
 # Changelog
 
-## v0.12.2 (unreleased)
+## v0.13.1 (unreleased)
+
+### Chores
+
+* Re-worked DaisyUI theme to be more aligned with the DaisyUI look and feel 
+
+## v0.13.0 (2026-04-27)
+
+### Features
+
+* Respect the `:ash, :disable_async?` application env when loading data ([#156](https://github.com/sevenseacat/cinder/pull/156))
+* Add Spanish translation ([#164](https://github.com/sevenseacat/cinder/pull/164))
 
 ### Bugfixes
 
+* Fix bulk actions ignoring `scope={@scope}` and running with `nil` actor and tenant, bypassing policies that depend on either. Bulk actions now resolve the scope the same way reads do.
+* Validate `page_size` values from the URL and dropdown against the table's configuration, so they can't exceed or bypass the developer's intent.
+* Fix `loading_message`, `filters_label`, and `empty_message` attributes not being translated when using gettext ([#165](https://github.com/sevenseacat/cinder/pull/165))
 * Sort cycles without `nil` (e.g. `cycle: [:asc, :desc]`) now apply the first cycle value as the default sort on initial load, instead of starting unsorted ([#132](https://github.com/sevenseacat/cinder/issues/132))
 
 ## v0.12.1 (2026-03-01)

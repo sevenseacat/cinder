@@ -185,7 +185,7 @@ defmodule Cinder.Collection do
     doc: "Whether to show sort controls (auto-detected if nil, list/grid only)"
   )
 
-  attr(:loading_message, :string, default: "Loading...", doc: "Message to show while loading")
+  attr(:loading_message, :string, default: nil, doc: "Message to show while loading")
 
   attr(:filters_label, :string,
     default: nil,
@@ -362,7 +362,7 @@ defmodule Cinder.Collection do
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:on_query_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
-      |> assign_new(:loading_message, fn -> dgettext("cinder", "Loading...") end)
+      |> assign(:loading_message, assigns[:loading_message] || dgettext("cinder", "Loading..."))
       |> assign(:filters_label, assigns[:filters_label] || dgettext("cinder", "Filters"))
       |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
       |> assign(:empty_message, assigns.empty_message || dgettext("cinder", "No results found"))
@@ -472,9 +472,6 @@ defmodule Cinder.Collection do
         scope={@scope}
         page_size_config={@page_size_config}
         theme={@resolved_theme}
-        url_filters={get_url_filters(@url_state)}
-        url_page={get_url_page(@url_state)}
-        url_sort={get_url_sort(@url_state)}
         url_raw_params={get_raw_url_params(@url_state)}
         query_opts={@query_opts}
         on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
@@ -942,21 +939,6 @@ defmodule Cinder.Collection do
   # ============================================================================
   # PRIVATE HELPERS - URL State
   # ============================================================================
-
-  defp get_url_filters(url_state) when is_map(url_state), do: Map.get(url_state, :filters, %{})
-  defp get_url_filters(_), do: %{}
-
-  defp get_url_page(url_state) when is_map(url_state), do: Map.get(url_state, :current_page, nil)
-  defp get_url_page(_), do: nil
-
-  defp get_url_sort(url_state) when is_map(url_state) do
-    case Map.get(url_state, :sort_by, []) do
-      [] -> nil
-      sort -> sort
-    end
-  end
-
-  defp get_url_sort(_), do: nil
 
   defp get_raw_url_params(url_state) when is_map(url_state) do
     Map.get(url_state, :filters, %{})
