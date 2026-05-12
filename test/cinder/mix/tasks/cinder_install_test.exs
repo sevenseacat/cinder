@@ -30,14 +30,14 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
         assert_has_patch(result, "assets/css/app.css", """
         |@import "tailwindcss";
         + |@import "../../deps/cinder/priv/cinder.css";
-        + |@import "../../deps/cinder/priv/themes/modern.css";
+        + |@import "../../deps/cinder/priv/themes/daisy_ui.css";
         """)
 
         assert_has_notice(result, fn n ->
-          # Other built-ins listed in the notice, but not the default (modern).
-          n =~ "dark" and n =~ "daisy_ui" and n =~ "Other built-in themes:" and
-            not String.contains?(n, "Other built-in themes: modern") and
-            not String.contains?(n, ", modern")
+          # Other built-ins listed in the notice, but not the default (daisy_ui).
+          n =~ "dark" and n =~ "modern" and n =~ "Other built-in themes:" and
+            not String.contains?(n, "Other built-in themes: daisy_ui") and
+            not String.contains?(n, ", daisy_ui")
         end)
       end
 
@@ -45,7 +45,7 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
         existing =
           @blank_app_css <>
             "@import \"../../deps/cinder/priv/cinder.css\";\n" <>
-            "@import \"../../deps/cinder/priv/themes/modern.css\";\n"
+            "@import \"../../deps/cinder/priv/themes/daisy_ui.css\";\n"
 
         test_project(files: %{"assets/css/app.css" => existing})
         |> Igniter.compose_task("cinder.install", [])
@@ -73,7 +73,7 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
               "../deps/cinder/lib/cinder/*.ex",
               "../deps/cinder/lib/cinder/filters/**/*.ex",
               "../deps/cinder/lib/cinder/renderers/**/*.ex",
-              "../deps/cinder/lib/cinder/themes/modern.ex"
+              "../deps/cinder/lib/cinder/themes/daisy_ui.ex"
             ],
             do: assert(content =~ "\"#{path}\"")
 
@@ -96,7 +96,7 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
         )
         |> Igniter.compose_task("cinder.install", [])
         |> assert_has_patch("config/config.exs", """
-        + |config :cinder, default_theme: "modern"
+        + |config :cinder, default_theme: "daisy_ui"
         """)
       end
 

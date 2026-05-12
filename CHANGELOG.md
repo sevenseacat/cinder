@@ -5,6 +5,7 @@
 ### Features
 
 * Narrowed Tailwind class scanning so projects only pay for the built-in themes they actually use. 
+* Switched the default theme set by `mix cinder.install` from `"modern"` to `"daisy_ui"`, aligning with Phoenix and AshAuthentication conventions. Existing projects are unaffected — only new installs pick up the new default.
 
 ### Chores
 

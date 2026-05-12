@@ -81,7 +81,7 @@ if Code.ensure_loaded?(Igniter) do
 
     @tailwind_v4_import "@import \"tailwindcss\""
 
-    @default_theme "modern"
+    @default_theme "daisy_ui"
 
     defp configure_tailwind(igniter) do
       cond do

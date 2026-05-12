@@ -95,7 +95,7 @@ Available themes:
 ```css
 @import "tailwindcss";
 @import "../../deps/cinder/priv/cinder.css";
-@import "../../deps/cinder/priv/themes/modern.css";
+@import "../../deps/cinder/priv/themes/daisy_ui.css";
 ```
 
 The first line tells Tailwind to scan Cinder's structural code (filters, renderers, controls, etc.) for Tailwind classes. The second is a per-theme line that opts in to scanning one specific built-in theme.
