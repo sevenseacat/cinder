@@ -1,0 +1,20 @@
+/* Tailwind v4 content sources for Cinder.
+ *
+ * Enumerates every top-level path under lib/cinder/ except themes/.
+ * Built-in theme classes live under lib/cinder/themes/ and are NOT scanned
+ * here — pick the themes you use via the per-theme files in priv/themes/.
+ *
+ * To use:
+ *
+ *   @import "tailwindcss";
+ *   @import "../../deps/cinder/priv/cinder.css";
+ *   @import "../../deps/cinder/priv/themes/daisy_ui.css";
+ */
+
+@source "../lib/cinder.ex";
+@source "../lib/cinder/*.ex";
+@source "../lib/cinder/filter/**/*.ex";
+@source "../lib/cinder/filters/**/*.ex";
+@source "../lib/cinder/renderers/**/*.ex";
+@source "../lib/cinder/table/**/*.ex";
+@source "../lib/cinder/theme/**/*.ex";

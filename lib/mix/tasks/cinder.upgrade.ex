@@ -36,7 +36,8 @@ if Code.ensure_loaded?(Igniter) do
       upgrades =
         %{
           "0.9.0" => [&flatten_theme_component_blocks/2],
-          "0.10.0" => [&rename_boolean_theme_keys/2]
+          "0.10.0" => [&rename_boolean_theme_keys/2],
+          "0.14.0" => [&migrate_tailwind_sources/2]
         }
 
       Igniter.Upgrades.run(igniter, positional.from, positional.to, upgrades,
@@ -205,6 +206,101 @@ if Code.ensure_loaded?(Igniter) do
             acc_zipper
         end
       end)
+    end
+
+    # --- 0.14.0: Migrate Tailwind sources to new per-theme @import format ---
+
+    @app_css_path "assets/css/app.css"
+    @tailwind_v3_path "assets/tailwind.config.js"
+    @v4_old_source "@source \"../../deps/cinder\";"
+    @v4_new_import "@import \"../../deps/cinder/priv/cinder.css\";"
+    @v3_old_entry "\"../deps/cinder/lib/**/*.*ex\","
+    @v3_new_marker "\"../deps/cinder/lib/cinder.ex\""
+
+    @doc false
+    def migrate_tailwind_sources(igniter, _opts) do
+      theme_name = resolved_theme_name()
+
+      igniter = Igniter.include_existing_file(igniter, @app_css_path)
+      igniter = Igniter.include_existing_file(igniter, @tailwind_v3_path)
+
+      {igniter, v4?} =
+        migrate_file(igniter, @app_css_path, @v4_new_import, @v4_old_source, fn ->
+          v4_replacement(theme_name)
+        end)
+
+      {igniter, v3?} =
+        migrate_file(igniter, @tailwind_v3_path, @v3_new_marker, @v3_old_entry, fn ->
+          v3_replacement(theme_name)
+        end)
+
+      if v4? or v3?, do: add_upgrade_notice(igniter, theme_name), else: igniter
+    end
+
+    # Skips if `already_migrated_marker` is present; otherwise swaps `old_marker`
+    # for `build_replacement.()` and reports whether the file changed.
+    defp migrate_file(igniter, path, already_migrated_marker, old_marker, build_replacement) do
+      with {:ok, source} <- Rewrite.source(igniter.rewrite, path),
+           content = Rewrite.Source.get(source, :content),
+           false <- String.contains?(content, already_migrated_marker),
+           true <- String.contains?(content, old_marker) do
+        new_content = String.replace(content, old_marker, build_replacement.(), global: false)
+        source = Rewrite.Source.update(source, :content, new_content)
+        {%{igniter | rewrite: Rewrite.update!(igniter.rewrite, source)}, true}
+      else
+        _ -> {igniter, false}
+      end
+    end
+
+    defp v4_replacement(nil), do: @v4_new_import
+
+    defp v4_replacement(name),
+      do: @v4_new_import <> "\n@import \"../../deps/cinder/priv/themes/#{name}.css\";"
+
+    defp v3_replacement(theme_name) do
+      Cinder.Tailwind.v3_content_lines(theme_name)
+      |> String.trim_trailing("\n")
+      |> String.trim_leading()
+    end
+
+    # Resolves the configured default_theme into a built-in theme name string,
+    # or `nil` if there's no default or it points at a custom module.
+    defp resolved_theme_name do
+      case Application.get_env(:cinder, :default_theme) do
+        name when is_binary(name) ->
+          if name in Cinder.Theme.built_in_theme_names(), do: name
+
+        module when is_atom(module) and not is_nil(module) ->
+          with "Elixir.Cinder.Themes." <> suffix <- Atom.to_string(module),
+               name = Macro.underscore(suffix),
+               true <- name in Cinder.Theme.built_in_theme_names() do
+            name
+          else
+            _ -> nil
+          end
+
+        _ ->
+          nil
+      end
+    end
+
+    defp add_upgrade_notice(igniter, theme_name) do
+      themes = Enum.join(Cinder.Theme.built_in_theme_names(), ", ")
+
+      detail =
+        if theme_name,
+          do: "Your configured `default_theme` (#{theme_name}) was imported automatically.",
+          else: "No matching built-in `default_theme` found, so no theme @import was added."
+
+      Igniter.add_notice(igniter, """
+      Migrated Cinder Tailwind config to the new @import format.
+      #{detail}
+
+      To use additional built-in themes on specific tables, @import their CSS:
+        @import "../../deps/cinder/priv/themes/<name>.css";
+
+      Available built-in themes: #{themes}.
+      """)
     end
   end
 else

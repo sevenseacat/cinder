@@ -1,10 +1,26 @@
 # Changelog
 
-## v0.13.1 (unreleased)
+## v0.14.0 (unreleased)
+
+### Features
+
+* Narrowed Tailwind class scanning so projects only pay for the built-in themes they actually use. 
 
 ### Chores
 
-* Re-worked DaisyUI theme to be more aligned with the DaisyUI look and feel 
+* Re-worked DaisyUI theme to be more aligned with the DaisyUI look and feel
+
+### Upgrading from v0.13
+
+Run:
+
+```bash
+mix cinder.upgrade 0.13.0 0.14.0
+```
+
+This rewrites your `assets/css/app.css` (Tailwind v4) or `assets/tailwind.config.js` (v3) from the old broad `@source "../../deps/cinder";` / `"../deps/cinder/lib/**/*.*ex"` to the new per-theme `@import` lines, automatically including whichever built-in theme matches your configured `default_theme`.
+
+If you use multiple built-in themes via the `theme={...}` attr on individual tables, add an `@import` line per theme — see the [Theming guide](docs/theming.md#tailwind-setup).
 
 ## v0.13.0 (2026-04-27)
 

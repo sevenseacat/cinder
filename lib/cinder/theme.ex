@@ -321,16 +321,16 @@ defmodule Cinder.Theme do
   Returns a list of available theme presets.
   """
   def presets do
-    [
-      "default",
-      "modern",
-      "retro",
-      "futuristic",
-      "dark",
-      "daisy_ui",
-      "flowbite",
-      "compact"
-    ]
+    ["default" | built_in_theme_names()]
+  end
+
+  @doc """
+  Returns the names of built-in themes that ship with a matching CSS file
+  under `priv/themes/`. `"default"` is intentionally excluded — its classes
+  live in `theme.ex` itself and don't need a separate `@import`.
+  """
+  def built_in_theme_names do
+    ~w(compact daisy_ui dark flowbite futuristic modern retro)
   end
 
   @doc """
