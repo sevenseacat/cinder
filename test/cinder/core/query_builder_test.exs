@@ -1227,8 +1227,9 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "build_ash_options/3 timeout handling" do
-    # Test the private function indirectly through build_and_execute
+  describe "query_opts execution options" do
+    # Verify that `:timeout`, `:authorize?`, `:max_concurrency` from `:query_opts`
+    # flow through to `Ash.read`, and other keys are ignored.
     test "includes execution options in both query building and execution" do
       # We'll test this by mocking Ash.read to capture the options
       timeout_value = :timer.seconds(30)
@@ -1312,13 +1313,13 @@ defmodule Cinder.QueryBuilderTest do
         query_opts: [
           timeout: :timer.seconds(10),
           authorize?: false,
-          # These should be ignored by build_ash_options - not execution options
+          # Not in the execution-options allowlist
           context: %{test: true},
           domain: SomeDomain,
           action: :read,
-          # This is handled by apply_query_opts, not build_ash_options
+          # Handled by apply_query_opts, not by the execution-opts allowlist
           select: [:name],
-          # These should be ignored by build_ash_options - unknown options
+          # Unknown options
           custom_option: "ignored",
           another_option: 123
         ]

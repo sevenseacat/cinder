@@ -2,14 +2,25 @@
 
 ## v0.14.0 (unreleased)
 
+### Breaking changes
+
+* Function-form bulk action handlers (`<:bulk_action action={&MyApp.archive/2}>`) now receive `:scope` raw in the second argument's `opts`, instead of pre-resolved `:actor` / `:tenant`. Handlers that read `opts[:actor]` directly will need to either forward `opts` to Ash (`Ash.bulk_update(query, action, %{}, opts)`) and let Ash resolve, or call `Ash.Scope.to_opts(opts[:scope])` if direct actor access is required.
+* When a query exposed via `on_query_change` has its actor baked on, the actor now lives at the canonical `query.context.private.actor` location (matching Ash's own convention), not `query.context.actor`.
+
 ### Features
 
+* Scope-supplied `:context` (e.g. `%{shared: %{tz: tz}}`) is now baked onto queries built by Cinder, including those exposed via `on_query_change`. Previously this context was applied only at `Ash.read` time and was missing from the exposed query.
 * Narrowed Tailwind class scanning so projects only pay for the built-in themes they actually use. 
 * Switched the default theme set by `mix cinder.install` from `"modern"` to `"daisy_ui"`, aligning with Phoenix and AshAuthentication conventions. Existing projects are unaffected — only new installs pick up the new default.
+
+### Bugfixes
+
+* Pre-prepared queries passed via `query={Ash.Query.for_read(...)}` are no longer mutated by Cinder. Explicit `actor=` / `tenant=` props on `<Cinder.collection>` still take effect, but only via the opts handed to `Ash.read` at execute time — the user's query struct keeps the actor/tenant they baked on it.
 
 ### Chores
 
 * Re-worked DaisyUI theme to be more aligned with the DaisyUI look and feel
+* Delegated scope/actor/tenant precedence handling to Ash, removing the internal `Cinder.AshOptions` module and its hand-rolled extraction logic.
 
 ### Upgrading from v0.13
 

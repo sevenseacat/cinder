@@ -1,15 +1,17 @@
 defmodule Cinder.BulkActionExecutorTest do
   use ExUnit.Case, async: true
+  use Mimic
 
   alias Cinder.BulkActionExecutor
   alias Cinder.Support.SearchTestResource
 
   defmodule TestScope do
-    defstruct [:current_user, :current_tenant]
+    defstruct [:current_user, :current_tenant, :tz]
 
     defimpl Ash.Scope.ToOpts do
       def get_actor(%{current_user: current_user}), do: {:ok, current_user}
       def get_tenant(%{current_tenant: current_tenant}), do: {:ok, current_tenant}
+      def get_context(%{tz: tz}) when not is_nil(tz), do: {:ok, %{shared: %{tz: tz}}}
       def get_context(_), do: :error
       def get_tracer(_), do: :error
       def get_authorize?(_), do: :error
@@ -177,8 +179,10 @@ defmodule Cinder.BulkActionExecutorTest do
 
       assert_receive {:called_with_opts, opts}
       assert opts[:bulk_options] == [return_records?: true, notify?: true]
-      assert opts[:actor] == nil
-      assert opts[:tenant] == nil
+      # nil actor/tenant/scope are filtered out, not passed as explicit nils
+      refute Keyword.has_key?(opts, :actor)
+      refute Keyword.has_key?(opts, :tenant)
+      refute Keyword.has_key?(opts, :scope)
     end
 
     test "function actions without action_opts don't include bulk_options key", %{ids: ids} do
@@ -202,8 +206,13 @@ defmodule Cinder.BulkActionExecutorTest do
     end
   end
 
-  describe "scope" do
-    test "extracts actor and tenant from scope when not passed explicitly", %{ids: ids} do
+  describe "scope, actor, tenant — function action" do
+    # Function actions are documented as receiving (query, opts) matching code
+    # interface signatures. After the scope refactor, opts contain `:scope`,
+    # `:actor`, `:tenant` raw — Cinder no longer pre-resolves scope. The
+    # function is expected to forward opts to Ash, which handles precedence.
+
+    setup do
       test_pid = self()
 
       action = fn _query, opts ->
@@ -211,7 +220,93 @@ defmodule Cinder.BulkActionExecutorTest do
         {:ok, :done}
       end
 
-      scope = %TestScope{current_user: :scope_actor, current_tenant: "scope_tenant"}
+      %{action: action}
+    end
+
+    test "explicit actor reaches opts unchanged", %{ids: ids, action: action} do
+      BulkActionExecutor.execute(action,
+        resource: SearchTestResource,
+        ids: ids,
+        actor: :alice
+      )
+
+      assert_receive {:called_with_opts, opts}
+      assert Keyword.get(opts, :actor) == :alice
+      refute Keyword.has_key?(opts, :scope)
+    end
+
+    test "scope is passed raw, not pre-resolved to actor/tenant", %{ids: ids, action: action} do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: "scope_tenant", tz: nil}
+
+      BulkActionExecutor.execute(action,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope
+      )
+
+      assert_receive {:called_with_opts, opts}
+      # Scope is passed through untouched — function/Ash resolves
+      assert Keyword.get(opts, :scope) == scope
+      # Cinder does NOT pre-extract actor/tenant from scope
+      refute Keyword.has_key?(opts, :actor)
+      refute Keyword.has_key?(opts, :tenant)
+    end
+
+    test "explicit + scope both reach opts; Ash resolves precedence", %{ids: ids, action: action} do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: "scope_tenant", tz: nil}
+
+      BulkActionExecutor.execute(action,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope,
+        actor: :explicit_actor,
+        tenant: "explicit_tenant"
+      )
+
+      assert_receive {:called_with_opts, opts}
+      # All three keys present; downstream Ash applies its documented
+      # precedence (explicit wins over scope).
+      assert Keyword.get(opts, :scope) == scope
+      assert Keyword.get(opts, :actor) == :explicit_actor
+      assert Keyword.get(opts, :tenant) == "explicit_tenant"
+    end
+
+    test "explicit actor: nil is filtered, scope is preserved", %{ids: ids, action: action} do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: nil, tz: nil}
+
+      BulkActionExecutor.execute(action,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope,
+        actor: nil
+      )
+
+      assert_receive {:called_with_opts, opts}
+      # Nil filtered so scope's actor still wins via Ash resolution
+      refute Keyword.has_key?(opts, :actor)
+      assert Keyword.get(opts, :scope) == scope
+    end
+
+    test "nil scope and no actor/tenant produces no auth keys", %{ids: ids, action: action} do
+      BulkActionExecutor.execute(action,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: nil
+      )
+
+      assert_receive {:called_with_opts, opts}
+      refute Keyword.has_key?(opts, :actor)
+      refute Keyword.has_key?(opts, :tenant)
+      refute Keyword.has_key?(opts, :scope)
+    end
+
+    test "function still works end-to-end with scope (Ash resolves at consumption)",
+         %{ids: ids} do
+      scope = %TestScope{current_user: nil, current_tenant: nil, tz: nil}
+
+      action = fn query, opts ->
+        Ash.bulk_update(query, :archive, %{}, opts)
+      end
 
       result =
         BulkActionExecutor.execute(action,
@@ -220,59 +315,176 @@ defmodule Cinder.BulkActionExecutorTest do
           scope: scope
         )
 
-      assert {:ok, :done} = result
-
-      assert_receive {:called_with_opts, opts}
-      assert opts[:actor] == :scope_actor
-      assert opts[:tenant] == "scope_tenant"
+      assert {:ok, %Ash.BulkResult{status: :success}} = result
     end
+  end
 
-    test "explicit actor and tenant override scope values", %{ids: ids} do
+  describe "scope, actor, tenant — atom action" do
+    # Atom actions go through Ash.bulk_update / Ash.bulk_destroy. We mock those
+    # to capture the opts and verify the same scope/actor/tenant contract as
+    # function actions.
+
+    setup do
       test_pid = self()
 
-      action = fn _query, opts ->
-        send(test_pid, {:called_with_opts, opts})
-        {:ok, :done}
-      end
+      Ash
+      |> expect(:bulk_update, fn _query, action, params, opts ->
+        send(test_pid, {:bulk_update_called, action, params, opts})
+        %Ash.BulkResult{status: :success}
+      end)
 
-      scope = %TestScope{current_user: :scope_actor, current_tenant: "scope_tenant"}
-
-      result =
-        BulkActionExecutor.execute(action,
-          resource: SearchTestResource,
-          ids: ids,
-          scope: scope,
-          actor: :explicit_actor,
-          tenant: "explicit_tenant"
-        )
-
-      assert {:ok, :done} = result
-
-      assert_receive {:called_with_opts, opts}
-      assert opts[:actor] == :explicit_actor
-      assert opts[:tenant] == "explicit_tenant"
+      :ok
     end
 
-    test "nil scope does not crash and leaves actor/tenant unset", %{ids: ids} do
-      test_pid = self()
+    test "explicit actor flows through to Ash.bulk_update opts", %{ids: ids} do
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        actor: :alice
+      )
 
-      action = fn _query, opts ->
-        send(test_pid, {:called_with_opts, opts})
-        {:ok, :done}
-      end
+      assert_receive {:bulk_update_called, :archive, _params, opts}
+      assert Keyword.get(opts, :actor) == :alice
+      refute Keyword.has_key?(opts, :scope)
+    end
 
-      result =
-        BulkActionExecutor.execute(action,
-          resource: SearchTestResource,
-          ids: ids,
-          scope: nil
-        )
+    test "scope flows through raw to Ash.bulk_update opts", %{ids: ids} do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: "t1", tz: nil}
 
-      assert {:ok, :done} = result
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope
+      )
 
-      assert_receive {:called_with_opts, opts}
+      assert_receive {:bulk_update_called, :archive, _params, opts}
+      assert Keyword.get(opts, :scope) == scope
       refute Keyword.has_key?(opts, :actor)
       refute Keyword.has_key?(opts, :tenant)
+    end
+
+    test "explicit + scope both reach Ash.bulk_update opts", %{ids: ids} do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: "scope_t", tz: nil}
+
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope,
+        actor: :explicit_actor,
+        tenant: "explicit_t"
+      )
+
+      assert_receive {:bulk_update_called, :archive, _params, opts}
+      assert Keyword.get(opts, :scope) == scope
+      assert Keyword.get(opts, :actor) == :explicit_actor
+      assert Keyword.get(opts, :tenant) == "explicit_t"
+    end
+
+    test "nil actor/tenant/scope are filtered", %{ids: ids} do
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: nil,
+        actor: nil,
+        tenant: nil
+      )
+
+      assert_receive {:bulk_update_called, :archive, _params, opts}
+      refute Keyword.has_key?(opts, :scope)
+      refute Keyword.has_key?(opts, :actor)
+      refute Keyword.has_key?(opts, :tenant)
+    end
+
+    test "action_opts are still merged alongside auth opts", %{ids: ids} do
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        actor: :alice,
+        action_opts: [return_records?: true, notify?: true]
+      )
+
+      assert_receive {:bulk_update_called, :archive, _params, opts}
+      assert Keyword.get(opts, :actor) == :alice
+      assert Keyword.get(opts, :return_records?) == true
+      assert Keyword.get(opts, :notify?) == true
+    end
+  end
+
+  describe "atom and function action — auth opts parity" do
+    # Both paths should produce identical auth opts (modulo function-specific
+    # wrappers like :bulk_options). Regression guard against the kind of
+    # divergence that's caused bulk-action scope bugs in the past.
+
+    test "scope-only: same auth keys in both paths", %{ids: ids} do
+      scope = %TestScope{current_user: :alice, current_tenant: "t1", tz: "UTC"}
+      test_pid = self()
+
+      # Function path
+      fn_action = fn _query, opts ->
+        send(test_pid, {:fn_opts, opts})
+        {:ok, :done}
+      end
+
+      BulkActionExecutor.execute(fn_action,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope
+      )
+
+      # Atom path
+      Ash
+      |> expect(:bulk_update, fn _query, _action, _params, opts ->
+        send(test_pid, {:atom_opts, opts})
+        %Ash.BulkResult{status: :success}
+      end)
+
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope
+      )
+
+      assert_receive {:fn_opts, fn_opts}
+      assert_receive {:atom_opts, atom_opts}
+
+      # Auth subset should be identical (drop function-only / atom-only keys)
+      auth_keys = [:scope, :actor, :tenant]
+      assert Keyword.take(fn_opts, auth_keys) == Keyword.take(atom_opts, auth_keys)
+    end
+
+    test "explicit-only: same auth keys in both paths", %{ids: ids} do
+      test_pid = self()
+
+      fn_action = fn _query, opts ->
+        send(test_pid, {:fn_opts, opts})
+        {:ok, :done}
+      end
+
+      BulkActionExecutor.execute(fn_action,
+        resource: SearchTestResource,
+        ids: ids,
+        actor: :bob,
+        tenant: "t2"
+      )
+
+      Ash
+      |> expect(:bulk_update, fn _query, _action, _params, opts ->
+        send(test_pid, {:atom_opts, opts})
+        %Ash.BulkResult{status: :success}
+      end)
+
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        actor: :bob,
+        tenant: "t2"
+      )
+
+      assert_receive {:fn_opts, fn_opts}
+      assert_receive {:atom_opts, atom_opts}
+
+      auth_keys = [:scope, :actor, :tenant]
+      assert Keyword.take(fn_opts, auth_keys) == Keyword.take(atom_opts, auth_keys)
     end
   end
 

@@ -469,14 +469,18 @@ end
 
 The callback fires on initial load and whenever filters, sorting, or search change. The received query includes all filters and sorts but no pagination, so you can use it directly for exports.
 
+When you pass a `resource={...}` (or a query without an `action`), Cinder prepares it via `Ash.Query.for_read/4`, so the exposed query has `:scope`, `:actor`, `:tenant`, and scope-supplied `:context` (e.g. timezone) already baked on. The actor lives at the canonical `query.context.private.actor` location. When you pass a pre-prepared `query={Ash.Query.for_read(...)}`, Cinder leaves your auth setup untouched — the exposed query reflects exactly what you handed in, with Cinder's filters/sorts added on top.
+
 ### Export Example
 
 ```elixir
 def handle_event("export_csv", _params, socket) do
   query = socket.assigns.current_query
 
-  # Read all matching records (no pagination)
-  {:ok, records} = Ash.read(query, actor: socket.assigns.current_user)
+  # Read all matching records (no pagination). Pass the same scope/actor you
+  # gave to <Cinder.collection> — Ash resolves precedence with whatever the
+  # query already has baked on.
+  {:ok, records} = Ash.read(query, scope: socket.assigns.current_scope)
 
   # Generate CSV from records...
   {:noreply, push_download(socket, content: csv_data, filename: "export.csv")}
