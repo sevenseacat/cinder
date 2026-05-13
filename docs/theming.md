@@ -88,6 +88,31 @@ Available themes:
 </Cinder.collection>
 ```
 
+### Tailwind setup
+
+`mix cinder.install` configures Tailwind for you. Behind the scenes it adds two `@import` lines to your `app.css` (or the equivalent entries to `tailwind.config.js` for Tailwind v3):
+
+```css
+@import "tailwindcss";
+@import "../../deps/cinder/priv/cinder.css";
+@import "../../deps/cinder/priv/themes/daisy_ui.css";
+```
+
+The first line tells Tailwind to scan Cinder's structural code (filters, renderers, controls, etc.) for Tailwind classes. The second is a per-theme line that opts in to scanning one specific built-in theme.
+
+**Using more than one built-in theme:** If you set `theme={...}` on individual tables to override the configured default, add an `@import` line for each built-in you use:
+
+```css
+@import "../../deps/cinder/priv/themes/dark.css";
+@import "../../deps/cinder/priv/themes/daisy_ui.css";
+```
+
+Without the matching `@import`, Tailwind won't scan that theme's classes and they'll be missing from your built CSS.
+
+**Custom theme modules:** Themes you define yourself live in your own `lib/` directory, which Tailwind already scans — no extra theme `@import` needed, just the main `cinder.css`.
+
+**Tailwind v3:** The same idea applies via `tailwind.config.js`'s `content:` array — `mix cinder.install` writes the enumerated paths for you, and `mix cinder.upgrade 0.13.0 0.14.0` migrates existing projects.
+
 ## Custom Themes with DSL
 
 Create powerful, maintainable themes using Cinder's DSL syntax:

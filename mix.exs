@@ -82,7 +82,8 @@ defmodule Cinder.MixProject do
       maintainers: ["Rebecca Le <traybaby@gmail.com>"],
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url, "Website" => "https://cinder.sevenseacat.net"},
-      files: ~w(lib i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
+      files:
+        ~w(lib priv/cinder.css priv/themes i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
     ]
   end
 
