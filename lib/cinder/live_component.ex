@@ -564,6 +564,16 @@ defmodule Cinder.LiveComponent do
     end
   end
 
+  defp maybe_notify_query_change(socket, nil), do: socket
+
+  defp maybe_notify_query_change(socket, query) do
+    if event_name = socket.assigns[:on_query_change] do
+      send(self(), {event_name, %{query: query, id: socket.assigns.id}})
+    end
+
+    socket
+  end
+
   defp notify_selection_change(socket, action) do
     if event_name = socket.assigns[:on_selection_change] do
       payload = %{
@@ -583,13 +593,17 @@ defmodule Cinder.LiveComponent do
   # ASYNC HANDLERS
   # ============================================================================
 
-  @impl true
-  def handle_async(:load_data, {:ok, {:ok, page}}, socket) do
-    {:noreply, handle_result({:ok, page}, socket)}
+  def handle_async(:load_data, {:ok, {{:ok, page}, query}}, socket) do
+    socket =
+      {:ok, page}
+      |> handle_result(socket)
+      |> maybe_notify_query_change(query)
+
+    {:noreply, socket}
   end
 
   @impl true
-  def handle_async(:load_data, {:ok, {:error, error}}, socket) do
+  def handle_async(:load_data, {:ok, {{:error, error}, _query}}, socket) do
     {:noreply, handle_result({:error, error}, socket)}
   end
 
@@ -828,6 +842,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:selectable, assigns[:selectable] || false)
     |> assign_new(:selected_ids, fn -> MapSet.new() end)
     |> assign(:on_selection_change, assigns[:on_selection_change])
+    |> assign(:on_query_change, assigns[:on_query_change])
     |> assign(:id_field, assigns[:id_field] || :id)
     |> assign(:sort_mode, assigns[:sort_mode] || :additive)
     # Bulk actions
@@ -992,17 +1007,33 @@ defmodule Cinder.LiveComponent do
     |> assign(:loading, true)
     |> assign(:error, false)
     |> then(fn socket ->
+      # Build the query once so we can both execute it and hand it to the
+      # on_query_change callback (if one is configured). maybe_notify_query_change/2
+      # decides whether to actually notify.
       if Application.get_env(:ash, :disable_async?) do
         try do
-          resource_var
-          |> Cinder.QueryBuilder.build_and_execute(options)
-          |> handle_result(socket)
+          case Cinder.QueryBuilder.build_query(resource_var, options) do
+            {:ok, prepared_query} ->
+              prepared_query
+              |> Cinder.QueryBuilder.execute(options)
+              |> handle_result(socket)
+              |> maybe_notify_query_change(prepared_query)
+
+            {:error, _} = error ->
+              handle_result(error, socket)
+          end
         rescue
           e -> handle_result({:exit, e}, socket)
         end
       else
         start_async(socket, :load_data, fn ->
-          Cinder.QueryBuilder.build_and_execute(resource_var, options)
+          case Cinder.QueryBuilder.build_query(resource_var, options) do
+            {:ok, prepared_query} ->
+              {Cinder.QueryBuilder.execute(prepared_query, options), prepared_query}
+
+            {:error, _} = error ->
+              {error, nil}
+          end
         end)
       end
     end)
