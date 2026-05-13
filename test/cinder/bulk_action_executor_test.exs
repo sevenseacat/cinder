@@ -408,6 +408,22 @@ defmodule Cinder.BulkActionExecutorTest do
       assert Keyword.get(opts, :return_records?) == true
       assert Keyword.get(opts, :notify?) == true
     end
+
+    test "action_opts override top-level auth opts (slot config wins)", %{ids: ids} do
+      # The atom path does `Keyword.merge(base_opts, action_opts)`, so a slot
+      # config that explicitly sets `action_opts: [actor: ...]` overrides the
+      # collection's `actor=`. This is intentional — the slot author asked for
+      # it — but lock the contract in so a refactor doesn't quietly reverse it.
+      BulkActionExecutor.execute(:archive,
+        resource: SearchTestResource,
+        ids: ids,
+        actor: :alice,
+        action_opts: [actor: :impersonated]
+      )
+
+      assert_receive {:bulk_update_called, :archive, _params, opts}
+      assert Keyword.get(opts, :actor) == :impersonated
+    end
   end
 
   describe "scope, actor, tenant — atom destroy action" do
