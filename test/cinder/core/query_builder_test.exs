@@ -1906,6 +1906,25 @@ defmodule Cinder.QueryBuilderTest do
       assert Keyword.get(opts, :scope) == scope
     end
 
+    test "scope's actor wins over a pre-prepared query's actor (Ash precedence)" do
+      # Regression guard for Ash's documented behavior: when opts include
+      # `scope:` but no explicit `actor:`, scope's actor flows to opts via
+      # `apply_scope_to_opts`, and `set_context_and_get_opts` then sees opts
+      # already has `:actor` (from scope) and skips the query's actor.
+      # Cinder relies on this — if a future refactor starts re-extracting
+      # scope's actor on our side, this test catches it.
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice_from_query)
+      scope = %TestScope{current_user: :bob_from_scope, current_tenant: nil, tz: nil}
+
+      QueryBuilder.build_and_execute(prepared, Keyword.put(base_options(), :scope, scope))
+
+      assert_received {:ash_read_called, query, opts}
+      # Cinder didn't mutate the query
+      assert get_in(query.context, [:private, :actor]) == :alice_from_query
+      # Scope flows raw to Ash.read; Ash resolves precedence at read time
+      assert Keyword.get(opts, :scope) == scope
+    end
+
     test "Cinder filters are still applied on top of a pre-prepared query" do
       prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
 
@@ -1944,7 +1963,34 @@ defmodule Cinder.QueryBuilderTest do
       # Query keeps its action
       assert query.action.name == :read
       # Warning fires explaining the override was ignored
-      assert log =~ "action" or log == ""
+      assert log =~ "ignoring explicit"
+      assert log =~ ":some_other_action"
+      assert log =~ ":read"
+    end
+
+    test "matching action option fires no warning" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+      options = Keyword.put(base_options(), :action, :read)
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          QueryBuilder.build_and_execute(prepared, options)
+        end)
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.action.name == :read
+      refute log =~ "ignoring explicit"
+    end
+
+    test "no action option, no warning" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          QueryBuilder.build_and_execute(prepared, base_options())
+        end)
+
+      refute log =~ "ignoring explicit"
     end
   end
 

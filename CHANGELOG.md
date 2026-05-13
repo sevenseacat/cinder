@@ -4,12 +4,14 @@
 
 ### Breaking changes
 
-* Function-form bulk action handlers (`<:bulk_action action={&MyApp.archive/2}>`) now receive `:scope` raw in the second argument's `opts`, instead of pre-resolved `:actor` / `:tenant`. Handlers that read `opts[:actor]` directly will need to either forward `opts` to Ash (`Ash.bulk_update(query, action, %{}, opts)`) and let Ash resolve, or call `Ash.Scope.to_opts(opts[:scope])` if direct actor access is required.
-* When a query exposed via `on_query_change` has its actor baked on, the actor now lives at the canonical `query.context.private.actor` location (matching Ash's own convention), not `query.context.actor`.
+* Function-form bulk action handlers (`<:bulk_action action={&MyApp.archive/2}>`) now receive the authorization options as provided to the collection — `:scope`, `:actor`, and `:tenant` flow through untouched, and the handler is expected to forward them to Ash (which resolves precedence). Handlers that read `opts[:actor]` directly when only `scope=` was passed will need to forward `opts` to Ash or call `Ash.Scope.to_opts(opts[:scope])`.
+* Passing a `scope=` value that does not implement `Ash.Scope.ToOpts` (e.g. a bare atom or integer) now raises `Protocol.UndefinedError` from Ash, rather than being silently ignored.
 
 ### Features
 
-* Scope-supplied `:context` (e.g. `%{shared: %{tz: tz}}`) is now baked onto queries built by Cinder, including those exposed via `on_query_change`. Previously this context was applied only at `Ash.read` time and was missing from the exposed query.
+* Added `on_query_change` callback on `<Cinder.collection>` (and `<Cinder.Table.table>`). ([#147](https://github.com/sevenseacat/cinder/pull/147))
+* Scope-supplied `:context` is now baked onto queries built by Cinder, including those exposed via `on_query_change`.
+* `query_opts` now accepts `:tracer` to set an `Ash.Tracer` module (or list of modules) for the query.
 * Narrowed Tailwind class scanning so projects only pay for the built-in themes they actually use. 
 * Switched the default theme set by `mix cinder.install` from `"modern"` to `"daisy_ui"`, aligning with Phoenix and AshAuthentication conventions. Existing projects are unaffected — only new installs pick up the new default.
 

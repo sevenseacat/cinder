@@ -108,6 +108,7 @@ defmodule Cinder.QueryBuilder do
   - `:timeout` - Query timeout in milliseconds or `:infinity` (e.g., `:timer.seconds(30)`)
   - `:authorize?` - Whether to run authorization during query execution
   - `:max_concurrency` - Maximum number of processes for parallel loading
+  - `:tracer` - Tracer module(s) to use for the query (see `Ash.Tracer`)
 
   ### Usage Examples
 
@@ -371,7 +372,15 @@ defmodule Cinder.QueryBuilder do
     end)
   end
 
-  @supported_query_opts [:load, :select, :tenant, :timeout, :authorize?, :max_concurrency]
+  @supported_query_opts [
+    :load,
+    :select,
+    :tenant,
+    :timeout,
+    :authorize?,
+    :max_concurrency,
+    :tracer
+  ]
 
   defp validate_query_opts(opts) do
     unsupported_opts =

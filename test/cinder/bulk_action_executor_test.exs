@@ -410,6 +410,33 @@ defmodule Cinder.BulkActionExecutorTest do
     end
   end
 
+  describe "scope, actor, tenant — atom destroy action" do
+    # Destroy actions go through `Ash.bulk_destroy`. Smoke test that they
+    # receive the same auth opts shape as update actions.
+
+    test "scope flows through raw to Ash.bulk_destroy opts", %{ids: ids} do
+      test_pid = self()
+      scope = %TestScope{current_user: :alice, current_tenant: "t1", tz: nil}
+
+      Ash
+      |> expect(:bulk_destroy, fn _query, action, _params, opts ->
+        send(test_pid, {:bulk_destroy_called, action, opts})
+        %Ash.BulkResult{status: :success}
+      end)
+
+      BulkActionExecutor.execute(:destroy,
+        resource: SearchTestResource,
+        ids: ids,
+        scope: scope
+      )
+
+      assert_receive {:bulk_destroy_called, :destroy, opts}
+      assert Keyword.get(opts, :scope) == scope
+      refute Keyword.has_key?(opts, :actor)
+      refute Keyword.has_key?(opts, :tenant)
+    end
+  end
+
   describe "atom and function action — auth opts parity" do
     # Both paths should produce identical auth opts (modulo function-specific
     # wrappers like :bulk_options). Regression guard against the kind of
