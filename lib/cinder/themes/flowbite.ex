@@ -64,7 +64,7 @@ defmodule Cinder.Themes.Flowbite do
   set :filter_input_wrapper_class, "space-y-2 min-w-0"
 
   set :filter_label_class,
-      "block text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap after:content-[':']"
+      "block text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap"
 
   set :filter_clear_button_class,
       "text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-2 inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"

@@ -261,29 +261,28 @@ defmodule Cinder.ControlsTest do
       assert html =~ "invisible"
     end
 
-    test "search label colon is carried by filter_label_class" do
+    test "search label has no colon by default, but one can be enabled via filter_label_class" do
       controls = Controls.build_controls_data(base_assigns(%{show_search: true}))
 
-      # Default: the colon comes from `after:content-[':']`, not the label text
+      # No trailing colon by default
       html =
         render_component(&Controls.render_search/1, %{
           search: controls.search,
           theme: base_theme()
         })
 
-      assert html =~ "after:content-["
       assert html =~ "Search</label>"
+      refute html =~ "after:content-["
       refute html =~ "Search:"
 
-      # Dropping after:content from filter_label_class removes the colon entirely
+      # Opt in by adding after:content to filter_label_class
       html =
         render_component(&Controls.render_search/1, %{
           search: controls.search,
-          theme: Map.put(base_theme(), :filter_label_class, "")
+          theme: Map.put(base_theme(), :filter_label_class, "after:content-[':']")
         })
 
-      refute html =~ "after:content-["
-      assert html =~ "Search</label>"
+      assert html =~ "after:content-["
     end
   end
 

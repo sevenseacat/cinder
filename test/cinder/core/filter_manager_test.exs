@@ -799,29 +799,27 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
   end
 
-  describe "filter label colon (via filter_label_class)" do
-    test "the default filter_label_class renders the colon as CSS, not text" do
+  describe "filter label colon (opt-in via filter_label_class)" do
+    test "no trailing colon by default" do
       theme = Cinder.Theme.default()
       column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
       label_assigns = %{column: column, table_id: "test-table", theme: theme}
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      # The colon comes from `after:content-[':']` in filter_label_class, not the markup
-      assert html =~ "after:content-["
       assert html =~ ">Name</label>"
+      refute html =~ "after:content-["
       refute html =~ "Name:"
     end
 
-    test "dropping after:content from filter_label_class removes the colon" do
-      theme = Map.put(Cinder.Theme.default(), :filter_label_class, "")
+    test "a colon can be enabled by adding after:content to filter_label_class" do
+      theme = Map.put(Cinder.Theme.default(), :filter_label_class, "after:content-[':']")
       column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
       label_assigns = %{column: column, table_id: "test-table", theme: theme}
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      refute html =~ "after:content-["
-      assert html =~ ">Name</label>"
+      assert html =~ "after:content-["
     end
 
     test "the suffix can be restyled through filter_label_class" do

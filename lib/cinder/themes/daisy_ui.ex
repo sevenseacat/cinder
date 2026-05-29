@@ -37,7 +37,7 @@ defmodule Cinder.Themes.DaisyUI do
   set :filter_inputs_class, "fieldset flex flex-wrap gap-4"
 
   set :filter_input_wrapper_class, "form-control"
-  set :filter_label_class, "label whitespace-nowrap after:content-[':']"
+  set :filter_label_class, "label whitespace-nowrap"
 
   set :filter_clear_button_class, "btn btn-ghost btn-xs ml-2"
   # Input styling

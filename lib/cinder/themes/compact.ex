@@ -60,7 +60,7 @@ defmodule Cinder.Themes.Compact do
   set :filter_input_wrapper_class, "space-y-1"
 
   set :filter_label_class,
-      "block text-xs font-medium text-gray-700 whitespace-nowrap after:content-[':']"
+      "block text-xs font-medium text-gray-700 whitespace-nowrap"
 
   set :filter_clear_button_class,
       "text-gray-400 hover:text-red-500 transition-colors ml-1 text-xs"
