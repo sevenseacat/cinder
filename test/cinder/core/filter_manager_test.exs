@@ -754,7 +754,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Full Name:"
+      assert html =~ "Full Name"
     end
 
     test "filter label option overrides column label", %{theme: theme} do
@@ -769,7 +769,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Printed at:"
+      assert html =~ "Printed at"
       refute html =~ "Printed at (UTC)"
     end
 
@@ -785,7 +785,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Email:"
+      assert html =~ "Email"
       refute html =~ "Email Address"
     end
 
@@ -795,7 +795,45 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Name:"
+      assert html =~ "Name"
+    end
+  end
+
+  describe "filter label colon (via filter_label_class)" do
+    test "the default filter_label_class renders the colon as CSS, not text" do
+      theme = Cinder.Theme.default()
+      column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      # The colon comes from `after:content-[':']` in filter_label_class, not the markup
+      assert html =~ "after:content-["
+      assert html =~ ">Name</label>"
+      refute html =~ "Name:"
+    end
+
+    test "dropping after:content from filter_label_class removes the colon" do
+      theme = Map.put(Cinder.Theme.default(), :filter_label_class, "")
+      column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      refute html =~ "after:content-["
+      assert html =~ ">Name</label>"
+    end
+
+    test "the suffix can be restyled through filter_label_class" do
+      theme =
+        Map.put(Cinder.Theme.default(), :filter_label_class, "after:content-['?'] custom-suffix")
+
+      column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      assert html =~ "custom-suffix"
     end
   end
 end

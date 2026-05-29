@@ -58,7 +58,7 @@ defmodule Cinder.Themes.Dark do
   set :filter_input_wrapper_class, "space-y-2"
 
   set :filter_label_class,
-      "block text-sm font-medium text-gray-300 whitespace-nowrap"
+      "block text-sm font-medium text-gray-300 whitespace-nowrap after:content-[':']"
 
   set :filter_clear_button_class,
       "text-gray-400 hover:text-red-400 transition-colors duration-200 ml-2"

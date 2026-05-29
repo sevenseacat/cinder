@@ -255,6 +255,14 @@ Note that some structural Tailwind classes (e.g. `relative`, `flex`, `cursor-poi
 
 ## Component Reference
 
+Most properties are CSS class strings applied to elements. The trailing colon
+after filter and search labels lives in `filter_label_class` itself — every
+theme's value ends with `after:content-[':']`, which renders the colon via a CSS
+`::after` pseudo-element rather than literal markup. Omit `after:content-[':']`
+from a theme's `filter_label_class` to drop the colon, or change it (for example
+`after:content-['→']`) to restyle the suffix. A couple of properties still hold
+literal text *content* — the sort glyphs `sort_asc_icon` / `sort_desc_icon`.
+
 <!-- theme-properties-begin -->
 
 ### All Theme Properties
@@ -282,7 +290,7 @@ set :filter_date_input_class, ""
 set :filter_header_class, ""
 set :filter_input_wrapper_class, ""
 set :filter_inputs_class, ""
-set :filter_label_class, ""
+set :filter_label_class, "after:content-[':']"
 set :filter_multicheckboxes_checkbox_class, ""
 set :filter_multicheckboxes_container_class, ""
 set :filter_multicheckboxes_label_class, ""

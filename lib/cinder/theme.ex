@@ -78,7 +78,7 @@ defmodule Cinder.Theme do
     filter_clear_all_class: "",
     filter_inputs_class: "",
     filter_input_wrapper_class: "",
-    filter_label_class: "",
+    filter_label_class: "after:content-[':']",
     filter_clear_button_class: "",
     filter_text_input_class: "",
     filter_date_input_class: "",

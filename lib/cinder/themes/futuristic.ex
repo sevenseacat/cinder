@@ -60,7 +60,7 @@ defmodule Cinder.Themes.Futuristic do
   set :filter_input_wrapper_class, "space-y-3"
 
   set :filter_label_class,
-      "block text-sm font-light text-blue-100 tracking-wide whitespace-nowrap"
+      "block text-sm font-light text-blue-100 tracking-wide whitespace-nowrap after:content-[':']"
 
   set :filter_clear_button_class,
       "text-green-400 hover:text-green-300 transition-colors duration-300 ml-2 font-light hover:drop-shadow-sm hover:drop-shadow-green-400/50"

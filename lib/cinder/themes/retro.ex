@@ -61,7 +61,7 @@ defmodule Cinder.Themes.Retro do
   set :filter_input_wrapper_class, "space-y-3"
 
   set :filter_label_class,
-      "block text-sm font-bold text-cyan-100 uppercase tracking-wide whitespace-nowrap"
+      "block text-sm font-bold text-cyan-100 uppercase tracking-wide whitespace-nowrap after:content-[':']"
 
   set :filter_clear_button_class,
       "text-yellow-400 hover:text-yellow-300 transition-colors duration-200 ml-2 font-bold"
