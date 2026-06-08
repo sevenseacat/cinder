@@ -218,7 +218,7 @@ defmodule Cinder.Controls do
   def render_search(assigns) do
     ~H"""
     <div class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
-      <label for={@search.id} class={@theme.filter_label_class} data-key="filter_label_class">{@search.label}:</label>
+      <label for={@search.id} class={@theme.filter_label_class} data-key="filter_label_class">{@search.label}</label>
       <div class="flex items-center">
         <div class="flex-1 relative">
           <input

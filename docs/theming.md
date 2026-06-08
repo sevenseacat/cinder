@@ -255,6 +255,13 @@ Note that some structural Tailwind classes (e.g. `relative`, `flex`, `cursor-poi
 
 ## Component Reference
 
+Most properties are CSS class strings applied to elements. Filter and search
+labels have **no trailing colon by default**. To add one, append a CSS `::after`
+pseudo-element to `filter_label_class` — for example
+`set :filter_label_class, "after:content-[':']"` (or `after:content-['→']` for a
+different suffix). A couple of properties still hold literal text *content* — the
+sort glyphs `sort_asc_icon` / `sort_desc_icon`.
+
 <!-- theme-properties-begin -->
 
 ### All Theme Properties

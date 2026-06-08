@@ -143,7 +143,7 @@ defmodule Cinder.FilterManager do
       for={label_for_attr(@column.filter_type, @table_id, @column.field)}
       phx-click={label_click_action(@column.filter_type, @table_id, @column.field)}
       data-key="filter_label_class"
-    >{filter_label_text(@column)}:</label>
+    >{filter_label_text(@column)}</label>
     """
   end
 
