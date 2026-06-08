@@ -64,6 +64,7 @@ defmodule Cinder.MixProject do
       {:igniter, "~> 0.5", only: [:dev, :test]},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:mimic, "~> 2.3", only: :test},
+      {:phoenix_test, "~> 0.11", only: :test, runtime: false},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
