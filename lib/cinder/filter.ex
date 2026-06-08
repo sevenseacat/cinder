@@ -200,7 +200,9 @@ defmodule Cinder.Filter do
 
   ### Embedded Field Filtering
 
-  Handle bracket notation fields like "profile[:first_name]":
+  Embedded fields use double-underscore notation, e.g. `"profile__first_name"`. This is the
+  same notation you write in column definitions, so `build_query/3` receives `field` exactly
+  as the column declared it:
 
       def build_query(query, field, filter_value) do
         %{value: value} = filter_value
@@ -210,10 +212,10 @@ defmodule Cinder.Filter do
       end
 
   Supported embedded field notations:
-  - Basic embedded: `profile[:first_name]`
-  - Nested embedded: `settings[:address][:street]`
-  - Mixed relationship + embedded: `user.profile[:first_name]`
-  - Complex mixed: `company.settings[:address][:city]`
+  - Basic embedded: `profile__first_name`
+  - Nested embedded: `settings__address__street`
+  - Mixed relationship + embedded: `user.profile__first_name`
+  - Complex mixed: `company.settings__address__city`
 
   ## Best Practices
 
@@ -406,8 +408,8 @@ defmodule Cinder.Filter do
       iex> Cinder.Filter.sanitized_field_name("user.name")
       "user_name"
 
-      iex> Cinder.Filter.sanitized_field_name("profile[:first_name]")
-      "profile__first_name_"
+      iex> Cinder.Filter.sanitized_field_name("profile__first_name")
+      "profile__first_name"
   """
   def sanitized_field_name(field_name) do
     field_name

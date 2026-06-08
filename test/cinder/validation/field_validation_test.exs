@@ -227,6 +227,7 @@ defmodule Cinder.FieldValidationTest do
              ) == false
     end
 
+    @tag capture_log: true
     test "validates embedded fields with bracket notation" do
       # Valid embedded field using bracket notation
       assert Cinder.QueryBuilder.validate_field_existence(
@@ -337,6 +338,7 @@ defmodule Cinder.FieldValidationTest do
              ) == true
     end
 
+    @tag capture_log: true
     test "handles invalid field syntax gracefully" do
       # Invalid bracket notation
       assert Cinder.QueryBuilder.validate_field_existence(

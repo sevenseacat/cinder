@@ -639,41 +639,26 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "apply_standard_filter/4 URL-safe field notation conversion" do
-    test "converts URL-safe embedded field notation to bracket notation" do
-      # Test the field notation conversion directly since that's what we're testing
+  describe "build_query field notation contract" do
+    test "custom filters receive embedded fields in double-underscore notation" do
+      # Regression: apply_standard_filter must hand build_query the field exactly as the
+      # column declared it (double-underscore), not the internal bracket form. Asserting the
+      # raw string is necessary because build_ash_filter accepts both, so an end-to-end
+      # filter test would pass even if the field were silently converted to brackets.
+      test_pid = self()
 
-      # Test simple embedded field: publisher__name -> publisher[:name]
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("publisher__name")
-      assert converted == "publisher[:name]"
+      Cinder.Filters.Text
+      |> expect(:build_query, fn query, field, _filter_config ->
+        send(test_pid, {:build_query_field, field})
+        query
+      end)
 
-      # Test nested embedded field: settings__address__street -> settings[:address][:street]
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("settings__address__street")
-      assert converted == "settings[:address][:street]"
+      query = Ash.Query.for_read(Album, :read)
+      filter_config = %{type: :text, value: "x", operator: :contains}
 
-      # Test mixed relationship and embedded: user.profile__first_name -> user.profile[:first_name]
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("user.profile__first_name")
-      assert converted == "user.profile[:first_name]"
+      QueryBuilder.apply_standard_filter(query, "publisher__name", filter_config, nil)
 
-      # Test regular field (no conversion needed): name -> name
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("name")
-      assert converted == "name"
-
-      # Test relationship field (no conversion needed): user.name -> user.name
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("user.name")
-      assert converted == "user.name"
-    end
-
-    test "apply_standard_filter calls field_notation_from_url_safe" do
-      # This test verifies that the conversion is actually being called in apply_standard_filter
-      # We'll test with an unknown filter type to avoid triggering the actual filter logic
-      query = %MockQueryFilters{resource: TestResource}
-      filter_config = %{type: :unknown_filter_type, value: "test"}
-
-      # This should not crash and should return the original query unchanged
-      # The important part is that field_notation_from_url_safe gets called internally
-      result = QueryBuilder.apply_standard_filter(query, "publisher__name", filter_config, nil)
-      assert result == query
+      assert_received {:build_query_field, "publisher__name"}
     end
   end
 

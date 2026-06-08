@@ -2,6 +2,37 @@
 
 This guide covers breaking changes, deprecations, and migration paths for Cinder.
 
+## Upgrading to 0.15.0
+
+### Changed: custom filters receive embedded fields in double-underscore notation
+
+Custom filters that implement `build_query/3` now receive embedded fields in
+double-underscore notation (`profile__first_name`) — the same notation used everywhere else
+(column definitions, URLs, forms). Previously the field arrived in bracket notation
+(`profile[:first_name]`), an internal-only representation.
+
+**This only affects custom filters on embedded fields that parse the field string
+themselves.** Built-in filters, and any custom filter that delegates to
+`Cinder.Filter.Helpers.build_ash_filter/5`, are unaffected — the helper accepts both
+notations.
+
+```elixir
+# If your custom filter parsed the field itself, e.g.:
+def build_query(query, field, filter_value) do
+  [embed, sub] = field |> String.trim_trailing("]") |> String.split("[:")  # bracket-specific
+  # ...
+end
+
+# Switch to double-underscore handling, or simply delegate:
+def build_query(query, field, %{value: value, operator: operator}) do
+  Cinder.Filter.Helpers.build_ash_filter(query, field, value, operator)
+end
+```
+
+Bracket notation is also now deprecated wherever it is still accepted (e.g. a bracket string
+passed directly to `build_ash_filter/5` or `parse_field_notation/1`); it logs a warning and
+will be removed in Cinder 1.0. Use double-underscore notation instead.
+
 ## Upgrading to 0.10.0
 
 ### Renamed: `filter_boolean_*` Theme Keys

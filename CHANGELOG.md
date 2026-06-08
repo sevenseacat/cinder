@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.15.0
+
+### Breaking changes
+
+* Custom filters now receive embedded fields in double-underscore notation (`profile__first_name`) in `build_query/3`, matching the column definition — previously they received bracket notation (`"profile[:first_name]"`). See the [upgrading guide](docs/upgrading.md) for details.
+
 ## v0.14.0 (2026-05-14)
 
 ### Breaking changes
