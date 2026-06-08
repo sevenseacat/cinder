@@ -46,6 +46,22 @@ defmodule Cinder.Filter.FieldParsingTest do
                {:nested_embedded, "data", ["meta", "info"]}
     end
 
+    test "parses embedded fields written in double-underscore notation" do
+      # Double-underscore is the canonical notation users write (column defs, URLs, forms).
+      # parse_field_notation/1 must handle it directly, equivalent to bracket notation.
+      assert Cinder.Filter.Helpers.parse_field_notation("profile__first_name") ==
+               {:embedded, "profile", "first_name"}
+
+      assert Cinder.Filter.Helpers.parse_field_notation("settings__address__street") ==
+               {:nested_embedded, "settings", ["address", "street"]}
+
+      assert Cinder.Filter.Helpers.parse_field_notation("user.profile__first_name") ==
+               {:relationship_embedded, ["user"], "profile", "first_name"}
+
+      assert Cinder.Filter.Helpers.parse_field_notation("company.settings__address__city") ==
+               {:relationship_nested_embedded, ["company"], "settings", ["address", "city"]}
+    end
+
     test "parses mixed relationship and embedded field references" do
       assert Cinder.Filter.Helpers.parse_field_notation("user.profile[:first_name]") ==
                {:relationship_embedded, ["user"], "profile", "first_name"}

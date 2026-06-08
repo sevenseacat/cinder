@@ -710,6 +710,10 @@ defmodule Cinder.Filter.Helpers do
   @doc """
   Parses field notation to determine field type and structure.
 
+  Embedded fields are written with double-underscore notation
+  (`profile__first_name`). Bracket notation (`profile[:first_name]`) is also accepted
+  for backward compatibility, but is deprecated and will be removed in Cinder 1.0.
+
   ## Examples
 
       iex> parse_field_notation("username")
@@ -718,15 +722,23 @@ defmodule Cinder.Filter.Helpers do
       iex> parse_field_notation("user.name")
       {:relationship, ["user"], "name"}
 
+      iex> parse_field_notation("profile__first_name")
+      {:embedded, "profile", "first_name"}
+
+      iex> parse_field_notation("settings__address__street")
+      {:nested_embedded, "settings", ["address", "street"]}
+
+      iex> parse_field_notation("user.profile__first_name")
+      {:relationship_embedded, ["user"], "profile", "first_name"}
+
       iex> parse_field_notation("profile[:first_name]")
       {:embedded, "profile", "first_name"}
 
-      iex> parse_field_notation("settings[:address][:street]")
-      {:nested_embedded, "settings", ["address", "street"]}
-
   """
   def parse_field_notation(field) when is_binary(field) do
-    trimmed = String.trim(field)
+    # Embedded fields use double-underscore notation; normalise to the internal bracket
+    # form so the bracket parsers below handle both. (Bracket input is idempotent here.)
+    trimmed = field |> String.trim() |> field_notation_from_url_safe()
 
     cond do
       trimmed == "" ->
