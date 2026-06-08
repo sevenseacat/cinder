@@ -799,7 +799,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
   end
 
-  describe "filter label colon (opt-in via filter_label_class)" do
+  describe "filter label colon" do
     test "no trailing colon by default" do
       theme = Cinder.Theme.default()
       column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
@@ -808,30 +808,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
       assert html =~ ">Name</label>"
-      refute html =~ "after:content-["
       refute html =~ "Name:"
-    end
-
-    test "a colon can be enabled by adding after:content to filter_label_class" do
-      theme = Map.put(Cinder.Theme.default(), :filter_label_class, "after:content-[':']")
-      column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
-      label_assigns = %{column: column, table_id: "test-table", theme: theme}
-
-      html = render_component(&FilterManager.filter_label/1, label_assigns)
-
-      assert html =~ "after:content-["
-    end
-
-    test "the suffix can be restyled through filter_label_class" do
-      theme =
-        Map.put(Cinder.Theme.default(), :filter_label_class, "after:content-['?'] custom-suffix")
-
-      column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
-      label_assigns = %{column: column, table_id: "test-table", theme: theme}
-
-      html = render_component(&FilterManager.filter_label/1, label_assigns)
-
-      assert html =~ "custom-suffix"
     end
   end
 end
