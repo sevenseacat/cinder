@@ -80,14 +80,14 @@ For list or grid layouts:
 
 ## Documentation
 
-- **[Getting Started](https://hexdocs.pm/cinder/getting-started.html)** - Basic usage, layouts, column configuration, and theming
-- **[Filters](https://hexdocs.pm/cinder/filters.html)** - Filter types, search, and custom controls layout
-- **[Sorting](https://hexdocs.pm/cinder/sorting.html)** - Sort cycles, modes, and defaults
-- **[Advanced Features](https://hexdocs.pm/cinder/advanced.html)** - URL state, relationships, refresh, performance, and bulk actions
-- **[Theming Guide](https://hexdocs.pm/cinder/theming.html)** - Built-in themes and custom theme creation
-- **[Localization Guide](https://hexdocs.pm/cinder/localization.html)** - Internationalization support
-- **[Upgrading Guide](https://hexdocs.pm/cinder/upgrading.html)** - Migration instructions from older versions
-- **[HexDocs](https://hexdocs.pm/cinder)** - Full API reference
+- **[Getting Started](https://cinder.hexdocs.pm/getting-started.html)** - Basic usage, layouts, column configuration, and theming
+- **[Filters](https://cinder.hexdocs.pm/filters.html)** - Filter types, search, and custom controls layout
+- **[Sorting](https://cinder.hexdocs.pm/sorting.html)** - Sort cycles, modes, and defaults
+- **[Advanced Features](https://cinder.hexdocs.pm/advanced.html)** - URL state, relationships, refresh, performance, and bulk actions
+- **[Theming Guide](https://cinder.hexdocs.pm/theming.html)** - Built-in themes and custom theme creation
+- **[Localization Guide](https://cinder.hexdocs.pm/localization.html)** - Internationalization support
+- **[Upgrading Guide](https://cinder.hexdocs.pm/upgrading.html)** - Migration instructions from older versions
+- **[HexDocs](https://cinder.hexdocs.pm/)** - Full API reference
 
 ## Requirements
 
