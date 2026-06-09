@@ -199,14 +199,10 @@ defmodule Cinder.Themes.Dark do
       "px-4 py-2 text-sm font-medium border rounded-lg transition-all duration-150"
 
   set :sort_button_active_class,
-      "bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/20"
+      "bg-purple-500/20 border-purple-400 text-purple-100 shadow-lg shadow-purple-500/20"
 
   set :sort_button_inactive_class,
       "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500"
-
-  set :sort_icon_class, "ml-1"
-  set :sort_asc_icon, "↑"
-  set :sort_desc_icon, "↓"
 
   # Grid
   set :grid_container_class, "grid gap-4 p-6 pt-0 mt-6"

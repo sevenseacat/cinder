@@ -162,9 +162,6 @@ defmodule Cinder.Theme do
     sort_button_class: "px-3 py-1 text-sm border rounded transition-colors",
     sort_button_active_class: "bg-blue-50 border-blue-300 text-blue-700",
     sort_button_inactive_class: "bg-white border-gray-300 hover:bg-gray-50",
-    sort_icon_class: "ml-1",
-    sort_asc_icon: "↑",
-    sort_desc_icon: "↓",
 
     # Grid
     grid_container_class: "grid gap-4",

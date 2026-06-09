@@ -259,8 +259,9 @@ Most properties are CSS class strings applied to elements. Filter and search
 labels have **no trailing colon by default**. To add one, append a CSS `::after`
 pseudo-element to `filter_label_class` — for example
 `set :filter_label_class, "after:content-[':']"` (or `after:content-['→']` for a
-different suffix). A couple of properties still hold literal text *content* — the
-sort glyphs `sort_asc_icon` / `sort_desc_icon`.
+different suffix). Sort indicators are Heroicons: set the icon via the
+`sort_*_icon_name` properties (e.g. `set :sort_asc_icon_name, "hero-chevron-up"`)
+and style it with the matching `sort_*_icon_class`.
 
 <!-- theme-properties-begin -->
 
@@ -354,7 +355,6 @@ set :selected_item_class, "ring-2 ring-blue-500"
 set :selected_row_class, "bg-blue-50"
 set :selection_checkbox_class, "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
 set :sort_arrow_wrapper_class, "inline-flex items-center"
-set :sort_asc_icon, "↑"
 set :sort_asc_icon_class, "w-3 h-3"
 set :sort_asc_icon_name, "hero-chevron-up"
 set :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700"
@@ -364,10 +364,8 @@ set :sort_buttons_class, "flex gap-1"
 set :sort_container_class, "bg-white border border-gray-200 rounded-lg shadow-sm mt-4"
 set :sort_controls_class, "flex items-center gap-2 p-4"
 set :sort_controls_label_class, "text-sm text-gray-600 font-medium"
-set :sort_desc_icon, "↓"
 set :sort_desc_icon_class, "w-3 h-3"
 set :sort_desc_icon_name, "hero-chevron-down"
-set :sort_icon_class, "ml-1"
 set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
 set :sort_none_icon_class, "w-3 h-3 opacity-50"
 set :sort_none_icon_name, "hero-chevron-up-down"

@@ -2,6 +2,36 @@
 
 This guide covers breaking changes, deprecations, and migration paths for Cinder.
 
+## Upgrading to 0.16.0
+
+### Removed: Unicode sort-glyph theme keys
+
+List and grid layouts now render the same Heroicon sort indicators as the table, so the
+text-glyph properties they used are gone:
+
+| Removed key | Replacement |
+|-------------|-------------|
+| `sort_asc_icon` | `sort_asc_icon_name` / `sort_asc_icon_class` |
+| `sort_desc_icon` | `sort_desc_icon_name` / `sort_desc_icon_class` |
+| `sort_icon_class` | `sort_arrow_wrapper_class` |
+
+**This only affects you if you have custom themes that set these keys.** The replacement
+properties already drove the table renderer, so any value you set there now applies to every
+layout. Remove the old keys from your custom theme:
+
+```elixir
+# Before
+set :sort_asc_icon, "↑"
+set :sort_desc_icon, "↓"
+set :sort_icon_class, "ml-1"
+
+# After — style the Heroicons instead (these likely already exist in your theme)
+set :sort_asc_icon_name, "hero-chevron-up"
+set :sort_desc_icon_name, "hero-chevron-down"
+set :sort_asc_icon_class, "w-3 h-3"
+set :sort_desc_icon_class, "w-3 h-3"
+```
+
 ## Upgrading to 0.15.0
 
 ### Changed: custom filters receive embedded fields in double-underscore notation

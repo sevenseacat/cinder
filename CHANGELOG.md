@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.16.0 (unreleased)
+
+### Breaking changes
+
+* Removed the `sort_asc_icon`, `sort_desc_icon`, and `sort_icon_class` theme properties — list and grid layouts now render the same Heroicon sort indicators as the table (configured via `sort_*_icon_name`/`sort_*_icon_class`). See the [upgrading guide](docs/upgrading.md) for details.
+
+### Bugfixes
+
+* `*_nils_first`/`*_nils_last` sort methods now render an icon in list and grid views.
+
 ## v0.15.0 (2026-06-08)
 
 ### Breaking changes

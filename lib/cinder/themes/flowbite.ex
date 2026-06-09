@@ -228,14 +228,10 @@ defmodule Cinder.Themes.Flowbite do
       "px-4 py-2 text-sm font-medium rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
 
   set :sort_button_active_class,
-      "bg-blue-700 border-blue-700 text-white hover:bg-blue-800"
+      "bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-200"
 
   set :sort_button_inactive_class,
       "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-
-  set :sort_icon_class, "ml-1"
-  set :sort_asc_icon, "↑"
-  set :sort_desc_icon, "↓"
 
   # Grid
   set :grid_container_class, "grid gap-4 p-4"

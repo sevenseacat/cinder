@@ -221,14 +221,10 @@ defmodule Cinder.Themes.Retro do
       "px-4 py-2 text-sm font-bold border-2 uppercase tracking-wide transition-all duration-150"
 
   set :sort_button_active_class,
-      "bg-fuchsia-600 border-yellow-400 text-cyan-100 shadow-lg shadow-fuchsia-400/30"
+      "bg-fuchsia-500/20 border-yellow-400 text-cyan-100 shadow-lg shadow-fuchsia-400/30"
 
   set :sort_button_inactive_class,
       "bg-gray-800 border-cyan-400 text-cyan-100 hover:bg-fuchsia-800 hover:border-fuchsia-400 hover:shadow-lg hover:shadow-fuchsia-400/30"
-
-  set :sort_icon_class, "ml-1"
-  set :sort_asc_icon, "↑"
-  set :sort_desc_icon, "↓"
 
   # Grid
   set :grid_container_class, "grid gap-4 px-6 mt-6"

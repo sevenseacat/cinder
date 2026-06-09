@@ -148,11 +148,8 @@ defmodule Cinder.Themes.DaisyUI do
   set :sort_controls_label_class, "text-sm font-medium"
   set :sort_buttons_class, "flex gap-2"
   set :sort_button_class, "btn btn-sm"
-  set :sort_button_active_class, "btn-primary"
+  set :sort_button_active_class, "btn-primary [&_span]:text-primary-content"
   set :sort_button_inactive_class, "btn-ghost"
-  set :sort_icon_class, "ml-1"
-  set :sort_asc_icon, "↑"
-  set :sort_desc_icon, "↓"
 
   # Grid
   set :grid_container_class, "grid gap-4 px-4"

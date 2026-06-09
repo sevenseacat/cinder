@@ -66,6 +66,7 @@ defmodule Cinder.Renderers.List do
           sort_label={@sort_label}
           theme={@theme}
           myself={@myself}
+          loading={@loading}
         />
       </div>
 
