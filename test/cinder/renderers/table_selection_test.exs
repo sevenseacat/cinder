@@ -149,4 +149,79 @@ defmodule Cinder.Renderers.TableSelectionTest do
       refute html =~ ~r/<input[^>]*checked[^>]*phx-value-id="user-2"/
     end
   end
+
+  describe "table selection rendering with predicate" do
+    defp predicate_assigns do
+      base_assigns()
+      |> Map.merge(%{
+        selectable: fn item -> item.status == :active end,
+        selected_ids: MapSet.new(),
+        id_field: :id,
+        data: [
+          %{id: "user-1", name: "Alice", status: :active},
+          %{id: "user-2", name: "Bob", status: :inactive}
+        ]
+      })
+    end
+
+    test "renders the selection column header when a predicate is given" do
+      html = render_component(&TableRenderer.render/1, predicate_assigns())
+
+      assert html =~ ~s(phx-click="toggle_select_all_page")
+    end
+
+    test "renders an enabled checkbox for selectable rows and a disabled one otherwise" do
+      html = render_component(&TableRenderer.render/1, predicate_assigns())
+
+      # Both rows render a checkbox in the selection column
+      assert html =~ ~s(phx-value-id="user-1")
+      assert html =~ ~s(phx-value-id="user-2")
+
+      # Selectable row's checkbox is enabled, non-selectable row's is disabled
+      refute html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="user-1"/
+      assert html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="user-2"/
+    end
+
+    test "keeps an already-selected row's checkbox enabled even if not selectable" do
+      # user-2 is non-selectable per the predicate but is currently selected,
+      # so it must remain interactive to allow removal.
+      assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["user-2"]))
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ ~r/<input[^>]*checked[^>]*phx-value-id="user-2"/
+      refute html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="user-2"/
+    end
+
+    test "header checkbox is checked when all selectable rows are selected" do
+      assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["user-1"]))
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ ~r/<input[^>]*checked[^>]*phx-click="toggle_select_all_page"/
+    end
+
+    test "header checkbox is unchecked when there are no selectable rows" do
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          selectable: fn _item -> false end,
+          selected_ids: MapSet.new(),
+          id_field: :id,
+          data: [%{id: "user-1", name: "Alice", status: :inactive}]
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      refute html =~ ~r/<input[^>]*checked[^>]*phx-click="toggle_select_all_page"/
+    end
+
+    test "applies selected styling only to selectable selected rows" do
+      assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["user-1"]))
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ "test-selected-row"
+    end
+  end
 end

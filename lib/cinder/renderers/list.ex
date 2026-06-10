@@ -15,6 +15,7 @@ defmodule Cinder.Renderers.List do
   alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
   alias Cinder.Renderers.SortControls
+  alias Cinder.Selection
 
   @doc """
   Renders the list layout.
@@ -86,16 +87,17 @@ defmodule Cinder.Renderers.List do
             :for={item <- @data} :if={not @error}
             class={get_item_classes_with_selection(@list_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
             data-key={@list_item_data_key}
-            phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), item, Map.get(assigns, :id_field, :id), @myself)}
+            phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @myself)}
           >
             <div
-              :if={Map.get(assigns, :selectable, false)}
+              :if={Selection.enabled?(Map.get(assigns, :selectable, false))}
               class={@theme.list_selection_container_class}
               data-key="list_selection_container_class"
             >
               <input
                 type="checkbox"
-                checked={item_selected?(Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
+                disabled={not Selection.item_toggleable?(Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
+                checked={Selection.item_selected?(Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
                 phx-click="toggle_select"
                 phx-value-id={to_string(Map.get(item, Map.get(assigns, :id_field, :id)))}
                 phx-target={@myself}
@@ -203,34 +205,30 @@ defmodule Cinder.Renderers.List do
          theme
        ) do
     classes = [base_class]
+    selected? = Selection.item_selected?(selected_ids, item, id_field)
+    toggleable = Selection.item_selectable?(selectable, item) or selected?
 
-    # Add cursor-pointer if item is clickable (either via item_click or selectable without item_click)
-    clickable = item_click != nil or (selectable and item_click == nil)
+    clickable = item_click != nil or toggleable
     classes = if clickable, do: classes ++ ["cursor-pointer"], else: classes
 
-    if selectable and item_selected?(selected_ids, item, id_field) do
+    if selected? do
       classes ++ [theme.selected_item_class]
     else
       classes
     end
   end
 
-  defp item_click_action(item_click, _selectable, item, _id_field, _myself)
+  defp item_click_action(item_click, _selectable, _selected_ids, item, _id_field, _myself)
        when item_click != nil do
     item_click.(item)
   end
 
-  defp item_click_action(nil, true, item, id_field, myself) do
-    Phoenix.LiveView.JS.push("toggle_select",
-      value: %{id: to_string(Map.get(item, id_field))},
-      target: myself
-    )
-  end
-
-  defp item_click_action(nil, false, _item, _id_field, _myself), do: nil
-
-  defp item_selected?(selected_ids, item, id_field) do
-    id = to_string(Map.get(item, id_field))
-    MapSet.member?(selected_ids, id)
+  defp item_click_action(nil, selectable, selected_ids, item, id_field, myself) do
+    if Selection.item_toggleable?(selectable, selected_ids, item, id_field) do
+      Phoenix.LiveView.JS.push("toggle_select",
+        value: %{id: to_string(Map.get(item, id_field))},
+        target: myself
+      )
+    end
   end
 end
