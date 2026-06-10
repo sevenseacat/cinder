@@ -85,9 +85,9 @@ defmodule Cinder.Renderers.List do
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data} :if={not @error}
-            class={get_item_classes_with_selection(@list_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
+            class={selection_classes(@list_item_class, @item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
             data-key={@list_item_data_key}
-            phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @myself)}
+            phx-click={selection_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @myself)}
           >
             <div
               :if={Selection.enabled?(Map.get(assigns, :selectable, false))}
@@ -188,47 +188,6 @@ defmodule Cinder.Renderers.List do
       {[base, clickable], "list_item_clickable_class"}
     else
       {base, "list_item_class"}
-    end
-  end
-
-  # ============================================================================
-  # SELECTION HELPERS
-  # ============================================================================
-
-  defp get_item_classes_with_selection(
-         base_class,
-         selectable,
-         selected_ids,
-         item,
-         id_field,
-         item_click,
-         theme
-       ) do
-    classes = [base_class]
-    selected? = Selection.item_selected?(selected_ids, item, id_field)
-    toggleable = Selection.item_selectable?(selectable, item) or selected?
-
-    clickable = item_click != nil or toggleable
-    classes = if clickable, do: classes ++ ["cursor-pointer"], else: classes
-
-    if selected? do
-      classes ++ [theme.selected_item_class]
-    else
-      classes
-    end
-  end
-
-  defp item_click_action(item_click, _selectable, _selected_ids, item, _id_field, _myself)
-       when item_click != nil do
-    item_click.(item)
-  end
-
-  defp item_click_action(nil, selectable, selected_ids, item, id_field, myself) do
-    if Selection.item_toggleable?(selectable, selected_ids, item, id_field) do
-      Phoenix.LiveView.JS.push("toggle_select",
-        value: %{id: to_string(Map.get(item, id_field))},
-        target: myself
-      )
     end
   end
 end

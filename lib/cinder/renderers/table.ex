@@ -84,10 +84,10 @@ defmodule Cinder.Renderers.Table do
           </thead>
           <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} data-key="tbody_class">
             <tr :for={item <- @data} :if={not @error}
-                class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
+                class={selection_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, Map.get(@theme, :selected_row_class))}
                 data-item-id={to_string(Map.get(item, @id_field))}
                 data-key="row_class"
-                phx-click={row_click_action(@row_click, @selectable, @selected_ids, item, @id_field, @myself)}>
+                phx-click={selection_click_action(@row_click, @selectable, @selected_ids, item, @id_field, @myself)}>
               <td :if={Selection.enabled?(@selectable)} class={[@theme.td_class, "w-10"]} data-key="td_class">
                 <input
                   type="checkbox"
@@ -162,34 +162,6 @@ defmodule Cinder.Renderers.Table do
   # ============================================================================
   # HELPER FUNCTIONS
   # ============================================================================
-
-  defp get_row_classes(base_classes, row_click, selectable, selected_ids, item, id_field, theme) do
-    selected? = Selection.item_selected?(selected_ids, item, id_field)
-    toggleable = Selection.item_selectable?(selectable, item) or selected?
-
-    clickable = row_click != nil or toggleable
-    classes = if clickable, do: [base_classes, "cursor-pointer"], else: [base_classes]
-
-    if selected? do
-      classes ++ [theme.selected_row_class]
-    else
-      classes
-    end
-  end
-
-  defp row_click_action(row_click, _selectable, _selected_ids, item, _id_field, _myself)
-       when row_click != nil do
-    row_click.(item)
-  end
-
-  defp row_click_action(nil, selectable, selected_ids, item, id_field, myself) do
-    if Selection.item_toggleable?(selectable, selected_ids, item, id_field) do
-      Phoenix.LiveView.JS.push("toggle_select",
-        value: %{id: to_string(Map.get(item, id_field))},
-        target: myself
-      )
-    end
-  end
 
   defp all_page_selected?(selected_ids, data, id_field, selectable) when is_list(data) do
     selectable_items = Enum.filter(data, &Selection.item_selectable?(selectable, &1))
