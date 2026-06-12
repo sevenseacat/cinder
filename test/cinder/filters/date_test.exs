@@ -81,6 +81,11 @@ defmodule Cinder.Filters.DateTest do
       assert DateFilter.process("   ", %{}) == nil
       assert DateFilter.process(nil, %{}) == nil
     end
+
+    test "builds an :equals filter from a %Date{} struct" do
+      assert DateFilter.process(~D[2026-06-12], %{}) ==
+               %{type: :date, value: "2026-06-12", operator: :equals}
+    end
   end
 
   describe "validate/1" do

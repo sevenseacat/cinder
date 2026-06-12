@@ -46,6 +46,8 @@ defmodule Cinder.Filters.Date do
     end
   end
 
+  def process(%Date{} = value, _column), do: build(Date.to_iso8601(value))
+
   def process(_value, _column), do: nil
 
   defp build(value), do: %{type: :date, value: value, operator: :equals}
