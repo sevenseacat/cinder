@@ -7,6 +7,16 @@ defmodule Cinder.Filters.DateTest.Domain do
   end
 end
 
+defmodule Cinder.Filters.DateTest.Meta do
+  @moduledoc false
+  use Ash.Resource, data_layer: :embedded
+
+  attributes do
+    attribute(:recorded_on, :date, public?: true)
+    attribute(:recorded_at, :utc_datetime_usec, public?: true)
+  end
+end
+
 defmodule Cinder.Filters.DateTest.Event do
   @moduledoc false
   use Ash.Resource,
@@ -22,10 +32,11 @@ defmodule Cinder.Filters.DateTest.Event do
     uuid_primary_key(:id)
     attribute(:on_date, :date, public?: true)
     attribute(:at_datetime, :utc_datetime_usec, public?: true)
+    attribute(:meta, Cinder.Filters.DateTest.Meta, public?: true)
   end
 
   actions do
-    defaults([:read, create: [:on_date, :at_datetime]])
+    defaults([:read, create: [:on_date, :at_datetime, :meta]])
   end
 end
 
@@ -128,6 +139,22 @@ defmodule Cinder.Filters.DateTest do
       b = Ash.create!(Event, %{on_date: ~D[2026-06-13]})
 
       assert matching_ids("on_date", "nope") == MapSet.new([a.id, b.id])
+    end
+
+    test "matches an exact :date field nested in an embedded resource" do
+      hit = Ash.create!(Event, %{meta: %{recorded_on: ~D[2026-06-12]}})
+      _miss = Ash.create!(Event, %{meta: %{recorded_on: ~D[2026-06-13]}})
+
+      assert matching_ids("meta__recorded_on", "2026-06-12") == MapSet.new([hit.id])
+    end
+
+    test "matches the whole calendar day for a datetime field in an embedded resource" do
+      midnight = Ash.create!(Event, %{meta: %{recorded_at: ~U[2026-06-12 00:00:00.000000Z]}})
+      end_of_day = Ash.create!(Event, %{meta: %{recorded_at: ~U[2026-06-12 23:59:59.999999Z]}})
+      _next_day = Ash.create!(Event, %{meta: %{recorded_at: ~U[2026-06-13 00:00:00.000000Z]}})
+
+      assert matching_ids("meta__recorded_at", "2026-06-12") ==
+               MapSet.new([midnight.id, end_of_day.id])
     end
   end
 end

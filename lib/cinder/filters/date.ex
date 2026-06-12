@@ -27,18 +27,14 @@ defmodule Cinder.Filters.Date do
     }
 
     ~H"""
-    <div class={@theme.filter_range_container_class} data-key="filter_range_container_class">
-      <div class={@theme.filter_range_input_group_class} data-key="filter_range_input_group_class">
-        <input
-          type="date"
-          id={@input_id}
-          name={field_name(@column.field)}
-          value={@value}
-          class={@theme.filter_date_input_class}
-          data-key="filter_date_input_class"
-        />
-      </div>
-    </div>
+    <input
+      type="date"
+      id={@input_id}
+      name={field_name(@column.field)}
+      value={@value}
+      class={@theme.filter_date_input_class}
+      data-key="filter_date_input_class"
+    />
     """
   end
 
@@ -49,8 +45,6 @@ defmodule Cinder.Filters.Date do
       trimmed -> build(trimmed)
     end
   end
-
-  def process(%Date{} = value, _column), do: build(Date.to_iso8601(value))
 
   def process(_value, _column), do: nil
 
@@ -77,6 +71,9 @@ defmodule Cinder.Filters.Date do
     # Cast the column to a date and match it by equality against a `Date`. This
     # matches the whole calendar day for datetime columns and compares as dates,
     # rather than relying on `>=`/`<=` range comparisons against datetime fields.
+    # The cast is type-agnostic, so it works the same whether the field is a
+    # `:date` or any datetime type, and on direct, relationship, and embedded
+    # fields alike.
     case Date.from_iso8601(value) do
       {:ok, date} ->
         case Helpers.parse_field_notation(field) do
@@ -93,8 +90,52 @@ defmodule Cinder.Filters.Date do
               exists(^rel_path_atoms, type(^ref(field_atom), :date) == ^date)
             )
 
-          _ ->
-            Helpers.build_ash_filter(query, field, value, :equals)
+          {:embedded, embed_field, field_name} ->
+            embed_atom = String.to_atom(embed_field)
+            field_atom = String.to_atom(field_name)
+
+            Ash.Query.filter(
+              query,
+              type(get_path(^ref(embed_atom), [^field_atom]), :date) == ^date
+            )
+
+          {:nested_embedded, embed_field, field_path} ->
+            embed_atom = String.to_atom(embed_field)
+            field_atoms = Enum.map(field_path, &String.to_atom/1)
+
+            Ash.Query.filter(
+              query,
+              type(get_path(^ref(embed_atom), ^field_atoms), :date) == ^date
+            )
+
+          {:relationship_embedded, rel_path, embed_field, field_name} ->
+            rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
+            embed_atom = String.to_atom(embed_field)
+            field_atom = String.to_atom(field_name)
+
+            Ash.Query.filter(
+              query,
+              exists(
+                ^rel_path_atoms,
+                type(get_path(^ref(embed_atom), [^field_atom]), :date) == ^date
+              )
+            )
+
+          {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
+            rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
+            embed_atom = String.to_atom(embed_field)
+            field_atoms = Enum.map(field_path, &String.to_atom/1)
+
+            Ash.Query.filter(
+              query,
+              exists(
+                ^rel_path_atoms,
+                type(get_path(^ref(embed_atom), ^field_atoms), :date) == ^date
+              )
+            )
+
+          {:invalid, _} ->
+            query
         end
 
       {:error, _} ->
