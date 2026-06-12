@@ -403,7 +403,9 @@ defmodule Cinder.FilterManager do
   end
 
   defp default_filter_value(column) do
-    case Keyword.get(column.filter_options || [], :default) do
+    filter_options = Map.get(column, :filter_options, [])
+
+    case Keyword.get(filter_options, :default) do
       default when default in [nil, ""] -> nil
       default -> process_filter_value(default, column)
     end

@@ -4,9 +4,6 @@ defmodule Cinder.Filters.Date do
 
   Renders a single date input and matches a single calendar date. For `:date`
   fields it matches exactly; for datetime fields it matches the whole day.
-
-  Supports a `default:` option (a `%Date{}` or ISO date string) which seeds the
-  filter on first load and is restored when the clear button is pressed.
   """
 
   @behaviour Cinder.Filter
@@ -46,14 +43,14 @@ defmodule Cinder.Filters.Date do
   end
 
   @impl true
-  def process(%Date{} = date, _column), do: build(Date.to_iso8601(date))
-
   def process(value, _column) when is_binary(value) do
     case String.trim(value) do
       "" -> nil
       trimmed -> build(trimmed)
     end
   end
+
+  def process(%Date{} = value, _column), do: build(Date.to_iso8601(value))
 
   def process(_value, _column), do: nil
 
@@ -74,20 +71,39 @@ defmodule Cinder.Filters.Date do
 
   @impl true
   def build_query(query, field, %{value: value}) when value not in ["", nil] do
-    case field_type(query, field) do
-      type when type in [:naive_datetime, :utc_datetime] ->
-        query
-        |> Helpers.build_ash_filter(field, "#{value}T00:00:00", :greater_than_or_equal)
-        |> Helpers.build_ash_filter(field, "#{value}T23:59:59", :less_than_or_equal)
+    require Ash.Query
+    import Ash.Expr
 
-      _ ->
-        Helpers.build_ash_filter(query, field, value, :equals)
+    # Cast the column to a date and match it by equality against a `Date`. This
+    # matches the whole calendar day for datetime columns and compares as dates,
+    # rather than relying on `>=`/`<=` range comparisons against datetime fields.
+    case Date.from_iso8601(value) do
+      {:ok, date} ->
+        case Helpers.parse_field_notation(field) do
+          {:direct, field_name} ->
+            field_atom = String.to_atom(field_name)
+            Ash.Query.filter(query, type(^ref(field_atom), :date) == ^date)
+
+          {:relationship, rel_path, field_name} ->
+            rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
+            field_atom = String.to_atom(field_name)
+
+            Ash.Query.filter(
+              query,
+              exists(^rel_path_atoms, type(^ref(field_atom), :date) == ^date)
+            )
+
+          _ ->
+            Helpers.build_ash_filter(query, field, value, :equals)
+        end
+
+      {:error, _} ->
+        query
     end
   end
 
   def build_query(query, _field, _filter_value), do: query
 
-  defp format_value_for_input(%Date{} = date), do: Date.to_iso8601(date)
   defp format_value_for_input(value) when is_binary(value), do: value
   defp format_value_for_input(_), do: ""
 
@@ -96,36 +112,4 @@ defmodule Cinder.Filters.Date do
   end
 
   defp valid_date?(_), do: false
-
-  defp field_type(query, field) do
-    resource =
-      case query do
-        %Ash.Query{resource: resource} -> resource
-        _ -> nil
-      end
-
-    case Helpers.parse_field_notation(field) do
-      {:direct, field_name} ->
-        attribute_type(resource, String.to_atom(field_name))
-
-      {:relationship, _rel_path, field_name} ->
-        attribute_type(resource, String.to_atom(field_name))
-
-      _ ->
-        :naive_datetime
-    end
-  end
-
-  defp attribute_type(resource, field) when is_atom(resource) and is_atom(field) do
-    case Ash.Resource.Info.attribute(resource, field) do
-      %{type: Ash.Type.Date} -> :date
-      %{type: Ash.Type.NaiveDatetime} -> :naive_datetime
-      %{type: Ash.Type.UtcDatetime} -> :utc_datetime
-      %{type: Ash.Type.UtcDatetimeUsec} -> :utc_datetime
-      %{type: Ash.Type.DateTime} -> :utc_datetime
-      _ -> :unknown
-    end
-  end
-
-  defp attribute_type(_, _), do: :unknown
 end
