@@ -77,6 +77,7 @@ defmodule Cinder.ThemeTest do
         :filter_range_input_group_class,
         # Loading indicator styling
         :loading_overlay_class,
+        :loading_row_class,
         :loading_container_class,
         :loading_spinner_class,
         :loading_spinner_circle_class,

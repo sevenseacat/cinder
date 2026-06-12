@@ -141,7 +141,8 @@ defmodule Cinder.Theme do
     sort_none_icon_class: "w-3 h-3 opacity-50",
 
     # Loading
-    loading_overlay_class: "",
+    loading_overlay_class: "absolute top-3 right-3 z-30 cinder-loading-indicator",
+    loading_row_class: "",
     loading_container_class: "",
     loading_spinner_class: "",
     loading_spinner_circle_class: "",

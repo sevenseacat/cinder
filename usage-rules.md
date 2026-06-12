@@ -417,6 +417,30 @@ defmodule MyApp.CustomTheme do
 end
 ```
 
+### Smooth Loading (required CSS)
+
+The loading spinner is positioned absolutely (no layout shift) and only fades
+in after a short delay, so fast filter/sort changes stay silent. This relies on
+a `cinder-loading-indicator` class that each app must define in its CSS, since
+Cinder ships Tailwind classes rather than a compiled stylesheet:
+
+```css
+@keyframes cinder-loading-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Holds the spinner invisible for 250ms, then fades it in over 150ms.
+   Queries that resolve sooner remove the element before it ever paints. */
+.cinder-loading-indicator {
+  animation: cinder-loading-fade-in 150ms ease-out 250ms both;
+}
+```
+
+Without this CSS the spinner still works — it just appears immediately instead
+of after the delay. Rows are not dimmed during loading by default; set
+`loading_row_class` (e.g. `"opacity-75"`) in a theme to re-enable that.
+
 ## Selection & Bulk Actions
 
 Enable checkbox selection and bulk operations on selected records:

@@ -190,7 +190,7 @@ defmodule Cinder.Themes.Futuristic do
   set :search_icon_class, "w-4 h-4 text-blue-300"
 
   # Loading
-  set :loading_overlay_class, "absolute top-10 right-10 z-10"
+  set :loading_overlay_class, "absolute top-10 right-10 z-10 cinder-loading-indicator"
 
   set :loading_container_class,
       "flex items-center text-sm text-green-400 font-light tracking-wide"

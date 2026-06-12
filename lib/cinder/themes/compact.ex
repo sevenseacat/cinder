@@ -176,7 +176,7 @@ defmodule Cinder.Themes.Compact do
   set :search_icon_class, "w-3 h-3 text-gray-400"
 
   # Loading
-  set :loading_overlay_class, "absolute top-6 right-6"
+  set :loading_overlay_class, "absolute top-6 right-6 cinder-loading-indicator"
   set :loading_container_class, "flex items-center text-xs text-blue-600 font-medium"
   set :loading_spinner_class, "animate-spin h-3 w-3 text-blue-600 mr-1"
   set :loading_spinner_circle_class, "opacity-25"

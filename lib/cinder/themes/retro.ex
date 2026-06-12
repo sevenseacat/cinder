@@ -190,7 +190,7 @@ defmodule Cinder.Themes.Retro do
   set :sort_none_icon_class, "w-3 h-3 text-gray-400 opacity-75"
 
   # Loading
-  set :loading_overlay_class, "absolute top-10 right-10"
+  set :loading_overlay_class, "absolute top-10 right-10 cinder-loading-indicator"
 
   set :loading_container_class,
       "flex items-center text-sm text-cyan-400 font-bold uppercase tracking-wide"

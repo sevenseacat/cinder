@@ -128,7 +128,7 @@ defmodule Cinder.Themes.DaisyUI do
   set :sort_none_icon_class, "w-3 h-3 text-base-content/60"
 
   # Loading
-  set :loading_overlay_class, "absolute top-4 right-4"
+  set :loading_overlay_class, "absolute top-4 right-4 cinder-loading-indicator"
   set :loading_container_class, "flex items-center text-sm text-primary"
   set :loading_spinner_class, "loading loading-spinner loading-sm mr-2"
   set :loading_spinner_circle_class, ""
