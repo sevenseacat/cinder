@@ -1,7 +1,7 @@
 defmodule Cinder.MixProject do
   use Mix.Project
 
-  @version "0.12.1"
+  @version "0.15.0"
   @source_url "https://github.com/sevenseacat/cinder"
 
   def project do
@@ -56,7 +56,6 @@ defmodule Cinder.MixProject do
       {:ash, "~> 3.0"},
       {:ash_phoenix, "~> 2.3"},
       {:phoenix_live_view, "~> 1.0"},
-      {:spark, "~> 2.0"},
       {:gettext, "~> 1.0.0"},
       {:usage_rules, "~> 1.0", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
@@ -65,6 +64,7 @@ defmodule Cinder.MixProject do
       {:igniter, "~> 0.5", only: [:dev, :test]},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:mimic, "~> 2.3", only: :test},
+      {:phoenix_test, "~> 0.11", only: :test, runtime: false},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
@@ -83,7 +83,8 @@ defmodule Cinder.MixProject do
       maintainers: ["Rebecca Le <traybaby@gmail.com>"],
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url, "Website" => "https://cinder.sevenseacat.net"},
-      files: ~w(lib i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
+      files:
+        ~w(lib priv/cinder.css priv/themes i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
     ]
   end
 

@@ -13,6 +13,7 @@ defmodule Cinder.Renderers.Table do
 
   alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
+  alias Cinder.Renderers.SortIcon
 
   @doc """
   Renders the table layout.
@@ -71,7 +72,7 @@ defmodule Cinder.Renderers.Table do
                      phx-target={@myself}>
                      {column.label}
                      <span class={@theme.sort_indicator_class} data-key="sort_indicator_class">
-                       <.sort_arrow sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@loading} />
+                       <SortIcon.sort_icon sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@loading} />
                      </span>
                 </div>
                 <div :if={not column.sortable}>
@@ -153,40 +154,6 @@ defmodule Cinder.Renderers.Table do
         id={@id}
       />
     </div>
-    """
-  end
-
-  # ============================================================================
-  # HELPER COMPONENTS
-  # ============================================================================
-
-  defp sort_arrow(assigns) do
-    ~H"""
-    <span class={Map.get(@theme, :sort_arrow_wrapper_class, "inline-block ml-1")}>
-      <%= case @sort_direction do %>
-        <% direction when direction in [:asc, :asc_nils_first, :asc_nils_last] -> %>
-          <.icon
-            name={Map.get(@theme, :sort_asc_icon_name, "hero-chevron-up")}
-            class={[Map.get(@theme, :sort_asc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
-          />
-        <% direction when direction in [:desc, :desc_nils_first, :desc_nils_last] -> %>
-          <.icon
-            name={Map.get(@theme, :sort_desc_icon_name, "hero-chevron-down")}
-            class={[Map.get(@theme, :sort_desc_icon_class, "w-3 h-3 inline"), (@loading && "animate-pulse" || "")]}
-          />
-        <% _ -> %>
-          <.icon
-            name={Map.get(@theme, :sort_none_icon_name, "hero-chevron-up-down")}
-            class={Map.get(@theme, :sort_none_icon_class, "w-3 h-3 inline opacity-30")}
-          />
-      <% end %>
-    </span>
-    """
-  end
-
-  defp icon(%{name: _, class: _} = assigns) do
-    ~H"""
-    <span class={[@name, @class]} />
     """
   end
 

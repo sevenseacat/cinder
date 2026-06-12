@@ -8,6 +8,7 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
   """
 
   describe "embedded field filtering practical examples" do
+    @tag capture_log: true
     test "demonstrates field notation parsing for common use cases" do
       # User profile embedded fields
       assert Cinder.Filter.Helpers.parse_field_notation("profile[:first_name]") ==
@@ -44,74 +45,7 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
                {:relationship_embedded, ["user"], "profile", "first_name"}
     end
 
-    test "demonstrates URL-safe conversion for form handling" do
-      # Basic embedded fields
-      assert Cinder.Filter.Helpers.url_safe_field_notation("profile[:first_name]") ==
-               "profile__first_name"
-
-      assert Cinder.Filter.Helpers.url_safe_field_notation("settings[:theme]") ==
-               "settings__theme"
-
-      # Nested embedded fields
-      assert Cinder.Filter.Helpers.url_safe_field_notation("settings[:address][:street]") ==
-               "settings__address__street"
-
-      assert Cinder.Filter.Helpers.url_safe_field_notation("metadata[:config][:api_key]") ==
-               "metadata__config__api_key"
-
-      # Mixed relationship and embedded (relationship dots preserved)
-      assert Cinder.Filter.Helpers.url_safe_field_notation("company.metadata[:industry]") ==
-               "company.metadata__industry"
-
-      assert Cinder.Filter.Helpers.url_safe_field_notation("user.settings[:address][:city]") ==
-               "user.settings__address__city"
-
-      # Regular fields remain unchanged
-      assert Cinder.Filter.Helpers.url_safe_field_notation("username") == "username"
-      assert Cinder.Filter.Helpers.url_safe_field_notation("user.name") == "user.name"
-    end
-
-    test "demonstrates round-trip URL conversion for form processing" do
-      test_cases = [
-        # Basic embedded fields
-        "profile[:first_name]",
-        "profile[:last_name]",
-        "profile[:age]",
-        "settings[:theme]",
-        "metadata[:version]",
-
-        # Nested embedded fields
-        "settings[:address][:street]",
-        "settings[:address][:city]",
-        "settings[:address][:zip_code]",
-        "config[:ui][:theme][:primary_color]",
-
-        # Mixed relationship and embedded
-        "user.profile[:first_name]",
-        "company.metadata[:industry]",
-        "order.customer.address[:street]",
-
-        # Regular fields (should pass through unchanged)
-        "username",
-        "email",
-        "user.name",
-        "company.name",
-        "order.customer.email"
-      ]
-
-      for field <- test_cases do
-        # Convert to URL-safe format
-        url_safe = Cinder.Filter.Helpers.url_safe_field_notation(field)
-
-        # Convert back to original format
-        converted_back = Cinder.Filter.Helpers.field_notation_from_url_safe(url_safe)
-
-        # Should be identical to original
-        assert converted_back == field,
-               "Round-trip conversion failed for '#{field}': '#{url_safe}' -> '#{converted_back}'"
-      end
-    end
-
+    @tag capture_log: true
     test "demonstrates human-readable labels for UI display" do
       # Basic embedded fields
       assert Cinder.Filter.Helpers.humanize_embedded_field("profile[:first_name]") ==
@@ -139,6 +73,7 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
       assert Cinder.Filter.Helpers.humanize_embedded_field("user.email") == "User > Email"
     end
 
+    @tag capture_log: true
     test "demonstrates comprehensive syntax validation" do
       # Valid embedded field syntax
       valid_fields = [
@@ -178,6 +113,7 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
       end
     end
 
+    @tag capture_log: true
     test "demonstrates filter processing compatibility" do
       # Simulate filter parameter processing for different filter types
 
@@ -242,6 +178,7 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
       assert range_filter.operator == :between
     end
 
+    @tag capture_log: true
     test "demonstrates form field name generation for embedded fields" do
       # Test that form field names are generated correctly for embedded fields
 
@@ -261,6 +198,7 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
                "filters[user.profile[:first_name]]"
     end
 
+    @tag capture_log: true
     test "demonstrates error handling for malformed embedded field syntax" do
       malformed_fields = [
         # Missing colon
@@ -298,6 +236,7 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
       end
     end
 
+    @tag capture_log: true
     test "demonstrates practical usage patterns for common scenarios" do
       # E-commerce user profile filtering
       user_profile_fields = [
@@ -357,13 +296,6 @@ defmodule Cinder.EmbeddedFieldPracticalExampleTest do
 
         assert is_binary(label) and String.length(label) > 0,
                "Failed to generate label for: #{field}"
-
-        # Should convert to URL-safe format and back
-        url_safe = Cinder.Filter.Helpers.url_safe_field_notation(field)
-        converted_back = Cinder.Filter.Helpers.field_notation_from_url_safe(url_safe)
-
-        assert converted_back == field,
-               "Round-trip failed for: #{field}"
       end
     end
   end

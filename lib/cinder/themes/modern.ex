@@ -189,14 +189,10 @@ defmodule Cinder.Themes.Modern do
   set :sort_button_class,
       "px-4 py-2 text-sm font-medium border rounded-lg transition-all duration-150"
 
-  set :sort_button_active_class, "bg-blue-600 border-blue-600 text-white shadow-sm"
+  set :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700"
 
   set :sort_button_inactive_class,
       "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
-
-  set :sort_icon_class, "ml-1"
-  set :sort_asc_icon, "↑"
-  set :sort_desc_icon, "↓"
 
   # Grid
   set :grid_container_class, "grid px-6 pb-6 gap-4 bg-gradient-to-br from-gray-50 to-white"

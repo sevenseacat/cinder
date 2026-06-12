@@ -7,6 +7,9 @@ defmodule Cinder.Renderers.SortControls do
 
   use Phoenix.Component
 
+  alias Cinder.QueryBuilder
+  alias Cinder.Renderers.SortIcon
+
   @doc """
   Renders sort controls as a button group.
 
@@ -16,10 +19,24 @@ defmodule Cinder.Renderers.SortControls do
   - `sort_label` - Label for the sort controls (e.g., "Sort by:")
   - `theme` - Theme configuration map
   - `myself` - LiveComponent reference for event targeting
+
+  ## Optional assigns
+  - `loading` - Whether data is currently loading (defaults to `false`)
   """
   def render(assigns) do
-    sortable_columns = Enum.filter(assigns.columns, & &1.sortable)
-    assigns = assign(assigns, :sortable_columns, sortable_columns)
+    # Pair each sortable column with its current direction once, so the button
+    # styling and the icon don't each recompute it.
+    sortable_columns =
+      assigns.columns
+      |> Enum.filter(& &1.sortable)
+      |> Enum.map(fn column ->
+        {column, QueryBuilder.get_sort_direction(assigns.sort_by, column.field)}
+      end)
+
+    assigns =
+      assigns
+      |> assign(:sortable_columns, sortable_columns)
+      |> assign_new(:loading, fn -> false end)
 
     ~H"""
     <div :if={@sortable_columns != []} class={get_container_class(@theme)}>
@@ -27,16 +44,16 @@ defmodule Cinder.Renderers.SortControls do
         <span class={get_label_class(@theme)}>{@sort_label}</span>
         <div class={get_buttons_class(@theme)}>
           <button
-            :for={column <- @sortable_columns}
+            :for={{column, direction} <- @sortable_columns}
             type="button"
-            class={get_button_class(column, @sort_by, @theme)}
+            class={get_button_class(direction, @theme)}
             phx-click="toggle_sort"
             phx-value-key={column.field}
             phx-target={@myself}
           >
             {column.label}
-            <span :if={get_sort_direction(@sort_by, column.field)} class={get_icon_class(@theme)}>
-              {get_sort_icon(get_sort_direction(@sort_by, column.field), @theme)}
+            <span class={get_indicator_class(@theme)} data-key="sort_indicator_class">
+              <SortIcon.sort_icon sort_direction={direction} theme={@theme} loading={@loading} />
             </span>
           </button>
         </div>
@@ -56,14 +73,9 @@ defmodule Cinder.Renderers.SortControls do
   # PRIVATE HELPERS
   # ============================================================================
 
-  defp get_sort_direction(sort_by, field) when is_list(sort_by) do
-    case Enum.find(sort_by, fn {f, _dir} -> f == field end) do
-      {_, dir} -> dir
-      nil -> nil
-    end
+  defp get_indicator_class(theme) do
+    Map.get(theme, :sort_indicator_class, "ml-1 inline-flex items-center align-baseline")
   end
-
-  defp get_sort_direction(_, _), do: nil
 
   defp get_container_class(theme) do
     Map.get(
@@ -85,7 +97,7 @@ defmodule Cinder.Renderers.SortControls do
     Map.get(theme, :sort_buttons_class, "flex gap-1")
   end
 
-  defp get_button_class(column, sort_by, theme) do
+  defp get_button_class(direction, theme) do
     base =
       Map.get(theme, :sort_button_class, "px-3 py-1 text-sm border rounded transition-colors")
 
@@ -94,18 +106,6 @@ defmodule Cinder.Renderers.SortControls do
     inactive =
       Map.get(theme, :sort_button_inactive_class, "bg-white border-gray-300 hover:bg-gray-50")
 
-    if get_sort_direction(sort_by, column.field) do
-      [base, active]
-    else
-      [base, inactive]
-    end
+    if direction, do: [base, active], else: [base, inactive]
   end
-
-  defp get_icon_class(theme) do
-    Map.get(theme, :sort_icon_class, "ml-1")
-  end
-
-  defp get_sort_icon(:asc, theme), do: Map.get(theme, :sort_asc_icon, "↑")
-  defp get_sort_icon(:desc, theme), do: Map.get(theme, :sort_desc_icon, "↓")
-  defp get_sort_icon(_, _), do: ""
 end

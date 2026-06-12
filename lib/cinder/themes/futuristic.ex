@@ -228,10 +228,6 @@ defmodule Cinder.Themes.Futuristic do
   set :sort_button_inactive_class,
       "bg-slate-900/60 border-blue-500/40 text-blue-100 hover:border-green-400/60 hover:text-green-400"
 
-  set :sort_icon_class, "ml-1"
-  set :sort_asc_icon, "↑"
-  set :sort_desc_icon, "↓"
-
   # Grid
   set :grid_container_class, "grid gap-4 m-6"
 

@@ -30,7 +30,7 @@ Cinder automatically provides:
 - **🌐 Relationship Support**: Dot notation for related fields (`user.department.name`)
 - **📦 Embedded Resources**: Double underscore notation (`profile__country`) with automatic enum detection
 - **🎨 Theming**: 9 built-in themes plus DSL for custom themes
-- **🌍 Internationalization**: Built-in translations (English, Dutch, Swedish)
+- **🌍 Internationalization**: Built-in translations ([seven languages](https://hexdocs.pm/cinder/localization.html#available-translations) and counting!)
 
 ## Installation
 
@@ -80,14 +80,14 @@ For list or grid layouts:
 
 ## Documentation
 
-- **[Getting Started](docs/getting-started.md)** - Basic usage, layouts, column configuration, and theming
-- **[Filters](docs/filters.md)** - Filter types, search, and custom controls layout
-- **[Sorting](docs/sorting.md)** - Sort cycles, modes, and defaults
-- **[Advanced Features](docs/advanced.md)** - URL state, relationships, refresh, performance, and bulk actions
-- **[Theming Guide](docs/theming.md)** - Built-in themes and custom theme creation
-- **[Localization Guide](docs/localization.md)** - Internationalization support
-- **[Upgrading Guide](docs/upgrading.md)** - Migration instructions from older versions
-- **[HexDocs](https://hexdocs.pm/cinder)** - Full API reference
+- **[Getting Started](https://cinder.hexdocs.pm/getting-started.html)** - Basic usage, layouts, column configuration, and theming
+- **[Filters](https://cinder.hexdocs.pm/filters.html)** - Filter types, search, and custom controls layout
+- **[Sorting](https://cinder.hexdocs.pm/sorting.html)** - Sort cycles, modes, and defaults
+- **[Advanced Features](https://cinder.hexdocs.pm/advanced.html)** - URL state, relationships, refresh, performance, and bulk actions
+- **[Theming Guide](https://cinder.hexdocs.pm/theming.html)** - Built-in themes and custom theme creation
+- **[Localization Guide](https://cinder.hexdocs.pm/localization.html)** - Internationalization support
+- **[Upgrading Guide](https://cinder.hexdocs.pm/upgrading.html)** - Migration instructions from older versions
+- **[HexDocs](https://cinder.hexdocs.pm/)** - Full API reference
 
 ## Requirements
 

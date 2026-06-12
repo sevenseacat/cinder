@@ -754,7 +754,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Full Name:"
+      assert html =~ "Full Name"
     end
 
     test "filter label option overrides column label", %{theme: theme} do
@@ -769,7 +769,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Printed at:"
+      assert html =~ "Printed at"
       refute html =~ "Printed at (UTC)"
     end
 
@@ -785,7 +785,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Email:"
+      assert html =~ "Email"
       refute html =~ "Email Address"
     end
 
@@ -795,7 +795,20 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       html = render_component(&FilterManager.filter_label/1, label_assigns)
 
-      assert html =~ "Name:"
+      assert html =~ "Name"
+    end
+  end
+
+  describe "filter label colon" do
+    test "no trailing colon by default" do
+      theme = Cinder.Theme.default()
+      column = %{field: "name", label: "Name", filter_type: :text, filter_options: []}
+      label_assigns = %{column: column, table_id: "test-table", theme: theme}
+
+      html = render_component(&FilterManager.filter_label/1, label_assigns)
+
+      assert html =~ ">Name</label>"
+      refute html =~ "Name:"
     end
   end
 end

@@ -143,7 +143,7 @@ defmodule Cinder.FilterManager do
       for={label_for_attr(@column.filter_type, @table_id, @column.field)}
       phx-click={label_click_action(@column.filter_type, @table_id, @column.field)}
       data-key="filter_label_class"
-    >{filter_label_text(@column)}:</label>
+    >{filter_label_text(@column)}</label>
     """
   end
 
@@ -502,9 +502,7 @@ defmodule Cinder.FilterManager do
       # Use explicit label if provided, otherwise humanize the field key
       label =
         Map.get(slot, :label) ||
-          key
-          |> Cinder.Filter.Helpers.field_notation_from_url_safe()
-          |> Cinder.Filter.Helpers.humanize_embedded_field()
+          Cinder.Filter.Helpers.humanize_embedded_field(key)
 
       enhanced_options =
         case filter_type do
@@ -600,11 +598,8 @@ defmodule Cinder.FilterManager do
 
   defp get_ash_attribute(resource, key) do
     try do
-      # Handle embedded field notation by converting URL-safe format to bracket notation
-      converted_key = Cinder.Filter.Helpers.field_notation_from_url_safe(key)
-
       # Parse the field notation to check if it's an embedded field
-      case Cinder.Filter.Helpers.parse_field_notation(converted_key) do
+      case Cinder.Filter.Helpers.parse_field_notation(key) do
         {:embedded, embed_field, field_name} ->
           # Look up the embedded field attribute and then the nested field within it
           get_embedded_attribute(resource, embed_field, field_name)

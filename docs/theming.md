@@ -88,6 +88,31 @@ Available themes:
 </Cinder.collection>
 ```
 
+### Tailwind setup
+
+`mix cinder.install` configures Tailwind for you. Behind the scenes it adds two `@import` lines to your `app.css` (or the equivalent entries to `tailwind.config.js` for Tailwind v3):
+
+```css
+@import "tailwindcss";
+@import "../../deps/cinder/priv/cinder.css";
+@import "../../deps/cinder/priv/themes/daisy_ui.css";
+```
+
+The first line tells Tailwind to scan Cinder's structural code (filters, renderers, controls, etc.) for Tailwind classes. The second is a per-theme line that opts in to scanning one specific built-in theme.
+
+**Using more than one built-in theme:** If you set `theme={...}` on individual tables to override the configured default, add an `@import` line for each built-in you use:
+
+```css
+@import "../../deps/cinder/priv/themes/dark.css";
+@import "../../deps/cinder/priv/themes/daisy_ui.css";
+```
+
+Without the matching `@import`, Tailwind won't scan that theme's classes and they'll be missing from your built CSS.
+
+**Custom theme modules:** Themes you define yourself live in your own `lib/` directory, which Tailwind already scans — no extra theme `@import` needed, just the main `cinder.css`.
+
+**Tailwind v3:** The same idea applies via `tailwind.config.js`'s `content:` array — `mix cinder.install` writes the enumerated paths for you, and `mix cinder.upgrade 0.13.0 0.14.0` migrates existing projects.
+
 ## Custom Themes with DSL
 
 Create powerful, maintainable themes using Cinder's DSL syntax:
@@ -230,6 +255,14 @@ Note that some structural Tailwind classes (e.g. `relative`, `flex`, `cursor-poi
 
 ## Component Reference
 
+Most properties are CSS class strings applied to elements. Filter and search
+labels have **no trailing colon by default**. To add one, append a CSS `::after`
+pseudo-element to `filter_label_class` — for example
+`set :filter_label_class, "after:content-[':']"` (or `after:content-['→']` for a
+different suffix). Sort indicators are Heroicons: set the icon via the
+`sort_*_icon_name` properties (e.g. `set :sort_asc_icon_name, "hero-chevron-up"`)
+and style it with the matching `sort_*_icon_class`.
+
 <!-- theme-properties-begin -->
 
 ### All Theme Properties
@@ -322,7 +355,6 @@ set :selected_item_class, "ring-2 ring-blue-500"
 set :selected_row_class, "bg-blue-50"
 set :selection_checkbox_class, "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
 set :sort_arrow_wrapper_class, "inline-flex items-center"
-set :sort_asc_icon, "↑"
 set :sort_asc_icon_class, "w-3 h-3"
 set :sort_asc_icon_name, "hero-chevron-up"
 set :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700"
@@ -332,10 +364,8 @@ set :sort_buttons_class, "flex gap-1"
 set :sort_container_class, "bg-white border border-gray-200 rounded-lg shadow-sm mt-4"
 set :sort_controls_class, "flex items-center gap-2 p-4"
 set :sort_controls_label_class, "text-sm text-gray-600 font-medium"
-set :sort_desc_icon, "↓"
 set :sort_desc_icon_class, "w-3 h-3"
 set :sort_desc_icon_name, "hero-chevron-down"
-set :sort_icon_class, "ml-1"
 set :sort_indicator_class, "ml-1 inline-flex items-center align-baseline"
 set :sort_none_icon_class, "w-3 h-3 opacity-50"
 set :sort_none_icon_name, "hero-chevron-up-down"

@@ -1,159 +1,118 @@
 defmodule Cinder.Mix.Tasks.CinderInstallTest do
   use ExUnit.Case, async: true
 
-  @moduletag :tmp_dir
-
   describe "Mix.Tasks.Cinder.Install" do
-    test "task is available" do
-      # Verify the task exists and can be loaded
+    test "task is available regardless of whether Igniter is loaded" do
       assert Code.ensure_loaded?(Mix.Tasks.Cinder.Install)
+      assert function_exported?(Mix.Tasks.Cinder.Install, :run, 1)
     end
+  end
 
-    test "has correct module attributes" do
-      # Test that the task has the expected documentation and configuration
-      assert Mix.Tasks.Cinder.Install.__info__(:attributes)[:shortdoc] == [
-               "Install Cinder and configure Tailwind CSS"
-             ]
-    end
+  if Code.ensure_loaded?(Igniter) do
+    import Igniter.Test
 
-    test "info/2 returns correct task info" do
-      if Code.ensure_loaded?(Igniter) do
-        info = Mix.Tasks.Cinder.Install.info([], nil)
+    @blank_app_css "@import \"tailwindcss\";\n"
+    @blank_config "import Config\n"
+    @v3_starting """
+    module.exports = {
+      content: [
+        "./js/**/*.js",
+      ],
+    }
+    """
 
-        assert info.positional == []
-        assert info.example == "mix cinder.install"
-        assert info.schema == []
+    describe "Tailwind v4 install" do
+      test "adds @import lines and notices other built-in themes" do
+        result =
+          test_project(files: %{"assets/css/app.css" => @blank_app_css})
+          |> Igniter.compose_task("cinder.install", [])
+
+        assert_has_patch(result, "assets/css/app.css", """
+        |@import "tailwindcss";
+        + |@import "../../deps/cinder/priv/cinder.css";
+        + |@import "../../deps/cinder/priv/themes/daisy_ui.css";
+        """)
+
+        assert_has_notice(result, fn n ->
+          # Other built-ins listed in the notice, but not the default (daisy_ui).
+          n =~ "dark" and n =~ "modern" and n =~ "Other built-in themes:" and
+            not String.contains?(n, "Other built-in themes: daisy_ui") and
+            not String.contains?(n, ", daisy_ui")
+        end)
+      end
+
+      test "is idempotent on the new @import format" do
+        existing =
+          @blank_app_css <>
+            "@import \"../../deps/cinder/priv/cinder.css\";\n" <>
+            "@import \"../../deps/cinder/priv/themes/daisy_ui.css\";\n"
+
+        test_project(files: %{"assets/css/app.css" => existing})
+        |> Igniter.compose_task("cinder.install", [])
+        |> assert_unchanged("assets/css/app.css")
+      end
+
+      test "leaves the old @source format alone (upgrade migrates it)" do
+        existing = @blank_app_css <> "@source \"../../deps/cinder\";\n"
+
+        test_project(files: %{"assets/css/app.css" => existing})
+        |> Igniter.compose_task("cinder.install", [])
+        |> assert_unchanged("assets/css/app.css")
       end
     end
 
-    test "provides helpful error when Igniter is not available" do
-      # This test verifies that the task module exists and loads properly
-      assert Code.ensure_loaded?(Mix.Tasks.Cinder.Install)
-      # Both versions of the module should have a run/1 function
-      assert function_exported?(Mix.Tasks.Cinder.Install, :run, 1)
-    end
-  end
+    describe "Tailwind v3 install" do
+      test "adds enumerated content paths plus the default theme" do
+        content =
+          test_project(files: %{"assets/tailwind.config.js" => @v3_starting})
+          |> Igniter.compose_task("cinder.install", [])
+          |> source_content("assets/tailwind.config.js")
 
-  describe "Tailwind configuration detection" do
-    test "detects tailwind v3 configuration pattern" do
-      tailwind_v3_content = """
-      module.exports = {
-        content: [
-          "./js/**/*.js",
-          "../lib/*_web.ex",
-          "../lib/*_web/**/*.*ex",
-        ],
-        theme: {
-          extend: {},
-        },
-        plugins: [],
-      }
-      """
+        for path <- [
+              "../deps/cinder/lib/cinder.ex",
+              "../deps/cinder/lib/cinder/*.ex",
+              "../deps/cinder/lib/cinder/filters/**/*.ex",
+              "../deps/cinder/lib/cinder/renderers/**/*.ex",
+              "../deps/cinder/lib/cinder/themes/daisy_ui.ex"
+            ],
+            do: assert(content =~ "\"#{path}\"")
 
-      # Test that the pattern matching would work
-      prefix = """
-      module.exports = {
-        content: [
-      """
+        refute content =~ ~s("../deps/cinder/lib/**/*.*ex")
+      end
 
-      assert String.contains?(tailwind_v3_content, prefix)
-    end
+      test "is idempotent when any cinder path is already present" do
+        existing = ~s|module.exports = { content: ["../deps/cinder/lib/cinder.ex"] }|
 
-    test "detects tailwind v4 configuration pattern" do
-      tailwind_v4_content = """
-      @import "tailwindcss";
-
-      /* Custom styles */
-      .custom-class {
-        color: red;
-      }
-      """
-
-      assert String.contains?(tailwind_v4_content, "@import \"tailwindcss\"")
-    end
-
-    test "cinder path would be correctly added to tailwind v3" do
-      _original_content = """
-      module.exports = {
-        content: [
-          "./js/**/*.js",
-          "../lib/*_web.ex",
-          "../lib/*_web/**/*.*ex",
-        ],
-        theme: {
-          extend: {},
-        },
-        plugins: [],
-      }
-      """
-
-      expected_addition = "\"../deps/cinder/lib/**/*.*ex\","
-
-      # Verify that the expected addition would include Cinder's files
-      assert String.contains?(expected_addition, "cinder/lib")
-      assert String.contains?(expected_addition, "**/*.*ex")
-    end
-
-    test "cinder source would be correctly added to tailwind v4" do
-      _original_content = """
-      @import "tailwindcss";
-
-      /* Custom styles */
-      """
-
-      expected_addition = "@source \"../../deps/cinder\";"
-
-      # Verify the expected addition format
-      assert String.contains?(expected_addition, "deps/cinder")
-      assert String.starts_with?(expected_addition, "@source")
-    end
-  end
-
-  describe "help content" do
-    test "provides comprehensive setup instructions" do
-      # Test that the installer exists and can be introspected
-      # Both versions of the module (with and without Igniter) should have run/1
-      assert Code.ensure_loaded?(Mix.Tasks.Cinder.Install)
-      assert function_exported?(Mix.Tasks.Cinder.Install, :run, 1)
-
-      # Only the Igniter version has these additional functions
-      if Code.ensure_loaded?(Igniter) do
-        assert function_exported?(Mix.Tasks.Cinder.Install, :igniter, 1)
-        assert function_exported?(Mix.Tasks.Cinder.Install, :info, 2)
+        test_project(files: %{"assets/tailwind.config.js" => existing})
+        |> Igniter.compose_task("cinder.install", [])
+        |> assert_unchanged("assets/tailwind.config.js")
       end
     end
 
-    test "includes both tailwind v3 and v4 instructions" do
-      # The installer should handle both Tailwind versions
-      # This is verified by the presence of both patterns in the code
+    describe "default_theme config" do
+      test "sets default_theme when missing" do
+        test_project(
+          files: %{"assets/css/app.css" => @blank_app_css, "config/config.exs" => @blank_config}
+        )
+        |> Igniter.compose_task("cinder.install", [])
+        |> assert_has_patch("config/config.exs", """
+        + |config :cinder, default_theme: "daisy_ui"
+        """)
+      end
 
-      # Check that the module contains references to both approaches
-      {:ok, source} = File.read("lib/mix/tasks/cinder.install.ex")
+      test "leaves default_theme alone when already set" do
+        existing = @blank_config <> "config :cinder, default_theme: \"dark\"\n"
 
-      assert String.contains?(source, "tailwind.config.js")
-      assert String.contains?(source, "@import")
-      assert String.contains?(source, "content:")
-      assert String.contains?(source, "@source")
+        test_project(
+          files: %{"assets/css/app.css" => @blank_app_css, "config/config.exs" => existing}
+        )
+        |> Igniter.compose_task("cinder.install", [])
+        |> assert_unchanged("config/config.exs")
+      end
     end
-  end
 
-  describe "file paths" do
-    test "uses correct relative paths for deps" do
-      # Verify that the paths used in the installer are correct
-      # for a typical Phoenix application structure
-
-      v3_path = "../deps/cinder/lib/**/*.*ex"
-      v4_path = "../../deps/cinder"
-
-      # V3 path should be relative from assets/ directory
-      assert String.starts_with?(v3_path, "../deps/")
-
-      # V4 path should be relative from assets/css/ directory
-      assert String.starts_with?(v4_path, "../../deps/")
-
-      # Both should point to cinder
-      assert String.contains?(v3_path, "cinder")
-      assert String.contains?(v4_path, "cinder")
+    defp source_content(igniter, path) do
+      igniter.rewrite |> Rewrite.source!(path) |> Rewrite.Source.get(:content)
     end
   end
 end

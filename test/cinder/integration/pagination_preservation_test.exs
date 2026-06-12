@@ -7,9 +7,18 @@ defmodule Cinder.Integration.PaginationPreservationTest do
   NOT reload data and should preserve the existing :page assign.
   """
 
-  use ExUnit.Case, async: true
+  # Runs synchronously (async: false) so we can disable Cinder's async loading
+  # for the whole module. That makes these assertions meaningful: if an update
+  # wrongly triggered a reload, load_data would run inline against the `query: nil`
+  # fake socket and reset :page — which the assertions catch. With async loading
+  # on, a spurious reload is deferred via start_async and would go unnoticed here.
+  # ExUnit runs async: false modules in isolation, so toggling the global flag is
+  # race-free.
+  use ExUnit.Case, async: false
 
   alias Cinder.LiveComponent
+
+  setup {Cinder.TestHelpers, :disable_async_loading}
 
   defmodule TestScopeStruct do
     defstruct [:current_user, :current_tenant]
@@ -143,23 +152,35 @@ defmodule Cinder.Integration.PaginationPreservationTest do
       assert updated_socket.assigns.data == original_data
     end
 
-    test "handles struct scope without crashing on update" do
+    test "an equal struct scope does not trigger a reload on parent re-render" do
+      # A component already loaded with a struct scope.
       scope = %TestScopeStruct{current_user: %{id: 1}, current_tenant: "scope_tenant"}
-      socket = make_loaded_socket()
+      loaded = make_loaded_socket()
+      socket = %{loaded | assigns: Map.put(loaded.assigns, :scope, scope)}
+      original_page = socket.assigns.page
 
+      # The parent re-renders, rebuilding the scope struct from scratch (a new
+      # instance with equal content) and changing only slot content — exactly
+      # what happens when an unrelated parent assign changes. normalize_scope/1
+      # must map equal-content scopes to the same key, otherwise this looks like
+      # a data change and triggers a spurious reload.
       new_assigns = %{
         id: "test-table",
         query: nil,
         query_opts: [],
         actor: nil,
         tenant: nil,
-        scope: scope,
+        scope: %TestScopeStruct{current_user: %{id: 1}, current_tenant: "scope_tenant"},
         col: [],
-        item_slot: [],
+        item_slot: [%{inner_block: fn _, _ -> "new content" end}],
         search_fn: nil
       }
 
       assert {:ok, updated_socket} = LiveComponent.update(new_assigns, socket)
+
+      # No reload happened, so the page is preserved. (With query: nil, a reload
+      # would have failed and reset the page to nil.)
+      assert updated_socket.assigns.page == original_page
       assert updated_socket.assigns.page != nil
     end
   end

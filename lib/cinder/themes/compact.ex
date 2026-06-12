@@ -196,11 +196,8 @@ defmodule Cinder.Themes.Compact do
   set :sort_controls_label_class, "text-xs font-medium text-gray-700"
   set :sort_buttons_class, "flex gap-1"
   set :sort_button_class, "px-2 py-1 text-xs font-medium border transition-all duration-100"
-  set :sort_button_active_class, "bg-blue-600 border-blue-600 text-white"
+  set :sort_button_active_class, "bg-blue-50 border-blue-300 text-blue-700"
   set :sort_button_inactive_class, "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-  set :sort_icon_class, "ml-1"
-  set :sort_asc_icon, "↑"
-  set :sort_desc_icon, "↓"
 
   # Grid
   set :grid_container_class, "grid gap-3 px-3 mt-3"

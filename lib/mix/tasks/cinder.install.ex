@@ -41,7 +41,7 @@ if Code.ensure_loaded?(Igniter) do
     The installer will attempt to automatically update your Tailwind configuration:
 
     - **Tailwind v3 and below**: Updates `tailwind.config.js` content array
-    - **Tailwind v4**: Adds `@source` directive to your CSS file
+    - **Tailwind v4**: Adds `@import` directives to your CSS file
 
     If automatic configuration fails, manual setup instructions will be provided.
 
@@ -81,6 +81,8 @@ if Code.ensure_loaded?(Igniter) do
 
     @tailwind_v4_import "@import \"tailwindcss\""
 
+    @default_theme "daisy_ui"
+
     defp configure_tailwind(igniter) do
       cond do
         Igniter.exists?(igniter, "assets/tailwind.config.js") ->
@@ -109,13 +111,13 @@ if Code.ensure_loaded?(Igniter) do
     defp do_tailwind_v3_changes(igniter, content, source) do
       case String.split(content, @tailwind_v3_prefix, parts: 2) do
         [prefix, suffix] ->
-          insert = "    \"../deps/cinder/lib/**/*.*ex\",\n"
-
           source =
             Rewrite.Source.update(
               source,
               :content,
-              prefix <> @tailwind_v3_prefix <> insert <> suffix
+              prefix <>
+                @tailwind_v3_prefix <>
+                Cinder.Tailwind.v3_content_lines(@default_theme) <> suffix
             )
 
           %{igniter | rewrite: Rewrite.update!(igniter.rewrite, source)}
@@ -130,10 +132,14 @@ if Code.ensure_loaded?(Igniter) do
       source = Rewrite.source!(igniter.rewrite, "assets/css/app.css")
       content = Rewrite.Source.get(source, :content)
 
-      if String.contains?(content, "@source \"../../deps/cinder\"") do
+      # Skip if any cinder source is already wired in (old @source or new @import).
+      # Old format gets upgraded via `mix cinder.upgrade`.
+      if String.contains?(content, "deps/cinder") do
         igniter
       else
-        do_tailwind_v4_changes(igniter, content, source)
+        igniter
+        |> do_tailwind_v4_changes(content, source)
+        |> add_themes_notice()
       end
     end
 
@@ -146,7 +152,9 @@ if Code.ensure_loaded?(Igniter) do
             @tailwind_v4_import <>
             import_stuff <>
             "\n" <>
-            "@source \"../../deps/cinder\";\n" <> after_import
+            "@import \"../../deps/cinder/priv/cinder.css\";\n" <>
+            "@import \"../../deps/cinder/priv/themes/#{@default_theme}.css\";\n" <>
+            after_import
 
         source = Rewrite.Source.update(source, :content, updated_content)
         %{igniter | rewrite: Rewrite.update!(igniter.rewrite, source)}
@@ -154,6 +162,19 @@ if Code.ensure_loaded?(Igniter) do
         _ ->
           explain_tailwind_setup(igniter)
       end
+    end
+
+    defp add_themes_notice(igniter) do
+      others = Enum.join(Cinder.Theme.built_in_theme_names() -- [@default_theme], ", ")
+
+      Igniter.add_notice(igniter, """
+      Cinder Tailwind setup complete with the "#{@default_theme}" theme.
+
+      To use additional built-in themes on specific tables, @import their CSS:
+        @import "../../deps/cinder/priv/themes/<name>.css";
+
+      Other built-in themes: #{others}.
+      """)
     end
 
     defp explain_tailwind_setup(igniter) do
@@ -181,11 +202,12 @@ if Code.ensure_loaded?(Igniter) do
 
       ## If using Tailwind v4 (CSS configuration):
 
-      Add this line to your app.css file after the @import statement:
+      Add these lines to your app.css file after the @import statement:
 
       ```css
       @import "tailwindcss";
-      @source "../../deps/cinder"; /* <-- Add this line */
+      @import "../../deps/cinder/priv/cinder.css"; /* <-- Add this */
+      @import "../../deps/cinder/priv/themes/#{@default_theme}.css"; /* <-- And this, for the theme you use */
       ```
 
       ## Troubleshooting:
@@ -208,7 +230,7 @@ if Code.ensure_loaded?(Igniter) do
           "config.exs",
           :cinder,
           [:default_theme],
-          "modern"
+          @default_theme
         )
       end
     end
@@ -270,7 +292,8 @@ else
       **For Tailwind v4 (CSS configuration):**
       ```css
       @import "tailwindcss";
-      @source "../../deps/cinder";
+      @import "../../deps/cinder/priv/cinder.css";
+      @import "../../deps/cinder/priv/themes/modern.css";
       ```
 
       2. Restart your development server

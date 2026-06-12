@@ -702,11 +702,20 @@ defmodule Cinder.Table.FilterSlotsTest do
       # Should display table columns
       assert html =~ "Full Name"
 
-      # Should not display filter-only fields as columns
-      # Not in table header
-      refute html =~ ">Created At<"
-      # Not in table header
-      refute html =~ ">Department<"
+      # `created_at` and `department` are filter-only fields: they must render as
+      # filter controls but never as table columns. Their names legitimately
+      # appear elsewhere in the markup (as filter labels), so a whole-document
+      # `refute` would be a false positive. A stray column would render in the
+      # table header, so scope the negative assertion to the `<thead>` region.
+      thead =
+        html
+        |> String.split("<thead", parts: 2)
+        |> List.last()
+        |> String.split("</thead>", parts: 2)
+        |> List.first()
+
+      refute thead =~ "Created At"
+      refute thead =~ "Department"
 
       # But should have filter controls (exact HTML would depend on filter rendering)
       assert html =~ "Filters"

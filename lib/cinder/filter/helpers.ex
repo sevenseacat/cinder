@@ -24,6 +24,8 @@ defmodule Cinder.Filter.Helpers do
 
   """
 
+  require Logger
+
   @doc """
   Validates and trims string input, returning error for empty strings.
 
@@ -292,14 +294,15 @@ defmodule Cinder.Filter.Helpers do
   @doc """
   Builds a relationship-aware Ash query filter with embedded field support.
 
-  Handles direct fields, relationship fields using dot notation, and embedded fields using bracket notation.
+  Handles direct fields, relationship fields using dot notation, and embedded fields using
+  double-underscore notation.
 
   ## Examples
 
       build_ash_filter(query, "name", "John", :equals)
       build_ash_filter(query, "user.name", "John", :equals)
-      build_ash_filter(query, "profile[:first_name]", "John", :equals)
-      build_ash_filter(query, "settings[:address][:street]", "Main St", :contains)
+      build_ash_filter(query, "profile__first_name", "John", :equals)
+      build_ash_filter(query, "settings__address__street", "Main St", :contains)
 
   """
   def build_ash_filter(query, field, value, operator, opts \\ []) when is_binary(field) do
@@ -710,6 +713,8 @@ defmodule Cinder.Filter.Helpers do
   @doc """
   Parses field notation to determine field type and structure.
 
+  Embedded fields are written with double-underscore notation (`profile__first_name`).
+
   ## Examples
 
       iex> parse_field_notation("username")
@@ -718,40 +723,67 @@ defmodule Cinder.Filter.Helpers do
       iex> parse_field_notation("user.name")
       {:relationship, ["user"], "name"}
 
-      iex> parse_field_notation("profile[:first_name]")
+      iex> parse_field_notation("profile__first_name")
       {:embedded, "profile", "first_name"}
 
-      iex> parse_field_notation("settings[:address][:street]")
+      iex> parse_field_notation("settings__address__street")
       {:nested_embedded, "settings", ["address", "street"]}
+
+      iex> parse_field_notation("user.profile__first_name")
+      {:relationship_embedded, ["user"], "profile", "first_name"}
 
   """
   def parse_field_notation(field) when is_binary(field) do
     trimmed = String.trim(field)
+    maybe_warn_bracket_notation(trimmed)
+
+    # Embedded fields use double-underscore notation; normalise to the internal bracket
+    # form so the parsers below handle both. (Bracket input is idempotent here.)
+    normalized = embedded_field_from_url_safe(trimmed)
 
     cond do
-      trimmed == "" ->
+      normalized == "" ->
         {:invalid, field}
 
       # Check for invalid bracket notation (missing colon)
-      String.contains?(trimmed, "[") and not String.contains?(trimmed, "[:") ->
+      String.contains?(normalized, "[") and not String.contains?(normalized, "[:") ->
         {:invalid, field}
 
       # Check for whitespace in field names
-      String.contains?(trimmed, " ") ->
+      String.contains?(normalized, " ") ->
         {:invalid, field}
 
       # Check for unclosed brackets
-      String.contains?(trimmed, "[:") and not String.ends_with?(trimmed, "]") ->
+      String.contains?(normalized, "[:") and not String.ends_with?(normalized, "]") ->
         {:invalid, field}
 
-      String.contains?(trimmed, "[:") ->
-        parse_embedded_field_notation(trimmed)
+      String.contains?(normalized, "[:") ->
+        parse_embedded_field_notation(normalized)
 
-      String.contains?(trimmed, ".") ->
-        parse_relationship_field_notation(trimmed)
+      String.contains?(normalized, ".") ->
+        parse_relationship_field_notation(normalized)
 
       true ->
-        {:direct, trimmed}
+        {:direct, normalized}
+    end
+  end
+
+  # Bracket notation (`profile[:first_name]`) is deprecated in favour of double-underscore
+  # notation (`profile__first_name`). Warn once per distinct field so we don't flood logs
+  # when the same column is parsed on every render/filter/sort.
+  defp maybe_warn_bracket_notation(field) do
+    if String.contains?(field, "[:") do
+      key = {__MODULE__, :deprecated_bracket_notation, field}
+
+      unless :persistent_term.get(key, false) do
+        :persistent_term.put(key, true)
+
+        Logger.warning(
+          "Embedded field #{inspect(field)} uses deprecated bracket notation. " <>
+            "Use double-underscore notation instead (e.g. \"profile__first_name\"). " <>
+            "Bracket notation will be removed in Cinder 1.0."
+        )
+      end
     end
   end
 
@@ -1096,38 +1128,10 @@ defmodule Cinder.Filter.Helpers do
     end
   end
 
-  @doc """
-  Converts embedded field notation to URL-safe format.
-
-  ## Examples
-
-      iex> url_safe_field_notation("profile[:first_name]")
-      "profile__first_name"
-
-      iex> url_safe_field_notation("settings[:address][:street]")
-      "settings__address__street"
-
-  """
-  def url_safe_field_notation(field) when is_binary(field) do
-    # Only convert embedded field parts, leave relationship dots unchanged
-    field
-    |> String.replace(~r/\[:([a-zA-Z0-9_]+)\]/, "__\\1")
-  end
-
-  @doc """
-  Converts URL-safe format back to embedded field notation.
-
-  ## Examples
-
-      iex> field_notation_from_url_safe("profile__first_name")
-      "profile[:first_name]"
-
-      iex> field_notation_from_url_safe("settings__address__street")
-      "settings[:address][:street]"
-
-  """
-  def field_notation_from_url_safe(field) when is_binary(field) do
-    # Convert double underscores back to bracket notation
+  # Converts double-underscore embedded notation to the internal bracket form
+  # ("profile__first_name" -> "profile[:first_name]"), leaving relationship dots and direct
+  # fields unchanged. Used only by parse_field_notation/1 to normalise its input.
+  defp embedded_field_from_url_safe(field) when is_binary(field) do
     # Handle mixed relationship.embedded__field patterns
     if String.contains?(field, "__") do
       # Split on dots first to handle relationship.embedded__field patterns
@@ -1156,10 +1160,10 @@ defmodule Cinder.Filter.Helpers do
 
   ## Examples
 
-      iex> humanize_embedded_field("profile[:first_name]")
+      iex> humanize_embedded_field("profile__first_name")
       "Profile > First Name"
 
-      iex> humanize_embedded_field("user.profile[:first_name]")
+      iex> humanize_embedded_field("user.profile__first_name")
       "User > Profile > First Name"
 
   """

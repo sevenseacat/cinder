@@ -1,9 +1,69 @@
 # Changelog
 
-## v0.12.2 (unreleased)
+## v0.16.0 (unreleased)
+
+### Breaking changes
+
+* Removed the `sort_asc_icon`, `sort_desc_icon`, and `sort_icon_class` theme properties — list and grid layouts now render the same Heroicon sort indicators as the table (configured via `sort_*_icon_name`/`sort_*_icon_class`). See the [upgrading guide](docs/upgrading.md) for details.
 
 ### Bugfixes
 
+* `*_nils_first`/`*_nils_last` sort methods now render an icon in list and grid views.
+
+## v0.15.0 (2026-06-08)
+
+### Breaking changes
+
+* Custom filters now receive embedded fields in double-underscore notation (`profile__first_name`) in `build_query/3`, matching the column definition — previously they received bracket notation (`"profile[:first_name]"`). See the [upgrading guide](docs/upgrading.md) for details.
+
+## v0.14.0 (2026-05-14)
+
+### Breaking changes
+
+* Function-form bulk action handlers (`<:bulk_action action={&MyApp.archive/2}>`) now receive the authorization options as provided to the collection — `:scope`, `:actor`, and `:tenant` flow through untouched, and the handler is expected to forward them to Ash (which resolves precedence). Handlers that read `opts[:actor]` directly when only `scope=` was passed will need to forward `opts` to Ash or call `Ash.Scope.to_opts(opts[:scope])`.
+* Passing a `scope=` value that does not implement `Ash.Scope.ToOpts` (e.g. a bare atom or integer) now raises `Protocol.UndefinedError` from Ash, rather than being silently ignored.
+
+### Features
+
+* Added `on_query_change` callback on `<Cinder.collection>` (and `<Cinder.Table.table>`). ([#147](https://github.com/sevenseacat/cinder/pull/147))
+* Scope-supplied `:context` is now baked onto queries built by Cinder, including those exposed via `on_query_change`.
+* `query_opts` now accepts `:tracer` to set an `Ash.Tracer` module (or list of modules) for the query.
+* Narrowed Tailwind class scanning so projects only pay for the built-in themes they actually use. 
+* Switched the default theme set by `mix cinder.install` from `"modern"` to `"daisy_ui"`, aligning with Phoenix and AshAuthentication conventions. Existing projects are unaffected — only new installs pick up the new default.
+
+### Bugfixes
+
+* Pre-prepared queries passed via `query={Ash.Query.for_read(...)}` are no longer mutated by Cinder. Explicit `actor=` / `tenant=` props on `<Cinder.collection>` still take effect, but only via the opts handed to `Ash.read` at execute time — the user's query struct keeps the actor/tenant they baked on it.
+
+### Chores
+
+* Re-worked DaisyUI theme to be more aligned with the DaisyUI look and feel
+* Delegated scope/actor/tenant precedence handling to Ash, removing the internal `Cinder.AshOptions` module and its hand-rolled extraction logic.
+
+### Upgrading from v0.13
+
+Run:
+
+```bash
+mix cinder.upgrade 0.13.0 0.14.0
+```
+
+This rewrites your `assets/css/app.css` (Tailwind v4) or `assets/tailwind.config.js` (v3) from the old broad `@source "../../deps/cinder";` / `"../deps/cinder/lib/**/*.*ex"` to the new per-theme `@import` lines, automatically including whichever built-in theme matches your configured `default_theme`.
+
+If you use multiple built-in themes via the `theme={...}` attr on individual tables, add an `@import` line per theme — see the [Theming guide](docs/theming.md#tailwind-setup).
+
+## v0.13.0 (2026-04-27)
+
+### Features
+
+* Respect the `:ash, :disable_async?` application env when loading data ([#156](https://github.com/sevenseacat/cinder/pull/156))
+* Add Spanish translation ([#164](https://github.com/sevenseacat/cinder/pull/164))
+
+### Bugfixes
+
+* Fix bulk actions ignoring `scope={@scope}` and running with `nil` actor and tenant, bypassing policies that depend on either. Bulk actions now resolve the scope the same way reads do.
+* Validate `page_size` values from the URL and dropdown against the table's configuration, so they can't exceed or bypass the developer's intent.
+* Fix `loading_message`, `filters_label`, and `empty_message` attributes not being translated when using gettext ([#165](https://github.com/sevenseacat/cinder/pull/165))
 * Sort cycles without `nil` (e.g. `cycle: [:asc, :desc]`) now apply the first cycle value as the default sort on initial load, instead of starting unsorted ([#132](https://github.com/sevenseacat/cinder/issues/132))
 
 ## v0.12.1 (2026-03-01)

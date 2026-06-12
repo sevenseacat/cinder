@@ -42,6 +42,7 @@ defmodule Cinder.BulkActionExecutor do
           id_field: atom(),
           actor: any(),
           tenant: any(),
+          scope: any(),
           action_opts: keyword()
         ]
 
@@ -55,6 +56,9 @@ defmodule Cinder.BulkActionExecutor do
   - `:id_field` - The field to filter on (default: `:id`)
   - `:actor` - Actor for authorization
   - `:tenant` - Tenant for multi-tenancy
+  - `:scope` - Ash scope; when present, its actor/tenant are used unless
+    overridden by explicit `:actor`/`:tenant`, and its tracer/context/
+    authorize? options are merged into the Ash call
   - `:action_opts` - Additional options for the action (e.g., `[return_records?: true]`)
 
   ## Action Types
@@ -85,12 +89,10 @@ defmodule Cinder.BulkActionExecutor do
     resource = Keyword.fetch!(opts, :resource)
     ids = Keyword.fetch!(opts, :ids)
     id_field = Keyword.get(opts, :id_field, :id)
-    actor = Keyword.get(opts, :actor)
-    tenant = Keyword.get(opts, :tenant)
     action_opts = Keyword.get(opts, :action_opts, [])
 
     query = build_query(resource, ids, id_field)
-    base_opts = build_base_opts(actor, tenant)
+    base_opts = build_auth_opts(opts)
 
     run_action(action, query, base_opts, action_opts)
   end
@@ -124,10 +126,23 @@ defmodule Cinder.BulkActionExecutor do
 
   # Private functions
 
-  defp build_base_opts(actor, tenant) do
-    [actor: actor, tenant: tenant]
-    |> Enum.reject(fn {_, v} -> is_nil(v) end)
+  # Auth opts handed to Ash. We pass `:scope`/`:actor`/`:tenant` straight
+  # through (nil-filtered) and let Ash apply its documented precedence
+  # (`deps/ash/lib/ash/scope.ex:43-51`).
+  #
+  # Nils are filtered because Cinder attrs use nil as "not supplied"; Ash's
+  # literal semantics would treat an explicit `actor: nil` as "erase scope's
+  # actor", which would punish the common case of `scope={@scope}` without
+  # an explicit `actor=`.
+  defp build_auth_opts(opts) do
+    []
+    |> maybe_put(:scope, Keyword.get(opts, :scope))
+    |> maybe_put(:actor, Keyword.get(opts, :actor))
+    |> maybe_put(:tenant, Keyword.get(opts, :tenant))
   end
+
+  defp maybe_put(opts, _key, nil), do: opts
+  defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
 
   # Atom actions: merge action_opts directly (for Ash.bulk_update/bulk_destroy)
   defp run_action(action, query, base_opts, action_opts) when is_atom(action) do

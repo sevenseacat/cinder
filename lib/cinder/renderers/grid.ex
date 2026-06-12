@@ -68,6 +68,7 @@ defmodule Cinder.Renderers.Grid do
           sort_label={@sort_label}
           theme={@theme}
           myself={@myself}
+          loading={@loading}
         />
       </div>
 

@@ -214,32 +214,4 @@ defmodule Cinder.Filters.MultiSelect do
     # Pass match_mode as additional context for array field handling
     Cinder.Filter.Helpers.build_ash_filter(query, field, values, :in, match_mode: match_mode)
   end
-
-  @doc """
-  Handles toggling an option in the multi-select filter.
-
-  This function should be called from the parent LiveView/LiveComponent
-  to handle the "toggle_multiselect_option" event.
-  """
-  def handle_toggle_option(socket, field, value) do
-    current_filters = Map.get(socket.assigns, :filters, %{})
-    current_values = Map.get(current_filters, field, [])
-
-    # Toggle the value - add if not present, remove if present
-    new_values =
-      if value in current_values do
-        Enum.reject(current_values, &(&1 == value))
-      else
-        current_values ++ [value]
-      end
-
-    updated_filters =
-      if Enum.empty?(new_values) do
-        Map.delete(current_filters, field)
-      else
-        Map.put(current_filters, field, new_values)
-      end
-
-    assign(socket, :filters, updated_filters)
-  end
 end

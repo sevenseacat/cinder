@@ -181,19 +181,17 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("goto_page", %{"page" => page}, socket) do
-    # Only works in offset pagination mode
-    if socket.assigns.pagination_mode == :offset do
-      page = String.to_integer(page)
-
+    with :offset <- socket.assigns.pagination_mode,
+         {parsed, ""} when parsed > 0 <- Integer.parse(to_string(page)) do
       socket =
         socket
-        |> assign(:current_page, page)
+        |> assign(:current_page, parsed)
         |> notify_state_change()
         |> load_data()
 
       {:noreply, socket}
     else
-      {:noreply, socket}
+      _ -> {:noreply, socket}
     end
   end
 
@@ -233,21 +231,26 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("change_page_size", %{"page_size" => page_size}, socket) do
-    page_size = String.to_integer(page_size)
-    updated_config = %{socket.assigns.page_size_config | selected_page_size: page_size}
+    with {parsed, ""} <- Integer.parse(to_string(page_size)),
+         validated when validated == parsed <-
+           Cinder.PageSize.validate(parsed, socket.assigns.page_size_config) do
+      updated_config = %{socket.assigns.page_size_config | selected_page_size: validated}
 
-    socket =
-      socket
-      |> assign(:page_size, page_size)
-      |> assign(:page_size_config, updated_config)
-      |> assign(:current_page, 1)
-      # Clear keyset cursors to restart from beginning when page size changes
-      |> assign(:after_keyset, nil)
-      |> assign(:before_keyset, nil)
-      |> notify_state_change()
-      |> load_data()
+      socket =
+        socket
+        |> assign(:page_size, validated)
+        |> assign(:page_size_config, updated_config)
+        |> assign(:current_page, 1)
+        # Clear keyset cursors to restart from beginning when page size changes
+        |> assign(:after_keyset, nil)
+        |> assign(:before_keyset, nil)
+        |> notify_state_change()
+        |> load_data()
 
-    {:noreply, socket}
+      {:noreply, socket}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 
   @impl true
@@ -496,6 +499,7 @@ defmodule Cinder.LiveComponent do
             id_field: socket.assigns[:id_field] || :id,
             actor: socket.assigns[:actor],
             tenant: socket.assigns[:tenant],
+            scope: socket.assigns[:scope],
             action_opts: slot[:action_opts] || []
           )
 
@@ -597,16 +601,10 @@ defmodule Cinder.LiveComponent do
   # ASYNC HANDLERS
   # ============================================================================
 
-  @impl true
   def handle_async(:load_data, {:ok, {{:ok, page}, query}}, socket) do
     socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:error, false)
-      |> assign(:data, page.results)
-      |> assign(:page, page)
-      # Update keyset cursors for navigation (only relevant in keyset mode)
-      |> maybe_update_keyset_cursors(page)
+      {:ok, page}
+      |> handle_result(socket)
       |> maybe_notify_query_change(query)
 
     {:noreply, socket}
@@ -614,6 +612,25 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_async(:load_data, {:ok, {{:error, error}, _query}}, socket) do
+    {:noreply, handle_result({:error, error}, socket)}
+  end
+
+  @impl true
+  def handle_async(:load_data, {:exit, reason}, socket) do
+    {:noreply, handle_result({:exit, reason}, socket)}
+  end
+
+  defp handle_result({:ok, page}, socket) do
+    socket
+    |> assign(:loading, false)
+    |> assign(:error, false)
+    |> assign(:data, page.results)
+    |> assign(:page, page)
+    # Update keyset cursors for navigation (only relevant in keyset mode)
+    |> maybe_update_keyset_cursors(page)
+  end
+
+  defp handle_result({:error, error}, socket) do
     Logger.error(
       "Cinder query failed for #{inspect(socket.assigns.query)}: #{inspect(error)}",
       %{
@@ -625,18 +642,14 @@ defmodule Cinder.LiveComponent do
       }
     )
 
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:error, true)
-      |> assign(:data, [])
-      |> assign(:page, nil)
-
-    {:noreply, socket}
+    socket
+    |> assign(:loading, false)
+    |> assign(:error, true)
+    |> assign(:data, [])
+    |> assign(:page, nil)
   end
 
-  @impl true
-  def handle_async(:load_data, {:exit, reason}, socket) do
+  defp handle_result({:exit, reason}, socket) do
     Logger.error(
       "Cinder query crashed for #{inspect(socket.assigns.query)}: #{inspect(reason)}",
       %{
@@ -648,14 +661,11 @@ defmodule Cinder.LiveComponent do
       }
     )
 
-    socket =
-      socket
-      |> assign(:loading, false)
-      |> assign(:error, true)
-      |> assign(:data, [])
-      |> assign(:page, nil)
-
-    {:noreply, socket}
+    socket
+    |> assign(:loading, false)
+    |> assign(:error, true)
+    |> assign(:data, [])
+    |> assign(:page, nil)
   end
 
   defp maybe_update_keyset_cursors(socket, %Ash.Page.Keyset{} = page) do
@@ -757,13 +767,16 @@ defmodule Cinder.LiveComponent do
 
       updated_socket =
         if Map.has_key?(raw_params, "page_size") do
+          validated_page_size =
+            Cinder.PageSize.validate(decoded_state.page_size, socket.assigns.page_size_config)
+
           updated_page_size_config = %{
             socket.assigns.page_size_config
-            | selected_page_size: decoded_state.page_size
+            | selected_page_size: validated_page_size
           }
 
           socket
-          |> assign(:page_size, decoded_state.page_size)
+          |> assign(:page_size, validated_page_size)
           |> assign(:page_size_config, updated_page_size_config)
         else
           socket
@@ -785,7 +798,7 @@ defmodule Cinder.LiveComponent do
       |> assign(:sort_by, final_sort_by)
       |> assign(:search_term, decoded_state.search_term)
     else
-      decode_url_state_legacy(socket, assigns)
+      socket
     end
   end
 
@@ -1047,27 +1060,38 @@ defmodule Cinder.LiveComponent do
       before_keyset: before_keyset
     ]
 
-    notify_query? = !!socket.assigns[:on_query_change]
-
     socket
     |> assign(:loading, true)
     |> assign(:error, false)
-    |> start_async(:load_data, fn ->
-      # Build query once, reuse for both notification and execution
-      case Cinder.QueryBuilder.build_query(resource_var, options) do
-        {:ok, prepared_query} ->
-          result =
-            Cinder.QueryBuilder.build_and_execute_from_query(
-              resource_var,
-              prepared_query,
-              options
-            )
+    |> then(fn socket ->
+      # Build the query once so we can both execute it and hand it to the
+      # on_query_change callback (if one is configured). maybe_notify_query_change/2
+      # decides whether to actually notify.
+      if Application.get_env(:ash, :disable_async?) do
+        try do
+          case Cinder.QueryBuilder.build_query(resource_var, options) do
+            {:ok, prepared_query} ->
+              prepared_query
+              |> Cinder.QueryBuilder.execute(options)
+              |> handle_result(socket)
+              |> maybe_notify_query_change(prepared_query)
 
-          query_for_notification = if notify_query?, do: prepared_query, else: nil
-          {result, query_for_notification}
+            {:error, _} = error ->
+              handle_result(error, socket)
+          end
+        rescue
+          e -> handle_result({:exit, e}, socket)
+        end
+      else
+        start_async(socket, :load_data, fn ->
+          case Cinder.QueryBuilder.build_query(resource_var, options) do
+            {:ok, prepared_query} ->
+              {Cinder.QueryBuilder.execute(prepared_query, options), prepared_query}
 
-        {:error, _} = error ->
-          {error, nil}
+            {:error, _} = error ->
+              {error, nil}
+          end
+        end)
       end
     end)
   end

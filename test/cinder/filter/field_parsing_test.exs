@@ -24,6 +24,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                {:relationship, ["company", "address"], "city"}
     end
 
+    @tag capture_log: true
     test "parses basic embedded field references with bracket notation" do
       assert Cinder.Filter.Helpers.parse_field_notation("profile[:first_name]") ==
                {:embedded, "profile", "first_name"}
@@ -35,6 +36,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                {:embedded, "metadata", "version"}
     end
 
+    @tag capture_log: true
     test "parses nested embedded field references" do
       assert Cinder.Filter.Helpers.parse_field_notation("settings[:address][:street]") ==
                {:nested_embedded, "settings", ["address", "street"]}
@@ -46,6 +48,23 @@ defmodule Cinder.Filter.FieldParsingTest do
                {:nested_embedded, "data", ["meta", "info"]}
     end
 
+    test "parses embedded fields written in double-underscore notation" do
+      # Double-underscore is the canonical notation users write (column defs, URLs, forms).
+      # parse_field_notation/1 must handle it directly, equivalent to bracket notation.
+      assert Cinder.Filter.Helpers.parse_field_notation("profile__first_name") ==
+               {:embedded, "profile", "first_name"}
+
+      assert Cinder.Filter.Helpers.parse_field_notation("settings__address__street") ==
+               {:nested_embedded, "settings", ["address", "street"]}
+
+      assert Cinder.Filter.Helpers.parse_field_notation("user.profile__first_name") ==
+               {:relationship_embedded, ["user"], "profile", "first_name"}
+
+      assert Cinder.Filter.Helpers.parse_field_notation("company.settings__address__city") ==
+               {:relationship_nested_embedded, ["company"], "settings", ["address", "city"]}
+    end
+
+    @tag capture_log: true
     test "parses mixed relationship and embedded field references" do
       assert Cinder.Filter.Helpers.parse_field_notation("user.profile[:first_name]") ==
                {:relationship_embedded, ["user"], "profile", "first_name"}
@@ -57,6 +76,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                {:relationship_embedded, ["order", "customer"], "address", "street"}
     end
 
+    @tag capture_log: true
     test "handles edge cases and invalid syntax" do
       # Empty field
       assert Cinder.Filter.Helpers.parse_field_notation("") ==
@@ -83,6 +103,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                {:invalid, "profile[:first-name]"}
     end
 
+    @tag capture_log: true
     test "handles complex nested scenarios" do
       # Deep relationship with embedded field
       assert Cinder.Filter.Helpers.parse_field_notation("user.company.settings[:address][:city]") ==
@@ -95,6 +116,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                 ["contact", "phone"]}
     end
 
+    @tag capture_log: true
     test "validates field name patterns" do
       # Valid field names with underscores
       assert Cinder.Filter.Helpers.parse_field_notation("profile[:first_name]") ==
@@ -112,6 +134,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                {:invalid, "data[:1_field]"}
     end
 
+    @tag capture_log: true
     test "handles whitespace and formatting" do
       # Should trim whitespace
       assert Cinder.Filter.Helpers.parse_field_notation(" profile[:first_name] ") ==
@@ -127,67 +150,25 @@ defmodule Cinder.Filter.FieldParsingTest do
     end
   end
 
-  describe "url_safe_field_notation/1" do
-    test "converts embedded field notation to URL-safe format" do
-      assert Cinder.Filter.Helpers.url_safe_field_notation("profile[:first_name]") ==
-               "profile__first_name"
+  describe "bracket notation deprecation" do
+    import ExUnit.CaptureLog
 
-      assert Cinder.Filter.Helpers.url_safe_field_notation("settings[:theme]") ==
-               "settings__theme"
-    end
+    test "bracket notation still parses but logs a deprecation warning" do
+      # Use a field name unique to this test so the persistent_term once-guard doesn't
+      # swallow the warning (other tests may have already warned for shared field names).
+      log =
+        capture_log(fn ->
+          assert Cinder.Filter.Helpers.parse_field_notation("deprecation_probe[:nested]") ==
+                   {:embedded, "deprecation_probe", "nested"}
+        end)
 
-    test "converts nested embedded field notation to URL-safe format" do
-      assert Cinder.Filter.Helpers.url_safe_field_notation("settings[:address][:street]") ==
-               "settings__address__street"
-
-      assert Cinder.Filter.Helpers.url_safe_field_notation("config[:ui][:theme][:colors]") ==
-               "config__ui__theme__colors"
-    end
-
-    test "leaves relationship notation unchanged for URL safety" do
-      assert Cinder.Filter.Helpers.url_safe_field_notation("user.profile.name") ==
-               "user.profile.name"
-
-      assert Cinder.Filter.Helpers.url_safe_field_notation("company.address.city") ==
-               "company.address.city"
-    end
-
-    test "leaves direct fields unchanged" do
-      assert Cinder.Filter.Helpers.url_safe_field_notation("username") ==
-               "username"
-
-      assert Cinder.Filter.Helpers.url_safe_field_notation("email") ==
-               "email"
-    end
-  end
-
-  describe "field_notation_from_url_safe/1" do
-    test "converts URL-safe format back to embedded field notation" do
-      assert Cinder.Filter.Helpers.field_notation_from_url_safe("profile__first_name") ==
-               "profile[:first_name]"
-
-      assert Cinder.Filter.Helpers.field_notation_from_url_safe("settings__theme") ==
-               "settings[:theme]"
-    end
-
-    test "converts nested URL-safe format back to embedded field notation" do
-      assert Cinder.Filter.Helpers.field_notation_from_url_safe("settings__address__street") ==
-               "settings[:address][:street]"
-
-      assert Cinder.Filter.Helpers.field_notation_from_url_safe("config__ui__theme__colors") ==
-               "config[:ui][:theme][:colors]"
-    end
-
-    test "leaves relationship and direct field notation unchanged" do
-      assert Cinder.Filter.Helpers.field_notation_from_url_safe("user.profile.name") ==
-               "user.profile.name"
-
-      assert Cinder.Filter.Helpers.field_notation_from_url_safe("username") ==
-               "username"
+      assert log =~ "deprecated bracket notation"
+      assert log =~ "removed in Cinder 1.0"
     end
   end
 
   describe "humanize_embedded_field/1" do
+    @tag capture_log: true
     test "converts embedded field notation to human-readable labels" do
       assert Cinder.Filter.Helpers.humanize_embedded_field("profile[:first_name]") ==
                "Profile > First Name"
@@ -196,6 +177,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                "Settings > Notifications Enabled"
     end
 
+    @tag capture_log: true
     test "converts nested embedded field notation to human-readable labels" do
       assert Cinder.Filter.Helpers.humanize_embedded_field("settings[:address][:street]") ==
                "Settings > Address > Street"
@@ -204,6 +186,7 @@ defmodule Cinder.Filter.FieldParsingTest do
                "Config > Ui > Theme > Colors"
     end
 
+    @tag capture_log: true
     test "handles mixed relationship and embedded field notation" do
       assert Cinder.Filter.Helpers.humanize_embedded_field("user.profile[:first_name]") ==
                "User > Profile > First Name"
@@ -230,12 +213,14 @@ defmodule Cinder.Filter.FieldParsingTest do
   end
 
   describe "validate_embedded_field_syntax/1" do
+    @tag capture_log: true
     test "validates correct embedded field syntax" do
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("profile[:first_name]") == :ok
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("settings[:theme]") == :ok
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("data[:version]") == :ok
     end
 
+    @tag capture_log: true
     test "validates correct nested embedded field syntax" do
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("settings[:address][:street]") ==
                :ok
@@ -243,6 +228,7 @@ defmodule Cinder.Filter.FieldParsingTest do
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("config[:ui][:theme]") == :ok
     end
 
+    @tag capture_log: true
     test "validates mixed relationship and embedded syntax" do
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("user.profile[:first_name]") ==
                :ok
@@ -256,6 +242,7 @@ defmodule Cinder.Filter.FieldParsingTest do
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("user.name") == :ok
     end
 
+    @tag capture_log: true
     test "rejects invalid embedded field syntax" do
       assert Cinder.Filter.Helpers.validate_embedded_field_syntax("profile[first_name]") ==
                {:error, "Invalid embedded field syntax: missing colon"}

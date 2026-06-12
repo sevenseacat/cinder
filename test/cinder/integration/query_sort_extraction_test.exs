@@ -1,6 +1,5 @@
 defmodule Cinder.Integration.QuerySortExtractionTest do
   use ExUnit.Case, async: true
-  import Phoenix.LiveViewTest
 
   # Mock Ash resources for testing
   defmodule TestUser do
@@ -38,58 +37,6 @@ defmodule Cinder.Integration.QuerySortExtractionTest do
   end
 
   describe "query sort extraction integration" do
-    test "table extracts sorts from incoming query and shows correct UI state" do
-      # Create test data
-      {:ok, _user1} =
-        TestUser
-        |> Ash.Changeset.for_create(:create, %{name: "Alice", email: "alice@example.com"},
-          domain: TestDomain
-        )
-        |> Ash.create(domain: TestDomain)
-
-      {:ok, _user2} =
-        TestUser
-        |> Ash.Changeset.for_create(:create, %{name: "Bob", email: "bob@example.com"},
-          domain: TestDomain
-        )
-        |> Ash.create(domain: TestDomain)
-
-      # Create a query with existing sorts (name descending, email ascending)
-      query =
-        TestUser
-        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
-        |> Ash.Query.sort([{:name, :desc}, {:email, :asc}])
-
-      # Render a simple table component using the function component API
-      html =
-        render_component(&Cinder.Table.table/1, %{
-          query: query,
-          actor: %{id: 1},
-          col: [
-            %{field: :name, __slot__: :col, inner_block: fn _ -> "Name" end},
-            %{field: :email, __slot__: :col, inner_block: fn _ -> "Email" end},
-            %{field: :created_at, __slot__: :col, inner_block: fn _ -> "Created" end}
-          ]
-        })
-
-      # Verify the table renders successfully
-      assert html =~ "cinder-table"
-      assert html =~ "Name"
-      assert html =~ "Email"
-      assert html =~ "Created"
-
-      # The key test: verify that the QueryBuilder correctly extracts and uses the query sorts
-      # This is verified indirectly through the extract_query_sorts function
-      extracted_sorts =
-        Cinder.QueryBuilder.extract_query_sorts(query, [
-          %{field: "name"},
-          %{field: "email"},
-          %{field: "created_at"}
-        ])
-
-      assert extracted_sorts == [{"name", :desc}, {"email", :asc}]
-    end
-
     test "table sorting overrides existing query sorts during data loading" do
       # Create test data
       {:ok, _user1} =

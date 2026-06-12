@@ -162,9 +162,6 @@ defmodule Cinder.Theme do
     sort_button_class: "px-3 py-1 text-sm border rounded transition-colors",
     sort_button_active_class: "bg-blue-50 border-blue-300 text-blue-700",
     sort_button_inactive_class: "bg-white border-gray-300 hover:bg-gray-50",
-    sort_icon_class: "ml-1",
-    sort_asc_icon: "↑",
-    sort_desc_icon: "↓",
 
     # Grid
     grid_container_class: "grid gap-4",
@@ -321,16 +318,16 @@ defmodule Cinder.Theme do
   Returns a list of available theme presets.
   """
   def presets do
-    [
-      "default",
-      "modern",
-      "retro",
-      "futuristic",
-      "dark",
-      "daisy_ui",
-      "flowbite",
-      "compact"
-    ]
+    ["default" | built_in_theme_names()]
+  end
+
+  @doc """
+  Returns the names of built-in themes that ship with a matching CSS file
+  under `priv/themes/`. `"default"` is intentionally excluded — its classes
+  live in `theme.ex` itself and don't need a separate `@import`.
+  """
+  def built_in_theme_names do
+    ~w(compact daisy_ui dark flowbite futuristic modern retro)
   end
 
   @doc """
@@ -357,15 +354,6 @@ defmodule Cinder.Theme do
 
   def validate(_theme_config) do
     {:error, "Theme must be a string or theme module"}
-  end
-
-  @doc """
-  Gets all available theme properties.
-  """
-  def all_theme_properties do
-    @theme_defaults
-    |> Map.keys()
-    |> Enum.sort()
   end
 
   @doc """

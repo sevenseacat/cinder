@@ -129,4 +129,36 @@ defmodule Cinder.Renderers.ListTest do
       assert length(matches) == 3
     end
   end
+
+  describe "sort controls icons" do
+    defp sort_assigns(sort_by) do
+      base_assigns()
+      |> Map.put(:show_sort, true)
+      |> Map.put(:columns, [%{field: "name", label: "Name", sortable: true}])
+      |> Map.put(:sort_by, sort_by)
+    end
+
+    # Regression: list/grid previously rendered Unicode glyphs; now uses the
+    # shared Heroicon component, consistent with the table renderer.
+    test "renders Heroicon indicators, not text glyphs" do
+      html = render_component(&ListRenderer.render/1, sort_assigns([{"name", :asc}]))
+
+      assert html =~ "hero-chevron-up"
+      refute html =~ "↑"
+      refute html =~ "↓"
+    end
+
+    test "unsorted sortable column shows the none-state chevron" do
+      html = render_component(&ListRenderer.render/1, sort_assigns([]))
+
+      assert html =~ "hero-chevron-up-down"
+    end
+
+    # Regression: nils-ordering variants used to render no icon here.
+    test "nils-variant sort still renders an icon" do
+      html = render_component(&ListRenderer.render/1, sort_assigns([{"name", :asc_nils_last}]))
+
+      assert html =~ "hero-chevron-up"
+    end
+  end
 end

@@ -565,7 +565,16 @@ defmodule Cinder.QueryBuilderTest do
 
     test "does not warn when only supported query_opts are provided" do
       query = Ash.Query.new(TestUser)
-      opts = [load: [:posts], select: [:id, :name], tenant: "test", timeout: 5000]
+
+      opts = [
+        load: [:posts],
+        select: [:id, :name],
+        tenant: "test",
+        timeout: 5000,
+        authorize?: false,
+        max_concurrency: 2,
+        tracer: Ash.Tracer.Simple
+      ]
 
       log =
         capture_log(fn ->
@@ -587,73 +596,6 @@ defmodule Cinder.QueryBuilderTest do
 
       # Should not contain any warnings
       refute log =~ "Unsupported query_opts"
-    end
-  end
-
-  describe "build_and_execute/2 with tenant support" do
-    test "includes actor when provided" do
-      # Test the private function indirectly by testing apply_query_opts with tenant
-      query = Ash.Query.new(TestUser)
-      opts = [tenant: "test_tenant"]
-
-      result = QueryBuilder.apply_query_opts(query, opts)
-
-      # Verify tenant was set using query_opts path
-      assert result.tenant == "test_tenant"
-    end
-
-    test "tenant extraction from options" do
-      options = [
-        actor: nil,
-        tenant: "test_tenant",
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: []
-      ]
-
-      # Should succeed with proper domain setup
-      result = QueryBuilder.build_and_execute(TestUser, options)
-      assert {:ok, page} = result
-      assert is_list(page.results)
-    end
-
-    test "query_opts tenant handling" do
-      options = [
-        actor: nil,
-        tenant: nil,
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: [tenant: "query_opts_tenant"]
-      ]
-
-      # Should succeed with tenant from query_opts
-      result = QueryBuilder.build_and_execute(TestUser, options)
-      assert {:ok, page} = result
-      assert is_list(page.results)
-    end
-
-    test "handles nil tenant gracefully" do
-      options = [
-        actor: nil,
-        tenant: nil,
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: []
-      ]
-
-      # Should succeed without tenant
-      result = QueryBuilder.build_and_execute(TestUser, options)
-      assert {:ok, page} = result
-      assert is_list(page.results)
     end
   end
 
@@ -697,41 +639,26 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "apply_standard_filter/4 URL-safe field notation conversion" do
-    test "converts URL-safe embedded field notation to bracket notation" do
-      # Test the field notation conversion directly since that's what we're testing
+  describe "build_query field notation contract" do
+    test "custom filters receive embedded fields in double-underscore notation" do
+      # Regression: apply_standard_filter must hand build_query the field exactly as the
+      # column declared it (double-underscore), not the internal bracket form. Asserting the
+      # raw string is necessary because build_ash_filter accepts both, so an end-to-end
+      # filter test would pass even if the field were silently converted to brackets.
+      test_pid = self()
 
-      # Test simple embedded field: publisher__name -> publisher[:name]
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("publisher__name")
-      assert converted == "publisher[:name]"
+      Cinder.Filters.Text
+      |> expect(:build_query, fn query, field, _filter_config ->
+        send(test_pid, {:build_query_field, field})
+        query
+      end)
 
-      # Test nested embedded field: settings__address__street -> settings[:address][:street]
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("settings__address__street")
-      assert converted == "settings[:address][:street]"
+      query = Ash.Query.for_read(Album, :read)
+      filter_config = %{type: :text, value: "x", operator: :contains}
 
-      # Test mixed relationship and embedded: user.profile__first_name -> user.profile[:first_name]
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("user.profile__first_name")
-      assert converted == "user.profile[:first_name]"
+      QueryBuilder.apply_standard_filter(query, "publisher__name", filter_config, nil)
 
-      # Test regular field (no conversion needed): name -> name
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("name")
-      assert converted == "name"
-
-      # Test relationship field (no conversion needed): user.name -> user.name
-      converted = Cinder.Filter.Helpers.field_notation_from_url_safe("user.name")
-      assert converted == "user.name"
-    end
-
-    test "apply_standard_filter calls field_notation_from_url_safe" do
-      # This test verifies that the conversion is actually being called in apply_standard_filter
-      # We'll test with an unknown filter type to avoid triggering the actual filter logic
-      query = %MockQueryFilters{resource: TestResource}
-      filter_config = %{type: :unknown_filter_type, value: "test"}
-
-      # This should not crash and should return the original query unchanged
-      # The important part is that field_notation_from_url_safe gets called internally
-      result = QueryBuilder.apply_standard_filter(query, "publisher__name", filter_config, nil)
-      assert result == query
+      assert_received {:build_query_field, "publisher__name"}
     end
   end
 
@@ -1227,8 +1154,9 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "build_ash_options/3 timeout handling" do
-    # Test the private function indirectly through build_and_execute
+  describe "query_opts execution options" do
+    # Verify that `:timeout`, `:authorize?`, `:max_concurrency` from `:query_opts`
+    # flow through to `Ash.read`, and other keys are ignored.
     test "includes execution options in both query building and execution" do
       # We'll test this by mocking Ash.read to capture the options
       timeout_value = :timer.seconds(30)
@@ -1312,13 +1240,13 @@ defmodule Cinder.QueryBuilderTest do
         query_opts: [
           timeout: :timer.seconds(10),
           authorize?: false,
-          # These should be ignored by build_ash_options - not execution options
+          # Not in the execution-options allowlist
           context: %{test: true},
           domain: SomeDomain,
           action: :read,
-          # This is handled by apply_query_opts, not build_ash_options
+          # Handled by apply_query_opts, not by the execution-opts allowlist
           select: [:name],
-          # These should be ignored by build_ash_options - unknown options
+          # Unknown options
           custom_option: "ignored",
           another_option: 123
         ]
@@ -1378,10 +1306,37 @@ defmodule Cinder.QueryBuilderTest do
       refute Keyword.has_key?(ash_opts, :timeout)
       refute Keyword.has_key?(ash_opts, :authorize?)
       refute Keyword.has_key?(ash_opts, :max_concurrency)
+      refute Keyword.has_key?(ash_opts, :tracer)
+    end
+
+    test "tracer flows from query_opts to Ash.read" do
+      options = [
+        actor: nil,
+        tenant: nil,
+        filters: %{},
+        sort_by: [],
+        page_size: 25,
+        current_page: 1,
+        columns: [],
+        query_opts: [tracer: Ash.Tracer.Simple]
+      ]
+
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn _query, opts ->
+        send(test_pid, {:ash_read_called, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, ash_opts}
+      assert Keyword.get(ash_opts, :tracer) == Ash.Tracer.Simple
     end
   end
 
-  describe "normalize_resource_or_query/4 - query option bugs" do
+  describe "build_and_execute/2 — pre-prepared query preservation" do
     defp default_options(overrides \\ []) do
       [
         actor: :test_actor,
@@ -1394,23 +1349,6 @@ defmodule Cinder.QueryBuilderTest do
         query_opts: []
       ]
       |> Keyword.merge(overrides)
-    end
-
-    test "explicit tenant overrides query tenant" do
-      query_with_tenant = Ash.Query.for_read(TestUser, :read, %{}, tenant: "query_tenant")
-
-      expect(Ash, :read, fn _query, opts ->
-        send(self(), {:ash_opts, opts})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
-
-      QueryBuilder.build_and_execute(
-        query_with_tenant,
-        default_options(tenant: "explicit_tenant")
-      )
-
-      assert_received {:ash_opts, ash_opts}
-      assert Keyword.get(ash_opts, :tenant) == "explicit_tenant"
     end
 
     test "query built from resource preserves filters and sorts" do
@@ -1447,42 +1385,46 @@ defmodule Cinder.QueryBuilderTest do
     end
 
     test "query tenant is preserved when no explicit tenant provided" do
-      # This tests the actual bug: Ash.Query.set_tenant should be recognized
+      # Regression: a tenant set on an unprepared query via set_tenant/2 must
+      # survive Cinder's prep so Ash.read honors it.
       query_with_tenant =
         TestUser
         |> Ash.Query.set_tenant("query_tenant")
 
-      expect(Ash, :read, fn _query, opts ->
-        send(self(), {:ash_opts, opts})
+      expect(Ash, :read, fn query, _opts ->
+        send(self(), {:read_query, query})
         {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
-      # No explicit tenant provided (tenant: nil)
       QueryBuilder.build_and_execute(query_with_tenant, default_options())
 
-      assert_received {:ash_opts, ash_opts}
-      assert Keyword.get(ash_opts, :tenant) == "query_tenant"
+      assert_received {:read_query, query}
+      # Tenant ends up on the query (for_read forwards query.tenant when no
+      # explicit tenant is in opts).
+      assert query.tenant == "query_tenant"
     end
 
-    test "context is properly merged without overwriting existing context" do
-      # Create a query with existing context
-      base_query = Ash.Query.for_read(TestUser, :read)
-
+    test "user context on a pre-prepared query is preserved; Cinder doesn't scribble on it" do
+      # Regression: when a caller sets custom context on a prepared query,
+      # Cinder must not overwrite it. Actor flows to Ash.read via opts instead.
       query_with_context =
-        Ash.Query.set_context(base_query, %{custom_flag: true, other_data: "test"})
+        TestUser
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.set_context(%{custom_flag: true, other_data: "test"})
 
-      expect(Ash, :read, fn query, _opts ->
-        send(self(), {:final_query_context, query.context})
+      expect(Ash, :read, fn query, opts ->
+        send(self(), {:read_query, query, opts})
         {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
       end)
 
-      # Pass actor that should be merged with existing context
       QueryBuilder.build_and_execute(query_with_context, default_options(actor: :test_actor))
 
-      assert_received {:final_query_context, final_context}
-      assert final_context.actor == :test_actor
-      assert final_context.custom_flag == true
-      assert final_context.other_data == "test"
+      assert_received {:read_query, query, opts}
+      # User's context preserved verbatim
+      assert query.context.custom_flag == true
+      assert query.context.other_data == "test"
+      # Actor reaches Ash.read via opts so the read still authorizes correctly
+      assert Keyword.get(opts, :actor) == :test_actor
     end
   end
 
@@ -1684,187 +1626,27 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "scope passthrough" do
-    test "preserves query actor when scope has no actor" do
-      query_with_actor =
-        TestUser
-        |> Ash.Query.for_read(:read, %{}, actor: :query_actor)
+  describe "scope, actor, and tenant — unprepared query (resource module)" do
+    # For unprepared queries, Cinder calls Ash.Query.for_read with
+    # [scope:, actor:, tenant:] and lets Ash bake everything onto the query at
+    # the canonical locations. We assert on the query that Ash.read receives.
 
-      scope = %{tenant: "scope_tenant"}
+    setup do
+      test_pid = self()
 
-      options = [
+      Ash
+      |> expect(:read, fn query, opts ->
+        send(test_pid, {:ash_read_called, query, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      :ok
+    end
+
+    defp base_options do
+      [
         actor: nil,
         tenant: nil,
-        scope: scope,
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: []
-      ]
-
-      test_pid = self()
-
-      Ash
-      |> expect(:read, fn _query, opts ->
-        send(test_pid, {:ash_read_called, opts})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
-
-      QueryBuilder.build_and_execute(query_with_actor, options)
-
-      assert_received {:ash_read_called, ash_opts}
-      assert Keyword.get(ash_opts, :actor) == :query_actor
-      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
-    end
-
-    test "extracts actor/tenant from scope when no explicit values provided" do
-      scope = %TestScope{
-        current_user: :scope_actor,
-        current_tenant: "scope_tenant",
-        tz: nil
-      }
-
-      options = [
-        actor: nil,
-        tenant: nil,
-        scope: scope,
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: []
-      ]
-
-      test_pid = self()
-
-      Ash
-      |> expect(:read, fn _query, opts ->
-        send(test_pid, {:ash_read_called, opts})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
-
-      QueryBuilder.build_and_execute(TestUser, options)
-
-      assert_received {:ash_read_called, ash_opts}
-      # Should extract actor/tenant from scope
-      assert Keyword.get(ash_opts, :actor) == :scope_actor
-      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
-    end
-
-    test "passes full scope options including context to Ash.read" do
-      # Using our TestScope that implements Ash.Scope.ToOpts protocol
-      scope = %TestScope{
-        current_user: :scope_actor,
-        current_tenant: "scope_tenant",
-        tz: "America/New_York"
-      }
-
-      options = [
-        actor: nil,
-        tenant: nil,
-        scope: scope,
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: []
-      ]
-
-      test_pid = self()
-
-      Ash
-      |> expect(:read, fn _query, opts ->
-        send(test_pid, {:ash_read_called, opts})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
-
-      QueryBuilder.build_and_execute(TestUser, options)
-
-      assert_received {:ash_read_called, ash_opts}
-      assert Keyword.get(ash_opts, :actor) == :scope_actor
-      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
-      assert Keyword.get(ash_opts, :context) == %{shared: %{tz: "America/New_York"}}
-    end
-
-    test "explicit actor/tenant override scope values" do
-      scope = %TestScope{
-        current_user: :scope_actor,
-        current_tenant: "scope_tenant",
-        tz: "America/New_York"
-      }
-
-      options = [
-        actor: :explicit_actor,
-        tenant: "explicit_tenant",
-        scope: scope,
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: []
-      ]
-
-      test_pid = self()
-
-      Ash
-      |> expect(:read, fn _query, opts ->
-        send(test_pid, {:ash_read_called, opts})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
-
-      QueryBuilder.build_and_execute(TestUser, options)
-
-      assert_received {:ash_read_called, ash_opts}
-      # Explicit values should override scope values
-      assert Keyword.get(ash_opts, :actor) == :explicit_actor
-      assert Keyword.get(ash_opts, :tenant) == "explicit_tenant"
-      # But other scope options should still be passed through
-      assert Keyword.get(ash_opts, :context) == %{shared: %{tz: "America/New_York"}}
-    end
-
-    test "extracts actor/tenant from TestScope when no explicit values" do
-      scope = %TestScope{
-        current_user: :scope_actor,
-        current_tenant: "scope_tenant",
-        tz: nil
-      }
-
-      options = [
-        actor: nil,
-        tenant: nil,
-        scope: scope,
-        filters: %{},
-        sort_by: [],
-        page_size: 25,
-        current_page: 1,
-        columns: [],
-        query_opts: []
-      ]
-
-      test_pid = self()
-
-      Ash
-      |> expect(:read, fn _query, opts ->
-        send(test_pid, {:ash_read_called, opts})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
-
-      QueryBuilder.build_and_execute(TestUser, options)
-
-      assert_received {:ash_read_called, ash_opts}
-      assert Keyword.get(ash_opts, :actor) == :scope_actor
-      assert Keyword.get(ash_opts, :tenant) == "scope_tenant"
-    end
-
-    test "uses actor/tenant when no scope provided" do
-      options = [
-        actor: :explicit_actor,
-        tenant: "explicit_tenant",
         scope: nil,
         filters: %{},
         sort_by: [],
@@ -1873,20 +1655,412 @@ defmodule Cinder.QueryBuilderTest do
         columns: [],
         query_opts: []
       ]
+    end
 
-      test_pid = self()
+    test "explicit actor only is baked onto query at canonical location" do
+      QueryBuilder.build_and_execute(TestUser, Keyword.put(base_options(), :actor, :alice))
 
-      Ash
-      |> expect(:read, fn _query, opts ->
-        send(test_pid, {:ash_read_called, opts})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
+      assert_received {:ash_read_called, query, _opts}
+      assert get_in(query.context, [:private, :actor]) == :alice
+    end
+
+    test "explicit tenant only is set on query" do
+      QueryBuilder.build_and_execute(TestUser, Keyword.put(base_options(), :tenant, "t1"))
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.tenant == "t1"
+    end
+
+    test "scope-only actor is baked onto query" do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: nil, tz: nil}
+      QueryBuilder.build_and_execute(TestUser, Keyword.put(base_options(), :scope, scope))
+
+      assert_received {:ash_read_called, query, _opts}
+      assert get_in(query.context, [:private, :actor]) == :scope_actor
+    end
+
+    test "scope-only tenant is set on query" do
+      scope = %TestScope{current_user: nil, current_tenant: "scope_tenant", tz: nil}
+      QueryBuilder.build_and_execute(TestUser, Keyword.put(base_options(), :scope, scope))
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.tenant == "scope_tenant"
+    end
+
+    test "explicit actor wins over scope actor" do
+      scope = %TestScope{current_user: :from_scope, current_tenant: nil, tz: nil}
+
+      options =
+        base_options()
+        |> Keyword.put(:scope, scope)
+        |> Keyword.put(:actor, :explicit)
 
       QueryBuilder.build_and_execute(TestUser, options)
 
-      assert_received {:ash_read_called, ash_opts}
-      assert Keyword.get(ash_opts, :actor) == :explicit_actor
-      assert Keyword.get(ash_opts, :tenant) == "explicit_tenant"
+      assert_received {:ash_read_called, query, _opts}
+      assert get_in(query.context, [:private, :actor]) == :explicit
+    end
+
+    test "explicit tenant wins over scope tenant" do
+      scope = %TestScope{current_user: nil, current_tenant: "from_scope", tz: nil}
+
+      options =
+        base_options()
+        |> Keyword.put(:scope, scope)
+        |> Keyword.put(:tenant, "explicit")
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.tenant == "explicit"
+    end
+
+    test "scope context (e.g. timezone) is baked onto query" do
+      scope = %TestScope{current_user: nil, current_tenant: nil, tz: "Australia/Brisbane"}
+      QueryBuilder.build_and_execute(TestUser, Keyword.put(base_options(), :scope, scope))
+
+      assert_received {:ash_read_called, query, _opts}
+      assert get_in(query.context, [:shared, :tz]) == "Australia/Brisbane"
+    end
+
+    test "explicit actor: nil is treated as 'not supplied' — scope's actor still wins" do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: nil, tz: nil}
+
+      options =
+        base_options()
+        |> Keyword.put(:scope, scope)
+        |> Keyword.put(:actor, nil)
+
+      QueryBuilder.build_and_execute(TestUser, options)
+
+      assert_received {:ash_read_called, query, _opts}
+      assert get_in(query.context, [:private, :actor]) == :scope_actor
+    end
+
+    test "no actor, no scope leaves no actor on query" do
+      QueryBuilder.build_and_execute(TestUser, base_options())
+
+      assert_received {:ash_read_called, query, _opts}
+      assert get_in(query.context, [:private, :actor]) == nil
+    end
+
+    test "no tenant, no scope leaves no tenant on query" do
+      QueryBuilder.build_and_execute(TestUser, base_options())
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.tenant == nil
+    end
+
+    test "for_read is called with the resource's primary read action by default" do
+      QueryBuilder.build_and_execute(TestUser, base_options())
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.action.name == :read
+    end
+
+    test "explicit action option selects that action for an unprepared query" do
+      options = Keyword.put(base_options(), :action, :read)
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          QueryBuilder.build_and_execute(TestUser, options)
+        end)
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.action.name == :read
+      # No mismatch warning — the warning is reserved for the pre-prepared path.
+      refute log =~ "ignoring explicit"
+    end
+  end
+
+  describe "scope, actor, and tenant — pre-prepared query" do
+    # For pre-prepared queries (query.action != nil), Cinder must NOT mutate the
+    # auth setup the caller already baked in. Explicit overrides still take
+    # effect, but they reach Ash.read via opts — the query struct is untouched.
+
+    setup do
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn query, opts ->
+        send(test_pid, {:ash_read_called, query, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      :ok
+    end
+
+    test "query's actor is preserved when no explicit actor is given" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+      QueryBuilder.build_and_execute(prepared, base_options())
+
+      assert_received {:ash_read_called, query, _opts}
+      assert get_in(query.context, [:private, :actor]) == :alice
+    end
+
+    test "explicit actor reaches Ash.read via opts; query struct keeps its actor" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+
+      QueryBuilder.build_and_execute(
+        prepared,
+        Keyword.put(base_options(), :actor, :bob)
+      )
+
+      assert_received {:ash_read_called, query, opts}
+      # Query struct unchanged: canonical actor still alice...
+      assert get_in(query.context, [:private, :actor]) == :alice
+      # ...and Cinder did NOT scribble :bob into the non-canonical context[:actor]
+      # location (the mutation we removed in this refactor).
+      refute Map.has_key?(query.context, :actor)
+      # Explicit override flows through opts; Ash resolves precedence at read time
+      assert Keyword.get(opts, :actor) == :bob
+    end
+
+    test "explicit tenant reaches Ash.read via opts; query struct keeps its tenant" do
+      prepared =
+        TestUser
+        |> Ash.Query.for_read(:read, %{}, actor: :alice)
+        |> Ash.Query.set_tenant("query_tenant")
+
+      QueryBuilder.build_and_execute(
+        prepared,
+        Keyword.put(base_options(), :tenant, "explicit_tenant")
+      )
+
+      assert_received {:ash_read_called, query, opts}
+      assert query.tenant == "query_tenant"
+      assert Keyword.get(opts, :tenant) == "explicit_tenant"
+    end
+
+    test "scope reaches Ash.read via opts; query struct is not mutated" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+      scope = %TestScope{current_user: :scope_actor, current_tenant: nil, tz: "UTC"}
+
+      QueryBuilder.build_and_execute(
+        prepared,
+        Keyword.put(base_options(), :scope, scope)
+      )
+
+      assert_received {:ash_read_called, query, opts}
+      # Query untouched: alice still on it, no scope context bleed onto it
+      assert get_in(query.context, [:private, :actor]) == :alice
+      assert get_in(query.context, [:shared, :tz]) == nil
+      # Scope flows to Ash.read so the read still honors it
+      assert Keyword.get(opts, :scope) == scope
+    end
+
+    test "scope's actor wins over a pre-prepared query's actor (Ash precedence)" do
+      # Regression guard for Ash's documented behavior: when opts include
+      # `scope:` but no explicit `actor:`, scope's actor flows to opts via
+      # `apply_scope_to_opts`, and `set_context_and_get_opts` then sees opts
+      # already has `:actor` (from scope) and skips the query's actor.
+      # Cinder relies on this — if a future refactor starts re-extracting
+      # scope's actor on our side, this test catches it.
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice_from_query)
+      scope = %TestScope{current_user: :bob_from_scope, current_tenant: nil, tz: nil}
+
+      QueryBuilder.build_and_execute(prepared, Keyword.put(base_options(), :scope, scope))
+
+      assert_received {:ash_read_called, query, opts}
+      # Cinder didn't mutate the query
+      assert get_in(query.context, [:private, :actor]) == :alice_from_query
+      # Scope flows raw to Ash.read; Ash resolves precedence at read time
+      assert Keyword.get(opts, :scope) == scope
+    end
+
+    test "Cinder filters are still applied on top of a pre-prepared query" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+
+      filters = %{
+        "name" => %{type: :text, value: "John", operator: :contains}
+      }
+
+      columns = [
+        %{field: "name", filterable: true, filter_type: :text, filter_fn: nil}
+      ]
+
+      options =
+        base_options()
+        |> Keyword.put(:filters, filters)
+        |> Keyword.put(:columns, columns)
+
+      QueryBuilder.build_and_execute(prepared, options)
+
+      assert_received {:ash_read_called, query, _opts}
+      # User's prep preserved
+      assert get_in(query.context, [:private, :actor]) == :alice
+      # Cinder's filter applied
+      assert query.filter != nil
+    end
+
+    test "explicit action option is ignored when query is already prepared (with warning)" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+      options = Keyword.put(base_options(), :action, :some_other_action)
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          QueryBuilder.build_and_execute(prepared, options)
+        end)
+
+      assert_received {:ash_read_called, query, _opts}
+      # Query keeps its action
+      assert query.action.name == :read
+      # Warning fires explaining the override was ignored
+      assert log =~ "ignoring explicit"
+      assert log =~ ":some_other_action"
+      assert log =~ ":read"
+    end
+
+    test "matching action option fires no warning" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+      options = Keyword.put(base_options(), :action, :read)
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          QueryBuilder.build_and_execute(prepared, options)
+        end)
+
+      assert_received {:ash_read_called, query, _opts}
+      assert query.action.name == :read
+      refute log =~ "ignoring explicit"
+    end
+
+    test "no action option, no warning" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          QueryBuilder.build_and_execute(prepared, base_options())
+        end)
+
+      refute log =~ "ignoring explicit"
+    end
+  end
+
+  describe "scope, actor, and tenant — opts to Ash.read" do
+    # Verifies that auth opts also pass through to Ash.read so that explicit
+    # overrides apply correctly during the read itself.
+
+    setup do
+      test_pid = self()
+
+      Ash
+      |> expect(:read, fn query, opts ->
+        send(test_pid, {:ash_read_called, query, opts})
+        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
+      end)
+
+      :ok
+    end
+
+    test "nil actor/tenant/scope are filtered before reaching Ash.read" do
+      QueryBuilder.build_and_execute(TestUser, base_options())
+
+      assert_received {:ash_read_called, _query, opts}
+      refute Keyword.has_key?(opts, :actor)
+      refute Keyword.has_key?(opts, :tenant)
+      refute Keyword.has_key?(opts, :scope)
+    end
+
+    test "explicit actor flows through to Ash.read" do
+      QueryBuilder.build_and_execute(TestUser, Keyword.put(base_options(), :actor, :alice))
+
+      assert_received {:ash_read_called, _query, opts}
+      assert Keyword.get(opts, :actor) == :alice
+    end
+
+    test "scope flows through to Ash.read intact" do
+      scope = %TestScope{current_user: :scope_actor, current_tenant: nil, tz: "UTC"}
+      QueryBuilder.build_and_execute(TestUser, Keyword.put(base_options(), :scope, scope))
+
+      assert_received {:ash_read_called, _query, opts}
+      assert Keyword.get(opts, :scope) == scope
+    end
+  end
+
+  describe "build_query/2 — query exposed via on_query_change" do
+    # Cinder's LiveComponent emits the result of `build_query/2` to host
+    # LiveViews via `on_query_change`. The CHANGELOG and docs make two
+    # promises about that query:
+    #
+    #   1. For an unprepared resource, scope-supplied context (e.g. tz) and
+    #      the actor are baked onto the returned query.
+    #   2. For a pre-prepared query, the auth setup the caller baked in
+    #      is preserved verbatim — Cinder does not scribble scope on it.
+    #
+    # These tests lock in both, so a future refactor that only sets auth at
+    # `Ash.read` time can't silently break the on_query_change contract.
+
+    test "resource form: scope context (e.g. tz) is baked onto the returned query" do
+      scope = %TestScope{current_user: :alice, current_tenant: nil, tz: "Australia/Brisbane"}
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        columns: [],
+        query_opts: []
+      ]
+
+      assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(TestUser, options)
+      assert get_in(query.context, [:shared, :tz]) == "Australia/Brisbane"
+      assert get_in(query.context, [:private, :actor]) == :alice
+    end
+
+    test "resource form: explicit actor/tenant are baked onto the returned query" do
+      options = [
+        actor: :bob,
+        tenant: "t1",
+        scope: nil,
+        filters: %{},
+        sort_by: [],
+        columns: [],
+        query_opts: []
+      ]
+
+      assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(TestUser, options)
+      assert get_in(query.context, [:private, :actor]) == :bob
+      assert query.tenant == "t1"
+    end
+
+    test "pre-prepared query: scope context does NOT bleed onto the returned query" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+      scope = %TestScope{current_user: :scope_actor, current_tenant: nil, tz: "UTC"}
+
+      options = [
+        actor: nil,
+        tenant: nil,
+        scope: scope,
+        filters: %{},
+        sort_by: [],
+        columns: [],
+        query_opts: []
+      ]
+
+      assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(prepared, options)
+      # User's actor preserved verbatim, scope's tz did not get merged in.
+      assert get_in(query.context, [:private, :actor]) == :alice
+      assert get_in(query.context, [:shared, :tz]) == nil
+    end
+
+    test "pre-prepared query: explicit actor does NOT mutate the returned query" do
+      prepared = Ash.Query.for_read(TestUser, :read, %{}, actor: :alice)
+
+      options = [
+        actor: :bob,
+        tenant: nil,
+        scope: nil,
+        filters: %{},
+        sort_by: [],
+        columns: [],
+        query_opts: []
+      ]
+
+      assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(prepared, options)
+      # Query keeps alice — :bob only takes effect via opts to Ash.read.
+      assert get_in(query.context, [:private, :actor]) == :alice
     end
   end
 

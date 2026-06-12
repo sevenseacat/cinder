@@ -260,6 +260,19 @@ defmodule Cinder.ControlsTest do
 
       assert html =~ "invisible"
     end
+
+    test "search label has no trailing colon by default" do
+      controls = Controls.build_controls_data(base_assigns(%{show_search: true}))
+
+      html =
+        render_component(&Controls.render_search/1, %{
+          search: controls.search,
+          theme: base_theme()
+        })
+
+      assert html =~ "Search</label>"
+      refute html =~ "Search:"
+    end
   end
 
   # ============================================================================
@@ -290,8 +303,7 @@ defmodule Cinder.ControlsTest do
       html = render_header(%{active_filter_count: 2})
 
       assert html =~ "Filters"
-      assert html =~ "(2"
-      assert html =~ "active"
+      assert html =~ "2 active"
       assert html =~ "clear_all_filters"
       assert html =~ "Clear all"
       refute html =~ "invisible"

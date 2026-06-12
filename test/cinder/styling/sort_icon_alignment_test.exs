@@ -131,7 +131,7 @@ defmodule Cinder.SortIconAlignmentTest do
     end
 
     test "sort icons render with improved alignment" do
-      # Test the sort_arrow component structure
+      # Verify the theme properties the SortIcon component renders with
       theme = Cinder.Theme.merge("modern")
 
       # We can't easily test the actual rendering without a full LiveView setup,
