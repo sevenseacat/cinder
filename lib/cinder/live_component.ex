@@ -105,6 +105,7 @@ defmodule Cinder.LiveComponent do
       |> assign_defaults()
       |> assign_column_definitions()
       |> decode_url_state(assigns)
+      |> seed_default_filters()
       |> load_data_if_needed(prev_state)
 
     {:ok, socket}
@@ -265,7 +266,10 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("clear_filter", %{"key" => key}, socket) do
-    new_filters = Cinder.FilterManager.clear_filter(socket.assigns.filters, key)
+    new_filters =
+      socket.assigns.filters
+      |> Cinder.FilterManager.clear_filter(key)
+      |> Cinder.FilterManager.apply_defaults(socket.assigns.query_columns)
 
     # Also clear the autocomplete search term for this field
     raw_filter_params = Map.get(socket.assigns, :raw_filter_params, %{})
@@ -332,7 +336,10 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("clear_all_filters", _params, socket) do
-    new_filters = Cinder.FilterManager.clear_all_filters(socket.assigns.filters)
+    new_filters =
+      socket.assigns.filters
+      |> Cinder.FilterManager.clear_all_filters()
+      |> Cinder.FilterManager.apply_defaults(socket.assigns.query_columns)
 
     socket =
       socket
@@ -426,6 +433,7 @@ defmodule Cinder.LiveComponent do
     new_filters =
       raw_filter_params
       |> Cinder.FilterManager.params_to_filters(query_columns)
+      |> Cinder.FilterManager.apply_defaults(query_columns)
 
     search_term =
       case Map.get(params, "search") do
@@ -783,6 +791,16 @@ defmodule Cinder.LiveComponent do
 
   defp maybe_assign_cursor(socket, _key, nil), do: socket
   defp maybe_assign_cursor(socket, key, cursor), do: assign(socket, key, cursor)
+
+  defp seed_default_filters(socket) do
+    filters =
+      Cinder.FilterManager.apply_defaults(
+        socket.assigns.filters,
+        socket.assigns.query_columns
+      )
+
+    assign(socket, :filters, filters)
+  end
 
   defp decode_url_state_legacy(socket, assigns) do
     url_params =

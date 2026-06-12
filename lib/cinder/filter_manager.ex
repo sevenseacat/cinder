@@ -384,6 +384,32 @@ defmodule Cinder.FilterManager do
   end
 
   @doc """
+  Seeds default filter values for any filterable column that declares a
+  `default:` option and is not already present in the filter state.
+
+  The default (a `%Date{}` or a raw value the column's filter understands) is
+  run through the column's `process/2`, so it produces the same structure a
+  user-entered value would. Existing filters are never overwritten.
+  """
+  def apply_defaults(filters, columns) do
+    columns
+    |> Enum.filter(& &1.filterable)
+    |> Enum.reduce(filters, fn column, acc ->
+      case default_filter_value(column) do
+        nil -> acc
+        processed -> Map.put_new(acc, column.field, processed)
+      end
+    end)
+  end
+
+  defp default_filter_value(column) do
+    case Keyword.get(column.filter_options || [], :default) do
+      default when default in [nil, ""] -> nil
+      default -> process_filter_value(default, column)
+    end
+  end
+
+  @doc """
   Counts the number of active filters.
   """
   def count_active_filters(filters) do
