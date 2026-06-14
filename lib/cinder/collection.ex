@@ -229,6 +229,13 @@ defmodule Cinder.Collection do
     doc: "Function to call when a row/item is clicked. Receives the item as argument."
   )
 
+  attr(:item_class, :any,
+    default: nil,
+    doc:
+      "CSS class(es) for each row/item. A string, or a `fn item -> class end` function " <>
+        "evaluated per item, appended to the theme's row/item class."
+  )
+
   attr(:id_field, :atom,
     default: :id,
     doc: "Field to use as ID for update_if_visible operations (defaults to :id)"
@@ -491,6 +498,7 @@ defmodule Cinder.Collection do
         query_columns={@query_columns}
         row_click={@row_click}
         item_click={@item_click}
+        item_class={@item_class}
         item_slot={@item_slot}
         container_class={@container_class}
         grid_columns={@grid_columns}

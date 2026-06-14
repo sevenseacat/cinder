@@ -140,6 +140,7 @@ Filter on fields without displaying them as columns:
 - `page_size={[default: 25, options: [10, 25, 50, 100]]}` - configurable with dropdown
 - `url_state={@url_state}` - enable URL synchronization
 - `click={fn item -> JS.navigate(~p"/path/#{item.id}") end}` - row/item click handler
+- `item_class={fn item -> if item.urgent, do: "bg-red-50" end}` - per-row/item class (string or function), appended to the theme class
 - `query_opts={[timeout: 30_000, load: [:association]]}` - Ash query options
 - `tenant={@tenant}` - multi-tenancy support
 - `scope={@scope}` - Ash scope for authorization context

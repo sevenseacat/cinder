@@ -6,6 +6,10 @@
 
 * Removed the `sort_asc_icon`, `sort_desc_icon`, and `sort_icon_class` theme properties — list and grid layouts now render the same Heroicon sort indicators as the table (configured via `sort_*_icon_name`/`sort_*_icon_class`). See the [upgrading guide](docs/upgrading.md) for details.
 
+### Features
+
+* Added `item_class` on `<Cinder.collection>` (and `<Cinder.Table.table>`) to set a per-row/item class: a string, or a `fn item -> class end` function evaluated per item, appended to the theme's row/item class.
+
 ### Bugfixes
 
 * `*_nils_first`/`*_nils_last` sort methods now render an icon in list and grid views.

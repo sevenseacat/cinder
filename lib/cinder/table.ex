@@ -69,6 +69,12 @@ defmodule Cinder.Table do
   attr :class, :string, default: "", doc: "Additional CSS classes"
   attr :row_click, :any, default: nil, doc: "Function to call when a row is clicked"
 
+  attr :item_class, :any,
+    default: nil,
+    doc:
+      "CSS class(es) for each row. A string, or a `fn item -> class end` function " <>
+        "evaluated per row, appended to the theme's row class."
+
   slot :col do
     attr :field, :string
     attr :filter, :any
