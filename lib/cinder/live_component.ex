@@ -941,6 +941,8 @@ defmodule Cinder.LiveComponent do
 
     socket
     |> assign(:column_preferences?, prefs_on?)
+    |> assign(:show_prefs, assigns[:show_prefs] || false)
+    |> assign(:header_trigger, assigns[:header_trigger] != false)
     |> assign(:on_columns_change, assigns[:on_columns_change])
     |> assign_new(:column_preferences, fn ->
       Cinder.ColumnPreferences.from_columns(assigns[:col] || [])
@@ -1020,7 +1022,23 @@ defmodule Cinder.LiveComponent do
   defp drawer_columns(declared, _visible, false, _prefs), do: declared
 
   defp drawer_columns(declared, visible, true, prefs) do
-    visible ++ Enum.filter(declared, &MapSet.member?(prefs.hidden, &1.field))
+    (visible ++ Enum.filter(declared, &MapSet.member?(prefs.hidden, &1.field)))
+    |> Enum.reject(&is_nil(&1.field))
+    |> dedupe_by_field()
+  end
+
+  # Preferences key on field, so a field maps to one drawer entry even when
+  # several columns share it (e.g. a visible column plus a hidden filter-only
+  # column). Keep declared order; prefer a column that isn't CSS-hidden so the
+  # entry shows the meaningful label.
+  defp dedupe_by_field(columns) do
+    columns
+    |> Enum.map(& &1.field)
+    |> Enum.uniq()
+    |> Enum.map(fn field ->
+      same_field = Enum.filter(columns, &(&1.field == field))
+      Enum.find(same_field, hd(same_field), &(not String.contains?(&1.class || "", "hidden")))
+    end)
   end
 
   # Columns used for filtering and searching. Cinder.Collection populates this

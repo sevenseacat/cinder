@@ -284,7 +284,8 @@ defmodule Cinder.Themes.Retro do
   set :column_prefs_checkbox_class,
       "h-4 w-4 bg-gray-800 border-2 border-cyan-400 checked:bg-fuchsia-500 checked:border-fuchsia-400 focus:ring-fuchsia-400 focus:ring-1 cursor-pointer disabled:cursor-not-allowed"
 
-  set :column_prefs_label_class, "flex-1 text-sm font-bold uppercase tracking-wide text-cyan-100 select-none"
+  set :column_prefs_label_class,
+      "flex-1 text-sm font-bold uppercase tracking-wide text-cyan-100 select-none"
 
   set :column_prefs_footer_class,
       "border-t-2 border-cyan-400 px-4 py-3 flex justify-between"

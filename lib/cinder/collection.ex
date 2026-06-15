@@ -248,7 +248,19 @@ defmodule Cinder.Collection do
   attr(:column_preferences?, :boolean,
     default: false,
     doc:
-      "Enable user-editable column visibility and ordering. When true, an \"Edit columns\" control is rendered, prefs are persisted to localStorage by table id, and on_columns_change fires on every change. Requires a stable :id."
+      "Enable user-editable column visibility and ordering. When true, the last action column's header becomes a \"Columns\" trigger that opens the prefs drawer, prefs are persisted to localStorage by table id, and on_columns_change fires on every change. Requires a stable :id."
+  )
+
+  attr(:show_prefs, :boolean,
+    default: false,
+    doc:
+      "When true (and column_preferences? is on), also render a standalone \"Columns\" button at the top-right, in addition to the header trigger."
+  )
+
+  attr(:header_trigger, :boolean,
+    default: true,
+    doc:
+      "When true (default), the last fieldless action column's header becomes the prefs trigger. Set false for tables whose last column is data (not an action) and use show_prefs instead."
   )
 
   attr(:on_columns_change, :any,
@@ -379,6 +391,13 @@ defmodule Cinder.Collection do
   slot(:empty, required: false, doc: "Custom empty state content")
   slot(:error, required: false, doc: "Custom error state content")
 
+  slot(:columns_trigger,
+    required: false,
+    doc:
+      "Custom markup for the column-preferences trigger (rendered in the last action column's header when column_preferences? is on). " <>
+        "Receives %{toggle: js, open?: boolean} via :let — bind toggle to your button's phx-click. Falls back to a themed default button."
+  )
+
   def collection(assigns) do
     assigns =
       assigns
@@ -391,6 +410,8 @@ defmodule Cinder.Collection do
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:on_query_change, fn -> nil end)
       |> assign_new(:column_preferences?, fn -> false end)
+      |> assign_new(:show_prefs, fn -> false end)
+      |> assign_new(:header_trigger, fn -> true end)
       |> assign_new(:on_columns_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
       |> assign(:loading_message, assigns[:loading_message] || dgettext("cinder", "Loading..."))
@@ -457,6 +478,7 @@ defmodule Cinder.Collection do
     loading_slot = Map.get(assigns, :loading, [])
     empty_slot = Map.get(assigns, :empty, [])
     error_slot = Map.get(assigns, :error, [])
+    columns_trigger_slot = Map.get(assigns, :columns_trigger, [])
 
     # Resolve theme
     resolved_theme = resolve_theme(assigns.theme)
@@ -485,6 +507,7 @@ defmodule Cinder.Collection do
       |> assign(:loading_slot, loading_slot)
       |> assign(:empty_slot, empty_slot)
       |> assign(:error_slot, error_slot)
+      |> assign(:columns_trigger_slot, columns_trigger_slot)
       |> assign(:row_click, row_click)
       |> assign(:item_click, item_click)
       |> assign(:resolved_theme, resolved_theme)
@@ -518,6 +541,7 @@ defmodule Cinder.Collection do
         loading_slot={@loading_slot}
         empty_slot={@empty_slot}
         error_slot={@error_slot}
+        columns_trigger_slot={@columns_trigger_slot}
         col={@processed_columns}
         query_columns={@query_columns}
         row_click={@row_click}
@@ -535,6 +559,8 @@ defmodule Cinder.Collection do
         on_selection_change={@on_selection_change}
         on_query_change={@on_query_change}
         column_preferences?={@column_preferences?}
+        show_prefs={@show_prefs}
+        header_trigger={@header_trigger}
         on_columns_change={@on_columns_change}
         bulk_action_slots={@bulk_action_slots}
         sort_mode={@sort_mode}

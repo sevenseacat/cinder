@@ -10,6 +10,8 @@ defmodule Cinder.Renderers.ColumnPrefs do
   use Phoenix.Component
   use Cinder.Messages
 
+  import Cinder.Renderers.Helpers, only: [columns_icon: 1]
+
   attr(:id, :string, required: true, doc: "Cinder table id; used as localStorage key")
   attr(:myself, :any, required: true, doc: "LiveComponent CID for phx-target")
 
@@ -19,6 +21,12 @@ defmodule Cinder.Renderers.ColumnPrefs do
   )
 
   attr(:open?, :boolean, default: false, doc: "Whether the drawer is open")
+
+  attr(:show_button, :boolean,
+    default: false,
+    doc:
+      "Render the standalone top-right \"Columns\" button. The drawer is always reachable via the last action column's header trigger; this appends an extra button."
+  )
 
   attr(:drawer_columns, :list,
     default: [],
@@ -43,6 +51,7 @@ defmodule Cinder.Renderers.ColumnPrefs do
       />
 
       <button
+        :if={@show_button}
         type="button"
         phx-click="toggle_column_prefs_drawer"
         phx-target={@myself}
@@ -50,16 +59,10 @@ defmodule Cinder.Renderers.ColumnPrefs do
         data-key="column_prefs_button_class"
         aria-haspopup="dialog"
         aria-expanded={to_string(@open?)}
-        title={dgettext("cinder", "Edit columns")}
+        title={dgettext("cinder", "Columns")}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-             stroke-width="1.5" stroke="currentColor"
-             class={@theme.column_prefs_button_icon_class}
-             data-key="column_prefs_button_icon_class">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-        </svg>
-        <span>{dgettext("cinder", "Edit columns")}</span>
+        <.columns_icon class={@theme.column_prefs_button_icon_class} />
+        <span>{dgettext("cinder", "Columns")}</span>
       </button>
 
       <div

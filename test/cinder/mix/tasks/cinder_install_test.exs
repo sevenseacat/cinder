@@ -163,7 +163,8 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
       end
 
       test "does not mangle other JSON keys" do
-        content = ~s({\n  "name": "demo",\n  "version": "1.0.0",\n  "dependencies": {\n    "phoenix": "^1.7"\n  }\n})
+        content =
+          ~s({\n  "name": "demo",\n  "version": "1.0.0",\n  "dependencies": {\n    "phoenix": "^1.7"\n  }\n})
 
         result = Mix.Tasks.Cinder.Install.inject_into_dependencies(content, "cinder", "0.1.0")
 

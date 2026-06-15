@@ -238,6 +238,9 @@ defmodule Cinder.Themes.Dark do
   set :column_prefs_button_class,
       "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-700 hover:border-gray-500 transition-colors duration-150"
 
+  set :column_prefs_header_trigger_class,
+      "inline-flex items-center gap-1 cursor-pointer select-none text-gray-200 hover:text-white transition-colors duration-150"
+
   set :column_prefs_panel_class,
       "fixed top-0 right-0 h-full w-80 max-w-full bg-gray-900 text-gray-200 border-l border-gray-700 shadow-2xl flex flex-col z-50 transition-transform duration-300 ease-in-out"
 

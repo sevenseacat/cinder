@@ -127,6 +127,7 @@ defmodule Cinder.ColumnPrefsRenderTest do
         theme: theme,
         enabled: true,
         open?: false,
+        show_button: true,
         drawer_columns: [col("name")],
         prefs: ColumnPreferences.empty()
       }
@@ -135,6 +136,25 @@ defmodule Cinder.ColumnPrefsRenderTest do
 
       assert html =~ "custom-prefs-btn-xyz"
       assert html =~ ~s(data-key="column_prefs_button_class")
+    end
+
+    test "standalone button is opt-in via show_button" do
+      base = %{
+        id: "users",
+        myself: 1,
+        theme: Theme.default(),
+        enabled: true,
+        open?: false,
+        drawer_columns: [col("name")],
+        prefs: ColumnPreferences.empty()
+      }
+
+      without_button = render_component(&ColumnPrefs.render/1, base)
+      with_button = render_component(&ColumnPrefs.render/1, Map.put(base, :show_button, true))
+
+      refute without_button =~ ~s(data-key="column_prefs_button_class")
+      assert with_button =~ ~s(data-key="column_prefs_button_class")
+      assert with_button =~ "Columns"
     end
   end
 

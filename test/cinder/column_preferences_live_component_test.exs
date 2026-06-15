@@ -16,7 +16,7 @@ defmodule Cinder.ColumnPreferencesLiveComponentTest do
       default_visible: Keyword.get(opts, :default_visible, true),
       filterable: false,
       sortable: false,
-      class: ""
+      class: Keyword.get(opts, :class, "")
     }
   end
 
@@ -103,6 +103,34 @@ defmodule Cinder.ColumnPreferencesLiveComponentTest do
 
       drawer_fields = Enum.map(socket.assigns.prefs_drawer_columns, & &1.field)
       assert drawer_fields == ["d", "a", "b", "c"]
+    end
+
+    test "columns sharing a field collapse to one drawer entry (prefer non-hidden)" do
+      visible = col("eta", class: "")
+      shim = col("eta", class: "hidden")
+      cols = [shim, col("name"), visible]
+      socket = make_socket(columns: cols)
+
+      {:noreply, socket} =
+        LiveComponent.handle_event("toggle_column_visibility", %{"field" => "name"}, socket)
+
+      drawer = socket.assigns.prefs_drawer_columns
+      eta_entries = Enum.filter(drawer, &(&1.field == "eta"))
+      assert length(eta_entries) == 1
+      assert hd(eta_entries).class == ""
+    end
+
+    test "fieldless action columns are excluded from the drawer" do
+      action = col(nil, hideable: false, reorderable: false)
+      cols = [col("a"), col("b"), action]
+      socket = make_socket(columns: cols)
+
+      {:noreply, socket} =
+        LiveComponent.handle_event("toggle_column_visibility", %{"field" => "a"}, socket)
+
+      drawer_fields = Enum.map(socket.assigns.prefs_drawer_columns, & &1.field)
+      assert drawer_fields == ["b", "a"]
+      refute nil in drawer_fields
     end
   end
 

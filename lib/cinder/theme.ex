@@ -190,6 +190,8 @@ defmodule Cinder.Theme do
     column_prefs_button_class:
       "inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded text-gray-900 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700",
     column_prefs_button_icon_class: "w-4 h-4",
+    column_prefs_header_trigger_class:
+      "inline-flex items-center gap-1 cursor-pointer select-none text-gray-900 hover:text-gray-600 dark:text-white dark:hover:text-gray-300",
     column_prefs_backdrop_class:
       "fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ease-in-out",
     column_prefs_panel_class:

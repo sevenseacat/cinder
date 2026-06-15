@@ -47,6 +47,7 @@ defmodule Cinder.Renderers.Table do
         myself={@myself}
         theme={@theme}
         enabled={Map.get(assigns, :column_preferences?, false)}
+        show_button={Map.get(assigns, :show_prefs, false)}
         open?={Map.get(assigns, :column_prefs_drawer_open?, false)}
         drawer_columns={Map.get(assigns, :prefs_drawer_columns, Map.get(assigns, :declared_columns, @columns))}
         prefs={Map.get(assigns, :column_preferences, Cinder.ColumnPreferences.empty())}
@@ -80,19 +81,16 @@ defmodule Cinder.Renderers.Table do
                 />
               </th>
               <th :for={column <- @columns} class={[@theme.th_class, column.class]} data-key="th_class">
-                <div :if={column.sortable}
-                     class={["cursor-pointer select-none", (@loading && @theme.loading_row_class || "")]}
-                     phx-click="toggle_sort"
-                     phx-value-key={column.field}
-                     phx-target={@myself}>
-                     {column.label}
-                     <span class={@theme.sort_indicator_class} data-key="sort_indicator_class">
-                       <SortIcon.sort_icon sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@loading} />
-                     </span>
-                </div>
-                <div :if={not column.sortable}>
-                  {column.label}
-                </div>
+                <.header_content
+                  variant={header_variant(column, @columns, assigns)}
+                  column={column}
+                  theme={@theme}
+                  myself={@myself}
+                  loading={@loading}
+                  sort_by={@sort_by}
+                  drawer_open?={Map.get(assigns, :column_prefs_drawer_open?, false)}
+                  trigger_slot={Map.get(assigns, :columns_trigger_slot, [])}
+                />
               </th>
             </tr>
           </thead>
@@ -173,6 +171,72 @@ defmodule Cinder.Renderers.Table do
   end
 
   # ============================================================================
+  # HEADER CELL
+  # ============================================================================
+
+  attr :variant, :atom, required: true
+  attr :column, :map, required: true
+  attr :theme, :map, required: true
+  attr :myself, :any, required: true
+  attr :loading, :boolean, required: true
+  attr :sort_by, :any, required: true
+  attr :drawer_open?, :boolean, default: false
+  attr :trigger_slot, :list, default: []
+
+  defp header_content(%{variant: :columns_trigger, trigger_slot: []} = assigns) do
+    ~H"""
+    <div class="flex justify-end">
+      <button
+        type="button"
+        phx-click="toggle_column_prefs_drawer"
+        phx-target={@myself}
+        class={@theme.column_prefs_header_trigger_class}
+        data-key="column_prefs_header_trigger_class"
+        aria-haspopup="dialog"
+      >
+        <.columns_icon class={@theme.column_prefs_button_icon_class} />
+        <span>{dgettext("cinder", "Columns")}</span>
+      </button>
+    </div>
+    """
+  end
+
+  defp header_content(%{variant: :columns_trigger} = assigns) do
+    ~H"""
+    {render_slot(@trigger_slot, %{
+      toggle: Phoenix.LiveView.JS.push("toggle_column_prefs_drawer", target: @myself),
+      open?: @drawer_open?
+    })}
+    """
+  end
+
+  defp header_content(%{variant: :sortable} = assigns) do
+    ~H"""
+    <div
+      class={["cursor-pointer select-none", (@loading && @theme.loading_row_class || "")]}
+      phx-click="toggle_sort"
+      phx-value-key={@column.field}
+      phx-target={@myself}
+    >
+      {@column.label}
+      <span class={@theme.sort_indicator_class} data-key="sort_indicator_class">
+        <SortIcon.sort_icon
+          sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, @column.field)}
+          theme={@theme}
+          loading={@loading}
+        />
+      </span>
+    </div>
+    """
+  end
+
+  defp header_content(%{variant: :plain} = assigns) do
+    ~H"""
+    <div>{@column.label}</div>
+    """
+  end
+
+  # ============================================================================
   # HELPER FUNCTIONS
   # ============================================================================
 
@@ -213,6 +277,19 @@ defmodule Cinder.Renderers.Table do
     do: "invisible"
 
   defp prefs_hydration_class(_assigns), do: ""
+
+  defp header_variant(column, columns, assigns) do
+    cond do
+      prefs_trigger?(column, columns, assigns) -> :columns_trigger
+      column.sortable -> :sortable
+      true -> :plain
+    end
+  end
+
+  defp prefs_trigger?(column, columns, assigns) do
+    Map.get(assigns, :column_preferences?, false) and Map.get(assigns, :header_trigger, true) and
+      is_nil(column.field) and column == List.last(columns)
+  end
 
   defp item_selected?(selected_ids, item, id_field) do
     id = to_string(Map.get(item, id_field))

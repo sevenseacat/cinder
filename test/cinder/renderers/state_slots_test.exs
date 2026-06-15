@@ -29,6 +29,7 @@ defmodule Cinder.Renderers.StateSlotsTest do
       th_class: "th",
       td_class: "td",
       row_class: "row",
+      loading_row_class: "loading-row",
       header_row_class: "header-row",
       sort_indicator_class: "sort-indicator",
       list_container_class: "list-container",

@@ -56,6 +56,89 @@ defmodule Cinder.Renderers.TableSelectionTest do
     }
   end
 
+  describe "column prefs header trigger" do
+    test "last fieldless action column header renders the Columns trigger when prefs are on" do
+      action_slot = %{__slot__: :col, field: nil, inner_block: fn _, _item -> "" end}
+
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          column_preferences?: true,
+          columns: [
+            %{field: :name, label: "Name", sortable: false, class: nil, slot: action_slot},
+            %{field: nil, label: "Edit", sortable: false, class: nil, slot: action_slot}
+          ]
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ ~s(phx-click="toggle_column_prefs_drawer")
+      assert html =~ ~s(data-key="column_prefs_header_trigger_class")
+      assert html =~ ~s(viewBox="0 0 8 7")
+      assert html =~ "Columns"
+    end
+
+    test "columns_trigger slot replaces the default trigger button" do
+      action_slot = %{__slot__: :col, field: nil, inner_block: fn _, _item -> "" end}
+
+      trigger_slot = [
+        %{__slot__: :columns_trigger, inner_block: fn _, _ -> "MY CUSTOM TRIGGER" end}
+      ]
+
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          column_preferences?: true,
+          columns_trigger_slot: trigger_slot,
+          columns: [
+            %{field: :name, label: "Name", sortable: false, class: nil, slot: action_slot},
+            %{field: nil, label: "Edit", sortable: false, class: nil, slot: action_slot}
+          ]
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ "MY CUSTOM TRIGGER"
+      refute html =~ ~s(data-key="column_prefs_header_trigger_class")
+    end
+
+    test "header_trigger=false suppresses the header trigger on a fieldless last column" do
+      action_slot = %{__slot__: :col, field: nil, inner_block: fn _, _item -> "" end}
+
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          column_preferences?: true,
+          header_trigger: false,
+          columns: [
+            %{field: :name, label: "Name", sortable: false, class: nil, slot: action_slot},
+            %{field: nil, label: "Status", sortable: false, class: nil, slot: action_slot}
+          ]
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      refute html =~ ~s(data-key="column_prefs_header_trigger_class")
+      assert html =~ "Status"
+    end
+
+    test "no header trigger when column preferences are off" do
+      action_slot = %{__slot__: :col, field: nil, inner_block: fn _, _item -> "" end}
+
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          columns: [
+            %{field: nil, label: "Edit", sortable: false, class: nil, slot: action_slot}
+          ]
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      refute html =~ ~s(phx-click="toggle_column_prefs_drawer")
+    end
+  end
+
   describe "table selection rendering" do
     test "renders header checkbox with theme class when selectable=true" do
       assigns =

@@ -63,6 +63,14 @@ defmodule Cinder.Table do
     default: false,
     doc: "Enable end-user column visibility/order editing. See `Cinder.collection`."
 
+  attr :show_prefs, :boolean,
+    default: false,
+    doc: "Render a standalone \"Columns\" button in addition to the header trigger. See `Cinder.collection`."
+
+  attr :header_trigger, :boolean,
+    default: true,
+    doc: "Whether the last action column's header becomes the prefs trigger. See `Cinder.collection`."
+
   attr :on_columns_change, :any,
     default: nil,
     doc: "Event name sent to parent when column prefs change. See `Cinder.collection`."
@@ -99,6 +107,7 @@ defmodule Cinder.Table do
   slot :loading, required: false, doc: "Custom loading state content"
   slot :empty, required: false, doc: "Custom empty state content"
   slot :error, required: false, doc: "Custom error state content"
+  slot :columns_trigger, required: false, doc: "Custom column-preferences trigger markup"
 
   @doc """
   Renders a data table.
