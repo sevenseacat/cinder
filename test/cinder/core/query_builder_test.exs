@@ -924,6 +924,24 @@ defmodule Cinder.QueryBuilderTest do
       assert result.sort == [{:name, :asc}]
     end
 
+    test "sorts by a column's sort_field instead of its field" do
+      query = Ash.Query.new(TestUser)
+      columns = [%Cinder.Column{field: "name", sort_field: "email"}]
+
+      result = QueryBuilder.apply_sorting(query, [{"name", :desc}], columns)
+
+      assert result.sort == [{:email, :desc}]
+    end
+
+    test "combines sort_field with sort_with secondary fields" do
+      query = Ash.Query.new(TestUser)
+      columns = [%Cinder.Column{field: "name", sort_field: "email", sort_with: ["id"]}]
+
+      result = QueryBuilder.apply_sorting(query, [{"name", :asc}], columns)
+
+      assert result.sort == [{:email, :asc}, {:id, :asc}]
+    end
+
     test "collapses duplicate fields keeping the first occurrence" do
       query = Ash.Query.new(TestUser)
       columns = [%Cinder.Column{field: "name", sort_with: ["email"]}]

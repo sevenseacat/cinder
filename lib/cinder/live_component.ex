@@ -1177,6 +1177,7 @@ defmodule Cinder.LiveComponent do
       page_size: page_size,
       current_page: current_page,
       columns: query_columns,
+      sort_columns: columns,
       search_term: search_term,
       search_fn: socket.assigns.search_fn,
       pagination_configured: socket.assigns.page_size_config.configurable || page_size != 25,

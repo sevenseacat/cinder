@@ -290,10 +290,18 @@ defmodule Cinder.Collection do
       doc: "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc]])"
     )
 
+    attr(:sort_field, :string,
+      doc:
+        "Field to sort by instead of this column's `field`, while filtering and display " <>
+          "stay on `field`. Use when a column displays/filters a string but must sort a " <>
+          "different (e.g. numeric) field, such as field=\"stop.friendly_position\" with " <>
+          "sort_field=\"stop.position\"."
+    )
+
     attr(:sort_with, :list,
       doc:
-        "Secondary sort fields applied after this column's field, in the same direction. " <>
-          "Use for tiebreakers, e.g. sort_with={[\"current_stop.inserted\"]} on a position column."
+        "Secondary sort fields applied after this column's sort field, in the same direction. " <>
+          "Use for tiebreakers, e.g. sort_with={[\"stop.inserted\"]} on a position column."
     )
 
     attr(:search, :boolean, doc: "Enable global search on this column")
@@ -601,6 +609,8 @@ defmodule Cinder.Collection do
       base_column_config = %{
         field: field,
         sortable: sort_config.enabled,
+        sort_field: Map.get(slot, :sort_field),
+        sort_with: Map.get(slot, :sort_with, []),
         filterable: filter_attr != false,
         class: Map.get(slot, :class, ""),
         filter_fn: filter_fn,
@@ -670,6 +680,8 @@ defmodule Cinder.Collection do
         filter_type: parsed_column.filter_type,
         filter_options: parsed_column.filter_options,
         sortable: parsed_column.sortable,
+        sort_field: Map.get(parsed_column, :sort_field),
+        sort_with: Map.get(parsed_column, :sort_with, []),
         class: Map.get(slot, :class, ""),
         inner_block: slot[:inner_block] || default_inner_block(field),
         slot: slot,

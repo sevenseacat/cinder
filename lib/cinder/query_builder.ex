@@ -36,6 +36,7 @@ defmodule Cinder.QueryBuilder do
     filters = Keyword.get(options, :filters, %{})
     sort_by = Keyword.get(options, :sort_by, [])
     columns = Keyword.get(options, :columns, [])
+    sort_columns = Keyword.get(options, :sort_columns, columns)
     query_opts = Keyword.get(options, :query_opts, [])
     search_term = Keyword.get(options, :search_term, "")
     search_fn = Keyword.get(options, :search_fn)
@@ -44,10 +45,10 @@ defmodule Cinder.QueryBuilder do
       base_query = Ash.Query.new(resource_or_query)
       resource = base_query.resource
 
-      # Expand secondary (`sort_with`) fields up front so they are validated
-      # alongside the primary sort fields, then pass the already-expanded list
-      # to apply_sorting/2.
-      expanded_sort_by = expand_secondary_sorts(sort_by, columns)
+      # Expand `sort_field`/`sort_with` up front against the sort columns (which
+      # may differ from the filter/search columns) so the resolved fields are
+      # validated alongside the primary sort fields before apply_sorting/2.
+      expanded_sort_by = expand_secondary_sorts(sort_by, sort_columns)
 
       case validate_sortable_fields(expanded_sort_by, resource) do
         :ok ->
@@ -619,21 +620,26 @@ defmodule Cinder.QueryBuilder do
     end
   end
 
-  # Expands each {field, direction} with the matching column's `sort_with`
-  # secondary fields, applied in the same direction directly after the primary.
-  # Duplicate fields are collapsed keeping the first (earliest) occurrence,
-  # matching SQL's "first ORDER BY column wins" semantics. Malformed entries are
-  # passed through untouched for apply_sorting's validation to reject.
+  # Resolves each {field, direction} against its matching column: the primary
+  # field becomes the column's `sort_field` (when set), followed by the column's
+  # `sort_with` secondary fields, all in the same direction. This lets a column
+  # filter/display one field while sorting another (e.g. friendly_position vs
+  # position) with optional tiebreakers. Duplicate fields are collapsed keeping
+  # the first (earliest) occurrence, matching SQL's "first ORDER BY column wins"
+  # semantics. Malformed entries are passed through untouched for apply_sorting's
+  # validation to reject.
   defp expand_secondary_sorts(sort_by, columns) do
     sort_by
     |> Enum.flat_map(fn
       {field, direction} = sort ->
         case Enum.find(columns, &(&1.field == field)) do
-          %{sort_with: [_ | _] = secondary_fields} ->
-            [sort | Enum.map(secondary_fields, &{&1, direction})]
-
-          _ ->
+          nil ->
             [sort]
+
+          column ->
+            primary_field = Map.get(column, :sort_field) || field
+            secondary_fields = Map.get(column, :sort_with) || []
+            [{primary_field, direction} | Enum.map(secondary_fields, &{&1, direction})]
         end
 
       other ->

@@ -92,6 +92,7 @@ defmodule Cinder.Table do
     attr :filter, :any
     attr :filter_options, :list
     attr :sort, :any
+    attr :sort_field, :string
     attr :sort_with, :list
     attr :search, :boolean
     attr :label, :string
