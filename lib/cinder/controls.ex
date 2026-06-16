@@ -314,17 +314,43 @@ defmodule Cinder.Controls do
           </span>
         </span>
       <% end %>
-      <button
+      <.render_clear_all
         :if={@has_filters}
-        type="button"
-        phx-click="clear_all_filters"
-        phx-target={@target}
-        class={[@theme.filter_clear_all_class, if(@active_filter_count == 0, do: "invisible", else: "")]}
-        data-key="filter_clear_all_class"
-      >
-        {dgettext("cinder", "Clear all")}
-      </button>
+        active_filter_count={@active_filter_count}
+        target={@target}
+        theme={@theme}
+      />
     </div>
+    """
+  end
+
+  @doc """
+  Renders the "Clear all" filters button on its own.
+
+  Extracted from `render_header/1` so it can be placed directly in a custom
+  `:controls` slot layout, next to the rendered filters.
+
+  ## Attributes
+
+  - `active_filter_count` — number of active filters (button is hidden when zero)
+  - `target` — LiveComponent target for `phx-target`
+  - `theme` — theme map
+  """
+  attr :active_filter_count, :integer, required: true
+  attr :target, :any, default: nil
+  attr :theme, :map, required: true
+
+  def render_clear_all(assigns) do
+    ~H"""
+    <button
+      type="button"
+      phx-click="clear_all_filters"
+      phx-target={@target}
+      class={[@theme.filter_clear_all_class, if(@active_filter_count == 0, do: "invisible", else: "")]}
+      data-key="filter_clear_all_class"
+    >
+      {dgettext("cinder", "Clear all")}
+    </button>
     """
   end
 
