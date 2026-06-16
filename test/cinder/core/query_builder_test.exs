@@ -896,6 +896,43 @@ defmodule Cinder.QueryBuilderTest do
       assert result.sort == expected_sorts,
              "Expected table sorts to override existing query sorts, but got: #{inspect(result.sort)}"
     end
+
+    test "expands a column's sort_with secondary fields in the same direction" do
+      query = Ash.Query.new(TestUser)
+      columns = [%Cinder.Column{field: "name", sort_with: ["email"]}]
+
+      result = QueryBuilder.apply_sorting(query, [{"name", :desc}], columns)
+
+      assert result.sort == [{:name, :desc}, {:email, :desc}]
+    end
+
+    test "ignores sort_with for columns that are not the active sort" do
+      query = Ash.Query.new(TestUser)
+      columns = [%Cinder.Column{field: "name", sort_with: ["email"]}]
+
+      result = QueryBuilder.apply_sorting(query, [{"email", :asc}], columns)
+
+      assert result.sort == [{:email, :asc}]
+    end
+
+    test "leaves sorts unchanged when no matching column has sort_with" do
+      query = Ash.Query.new(TestUser)
+      columns = [%Cinder.Column{field: "name", sort_with: []}]
+
+      result = QueryBuilder.apply_sorting(query, [{"name", :asc}], columns)
+
+      assert result.sort == [{:name, :asc}]
+    end
+
+    test "collapses duplicate fields keeping the first occurrence" do
+      query = Ash.Query.new(TestUser)
+      columns = [%Cinder.Column{field: "name", sort_with: ["email"]}]
+
+      # User also sorts by email explicitly; the sort_with tiebreaker comes first.
+      result = QueryBuilder.apply_sorting(query, [{"name", :desc}, {"email", :asc}], columns)
+
+      assert result.sort == [{:name, :desc}, {:email, :desc}]
+    end
   end
 
   describe "extract_query_sorts/2" do

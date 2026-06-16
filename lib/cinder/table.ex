@@ -65,11 +65,13 @@ defmodule Cinder.Table do
 
   attr :show_prefs, :boolean,
     default: false,
-    doc: "Render a standalone \"Columns\" button in addition to the header trigger. See `Cinder.collection`."
+    doc:
+      "Render a standalone \"Columns\" button in addition to the header trigger. See `Cinder.collection`."
 
   attr :header_trigger, :boolean,
     default: true,
-    doc: "Whether the last action column's header becomes the prefs trigger. See `Cinder.collection`."
+    doc:
+      "Whether the last action column's header becomes the prefs trigger. See `Cinder.collection`."
 
   attr :on_columns_change, :any,
     default: nil,
@@ -90,6 +92,7 @@ defmodule Cinder.Table do
     attr :filter, :any
     attr :filter_options, :list
     attr :sort, :any
+    attr :sort_with, :list
     attr :search, :boolean
     attr :label, :string
     attr :class, :string

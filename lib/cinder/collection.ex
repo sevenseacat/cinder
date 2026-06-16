@@ -290,6 +290,12 @@ defmodule Cinder.Collection do
       doc: "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc]])"
     )
 
+    attr(:sort_with, :list,
+      doc:
+        "Secondary sort fields applied after this column's field, in the same direction. " <>
+          "Use for tiebreakers, e.g. sort_with={[\"current_stop.inserted\"]} on a position column."
+    )
+
     attr(:search, :boolean, doc: "Enable global search on this column")
     attr(:label, :string, doc: "Custom column label (auto-generated if not provided)")
     attr(:class, :string, doc: "CSS classes for table column (table layout only)")
