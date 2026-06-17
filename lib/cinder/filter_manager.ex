@@ -72,7 +72,7 @@ defmodule Cinder.FilterManager do
 
     ~H"""
     <div :if={@has_content} class={@theme.filter_container_class} data-key="filter_container_class">
-      <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
+      <form id={"#{@table_id}-filter-form"} phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
         {render_slot(@controls_slot, @controls_data)}
       </form>
     </div>
@@ -107,7 +107,7 @@ defmodule Cinder.FilterManager do
       />
 
       <div id={"#{@table_id}-filter-body"} class={if(@collapsible and @initially_collapsed, do: "hidden")}>
-        <form phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
+        <form id={"#{@table_id}-filter-form"} phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
           <div class={@theme.filter_inputs_class} data-key="filter_inputs_class">
             <Cinder.Controls.render_search
               :if={@controls_data.search != nil}
