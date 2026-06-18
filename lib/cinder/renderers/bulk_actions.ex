@@ -24,7 +24,7 @@ defmodule Cinder.Renderers.BulkActions do
     selectable = Map.get(assigns, :selectable, false)
     slots = Map.get(assigns, :bulk_action_slots, [])
 
-    if selectable and slots != [] do
+    if Cinder.Selection.enabled?(selectable) and slots != [] do
       render_bulk_actions(assigns)
     else
       ~H""

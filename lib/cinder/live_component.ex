@@ -375,8 +375,16 @@ defmodule Cinder.LiveComponent do
   @impl true
   def handle_event("toggle_select_all_page", _params, socket) do
     id_field = socket.assigns[:id_field] || :id
-    page_ids = socket.assigns.data |> Enum.map(&to_string(Map.get(&1, id_field))) |> MapSet.new()
-    all_selected? = MapSet.subset?(page_ids, socket.assigns.selected_ids)
+    selectable = socket.assigns[:selectable] || false
+
+    page_ids =
+      socket.assigns.data
+      |> Enum.filter(&Cinder.Selection.item_selectable?(selectable, &1))
+      |> Enum.map(&to_string(Map.get(&1, id_field)))
+      |> MapSet.new()
+
+    all_selected? =
+      not Enum.empty?(page_ids) and MapSet.subset?(page_ids, socket.assigns.selected_ids)
 
     new_selected =
       if all_selected? do

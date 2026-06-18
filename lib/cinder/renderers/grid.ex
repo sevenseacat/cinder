@@ -15,6 +15,7 @@ defmodule Cinder.Renderers.Grid do
   alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
   alias Cinder.Renderers.SortControls
+  alias Cinder.Selection
 
   @doc """
   Renders the grid layout.
@@ -86,18 +87,19 @@ defmodule Cinder.Renderers.Grid do
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data} :if={not @error}
-            class={get_item_classes_with_selection(@grid_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
+            class={selection_classes(@grid_item_class, @item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
             data-key={@grid_item_data_key}
-            phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), item, Map.get(assigns, :id_field, :id), @myself)}
+            phx-click={selection_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @myself)}
           >
             <div
-              :if={Map.get(assigns, :selectable, false)}
+              :if={Selection.enabled?(Map.get(assigns, :selectable, false))}
               class={@theme.grid_selection_overlay_class}
               data-key="grid_selection_overlay_class"
             >
               <input
                 type="checkbox"
-                checked={item_selected?(Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
+                disabled={not Selection.item_toggleable?(Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
+                checked={Selection.item_selected?(Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
                 phx-click="toggle_select"
                 phx-value-id={to_string(Map.get(item, Map.get(assigns, :id_field, :id)))}
                 phx-target={@myself}
@@ -221,51 +223,6 @@ defmodule Cinder.Renderers.Grid do
     else
       {base, "grid_item_class"}
     end
-  end
-
-  # ============================================================================
-  # SELECTION HELPERS
-  # ============================================================================
-
-  defp get_item_classes_with_selection(
-         base_class,
-         selectable,
-         selected_ids,
-         item,
-         id_field,
-         item_click,
-         theme
-       ) do
-    classes = [base_class]
-
-    # Add cursor-pointer if item is clickable (either via item_click or selectable without item_click)
-    clickable = item_click != nil or (selectable and item_click == nil)
-    classes = if clickable, do: classes ++ ["cursor-pointer"], else: classes
-
-    if selectable and item_selected?(selected_ids, item, id_field) do
-      classes ++ [theme.selected_item_class]
-    else
-      classes
-    end
-  end
-
-  defp item_click_action(item_click, _selectable, item, _id_field, _myself)
-       when item_click != nil do
-    item_click.(item)
-  end
-
-  defp item_click_action(nil, true, item, id_field, myself) do
-    Phoenix.LiveView.JS.push("toggle_select",
-      value: %{id: to_string(Map.get(item, id_field))},
-      target: myself
-    )
-  end
-
-  defp item_click_action(nil, false, _item, _id_field, _myself), do: nil
-
-  defp item_selected?(selected_ids, item, id_field) do
-    id = to_string(Map.get(item, id_field))
-    MapSet.member?(selected_ids, id)
   end
 
   # Tailwind safelist - these classes are dynamically generated, keep them here for purge detection:

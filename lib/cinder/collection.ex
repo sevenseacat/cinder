@@ -234,9 +234,10 @@ defmodule Cinder.Collection do
     doc: "Field to use as ID for update_if_visible operations (defaults to :id)"
   )
 
-  attr(:selectable, :boolean,
+  attr(:selectable, :any,
     default: false,
-    doc: "Enable row/item selection via checkboxes"
+    doc:
+      "Enable row/item selection via checkboxes. Accepts `true`/`false` to enable for all rows, or a predicate `fn item -> boolean end` to make only matching rows selectable."
   )
 
   attr(:on_selection_change, :any,

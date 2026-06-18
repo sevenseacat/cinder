@@ -502,6 +502,25 @@ Add `selectable` to enable checkboxes:
 </Cinder.collection>
 ```
 
+### Per-Row Selectability
+
+`selectable` also accepts a predicate `fn item -> boolean end` to control which rows/items can be selected. Non-selectable rows still render a checkbox, but **disabled**, so they cannot be toggled. "Select all" only selects the selectable rows.
+
+A row that is already selected but later becomes non-selectable keeps an enabled
+checkbox so it can still be deselected.
+
+```heex
+<!-- Only active users can be selected -->
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  selectable={&(&1.status == :active)}
+>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+  <:col :let={user} field="status">{user.status}</:col>
+</Cinder.collection>
+```
+
 ### Bulk Action Slots
 
 Define bulk actions using the `bulk_action` slot. There are two ways to render bulk action buttons:
