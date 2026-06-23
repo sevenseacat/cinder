@@ -84,7 +84,7 @@ defmodule Cinder.Renderers.List do
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data} :if={not @error}
-            class={get_item_classes_with_selection(@list_item_class, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
+            class={get_item_classes_with_selection(@list_item_class, Map.get(assigns, :item_class), Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @item_click, @theme)}
             data-key={@list_item_data_key}
             phx-click={item_click_action(@item_click, Map.get(assigns, :selectable, false), item, Map.get(assigns, :id_field, :id), @myself)}
           >
@@ -195,6 +195,7 @@ defmodule Cinder.Renderers.List do
 
   defp get_item_classes_with_selection(
          base_class,
+         user_item_class,
          selectable,
          selected_ids,
          item,
@@ -202,7 +203,8 @@ defmodule Cinder.Renderers.List do
          item_click,
          theme
        ) do
-    classes = [base_class]
+    # Merge the per-item user class onto the theme's base item class
+    classes = [base_class, resolve_item_class(user_item_class, item)]
 
     # Add cursor-pointer if item is clickable (either via item_click or selectable without item_click)
     clickable = item_click != nil or (selectable and item_click == nil)

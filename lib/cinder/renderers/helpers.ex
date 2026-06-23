@@ -12,6 +12,16 @@ defmodule Cinder.Renderers.Helpers do
   end
 
   @doc """
+  Resolves a user-supplied row/item class for the given item.
+
+  A `fn item -> class end` function is called with the item; any other value
+  (string, list, or nil) is returned unchanged, to be merged with the theme's
+  base row/item class.
+  """
+  def resolve_item_class(fun, item) when is_function(fun, 1), do: fun.(item)
+  def resolve_item_class(class, _item), do: class
+
+  @doc """
   Builds context map passed to the empty slot via `:let`.
 
   The `filtered?` field is true when any filter has a meaningful value

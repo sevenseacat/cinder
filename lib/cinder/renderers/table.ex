@@ -83,7 +83,7 @@ defmodule Cinder.Renderers.Table do
           </thead>
           <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} data-key="tbody_class">
             <tr :for={item <- @data} :if={not @error}
-                class={get_row_classes(@theme.row_class, @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
+                class={get_row_classes(@theme.row_class, Map.get(assigns, :item_class), @row_click, @selectable, @selected_ids, item, @id_field, @theme)}
                 data-item-id={to_string(Map.get(item, @id_field))}
                 data-key="row_class"
                 phx-click={row_click_action(@row_click, @selectable, item, @id_field, @myself)}>
@@ -161,10 +161,22 @@ defmodule Cinder.Renderers.Table do
   # HELPER FUNCTIONS
   # ============================================================================
 
-  defp get_row_classes(base_classes, row_click, selectable, selected_ids, item, id_field, theme) do
+  defp get_row_classes(
+         base_classes,
+         user_item_class,
+         row_click,
+         selectable,
+         selected_ids,
+         item,
+         id_field,
+         theme
+       ) do
+    # Merge the per-item user class onto the theme's base row class
+    base = [base_classes, resolve_item_class(user_item_class, item)]
+
     # Add cursor-pointer if row is clickable (either via row_click or selectable without row_click)
     clickable = row_click != nil or (selectable and row_click == nil)
-    classes = if clickable, do: [base_classes, "cursor-pointer"], else: [base_classes]
+    classes = if clickable, do: base ++ ["cursor-pointer"], else: base
 
     if selectable and item_selected?(selected_ids, item, id_field) do
       classes ++ [theme.selected_row_class]
