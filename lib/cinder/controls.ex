@@ -129,7 +129,8 @@ defmodule Cinder.Controls do
       filters_label: assigns.filters_label,
       filter_mode: filter_mode,
       filter_values: filter_values,
-      raw_filter_params: raw_filter_params
+      raw_filter_params: raw_filter_params,
+      all_page_selected?: Map.get(assigns, :all_page_selected?, false)
     }
   end
 

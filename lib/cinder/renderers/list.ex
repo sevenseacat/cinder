@@ -35,6 +35,14 @@ defmodule Cinder.Renderers.List do
       |> assign(:list_container_class, container_class)
       |> assign(:list_item_class, item_class)
       |> assign(:list_item_data_key, item_data_key)
+      |> assign(
+        :all_page_selected?,
+        all_page_selected?(
+          Map.get(assigns, :selected_ids, MapSet.new()),
+          Map.get(assigns, :data, []),
+          Map.get(assigns, :id_field, :id)
+        )
+      )
 
     ~H"""
     <div class={[@theme.container_class, "relative"]} data-key="container_class">
@@ -56,6 +64,7 @@ defmodule Cinder.Renderers.List do
           search_placeholder={@search_placeholder}
           raw_filter_params={Map.get(assigns, :raw_filter_params, %{})}
           controls_slot={Map.get(assigns, :controls_slot, [])}
+          all_page_selected?={@all_page_selected?}
         />
 
         <!-- Sort Controls (button group since no table headers) -->
@@ -233,4 +242,12 @@ defmodule Cinder.Renderers.List do
     id = to_string(Map.get(item, id_field))
     MapSet.member?(selected_ids, id)
   end
+
+  defp all_page_selected?(selected_ids, data, id_field) when is_list(data) and data != [] do
+    Enum.all?(data, fn item ->
+      item_selected?(selected_ids, item, id_field)
+    end)
+  end
+
+  defp all_page_selected?(_selected_ids, _data, _id_field), do: false
 end
