@@ -15,6 +15,7 @@ defmodule Cinder.Filters.Registry do
       select: Cinder.Filters.Select,
       multi_select: Cinder.Filters.MultiSelect,
       multi_checkboxes: Cinder.Filters.MultiCheckboxes,
+      date: Cinder.Filters.Date,
       date_range: Cinder.Filters.DateRange,
       number_range: Cinder.Filters.NumberRange,
       boolean: Cinder.Filters.Boolean,
