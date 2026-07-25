@@ -85,7 +85,7 @@ defmodule Cinder.Renderers.List do
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data} :if={not @error}
-            class={selection_classes(@list_item_class, @item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
+            class={selection_classes(@list_item_class, Map.get(assigns, :item_class), @item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
             data-key={@list_item_data_key}
             phx-click={selection_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @myself)}
           >

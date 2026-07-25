@@ -303,14 +303,14 @@ defmodule Cinder.Controls do
           </span>
           {@filters_label}
           <span class={[@theme.filter_count_class, if(@active_filter_count == 0, do: "invisible", else: "")]} data-key="filter_count_class">
-            ({@active_filter_count} {dngettext("cinder", "active", "active", @active_filter_count)})
+            {@active_filter_count} {dngettext("cinder", "active", "active", @active_filter_count)}
           </span>
         </span>
       <% else %>
         <span class={@theme.filter_title_class} data-key="filter_title_class">
           {@filters_label}
           <span class={[@theme.filter_count_class, if(@active_filter_count == 0, do: "invisible", else: "")]} data-key="filter_count_class">
-            ({@active_filter_count} {dngettext("cinder", "active", "active", @active_filter_count)})
+            {@active_filter_count} {dngettext("cinder", "active", "active", @active_filter_count)}
           </span>
         </span>
       <% end %>

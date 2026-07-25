@@ -6,16 +6,27 @@ defmodule Cinder.Renderers.Helpers do
   @doc """
   Builds the CSS classes for a selectable row/item.
 
-  Adds the clickable cursor when a click handler is present or the row is
-  toggleable, and appends `selected_class` when the row is currently selected.
+  Merges the user-supplied `item_class` onto the theme's base class, adds the
+  clickable cursor when a click handler is present or the row is toggleable,
+  and appends `selected_class` when the row is currently selected.
   """
-  def selection_classes(base, click, selectable, selected_ids, item, id_field, selected_class) do
+  def selection_classes(
+        base,
+        item_class,
+        click,
+        selectable,
+        selected_ids,
+        item,
+        id_field,
+        selected_class
+      ) do
     selected? = Selection.item_selected?(selected_ids, item, id_field)
 
     clickable =
       click != nil or Selection.item_toggleable?(selectable, selected_ids, item, id_field)
 
-    classes = if clickable, do: [base, "cursor-pointer"], else: [base]
+    classes = [base, resolve_item_class(item_class, item)]
+    classes = if clickable, do: classes ++ ["cursor-pointer"], else: classes
 
     if selected?, do: classes ++ [selected_class], else: classes
   end
@@ -49,6 +60,16 @@ defmodule Cinder.Renderers.Helpers do
       _ -> false
     end
   end
+
+  @doc """
+  Resolves a user-supplied row/item class for the given item.
+
+  A `fn item -> class end` function is called with the item; any other value
+  (string, list, or nil) is returned unchanged, to be merged with the theme's
+  base row/item class.
+  """
+  def resolve_item_class(fun, item) when is_function(fun, 1), do: fun.(item)
+  def resolve_item_class(class, _item), do: class
 
   @doc """
   Builds context map passed to the empty slot via `:let`.
