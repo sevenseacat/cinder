@@ -187,6 +187,18 @@ Single checkbox for "show only X" filtering:
 </:col>
 ```
 
+### Date Filter
+
+A single date picker matching one calendar day. For `:date` fields it matches
+exactly; for datetime fields it matches the whole day. Not auto-detected (date
+and datetime fields default to `:date_range`), so request it explicitly:
+
+```heex
+<:col :let={order} field="delivered_on" filter={[type: :date]}>
+  {order.delivered_on}
+</:col>
+```
+
 ### Date Range Filter
 
 From/To date pickers for date filtering:

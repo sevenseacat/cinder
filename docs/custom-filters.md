@@ -29,6 +29,7 @@ This creates:
 - `multi_select` - Based on `Cinder.Filters.MultiSelect` (multiple selection)
 - `multi_checkboxes` - Based on `Cinder.Filters.MultiCheckboxes` (multiple selection)
 - `boolean` - Based on `Cinder.Filters.Boolean` (true/false/any selection)
+- `date` - Based on `Cinder.Filters.Date` (single date picker)
 - `date_range` - Based on `Cinder.Filters.DateRange` (from/to date picker)
 - `number_range` - Based on `Cinder.Filters.NumberRange` (from/to number input)
 

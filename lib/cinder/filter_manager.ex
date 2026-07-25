@@ -18,11 +18,13 @@ defmodule Cinder.FilterManager do
           | :select
           | :multi_select
           | :multi_checkboxes
+          | :date
           | :date_range
           | :number_range
           | :boolean
           | :radio_group
           | :checkbox
+          | :autocomplete
   @type filter_value ::
           String.t()
           | [String.t()]
