@@ -139,7 +139,7 @@ defmodule Cinder.Filters.CheckboxTest do
     test "returns default options" do
       options = Checkbox.default_options()
       assert is_list(options)
-      assert Keyword.get(options, :label) == ""
+      refute Keyword.has_key?(options, :label)
       assert Keyword.get(options, :value) == true
     end
   end

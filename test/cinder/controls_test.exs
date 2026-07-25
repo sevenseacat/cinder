@@ -205,6 +205,28 @@ defmodule Cinder.ControlsTest do
       end
     end
 
+    test "checkbox filter keeps the column label in the invisible top label" do
+      columns =
+        build_columns(
+          columns: [
+            %{field: "status", filter: [type: :checkbox, value: "active"], __slot__: :col}
+          ]
+        )
+
+      controls = Controls.build_controls_data(base_assigns(%{columns: columns}))
+
+      html =
+        render_component(&Controls.render_filter/1, %{
+          filter: controls.filters[:status],
+          theme: base_theme()
+        })
+
+      # The top label is an invisible spacer for checkbox filters. It must keep
+      # the column label text so it reserves the label row's height — when it
+      # rendered empty, checkbox filters lost their vertical alignment.
+      assert html =~ ~r/<label[^>]*data-key="filter_label_class"[^>]*>Status<\/label>/
+    end
+
     test "applies custom theme" do
       controls = Controls.build_controls_data(base_assigns())
       custom_theme = Map.put(base_theme(), :filter_input_wrapper_class, "custom-wrapper")

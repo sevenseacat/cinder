@@ -119,7 +119,6 @@ defmodule Cinder.Filters.Checkbox do
   @impl true
   def default_options do
     [
-      label: "",
       value: true
     ]
   end

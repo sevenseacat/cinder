@@ -151,7 +151,7 @@ defmodule Cinder.FilterManager do
 
   defp filter_label_text(column) do
     case Keyword.get(column.filter_options || [], :label) do
-      nil -> column.label
+      empty when empty in [nil, ""] -> column.label
       label -> label
     end
   end

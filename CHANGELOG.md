@@ -11,6 +11,7 @@
 
 * `toggle_select` events now validate the given ID against the data on the current page, instead of adding arbitrary client-provided ids to the selection.
 * `mix cinder.gen.filter --template=multi_checkboxes` now generates a filter based on `Cinder.Filters.MultiCheckboxes` instead of falling back to a text filter.
+* Checkbox filters are correctly vertically aligned again in non-DaisyUI themes
 
 ## v0.16.0 (2026-07-15)
 
