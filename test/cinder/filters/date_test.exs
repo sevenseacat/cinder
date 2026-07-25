@@ -4,6 +4,28 @@ defmodule Cinder.Filters.DateTest.Domain do
 
   resources do
     resource(Cinder.Filters.DateTest.Event)
+    resource(Cinder.Filters.DateTest.Venue)
+  end
+end
+
+defmodule Cinder.Filters.DateTest.Venue do
+  @moduledoc false
+  use Ash.Resource,
+    domain: Cinder.Filters.DateTest.Domain,
+    data_layer: Ash.DataLayer.Ets,
+    validate_domain_inclusion?: false
+
+  ets do
+    private?(true)
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+    attribute(:opened_on, :date, public?: true)
+  end
+
+  actions do
+    defaults([:read, create: [:opened_on]])
   end
 end
 
@@ -36,7 +58,14 @@ defmodule Cinder.Filters.DateTest.Event do
   end
 
   actions do
-    defaults([:read, create: [:on_date, :at_datetime, :meta]])
+    defaults([:read, create: [:on_date, :at_datetime, :meta, :venue_id]])
+  end
+
+  relationships do
+    belongs_to :venue, Cinder.Filters.DateTest.Venue do
+      public?(true)
+      attribute_writable?(true)
+    end
   end
 end
 
@@ -139,6 +168,15 @@ defmodule Cinder.Filters.DateTest do
       b = Ash.create!(Event, %{on_date: ~D[2026-06-13]})
 
       assert matching_ids("on_date", "nope") == MapSet.new([a.id, b.id])
+    end
+
+    test "matches an exact :date field through a relationship" do
+      venue_hit = Ash.create!(Cinder.Filters.DateTest.Venue, %{opened_on: ~D[2026-06-12]})
+      venue_miss = Ash.create!(Cinder.Filters.DateTest.Venue, %{opened_on: ~D[2026-06-13]})
+      hit = Ash.create!(Event, %{venue_id: venue_hit.id})
+      _miss = Ash.create!(Event, %{venue_id: venue_miss.id})
+
+      assert matching_ids("venue.opened_on", "2026-06-12") == MapSet.new([hit.id])
     end
 
     test "matches an exact :date field nested in an embedded resource" do
