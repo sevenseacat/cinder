@@ -25,7 +25,7 @@ if Code.ensure_loaded?(Igniter) do
 
     ## Options
 
-    * `--template` or `-t` - Base filter to copy from: text, select, multi_select, boolean, radio_group, date, date_range, number_range
+    * `--template` or `-t` - Base filter to copy from: text, select, multi_select, multi_checkboxes, boolean, radio_group, date, date_range, number_range
     * `--no-tests` - Skip generating test file
     * `--no-config` - Skip automatic configuration registration
     * `--no-setup` - Skip ensuring Cinder.setup() is called in application
@@ -35,6 +35,7 @@ if Code.ensure_loaded?(Igniter) do
     * `text` - Based on Cinder.Filters.Text (text input with operators)
     * `select` - Based on Cinder.Filters.Select (dropdown selection)
     * `multi_select` - Based on Cinder.Filters.MultiSelect (multiple selection)
+    * `multi_checkboxes` - Based on Cinder.Filters.MultiCheckboxes (multiple selection via checkboxes)
     * `boolean` - Based on Cinder.Filters.Boolean (true/false/any selection)
     * `radio_group` - Based on Cinder.Filters.RadioGroup (mutually exclusive radio options)
     * `date` - Based on Cinder.Filters.Date (single date picker)
@@ -317,6 +318,7 @@ if Code.ensure_loaded?(Igniter) do
         "text" -> "Cinder.Filters.Text"
         "select" -> "Cinder.Filters.Select"
         "multi_select" -> "Cinder.Filters.MultiSelect"
+        "multi_checkboxes" -> "Cinder.Filters.MultiCheckboxes"
         "boolean" -> "Cinder.Filters.Boolean"
         "radio_group" -> "Cinder.Filters.RadioGroup"
         "date" -> "Cinder.Filters.Date"
