@@ -51,6 +51,6 @@ jobs:
       - name: Run tests
         run: mix test
       - name: Security audit
-        run: mix deps.audit
+        run: mix hex.audit
       - name: Run Sobelow
         run: mix sobelow --exit --threshold high
