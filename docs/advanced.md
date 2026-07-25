@@ -507,7 +507,9 @@ Add `selectable` to enable checkboxes:
 `selectable` also accepts a predicate `fn item -> boolean end` to control which rows/items can be selected. Non-selectable rows still render a checkbox, but **disabled**, so they cannot be toggled. "Select all" only selects the selectable rows.
 
 A row that is already selected but later becomes non-selectable keeps an enabled
-checkbox so it can still be deselected.
+checkbox so it can still be deselected. The predicate is also enforced
+server-side, so tampering with the disabled checkboxes in the browser has no
+effect.
 
 ```heex
 <!-- Only active users can be selected -->

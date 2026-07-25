@@ -358,18 +358,22 @@ defmodule Cinder.LiveComponent do
     selected_ids = socket.assigns.selected_ids
 
     new_selected =
-      if MapSet.member?(selected_ids, id) do
-        MapSet.delete(selected_ids, id)
-      else
-        MapSet.put(selected_ids, id)
+      cond do
+        MapSet.member?(selected_ids, id) -> MapSet.delete(selected_ids, id)
+        id_selectable?(socket, id) -> MapSet.put(selected_ids, id)
+        true -> selected_ids
       end
 
-    socket =
-      socket
-      |> assign(:selected_ids, new_selected)
-      |> notify_selection_change(:toggle)
+    if MapSet.equal?(new_selected, selected_ids) do
+      {:noreply, socket}
+    else
+      socket =
+        socket
+        |> assign(:selected_ids, new_selected)
+        |> notify_selection_change(:toggle)
 
-    {:noreply, socket}
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -580,6 +584,18 @@ defmodule Cinder.LiveComponent do
     end
 
     socket
+  end
+
+  # The checkbox is only disabled client-side for non-selectable rows, and the
+  # client can send arbitrary ids — re-check against the served page data.
+  defp id_selectable?(socket, id) do
+    selectable = socket.assigns[:selectable] || false
+    id_field = socket.assigns[:id_field] || :id
+
+    case Enum.find(socket.assigns.data, &(to_string(Map.get(&1, id_field)) == id)) do
+      nil -> false
+      item -> Cinder.Selection.item_selectable?(selectable, item)
+    end
   end
 
   defp notify_selection_change(socket, action) do
