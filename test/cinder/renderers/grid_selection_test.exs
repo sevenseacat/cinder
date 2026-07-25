@@ -142,4 +142,49 @@ defmodule Cinder.Renderers.GridSelectionTest do
       assert overlay_count == 3
     end
   end
+
+  describe "grid selection rendering with predicate" do
+    defp predicate_assigns do
+      base_assigns()
+      |> Map.merge(%{
+        selectable: fn item -> item.status == :active end,
+        selected_ids: MapSet.new(),
+        id_field: :id,
+        data: [
+          %{id: "item-1", name: "Item 1", status: :active},
+          %{id: "item-2", name: "Item 2", status: :inactive}
+        ]
+      })
+    end
+
+    test "renders an overlay for every item, disabling non-selectable ones" do
+      html = render_component(&GridRenderer.render/1, predicate_assigns())
+
+      # Overlay (and checkbox) rendered for both items, kept uniform across cards
+      assert html =~ ~s(phx-value-id="item-1")
+      assert html =~ ~s(phx-value-id="item-2")
+      assert length(Regex.scan(~r/test-overlay-class/, html)) == 2
+
+      # Selectable item enabled, non-selectable item disabled
+      refute html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="item-1"/
+      assert html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="item-2"/
+    end
+
+    test "keeps an already-selected item's checkbox enabled even if not selectable" do
+      assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["item-2"]))
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      assert html =~ ~r/<input[^>]*checked[^>]*phx-value-id="item-2"/
+      refute html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="item-2"/
+    end
+
+    test "applies selected styling only to selectable selected items" do
+      assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["item-1"]))
+
+      html = render_component(&GridRenderer.render/1, assigns)
+
+      assert html =~ "test-selected-item"
+    end
+  end
 end

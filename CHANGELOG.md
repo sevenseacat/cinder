@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* `selectable` now also accepts a predicate `fn item -> boolean end` to make only matching rows/items selectable. Thanks @weljoda! ([#186](https://github.com/sevenseacat/cinder/pull/186))
+
+### Bugfixes
+
+* `toggle_select` events now validate the given ID against the data on the current page, instead of adding arbitrary client-provided ids to the selection.
+
 ## v0.16.0 (2026-07-15)
 
 ### Breaking changes

@@ -107,6 +107,146 @@ defmodule Cinder.SelectionTest do
     end
   end
 
+  describe "toggle_select event server-side validation" do
+    test "ignores rows that are not selectable under a predicate" do
+      socket =
+        make_socket(%{
+          id: "test-table",
+          selectable: fn item -> item.status == :active end,
+          selected_ids: MapSet.new(),
+          on_selection_change: :selection_changed,
+          data: [
+            %{id: "user-1", status: :active},
+            %{id: "user-2", status: :inactive}
+          ]
+        })
+
+      {:noreply, updated_socket} =
+        LiveComponent.handle_event("toggle_select", %{"id" => "user-2"}, socket)
+
+      assert MapSet.size(updated_socket.assigns.selected_ids) == 0
+      refute_received {:selection_changed, _}
+    end
+
+    test "allows deselecting a row that is no longer selectable" do
+      socket =
+        make_socket(%{
+          id: "test-table",
+          selectable: fn item -> item.status == :active end,
+          selected_ids: MapSet.new(["user-2"]),
+          data: [
+            %{id: "user-1", status: :active},
+            %{id: "user-2", status: :inactive}
+          ]
+        })
+
+      {:noreply, updated_socket} =
+        LiveComponent.handle_event("toggle_select", %{"id" => "user-2"}, socket)
+
+      assert MapSet.size(updated_socket.assigns.selected_ids) == 0
+    end
+
+    test "ignores ids not present in the current page data" do
+      socket =
+        make_socket(%{
+          id: "test-table",
+          selectable: true,
+          selected_ids: MapSet.new(),
+          on_selection_change: :selection_changed,
+          data: [%{id: "user-1"}]
+        })
+
+      {:noreply, updated_socket} =
+        LiveComponent.handle_event("toggle_select", %{"id" => "user-999"}, socket)
+
+      assert MapSet.size(updated_socket.assigns.selected_ids) == 0
+      refute_received {:selection_changed, _}
+    end
+
+    test "selects a selectable row under a predicate" do
+      socket =
+        make_socket(%{
+          id: "test-table",
+          selectable: fn item -> item.status == :active end,
+          selected_ids: MapSet.new(),
+          data: [
+            %{id: "user-1", status: :active},
+            %{id: "user-2", status: :inactive}
+          ]
+        })
+
+      {:noreply, updated_socket} =
+        LiveComponent.handle_event("toggle_select", %{"id" => "user-1"}, socket)
+
+      assert MapSet.equal?(updated_socket.assigns.selected_ids, MapSet.new(["user-1"]))
+    end
+  end
+
+  describe "toggle_select_all_page event with predicate selectable" do
+    test "selects only the selectable rows on the page" do
+      socket =
+        make_socket(%{
+          id: "test-table",
+          selectable: fn item -> item.status == :active end,
+          selected_ids: MapSet.new(),
+          id_field: :id,
+          data: [
+            %{id: "user-1", status: :active},
+            %{id: "user-2", status: :inactive},
+            %{id: "user-3", status: :active}
+          ]
+        })
+
+      {:noreply, updated_socket} =
+        LiveComponent.handle_event("toggle_select_all_page", %{}, socket)
+
+      assert MapSet.size(updated_socket.assigns.selected_ids) == 2
+      assert MapSet.member?(updated_socket.assigns.selected_ids, "user-1")
+      assert MapSet.member?(updated_socket.assigns.selected_ids, "user-3")
+      refute MapSet.member?(updated_socket.assigns.selected_ids, "user-2")
+    end
+
+    test "deselects only the selectable rows when all selectable are selected" do
+      socket =
+        make_socket(%{
+          id: "test-table",
+          selectable: fn item -> item.status == :active end,
+          selected_ids: MapSet.new(["user-1", "user-3"]),
+          id_field: :id,
+          data: [
+            %{id: "user-1", status: :active},
+            %{id: "user-2", status: :inactive},
+            %{id: "user-3", status: :active}
+          ]
+        })
+
+      {:noreply, updated_socket} =
+        LiveComponent.handle_event("toggle_select_all_page", %{}, socket)
+
+      assert MapSet.size(updated_socket.assigns.selected_ids) == 0
+    end
+
+    test "no-ops when there are no selectable rows on the page" do
+      socket =
+        make_socket(%{
+          id: "test-table",
+          selectable: fn item -> item.status == :active end,
+          selected_ids: MapSet.new(["user-9"]),
+          id_field: :id,
+          data: [
+            %{id: "user-1", status: :inactive},
+            %{id: "user-2", status: :inactive}
+          ]
+        })
+
+      {:noreply, updated_socket} =
+        LiveComponent.handle_event("toggle_select_all_page", %{}, socket)
+
+      # Off-page selection preserved, nothing added
+      assert MapSet.equal?(updated_socket.assigns.selected_ids, MapSet.new(["user-9"]))
+    end
+  end
+
   describe "toggle_select_all_page event" do
     test "selects all items on page when none are selected" do
       socket =

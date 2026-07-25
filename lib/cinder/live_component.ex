@@ -358,25 +358,37 @@ defmodule Cinder.LiveComponent do
     selected_ids = socket.assigns.selected_ids
 
     new_selected =
-      if MapSet.member?(selected_ids, id) do
-        MapSet.delete(selected_ids, id)
-      else
-        MapSet.put(selected_ids, id)
+      cond do
+        MapSet.member?(selected_ids, id) -> MapSet.delete(selected_ids, id)
+        id_selectable?(socket, id) -> MapSet.put(selected_ids, id)
+        true -> selected_ids
       end
 
-    socket =
-      socket
-      |> assign(:selected_ids, new_selected)
-      |> notify_selection_change(:toggle)
+    if MapSet.equal?(new_selected, selected_ids) do
+      {:noreply, socket}
+    else
+      socket =
+        socket
+        |> assign(:selected_ids, new_selected)
+        |> notify_selection_change(:toggle)
 
-    {:noreply, socket}
+      {:noreply, socket}
+    end
   end
 
   @impl true
   def handle_event("toggle_select_all_page", _params, socket) do
     id_field = socket.assigns[:id_field] || :id
-    page_ids = socket.assigns.data |> Enum.map(&to_string(Map.get(&1, id_field))) |> MapSet.new()
-    all_selected? = MapSet.subset?(page_ids, socket.assigns.selected_ids)
+    selectable = socket.assigns[:selectable] || false
+
+    page_ids =
+      socket.assigns.data
+      |> Enum.filter(&Cinder.Selection.item_selectable?(selectable, &1))
+      |> Enum.map(&to_string(Map.get(&1, id_field)))
+      |> MapSet.new()
+
+    all_selected? =
+      not Enum.empty?(page_ids) and MapSet.subset?(page_ids, socket.assigns.selected_ids)
 
     new_selected =
       if all_selected? do
@@ -572,6 +584,18 @@ defmodule Cinder.LiveComponent do
     end
 
     socket
+  end
+
+  # The checkbox is only disabled client-side for non-selectable rows, and the
+  # client can send arbitrary ids — re-check against the served page data.
+  defp id_selectable?(socket, id) do
+    selectable = socket.assigns[:selectable] || false
+    id_field = socket.assigns[:id_field] || :id
+
+    case Enum.find(socket.assigns.data, &(to_string(Map.get(&1, id_field)) == id)) do
+      nil -> false
+      item -> Cinder.Selection.item_selectable?(selectable, item)
+    end
   end
 
   defp notify_selection_change(socket, action) do
