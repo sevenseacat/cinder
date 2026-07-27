@@ -10,6 +10,7 @@ This guide covers URL state management, relationships, embedded resources, refre
 - [Collection Refresh](#collection-refresh)
 - [Loading, Empty & Error States](#loading-empty-error-states)
 - [Performance Optimization](#performance-optimization)
+- [Server-rendered Initial Data](#server-rendered-initial-data)
 - [Query Access](#query-access)
 - [Selection & Bulk Actions](#selection--bulk-actions)
 
@@ -703,3 +704,29 @@ When `selectable` is enabled without a `click` handler, clicking rows/items togg
   ...
 </Cinder.collection>
 ```
+
+## Server-rendered initial data
+
+Cinder loads collection data asynchronously by default. To include the initial
+rows in the server-rendered HTML, enable SSR for a collection:
+
+```heex
+<Cinder.collection resource={MyApp.User} ssr>
+  <:col :let={user} field="name">{user.name}</:col>
+</Cinder.collection>
+```
+
+You can enable it globally and override it for individual collections:
+
+```elixir
+config :cinder, ssr: true
+```
+
+```heex
+<Cinder.collection resource={MyApp.AuditLog} ssr={false}>
+  ...
+</Cinder.collection>
+```
+
+SSR only makes the initial load synchronous. Filtering, sorting, pagination,
+and refreshes continue to load asynchronously.

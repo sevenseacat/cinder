@@ -155,6 +155,13 @@ defmodule Cinder.Collection do
     doc: "Additional Ash query options"
   )
 
+  attr(:ssr, :boolean,
+    default: nil,
+    doc:
+      "Load initial data synchronously so it is included in the server-rendered HTML. " <>
+        "Defaults to `config :cinder, ssr: false`; a collection value overrides the global setting."
+  )
+
   attr(:on_state_change, :any, default: nil, doc: "Custom state change handler")
 
   attr(:on_query_change, :any,
@@ -367,6 +374,13 @@ defmodule Cinder.Collection do
       |> assign_new(:theme, fn -> "default" end)
       |> assign_new(:url_state, fn -> false end)
       |> assign_new(:query_opts, fn -> [] end)
+      |> assign(
+        :ssr,
+        if(is_nil(assigns[:ssr]),
+          do: Application.get_env(:cinder, :ssr, false),
+          else: assigns[:ssr]
+        )
+      )
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:on_query_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
@@ -482,6 +496,7 @@ defmodule Cinder.Collection do
         theme={@resolved_theme}
         url_raw_params={get_raw_url_params(@url_state)}
         query_opts={@query_opts}
+        ssr={@ssr}
         on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
         show_filters={@show_filters}
         show_sort={@show_sort}

@@ -5,7 +5,7 @@ defmodule Cinder.LiveComponent do
   This component handles all data management logic:
   - State management (filters, sorting, pagination)
   - Event handling (filter_change, toggle_sort, goto_page, etc.)
-  - Async data loading
+  - Server-rendered initial data and async subsequent loading
   - URL state synchronization
 
   The actual HTML rendering is delegated to a renderer module passed via
@@ -853,6 +853,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:search_term, assigns[:search_term] || "")
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
+    |> assign(:ssr, Map.get(assigns, :ssr, false))
     |> assign_new(:action, fn -> nil end)
     |> assign_new(:page, fn -> nil end)
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
@@ -982,6 +983,8 @@ defmodule Cinder.LiveComponent do
   end
 
   defp load_data(socket) do
+    initial_load? = socket.assigns[:page] == nil
+
     %{
       query: resource,
       query_opts: query_opts,
@@ -1034,7 +1037,10 @@ defmodule Cinder.LiveComponent do
       # Build the query once so we can both execute it and hand it to the
       # on_query_change callback (if one is configured). maybe_notify_query_change/2
       # decides whether to actually notify.
-      if Application.get_env(:ash, :disable_async?) do
+      # With SSR enabled, the first query completes before rendering so both the
+      # disconnected HTTP response and connected LiveView mount contain data.
+      # Later interactions remain async so they do not block the LiveView process.
+      if (initial_load? and socket.assigns.ssr) or Application.get_env(:ash, :disable_async?) do
         try do
           case Cinder.QueryBuilder.build_query(resource_var, options) do
             {:ok, prepared_query} ->

@@ -51,6 +51,11 @@ defmodule Cinder.Table do
   attr :theme, :any, default: "default", doc: "Theme name or theme map"
   attr :url_state, :any, default: false, doc: "URL state object from UrlSync.handle_params"
   attr :query_opts, :list, default: [], doc: "Additional Ash query options"
+
+  attr :ssr, :boolean,
+    default: nil,
+    doc: "Load initial data in the server-rendered HTML. Overrides `config :cinder, ssr: false`."
+
   attr :on_state_change, :any, default: nil, doc: "Custom state change handler"
 
   attr :on_query_change, :any,
