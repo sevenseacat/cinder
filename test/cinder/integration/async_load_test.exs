@@ -39,6 +39,25 @@ defmodule Cinder.Integration.AsyncLoadTest do
     """
   end
 
+  defp failing_ssr_assigns do
+    %{
+      id: "failing-ssr-collection",
+      query: Cinder.Integration.Album,
+      action: :missing_read_action,
+      actor: nil,
+      tenant: nil,
+      page_size_config: Cinder.PageSize.parse(nil),
+      theme: Cinder.Theme.default(),
+      url_raw_params: %{},
+      query_opts: [],
+      ssr: true,
+      on_state_change: nil,
+      col: [],
+      query_columns: [],
+      search_fn: nil
+    }
+  end
+
   setup do
     artist = generate(artist(name: "Async Artist"))
     generate(album(title: "Async Album", genre: :rock, artist_id: artist.id))
@@ -106,5 +125,18 @@ defmodule Cinder.Integration.AsyncLoadTest do
       |> html_response(200)
 
     refute html =~ "Async Album"
+  end
+
+  test "a retry is asynchronous after the initial SSR query fails" do
+    {:ok, socket} = Cinder.LiveComponent.mount(%Phoenix.LiveView.Socket{})
+    {:ok, socket} = Cinder.LiveComponent.update(failing_ssr_assigns(), socket)
+
+    assert socket.assigns.error
+    assert socket.assigns.page == nil
+
+    {:noreply, socket} = Cinder.LiveComponent.handle_event("refresh", %{}, socket)
+
+    assert socket.assigns.loading
+    refute socket.assigns.error
   end
 end

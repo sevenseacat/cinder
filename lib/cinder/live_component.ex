@@ -856,6 +856,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:ssr, Map.get(assigns, :ssr, false))
     |> assign_new(:action, fn -> nil end)
     |> assign_new(:page, fn -> nil end)
+    |> assign_new(:__initial_load__, fn -> is_nil(assigns[:page]) end)
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
     # Keyset pagination state
     |> assign(:pagination_mode, pagination_mode)
@@ -969,7 +970,7 @@ defmodule Cinder.LiveComponent do
   defp normalize_scope(value), do: value
 
   defp load_data_if_needed(socket, prev) do
-    first_load = socket.assigns[:page] == nil
+    first_load = socket.assigns[:__initial_load__] == true
     curr = data_state(socket.assigns)
     state_changed = curr != prev
     reload_requested = socket.assigns[:__reload_requested__] == true
@@ -983,7 +984,7 @@ defmodule Cinder.LiveComponent do
   end
 
   defp load_data(socket) do
-    initial_load? = socket.assigns[:page] == nil
+    initial_load? = socket.assigns[:__initial_load__] == true
 
     %{
       query: resource,
@@ -1031,6 +1032,7 @@ defmodule Cinder.LiveComponent do
     ]
 
     socket
+    |> assign(:__initial_load__, false)
     |> assign(:loading, true)
     |> assign(:error, false)
     |> then(fn socket ->
