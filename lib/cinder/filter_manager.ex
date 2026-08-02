@@ -295,8 +295,6 @@ defmodule Cinder.FilterManager do
     """
   end
 
-  def clear_inputs_hook_name, do: "#{inspect(__MODULE__)}.ClearInputs"
-
   @doc """
   Processes filter parameters from form submission using modular filter system.
   """
