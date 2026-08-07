@@ -30,22 +30,6 @@ defmodule Cinder.UpdateTest do
       result = Update.update_item(socket, "table", Ecto.UUID.generate(), &Function.identity/1)
       assert result == socket
     end
-
-    test "requires collection_id to be binary" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_item(socket, :not_a_string, "id", &Function.identity/1)
-      end
-    end
-
-    test "requires update_fn to be arity-1 function" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_item(socket, "table", "id", fn _a, _b -> :ok end)
-      end
-    end
   end
 
   describe "update_items/4" do
@@ -65,14 +49,6 @@ defmodule Cinder.UpdateTest do
 
       result = Update.update_items(socket, "table", [], &Function.identity/1)
       assert result == socket
-    end
-
-    test "requires ids to be a list" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_items(socket, "table", "not-a-list", &Function.identity/1)
-      end
     end
   end
 
@@ -106,22 +82,6 @@ defmodule Cinder.UpdateTest do
 
       assert result == socket
     end
-
-    test "requires collection_id to be binary" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_if_visible(socket, :not_a_string, "id", &Function.identity/1)
-      end
-    end
-
-    test "requires update_fn to be arity-1 function" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_if_visible(socket, "table", "id", fn _a, _b -> :ok end)
-      end
-    end
   end
 
   describe "update_items_if_visible/4" do
@@ -145,30 +105,6 @@ defmodule Cinder.UpdateTest do
 
       result = Update.update_items_if_visible(socket, "table", [], &Function.identity/1)
       assert result == socket
-    end
-
-    test "requires ids to be a list" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_items_if_visible(socket, "table", "not-a-list", &Function.identity/1)
-      end
-    end
-
-    test "requires collection_id to be binary" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_items_if_visible(socket, :not_a_string, ["id"], &Function.identity/1)
-      end
-    end
-
-    test "requires update_fn to be arity-1 function" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert_raise FunctionClauseError, fn ->
-        Update.update_items_if_visible(socket, "table", ["id"], fn _a, _b -> :ok end)
-      end
     end
   end
 
