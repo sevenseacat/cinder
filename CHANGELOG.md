@@ -6,6 +6,7 @@
 
 * `selectable` now also accepts a predicate `fn item -> boolean end` to make only matching rows/items selectable. Thanks @weljoda! ([#186](https://github.com/sevenseacat/cinder/pull/186))
 * Added a built-in `date` filter type: a single date picker that matches one calendar day (the whole day for datetime fields). Thanks @jeroen11dijk! ([#187](https://github.com/sevenseacat/cinder/pull/187)) If you have a custom filter registered as `:date`, it still takes precedence but now logs a "Cannot override built-in filter type" warning at startup — rename it or switch to the built-in.
+* Add French translation. Thanks @mbaertschi! ([#210](https://github.com/sevenseacat/cinder/pull/210))
 
 ### Bugfixes
 
