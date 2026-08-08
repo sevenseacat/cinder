@@ -461,15 +461,25 @@ Add `on_query_change` to receive the query in your parent LiveView via `handle_i
 ```
 
 ```elixir
-def handle_info({:query_changed, %{query: query, id: "users-table"}}, socket) do
-  # Store the query for later use (e.g., export)
-  {:noreply, assign(socket, :current_query, query)}
+def handle_info({:query_changed, %{query: query, count: count, id: "users-table"}}, socket) do
+  # Store the query for later use (e.g., export), and the total for display
+  {:noreply, assign(socket, current_query: query, total: count)}
 end
 ```
 
 The callback fires on initial load and whenever filters, sorting, or search change. The received query includes all filters and sorts but no pagination, so you can use it directly for exports.
 
 When you pass a `resource={...}` (or a query without an `action`), Cinder prepares it via `Ash.Query.for_read/4`, so the exposed query has `:scope`, `:actor`, `:tenant`, and scope-supplied `:context` (e.g. timezone) already baked on. The actor lives at the canonical `query.context.private.actor` location. When you pass a pre-prepared `query={Ash.Query.for_read(...)}`, Cinder leaves your auth setup untouched — the exposed query reflects exactly what you handed in, with Cinder's filters/sorts added on top.
+
+### Displaying the total elsewhere
+
+`count` is the total number of matching records — the same number the pagination footer shows. Cinder already asked Ash for it when it loaded the page, so rendering a total outside the collection (in a page header, say) costs no extra query:
+
+```heex
+<h1>Users <span :if={@total}>({@total})</span></h1>
+```
+
+An action without pagination reports the number of records it loaded instead. Any read where the data layer returns no count reports `nil`.
 
 ### Export Example
 
