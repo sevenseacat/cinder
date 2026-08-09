@@ -396,7 +396,7 @@ Gettext.put_locale("nl")
 # Cinder UI automatically shows Dutch text
 ```
 
-Available languages: Brazilian Portuguese (pt_BR), Danish (da), Dutch (nl), English (en), German (de), Norwegian (no), Swedish (sv).
+Available languages: Brazilian Portuguese (pt_BR), Danish (da), Dutch (nl), English (en), French (fr), German (de), Norwegian (no), Spanish (es), Swedish (sv).
 
 ## Testing
 

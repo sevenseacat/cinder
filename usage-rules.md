@@ -467,7 +467,7 @@ end
 
 ## Localization
 
-All user-facing strings use `dgettext("cinder", ...)`. Supported locales: Brazilian Portuguese (pt_BR), Danish (da), Dutch (nl), English (en), German (de), Norwegian (no), Swedish (sv).
+All user-facing strings use `dgettext("cinder", ...)`. Supported locales: Brazilian Portuguese (pt_BR), Danish (da), Dutch (nl), English (en), French (fr), German (de), Norwegian (no), Spanish (es), Swedish (sv).
 
 Set locale in mount: `Gettext.put_locale("nl")`
 

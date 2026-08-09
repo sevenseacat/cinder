@@ -21,6 +21,7 @@ No additional configuration needed!
 - **Danish** (da)
 - **Dutch** (nl)
 - **English** (en) - Default
+- **French** (fr)
 - **German** (de)
 - **Norwegian** (no)
 - **Spanish** (es)

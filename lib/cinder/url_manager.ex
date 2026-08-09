@@ -313,7 +313,6 @@ defmodule Cinder.UrlManager do
   end
 
   def decode_sort(nil), do: []
-  def decode_sort(""), do: []
 
   # Helper function to parse sort string into {field, direction} tuples
   defp parse_sort_string(url_sort) do

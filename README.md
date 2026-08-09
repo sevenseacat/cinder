@@ -30,7 +30,7 @@ Cinder automatically provides:
 - **🌐 Relationship Support**: Dot notation for related fields (`user.department.name`)
 - **📦 Embedded Resources**: Double underscore notation (`profile__country`) with automatic enum detection
 - **🎨 Theming**: 9 built-in themes plus DSL for custom themes
-- **🌍 Internationalization**: Built-in translations ([seven languages](https://hexdocs.pm/cinder/localization.html#available-translations) and counting!)
+- **🌍 Internationalization**: Built-in translations ([eight languages](https://hexdocs.pm/cinder/localization.html#available-translations) and counting!)
 
 ## Installation
 
@@ -46,7 +46,7 @@ Add to `mix.exs`:
 
 ```elixir
 def deps do
-  [{:cinder, "~> 0.9"}]
+  [{:cinder, "~> 0.17"}]
 end
 ```
 

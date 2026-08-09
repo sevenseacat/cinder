@@ -30,9 +30,7 @@ defmodule Cinder.Theme.Docs do
       |> Map.keys()
       |> Enum.sort()
       |> Enum.map_join("\n", fn prop ->
-        value = Map.get(defaults, prop, "")
-        formatted = if is_binary(value), do: "\"#{value}\"", else: inspect(value)
-        "set :#{prop}, #{formatted}"
+        ~s(set :#{prop}, "#{Map.fetch!(defaults, prop)}")
       end)
 
     """
