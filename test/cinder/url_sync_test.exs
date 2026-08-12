@@ -202,19 +202,12 @@ defmodule Cinder.UrlSyncTest do
       assert is_map(params)
     end
 
-    test "update_url uses current URI when provided" do
-      socket = %{assigns: %{table_current_uri: "http://localhost:4000/weapons"}}
+    test "build_url uses the path from the provided URI" do
+      # Atom keys in the encoded state are stringified for the query string
       encoded_state = %{name: "john", page: "2"}
 
-      # This would normally call push_patch, but we can test that it doesn't crash
-      # and would use the proper path from the stored URI
-      try do
-        UrlSync.update_url(socket, encoded_state, socket.assigns.table_current_uri)
-      rescue
-        # Expected to fail due to push_patch not working with mock socket
-        FunctionClauseError -> :ok
-        ArgumentError -> :ok
-      end
+      assert UrlSync.build_url(encoded_state, "http://localhost:4000/weapons") ==
+               "/weapons?name=john&page=2"
     end
 
     test "URL sync helper macro injection works correctly" do
@@ -246,51 +239,16 @@ defmodule Cinder.UrlSyncTest do
       assert {:ok, true} = TestUrlSyncLiveView.test_message_handling()
     end
 
-    test "update_url handles missing current_uri properly" do
-      # This test reproduces the error: "the :to option in push_patch/2 expects a path but was '?artist.name=za'"
-      socket = %{assigns: %{}}
-      encoded_state = %{"artist.name" => "za"}
+    test "build_url uses the URI from the socket's url_state when current_uri is nil" do
+      socket = %{assigns: %{url_state: %{uri: "http://localhost:4000/albums"}}}
 
-      # When current_uri is nil AND socket has no url_state, update_url should still generate a valid path
-      assert_raise FunctionClauseError, fn ->
-        UrlSync.update_url(socket, encoded_state, nil)
-      end
+      assert UrlSync.build_url(%{"artist.name" => "za"}, nil, socket) == "/albums?artist.name=za"
     end
 
-    test "update_url generates valid paths when socket has url_state" do
-      # This test verifies the fix works when socket has proper url_state
-      socket = %{
-        assigns: %{
-          url_state: %{
-            uri: "http://localhost:4000/albums"
-          }
-        }
-      }
-
-      encoded_state = %{"artist.name" => "za"}
-
-      # Should now generate a valid path using the URI from url_state
-      try do
-        UrlSync.update_url(socket, encoded_state, nil)
-      rescue
-        FunctionClauseError ->
-          # Expected - push_patch doesn't work in tests, but the path should be valid
-          :ok
-      end
-    end
-
-    test "update_url falls back to root path when no uri available" do
-      # Test the fallback behavior when no URI is available anywhere
-      socket = %{assigns: %{url_state: %{}}}
-      encoded_state = %{"artist.name" => "za"}
-
-      # Should use "/" as fallback path
-      try do
-        UrlSync.update_url(socket, encoded_state, nil)
-      rescue
-        FunctionClauseError ->
-          # Expected - push_patch doesn't work in tests, but path should be "/?artist.name=za"
-          :ok
+    test "build_url falls back to a rooted path when no URI is available" do
+      # Regression: a bare "?artist.name=za" makes push_patch/2 raise, since :to needs a path
+      for socket <- [%{assigns: %{}}, %{assigns: %{url_state: %{}}}, nil] do
+        assert UrlSync.build_url(%{"artist.name" => "za"}, nil, socket) == "/?artist.name=za"
       end
     end
 

@@ -189,7 +189,6 @@ defmodule Cinder.Filters.DateRange do
 
   # Format value for HTML input display
   defp format_value_for_input("", _include_time), do: ""
-  defp format_value_for_input(nil, _include_time), do: ""
 
   defp format_value_for_input(value, true) when is_binary(value) do
     # For datetime-local inputs, ensure we have the right format
