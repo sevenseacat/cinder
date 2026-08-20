@@ -580,11 +580,20 @@ defmodule Cinder.LiveComponent do
 
   defp maybe_notify_query_change(socket, query) do
     if event_name = socket.assigns[:on_query_change] do
-      send(self(), {event_name, %{query: query, id: socket.assigns.id}})
+      payload = %{query: query, count: page_count(socket.assigns[:page]), id: socket.assigns.id}
+      send(self(), {event_name, payload})
     end
 
     socket
   end
+
+  # The count Ash already returned for the page that was just loaded, so parents
+  # can render a total without counting the same filter a second time. nil when
+  # the read did not produce one.
+  defp page_count(%Ash.Page.Offset{count: count}), do: count
+  defp page_count(%Ash.Page.Keyset{count: count}), do: count
+  defp page_count(%{results: results}) when is_list(results), do: length(results)
+  defp page_count(_page), do: nil
 
   # The checkbox is only disabled client-side for non-selectable rows, and the
   # client can send arbitrary ids — re-check against the served page data.
