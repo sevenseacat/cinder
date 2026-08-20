@@ -2,6 +2,10 @@
 
 ## v0.17.0 (2026-08-08)
 
+### Breaking changes
+
+* Requires `phoenix_live_view ~> 1.1` (and Phoenix 1.8+), for the colocated hook the filter clear buttons use
+
 ### Features
 
 * `selectable` now also accepts a predicate `fn item -> boolean end` to make only matching rows/items selectable. Thanks @weljoda! ([#186](https://github.com/sevenseacat/cinder/pull/186))
@@ -13,6 +17,8 @@
 * `toggle_select` events now validate the given ID against the data on the current page, instead of adding arbitrary client-provided ids to the selection.
 * `mix cinder.gen.filter --template=multi_checkboxes` now generates a filter based on `Cinder.Filters.MultiCheckboxes` instead of falling back to a text filter.
 * Checkbox filters are correctly vertically aligned again in non-DaisyUI themes
+* Clearing a filter now also clears date and number inputs holding a partially entered value. Such an input reads back as empty, so the filter was already empty server-side and no diff ever reached the browser — the entered parts stayed visible after clicking the clear button.
+* A filter whose only input holds a partially entered value keeps its clear button reachable. The button's visibility follows the server-side filter value, which is empty in that case, so there was nothing to click.
 
 ## v0.16.0 (2026-07-15)
 
