@@ -1,23 +1,61 @@
 defmodule Cinder.Integration.AsyncLoadTest do
   @moduledoc """
-  Covers the async data-loading path end-to-end.
+  Covers opt-in server-rendered initial data with async loading enabled.
 
   Every other integration test loads data synchronously (see `Cinder.ConnCase`)
-  for simplicity. This test opts back into Cinder's default `start_async` loading
-  to prove the full async cycle works: the view mounts, the async query runs in a
-  separate task, replies, and the rows appear on re-render.
+  for simplicity. This test opts back into Cinder's default async mode and
+  verifies the global and per-collection SSR settings.
   """
   use Cinder.ConnCase, async: false
+  import Phoenix.ConnTest, only: [get: 2, html_response: 2]
 
   # Opt back into async loading for this test (ConnCase's setup disabled it).
   setup {Cinder.TestHelpers, :enable_async_loading}
 
-  defp album_collection(assigns) do
+  defp restore_ssr_config(nil), do: Application.delete_env(:cinder, :ssr)
+  defp restore_ssr_config(value), do: Application.put_env(:cinder, :ssr, value)
+
+  defp ssr_album_collection(assigns) do
+    ~H"""
+    <Cinder.collection resource={Cinder.Integration.Album} url_state={@url_state} ssr>
+      <:col :let={album} field="title" sort>{album.title}</:col>
+    </Cinder.collection>
+    """
+  end
+
+  defp default_album_collection(assigns) do
     ~H"""
     <Cinder.collection resource={Cinder.Integration.Album} url_state={@url_state}>
       <:col :let={album} field="title" sort>{album.title}</:col>
     </Cinder.collection>
     """
+  end
+
+  defp async_album_collection(assigns) do
+    ~H"""
+    <Cinder.collection resource={Cinder.Integration.Album} url_state={@url_state} ssr={false}>
+      <:col :let={album} field="title" sort>{album.title}</:col>
+    </Cinder.collection>
+    """
+  end
+
+  defp failing_ssr_assigns do
+    %{
+      id: "failing-ssr-collection",
+      query: Cinder.Integration.Album,
+      action: :missing_read_action,
+      actor: nil,
+      tenant: nil,
+      page_size_config: Cinder.PageSize.parse(nil),
+      theme: Cinder.Theme.default(),
+      url_raw_params: %{},
+      query_opts: [],
+      ssr: true,
+      on_state_change: nil,
+      col: [],
+      query_columns: [],
+      search_fn: nil
+    }
   end
 
   setup do
@@ -29,14 +67,76 @@ defmodule Cinder.Integration.AsyncLoadTest do
       Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
     end)
 
-    %{path: Cinder.TestLive.Fixture.register(&album_collection/1)}
+    %{
+      ssr_path: Cinder.TestLive.Fixture.register(&ssr_album_collection/1),
+      default_path: Cinder.TestLive.Fixture.register(&default_album_collection/1),
+      async_path: Cinder.TestLive.Fixture.register(&async_album_collection/1)
+    }
   end
 
-  test "rows appear after the async query resolves", %{conn: conn, path: path} do
+  test "ssr=true includes collection data in the initial HTTP response", %{
+    conn: conn,
+    ssr_path: path
+  } do
+    html =
+      conn
+      |> get(path)
+      |> html_response(200)
+
+    assert html =~ "Async Album"
+  end
+
+  test "SSR is disabled by default", %{conn: conn, default_path: path} do
+    html =
+      conn
+      |> get(path)
+      |> html_response(200)
+
+    refute html =~ "Async Album"
+  end
+
+  test "the default async load still delivers collection data", %{conn: conn, default_path: path} do
     conn
     |> visit(path)
-    # The data is not present on the first synchronous render; it arrives only
-    # after the start_async task replies, so we wait for it with a timeout.
     |> assert_has("td", text: "Async Album", timeout: 1000)
+  end
+
+  test "SSR can be enabled globally", %{conn: conn, default_path: path} do
+    original = Application.get_env(:cinder, :ssr)
+    Application.put_env(:cinder, :ssr, true)
+    on_exit(fn -> restore_ssr_config(original) end)
+
+    html =
+      conn
+      |> get(path)
+      |> html_response(200)
+
+    assert html =~ "Async Album"
+  end
+
+  test "a collection setting overrides the global setting", %{conn: conn, async_path: path} do
+    original = Application.get_env(:cinder, :ssr)
+    Application.put_env(:cinder, :ssr, true)
+    on_exit(fn -> restore_ssr_config(original) end)
+
+    html =
+      conn
+      |> get(path)
+      |> html_response(200)
+
+    refute html =~ "Async Album"
+  end
+
+  test "a retry is asynchronous after the initial SSR query fails" do
+    {:ok, socket} = Cinder.LiveComponent.mount(%Phoenix.LiveView.Socket{})
+    {:ok, socket} = Cinder.LiveComponent.update(failing_ssr_assigns(), socket)
+
+    assert socket.assigns.error
+    assert socket.assigns.page == nil
+
+    {:noreply, socket} = Cinder.LiveComponent.handle_event("refresh", %{}, socket)
+
+    assert socket.assigns.loading
+    refute socket.assigns.error
   end
 end
