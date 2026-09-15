@@ -196,7 +196,14 @@ msgstr "Tippen, um weitere Optionen zu suchen..."
 msgid "An error occurred while loading data"
 msgstr "Beim Laden der Daten ist ein Fehler aufgetreten"
 
+#: lib/cinder/collection.ex
 #: lib/cinder/renderers/select_all.ex
 #, elixir-autogen, elixir-format
 msgid "Select all filtered items"
 msgstr "Alle gefilterten Elemente auswählen"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/renderers/select_all.ex
+#, elixir-autogen, elixir-format
+msgid "Select all visible items"
+msgstr ""

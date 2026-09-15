@@ -199,7 +199,14 @@ msgstr "Skriv för att söka fler alternativ..."
 msgid "An error occurred while loading data"
 msgstr "Ett fel uppstod vid laddning av data"
 
+#: lib/cinder/collection.ex
 #: lib/cinder/renderers/select_all.ex
 #, elixir-autogen, elixir-format
 msgid "Select all filtered items"
 msgstr "Markera alla filtrerade objekt"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/renderers/select_all.ex
+#, elixir-autogen, elixir-format
+msgid "Select all visible items"
+msgstr ""
