@@ -7,3 +7,5 @@ config :cinder, Cinder.TestEndpoint,
   live_view: [signing_salt: "cinder_test_lv"]
 
 config :phoenix_test, :endpoint, Cinder.TestEndpoint
+
+config :ash, default_string_length_count: :codepoints
