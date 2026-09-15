@@ -580,9 +580,7 @@ defmodule Cinder.LiveComponent do
     action = slot[:action]
     selection_mode = socket.assigns.selection_mode
 
-    if not selection_active?(socket.assigns) do
-      {:noreply, socket}
-    else
+    if selection_active?(socket.assigns) do
       resource = extract_resource(socket.assigns)
 
       if resource do
@@ -593,6 +591,8 @@ defmodule Cinder.LiveComponent do
         Logger.error("Cinder: No resource configured for bulk action")
         {:noreply, socket}
       end
+    else
+      {:noreply, socket}
     end
   end
 
