@@ -194,6 +194,7 @@ msgstr "Skriv för att söka fler alternativ..."
 msgid "An error occurred while loading data"
 msgstr "Ett fel uppstod vid laddning av data"
 
+#: lib/cinder/collection.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen, elixir-format
 msgid "Load more"
