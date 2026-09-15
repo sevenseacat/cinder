@@ -203,59 +203,6 @@ defmodule Cinder.Filter.Debug do
   end
 
   @doc """
-  Analyzes query building performance and logs the results.
-
-  ## Examples
-
-      debug_query_building(MyApp.Filters.Slider, "price", %{
-        type: :slider,
-        value: 100,
-        operator: :less_than_or_equal
-      })
-
-  """
-  def debug_query_building(module, field, filter_value) when is_atom(module) do
-    if debug_enabled?() do
-      Logger.debug("""
-      [Cinder.Filter.Debug] Testing query building for #{module}
-      Field: #{field}
-      Filter value: #{inspect(filter_value)}
-      """)
-
-      # Create a dummy query for testing
-      dummy_query = Ash.Query.new(DummyResource)
-
-      start_time = System.monotonic_time(:microsecond)
-
-      try do
-        result_query = module.build_query(dummy_query, field, filter_value)
-
-        end_time = System.monotonic_time(:microsecond)
-        duration = end_time - start_time
-
-        Logger.debug("""
-        [Cinder.Filter.Debug] Query building completed
-        Duration: #{duration}μs
-        Query modified: #{result_query != dummy_query}
-        """)
-
-        result_query
-      rescue
-        error ->
-          Logger.error("""
-          [Cinder.Filter.Debug] Query building failed:
-          #{inspect(error)}
-          """)
-
-          dummy_query
-      end
-    else
-      # In non-debug mode, just return a dummy query
-      Ash.Query.new(DummyResource)
-    end
-  end
-
-  @doc """
   Logs render performance and output size.
 
   ## Examples
@@ -391,19 +338,6 @@ defmodule Cinder.Filter.Debug do
       end)
 
       Logger.info("[Cinder.Filter.Debug] Comprehensive test completed for #{module}")
-    end
-  end
-
-  # Dummy resource for query testing
-  defmodule DummyResource do
-    @moduledoc false
-    use Ash.Resource, data_layer: Ash.DataLayer.Ets, domain: nil
-
-    attributes do
-      integer_primary_key(:id)
-      attribute(:name, :string)
-      attribute(:value, :integer)
-      attribute(:active, :boolean)
     end
   end
 end
