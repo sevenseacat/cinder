@@ -133,7 +133,7 @@ defmodule Cinder do
       # Or use fully qualified names
       def handle_event("delete", %{"id" => id}, socket) do
         # ... delete logic ...
-        {:noreply, Cinder.Table.Refresh.refresh_table(socket, "my-table")}
+        {:noreply, Cinder.refresh_table(socket, "my-table")}
       end
 
   For comprehensive examples and documentation, see the [README](readme.html) and [Examples](examples.html).

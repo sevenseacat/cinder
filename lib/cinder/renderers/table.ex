@@ -20,13 +20,6 @@ defmodule Cinder.Renderers.Table do
   Renders the table layout.
   """
   def render(assigns) do
-    assigns =
-      assign(
-        assigns,
-        :show_loading_state,
-        assigns.loading and not Map.get(assigns, :silent_refresh, false)
-      )
-
     ~H"""
     <div class={[@theme.container_class, "relative"]} data-key="container_class">
       <!-- Filter Controls (including search) -->

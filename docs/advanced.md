@@ -257,8 +257,21 @@ def handle_info(%Ash.Notifier.Notification{}, socket) do
 end
 ```
 
-Cinder still marks the collection as busy internally, but suppresses the visual
-loading treatment. A failed silent refresh retains the current data.
+A silent refresh keeps the collection marked as loading internally but hides the
+visual loading state. If it fails, the
+error is logged and the current data stays visible without an error indicator.
+Collections without existing rows use normal loading and error behavior, even
+when `silent: true` is requested. Omitting `:silent` or passing `false` keeps the
+normal refresh behavior.
+
+The option also applies to multiple collections:
+
+```elixir
+{:noreply, refresh_tables(socket, ["users-table", "audit-logs-table"], silent: true)}
+```
+
+Both `refresh_table/3` and `refresh_tables/3` require `:silent` to be a boolean;
+other values, such as `"true"`, raise `ArgumentError`.
 
 ## Loading, Empty & Error States
 

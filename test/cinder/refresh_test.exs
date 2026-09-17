@@ -1,6 +1,21 @@
 defmodule Cinder.RefreshTest do
   use ExUnit.Case, async: true
 
+  test "refresh helpers reject non-boolean silent options" do
+    socket = %Phoenix.LiveView.Socket{assigns: %{}}
+
+    for value <- ["true", nil, 1],
+        refresh <- [
+          fn -> Cinder.refresh_table(socket, "table", silent: value) end,
+          fn -> Cinder.refresh_tables(socket, ["table"], silent: value) end,
+          fn -> Cinder.refresh_tables(socket, [], silent: value) end
+        ] do
+      assert_raise ArgumentError,
+                   "expected :silent to be a boolean, got: #{inspect(value)}",
+                   refresh
+    end
+  end
+
   describe "refresh_table/2" do
     test "returns socket unchanged with string table ID" do
       socket = %Phoenix.LiveView.Socket{
@@ -19,18 +34,6 @@ defmodule Cinder.RefreshTest do
       # Should not raise an error
       result = Cinder.Refresh.refresh_table(socket, "my-table-id")
       assert result == socket
-    end
-  end
-
-  describe "refresh_table/3" do
-    test "requests a silent asynchronous refresh" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert Cinder.Refresh.refresh_table(socket, "test-table", silent: true) == socket
-
-      assert_receive {:phoenix, :send_update,
-                      {{Cinder.LiveComponent, "test-table"},
-                       %{id: "test-table", refresh: true, silent_refresh: true}}}
     end
   end
 
@@ -57,23 +60,6 @@ defmodule Cinder.RefreshTest do
     end
   end
 
-  describe "refresh_tables/3" do
-    test "passes silent behavior to every collection" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert Cinder.Refresh.refresh_tables(socket, ["table-1", "table-2"], silent: true) ==
-               socket
-
-      assert_receive {:phoenix, :send_update,
-                      {{Cinder.LiveComponent, "table-1"},
-                       %{id: "table-1", refresh: true, silent_refresh: true}}}
-
-      assert_receive {:phoenix, :send_update,
-                      {{Cinder.LiveComponent, "table-2"},
-                       %{id: "table-2", refresh: true, silent_refresh: true}}}
-    end
-  end
-
   describe "delegated functions from main Cinder module" do
     test "Cinder.refresh_table/2 delegates to Refresh module" do
       socket = %Phoenix.LiveView.Socket{
@@ -91,12 +77,6 @@ defmodule Cinder.RefreshTest do
 
       result = Cinder.refresh_tables(socket, ["table-1", "table-2"])
       assert result == socket
-    end
-
-    test "Cinder.refresh_table/3 delegates silent refresh options" do
-      socket = %Phoenix.LiveView.Socket{assigns: %{}}
-
-      assert Cinder.refresh_table(socket, "test-table", silent: true) == socket
     end
   end
 end

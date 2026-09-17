@@ -32,10 +32,6 @@ defmodule Cinder.Renderers.List do
 
     assigns =
       assigns
-      |> assign(
-        :show_loading_state,
-        assigns.loading and not Map.get(assigns, :silent_refresh, false)
-      )
       |> assign(:has_item_slot, has_item_slot)
       |> assign(:list_container_class, container_class)
       |> assign(:list_item_class, item_class)
