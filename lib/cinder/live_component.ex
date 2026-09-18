@@ -175,7 +175,11 @@ defmodule Cinder.LiveComponent do
   @impl true
   def render(assigns) do
     assigns =
-      assign(assigns, :show_loading_state, assigns.loading and not Map.get(assigns, :silent, false))
+      assign(
+        assigns,
+        :show_loading_state,
+        assigns.loading and not Map.get(assigns, :silent, false)
+      )
 
     # Delegate rendering to the renderer module
     assigns.renderer.render(assigns)
