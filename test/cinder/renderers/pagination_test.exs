@@ -133,5 +133,15 @@ defmodule Cinder.Renderers.PaginationTest do
       assert html =~ ~s(data-key="pagination_wrapper_class")
       assert html =~ "showing 1-2 of 2"
     end
+
+    test "hides the footer when always enabled but page is not loaded" do
+      assigns =
+        base_assigns("loading-table")
+        |> Map.merge(%{page: nil, always_show_pagination: true})
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      refute html =~ ~s(data-key="pagination_wrapper_class")
+    end
   end
 end

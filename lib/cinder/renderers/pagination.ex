@@ -38,6 +38,7 @@ defmodule Cinder.Renderers.Pagination do
   def render(assigns) do
     show =
       Map.get(assigns, :show_pagination, true) and
+        page_available?(assigns.page) and
         (Map.get(assigns, :always_show_pagination, false) or show_pagination?(assigns.page))
 
     if show do
@@ -54,6 +55,10 @@ defmodule Cinder.Renderers.Pagination do
       render_empty(assigns)
     end
   end
+
+  defp page_available?(%Ash.Page.Offset{}), do: true
+  defp page_available?(%Ash.Page.Keyset{}), do: true
+  defp page_available?(_), do: false
 
   defp render_empty(assigns) do
     ~H"""
