@@ -266,6 +266,175 @@ defmodule Cinder.Integration.UpdateItemTest do
     end
   end
 
+  describe "LiveComponent update/2 with __remove_items__" do
+    test "removes matching items while preserving rendered order" do
+      socket =
+        make_socket(%{
+          id_field: :id,
+          data: [
+            %{id: "a", name: "A"},
+            %{id: "b", name: "B"},
+            %{id: "c", name: "C"},
+            %{id: "d", name: "D"}
+          ],
+          selected_ids: MapSet.new()
+        })
+
+      {:ok, updated_socket} =
+        LiveComponent.update(%{__remove_items__: ["b", "d"]}, socket)
+
+      assert updated_socket.assigns.data == [
+               %{id: "a", name: "A"},
+               %{id: "c", name: "C"}
+             ]
+    end
+
+    test "uses the configured ID field" do
+      socket =
+        make_socket(%{
+          id_field: :uuid,
+          data: [%{uuid: "a"}, %{uuid: "b"}],
+          selected_ids: MapSet.new()
+        })
+
+      {:ok, updated_socket} = LiveComponent.update(%{__remove_items__: ["a"]}, socket)
+
+      assert updated_socket.assigns.data == [%{uuid: "b"}]
+    end
+
+    test "normalizes incoming IDs for rendered data and selection" do
+      socket =
+        make_socket(%{
+          data: [%{id: 123}, %{id: 456}],
+          selected_ids: MapSet.new(["123", "456"])
+        })
+
+      {:ok, updated_socket} = LiveComponent.update(%{__remove_items__: [123]}, socket)
+
+      assert updated_socket.assigns.data == [%{id: 456}]
+      assert updated_socket.assigns.selected_ids == MapSet.new(["456"])
+    end
+
+    test "prunes removed IDs from cross-page selection and notifies the parent" do
+      socket =
+        make_socket(%{
+          id: "users-table",
+          id_field: :id,
+          data: [%{id: "visible"}],
+          selected_ids: MapSet.new(["visible", "off-page", "retained"]),
+          on_selection_change: :selection_changed
+        })
+
+      {:ok, updated_socket} =
+        LiveComponent.update(%{__remove_items__: ["visible", "off-page"]}, socket)
+
+      assert updated_socket.assigns.data == []
+      assert updated_socket.assigns.selected_ids == MapSet.new(["retained"])
+
+      assert_receive {:selection_changed,
+                      %{
+                        component_id: "users-table",
+                        selected_ids: selected_ids,
+                        selected_count: 1,
+                        action: :remove
+                      }}
+
+      assert selected_ids == MapSet.new(["retained"])
+    end
+
+    test "does not notify when removal leaves selection unchanged" do
+      socket =
+        make_socket(%{
+          id: "users-table",
+          data: [%{id: "removed"}],
+          selected_ids: MapSet.new(["retained"]),
+          on_selection_change: :selection_changed
+        })
+
+      {:ok, updated_socket} =
+        LiveComponent.update(%{__remove_items__: ["removed"]}, socket)
+
+      assert updated_socket.assigns.data == []
+      assert updated_socket.assigns.selected_ids == MapSet.new(["retained"])
+      refute_receive {:selection_changed, _payload}
+    end
+
+    test "handles nil data and missing selection assigns" do
+      socket = make_socket(%{data: nil})
+
+      {:ok, updated_socket} = LiveComponent.update(%{__remove_items__: ["missing"]}, socket)
+
+      assert updated_socket.assigns.data == []
+      assert updated_socket.assigns.selected_ids == MapSet.new()
+    end
+
+    test "ignores unrelated assigns in the focused removal update" do
+      socket =
+        make_socket(%{
+          data: [%{id: 1}, %{id: 2}],
+          selected_ids: MapSet.new()
+        })
+
+      {:ok, updated_socket} =
+        LiveComponent.update(
+          %{__remove_items__: [1], other_assign: "ignored"},
+          socket
+        )
+
+      assert updated_socket.assigns.data == [%{id: 2}]
+      refute Map.has_key?(updated_socket.assigns, :other_assign)
+      refute Map.has_key?(updated_socket.assigns, :__remove_items__)
+    end
+  end
+
+  describe "LiveComponent update/2 with __deselect_items__" do
+    test "deselects normalized IDs without removing rows or changing the filtered scope" do
+      socket =
+        make_socket(%{
+          id: "products-table",
+          data: [%{id: 1}, %{id: 2}],
+          selected_ids: MapSet.new(["1", "2"]),
+          selection_scope_ids: MapSet.new(["1", "2", "3"]),
+          on_selection_change: :selection_changed
+        })
+
+      {:ok, updated_socket} =
+        LiveComponent.update(%{__deselect_items__: [2, "missing"]}, socket)
+
+      assert updated_socket.assigns.data == [%{id: 1}, %{id: 2}]
+      assert updated_socket.assigns.selected_ids == MapSet.new(["1"])
+      assert updated_socket.assigns.selection_scope_ids == MapSet.new(["1", "2", "3"])
+
+      assert_receive {:selection_changed,
+                      %{
+                        component_id: "products-table",
+                        selected_ids: selected_ids,
+                        selected_count: 1,
+                        action: :deselect
+                      }}
+
+      assert selected_ids == MapSet.new(["1"])
+    end
+
+    test "does not notify when none of the IDs are selected" do
+      socket =
+        make_socket(%{
+          data: [%{id: "visible"}],
+          selected_ids: MapSet.new(["retained"]),
+          selection_scope_ids: MapSet.new(["visible", "retained"]),
+          on_selection_change: :selection_changed
+        })
+
+      {:ok, updated_socket} =
+        LiveComponent.update(%{__deselect_items__: ["visible"]}, socket)
+
+      assert updated_socket.assigns.data == [%{id: "visible"}]
+      assert updated_socket.assigns.selected_ids == MapSet.new(["retained"])
+      assert updated_socket.assigns.selection_scope_ids == MapSet.new(["visible", "retained"])
+      refute_receive {:selection_changed, _payload}
+    end
+  end
+
   describe "LiveComponent update/2 with __update_item_if_visible__" do
     test "updates item when it exists in data" do
       socket =

@@ -33,9 +33,10 @@ defmodule Cinder.QueryChangeNotificationTest do
     test "carries the total count from an offset page" do
       page = %Ash.Page.Offset{results: [%{id: 1}], count: 42, limit: 25, offset: 0}
 
-      {:noreply, _socket} = load(make_socket(%{}), page)
+      {:noreply, socket} = load(make_socket(%{}), page)
 
       assert_received {:query_changed, %{count: 42, id: "test-table"}}
+      assert socket.assigns.total_count == 42
     end
 
     test "carries the total count from a keyset page" do
@@ -55,9 +56,10 @@ defmodule Cinder.QueryChangeNotificationTest do
     end
 
     test "reports the number of loaded records for an unpaginated read" do
-      {:noreply, _socket} = load(make_socket(%{}), %{results: [%{id: 1}, %{id: 2}]})
+      {:noreply, socket} = load(make_socket(%{}), %{results: [%{id: 1}, %{id: 2}]})
 
       assert_received {:query_changed, %{count: 2}}
+      assert socket.assigns.total_count == 2
     end
 
     test "still carries the query alongside the count" do

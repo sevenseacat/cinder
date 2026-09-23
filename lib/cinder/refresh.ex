@@ -100,9 +100,13 @@ defmodule Cinder.Refresh do
     socket
   end
 
-  # Delegate to Cinder.Update for in-memory updates
+  # Delegate to Cinder.Update for in-memory changes
   defdelegate update_item(socket, collection_id, id, update_fn), to: Cinder.Update
   defdelegate update_items(socket, collection_id, ids, update_fn), to: Cinder.Update
   defdelegate update_if_visible(socket, collection_id, id, update_fn), to: Cinder.Update
   defdelegate update_items_if_visible(socket, collection_id, ids, update_fn), to: Cinder.Update
+  defdelegate remove_item(socket, collection_id, id), to: Cinder.Update
+  defdelegate remove_items(socket, collection_id, ids), to: Cinder.Update
+  defdelegate deselect_item(socket, collection_id, id), to: Cinder.Update
+  defdelegate deselect_items(socket, collection_id, ids), to: Cinder.Update
 end
