@@ -36,7 +36,9 @@ defmodule Cinder.Renderers.Pagination do
   - `show_pagination` - Boolean to enable/disable pagination (default: true)
   """
   def render(assigns) do
-    show = Map.get(assigns, :show_pagination, true) and show_pagination?(assigns.page)
+    show =
+      Map.get(assigns, :show_pagination, true) and
+        (Map.get(assigns, :always_show_pagination, false) or show_pagination?(assigns.page))
 
     if show do
       # Use pagination_mode (if provided) to determine UI, not just page struct type.
