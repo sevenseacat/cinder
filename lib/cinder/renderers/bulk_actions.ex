@@ -33,12 +33,25 @@ defmodule Cinder.Renderers.BulkActions do
 
   defp render_bulk_actions(assigns) do
     selected_ids = Map.get(assigns, :selected_ids, MapSet.new())
+    selection_mode = Map.get(assigns, :selection_mode, :explicit)
     slots = Map.get(assigns, :bulk_action_slots, [])
+
+    selected_count =
+      case {selection_mode, Map.get(assigns, :total_count)} do
+        {:all_matching, count} when is_integer(count) -> max(count - MapSet.size(selected_ids), 0)
+        {:all_matching, _unknown} -> nil
+        _explicit -> MapSet.size(selected_ids)
+      end
 
     assigns =
       assigns
       |> assign(:selected_ids, selected_ids)
-      |> assign(:selected_count, MapSet.size(selected_ids))
+      |> assign(:selection_mode, selection_mode)
+      |> assign(
+        :selection_active,
+        selection_mode == :all_matching or MapSet.size(selected_ids) > 0
+      )
+      |> assign(:selected_count, selected_count)
       |> assign(:slots, slots)
 
     ~H"""
@@ -55,9 +68,14 @@ defmodule Cinder.Renderers.BulkActions do
               label={slot[:label]}
               variant={slot[:variant] || :primary}
               selected_count={@selected_count}
+              selection_active={@selection_active}
             />
           <% else %>
-            {render_slot([slot], %{selected_ids: @selected_ids, selected_count: @selected_count})}
+            {render_slot([slot], %{
+              selected_ids: @selected_ids,
+              selected_count: @selected_count,
+              selection_mode: @selection_mode
+            })}
           <% end %>
         </span>
       <% end %>
@@ -66,7 +84,7 @@ defmodule Cinder.Renderers.BulkActions do
   end
 
   defp themed_button(assigns) do
-    disabled = assigns.selected_count == 0
+    disabled = not assigns.selection_active
     label = interpolate_text(assigns.label, assigns.selected_count)
 
     button_class =
@@ -99,6 +117,6 @@ defmodule Cinder.Renderers.BulkActions do
   defp variant_class(_theme, _), do: nil
 
   defp interpolate_text(message, count) do
-    String.replace(message, "{count}", to_string(count))
+    String.replace(message, "{count}", if(is_integer(count), do: to_string(count), else: "all"))
   end
 end

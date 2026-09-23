@@ -170,6 +170,9 @@ defmodule Cinder.Theme do
 
     # Selection
     selection_checkbox_class: "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500",
+    select_all_container_class: "inline-flex items-center gap-2",
+    selection_indeterminate_class:
+      "absolute z-[1] h-0.5 w-2 rounded-full bg-current pointer-events-none",
     selected_row_class: "bg-blue-50",
     grid_selection_overlay_class: "mb-2",
     selected_item_class: "ring-2 ring-blue-500",

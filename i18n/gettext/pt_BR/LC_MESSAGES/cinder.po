@@ -195,3 +195,15 @@ msgstr "Digite para pesquisar mais opções..."
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Um erro ocorreu ao carregar os dados"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/renderers/select_all.ex
+#, elixir-autogen, elixir-format
+msgid "Select all filtered items"
+msgstr "Selecionar todos os itens filtrados"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/renderers/select_all.ex
+#, elixir-autogen, elixir-format
+msgid "Select all visible items"
+msgstr ""

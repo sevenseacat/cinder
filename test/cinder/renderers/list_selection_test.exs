@@ -55,6 +55,30 @@ defmodule Cinder.Renderers.ListSelectionTest do
   end
 
   describe "list selection rendering" do
+    test "renders a filtered-query select-all control" do
+      html = render_component(&ListRenderer.render/1, Map.put(base_assigns(), :selectable, true))
+
+      assert html =~ ~s(phx-click="toggle_select_all")
+      assert html =~ ~s(phx-disable-with="")
+      assert html =~ "Select all filtered items"
+      assert html =~ ~r/<div[^>]*class="mb-3"[^>]*>\s*<label/
+    end
+
+    test "can hide select all while retaining item checkboxes" do
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          selectable: true,
+          select_all: false,
+          data: [%{id: "item-1", name: "Item 1"}]
+        })
+
+      html = render_component(&ListRenderer.render/1, assigns)
+
+      refute html =~ "toggle_select_all"
+      assert html =~ ~s(phx-click="toggle_select")
+    end
+
     test "renders leading checkbox with theme classes when selectable=true" do
       assigns =
         base_assigns()
@@ -71,6 +95,20 @@ defmodule Cinder.Renderers.ListSelectionTest do
       assert html =~ "test-checkbox-class"
       assert html =~ ~s(phx-click="toggle_select")
       assert html =~ ~s(phx-value-id="item-1")
+    end
+
+    test "disables item selection while query-wide select all is loading" do
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          selectable: true,
+          selection_loading: true,
+          data: [%{id: "item-1", name: "Item 1"}]
+        })
+
+      html = render_component(&ListRenderer.render/1, assigns)
+
+      assert html =~ ~r/<input[^>]*disabled[^>]*phx-click="toggle_select"/
     end
 
     test "does not render selection elements when selectable=false" do
