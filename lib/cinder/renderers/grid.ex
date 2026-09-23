@@ -157,9 +157,10 @@ defmodule Cinder.Renderers.Grid do
         page={@page}
         page_size_config={@page_size_config}
         theme={@theme}
-        myself={@myself}
-        show_pagination={@show_pagination}
-        pagination_mode={@pagination_mode}
+         myself={@myself}
+         show_pagination={@show_pagination}
+         always_show_pagination={Map.get(assigns, :always_show_pagination, false)}
+         pagination_mode={@pagination_mode}
         id={@id}
       />
     </div>
