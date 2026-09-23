@@ -1,11 +1,11 @@
 defmodule Cinder.TestLive.Fixture do
   @moduledoc """
-  A logic-free host LiveView whose template is supplied by the test.
+  A minimal host LiveView whose template is supplied by the test.
 
   This is the single fixture for full-lifecycle integration tests. It contains no
-  collection-specific logic — the test provides the HEEx, so there is nothing in
-  the fixture itself worth testing. It just wires up `mount`, `handle_params`, and
-  `Cinder.UrlSync`, then delegates `render/1` to the supplied function.
+  collection-specific rendering logic — the test provides the HEEx. It wires up
+  `mount`, `handle_params`, and `Cinder.UrlSync`, forwards refresh messages to
+  `Cinder.refresh_table/3`, and delegates `render/1` to the supplied function.
 
   ## Usage
 
@@ -24,6 +24,13 @@ defmodule Cinder.TestLive.Fixture do
   and returns the rendered template. Its parameter **must** be named `assigns` so
   the `~H` sigil and `@field` references resolve. (`import Phoenix.Component` is
   brought in by `Cinder.ConnCase`.)
+
+  To request a refresh from a mounted LiveView test, give the collection an
+  explicit ID and send the fixture a message:
+
+      send(view.pid, {:refresh_table, "albums", silent: true})
+
+  Pass `[]` as the final tuple element for an ordinary refresh.
   """
   use Phoenix.LiveView, layout: false
   use Cinder.UrlSync
@@ -66,6 +73,11 @@ defmodule Cinder.TestLive.Fixture do
   @impl true
   def handle_params(params, uri, socket) do
     {:noreply, Cinder.UrlSync.handle_params(params, uri, socket)}
+  end
+
+  @impl true
+  def handle_info({:refresh_table, collection_id, opts}, socket) do
+    {:noreply, Cinder.refresh_table(socket, collection_id, opts)}
   end
 
   @impl true

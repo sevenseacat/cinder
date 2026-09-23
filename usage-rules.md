@@ -315,6 +315,18 @@ end
 {:noreply, refresh_tables(socket, ["collection1", "collection2"])}
 ```
 
+Keep current rows visible while an asynchronous requery runs:
+
+```elixir
+{:noreply, refresh_table(socket, "collection-id", silent: true)}
+```
+
+Use a boolean for `:silent` (defaults to `false`). Silent refreshes keep existing
+rows visible without a loading indicator. On failure, they log the error and
+retain those rows without showing an error indicator. Collections without rows
+use normal loading and error behavior. The option is also available on
+`refresh_tables/3`.
+
 ### In-Memory Updates
 
 For PubSub-driven updates without re-querying:

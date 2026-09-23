@@ -33,6 +33,7 @@ defmodule Cinder.Renderers.GridTest do
       sort_by: [],
       sort_label: "Sort by:",
       loading: false,
+      show_loading_state: false,
       error: false,
       loading_message: "Loading...",
       empty_message: "No results found",

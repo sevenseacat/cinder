@@ -1,6 +1,21 @@
 defmodule Cinder.RefreshTest do
   use ExUnit.Case, async: true
 
+  test "refresh helpers reject non-boolean silent options" do
+    socket = %Phoenix.LiveView.Socket{assigns: %{}}
+
+    for value <- ["true", nil, 1],
+        refresh <- [
+          fn -> Cinder.refresh_table(socket, "table", silent: value) end,
+          fn -> Cinder.refresh_tables(socket, ["table"], silent: value) end,
+          fn -> Cinder.refresh_tables(socket, [], silent: value) end
+        ] do
+      assert_raise ArgumentError,
+                   "expected :silent to be a boolean, got: #{inspect(value)}",
+                   refresh
+    end
+  end
+
   describe "refresh_table/2" do
     test "returns socket unchanged with string table ID" do
       socket = %Phoenix.LiveView.Socket{

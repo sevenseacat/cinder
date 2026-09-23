@@ -30,12 +30,16 @@ defmodule Cinder.LiveComponent do
 
   def update(%{refresh: true} = assigns, socket) do
     # Force refresh of data
+    silent? =
+      Map.get(assigns, :silent, false) == true and
+        socket.assigns[:data] not in [nil, []]
+
     socket =
       socket
-      |> assign(Map.drop(assigns, [:refresh]))
+      |> assign(Map.drop(assigns, [:refresh, :silent]))
       |> assign_defaults()
       |> assign_column_definitions()
-      |> load_data()
+      |> load_data(silent?)
 
     {:ok, socket}
   end
@@ -170,6 +174,13 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :show_loading_state,
+        assigns.loading and not Map.get(assigns, :silent, false)
+      )
+
     # Delegate rendering to the renderer module
     assigns.renderer.render(assigns)
   end
@@ -648,6 +659,7 @@ defmodule Cinder.LiveComponent do
   defp handle_result({:ok, page}, socket) do
     socket
     |> assign(:loading, false)
+    |> assign(:silent, false)
     |> assign(:error, false)
     |> assign(:data, page.results)
     |> assign(:page, page)
@@ -667,11 +679,7 @@ defmodule Cinder.LiveComponent do
       }
     )
 
-    socket
-    |> assign(:loading, false)
-    |> assign(:error, true)
-    |> assign(:data, [])
-    |> assign(:page, nil)
+    handle_load_error(socket)
   end
 
   defp handle_result({:exit, reason}, socket) do
@@ -686,11 +694,22 @@ defmodule Cinder.LiveComponent do
       }
     )
 
-    socket
-    |> assign(:loading, false)
-    |> assign(:error, true)
-    |> assign(:data, [])
-    |> assign(:page, nil)
+    handle_load_error(socket)
+  end
+
+  defp handle_load_error(socket) do
+    if socket.assigns.silent do
+      socket
+      |> assign(:loading, false)
+      |> assign(:silent, false)
+      |> assign(:error, false)
+    else
+      socket
+      |> assign(:loading, false)
+      |> assign(:error, true)
+      |> assign(:data, [])
+      |> assign(:page, nil)
+    end
   end
 
   defp maybe_update_keyset_cursors(socket, %Ash.Page.Keyset{} = page) do
@@ -991,7 +1010,7 @@ defmodule Cinder.LiveComponent do
     end
   end
 
-  defp load_data(socket) do
+  defp load_data(socket, silent \\ false) do
     # A `:sync` collection spends exactly one blocking query, on its first load,
     # so the data is in the server-rendered HTML. Everything after that — including
     # a retry, if that first query failed — goes back to the async path.
@@ -1046,6 +1065,7 @@ defmodule Cinder.LiveComponent do
 
     socket
     |> assign(:loading, true)
+    |> assign(:silent, silent)
     |> assign(:error, false)
     |> then(fn socket ->
       # Build the query once so we can both execute it and hand it to the
