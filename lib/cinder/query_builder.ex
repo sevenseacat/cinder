@@ -133,7 +133,7 @@ defmodule Cinder.QueryBuilder do
   The `page` value depends on the pagination mode and action configuration:
 
   - **Offset pagination** (`:pagination_mode` is `:offset`, default): Returns `Ash.Page.Offset` struct
-  - **Keyset pagination** (`:pagination_mode` is `:keyset`): Returns `Ash.Page.Keyset` struct
+  - **Keyset pagination** (`:pagination_mode` is `:keyset` or `:infinite`): Returns `Ash.Page.Keyset` struct
   - **Non-paginated actions**: Returns `%{results: list()}` map (not a struct)
 
   All return types support accessing results via `page.results`.
@@ -170,6 +170,7 @@ defmodule Cinder.QueryBuilder do
 
     # Keyset pagination options
     pagination_mode = Keyword.get(options, :pagination_mode, :offset)
+    count? = Keyword.get(options, :count_mode, :sync) == :sync
     after_keyset = Keyword.get(options, :after_keyset)
     before_keyset = Keyword.get(options, :before_keyset)
 
@@ -177,17 +178,18 @@ defmodule Cinder.QueryBuilder do
       case action_supports_pagination?(prepared_query) do
         true ->
           case pagination_mode do
-            :keyset ->
+            mode when mode in [:keyset, :infinite] ->
               execute_with_keyset_pagination(
                 prepared_query,
                 ash_opts,
                 page_size,
                 after_keyset,
-                before_keyset
+                before_keyset,
+                count?
               )
 
             :offset ->
-              execute_with_pagination(prepared_query, ash_opts, current_page, page_size)
+              execute_with_pagination(prepared_query, ash_opts, current_page, page_size, count?)
           end
 
         false ->
@@ -219,6 +221,11 @@ defmodule Cinder.QueryBuilder do
 
         {:error, error}
     end
+  end
+
+  @doc false
+  def count(%Ash.Query{} = prepared_query, options) do
+    Ash.count(prepared_query, build_read_opts(options))
   end
 
   # Prepare the query for execution by ensuring it has an action set.
@@ -269,12 +276,12 @@ defmodule Cinder.QueryBuilder do
   defp action_supports_pagination?(_), do: true
 
   # Execute query with offset pagination (existing behavior)
-  defp execute_with_pagination(query, ash_opts, current_page, page_size) do
+  defp execute_with_pagination(query, ash_opts, current_page, page_size, count?) do
     paginated_query =
       Ash.Query.page(query,
         limit: page_size,
         offset: (current_page - 1) * page_size,
-        count: true
+        count: count?
       )
 
     case Ash.read(paginated_query, ash_opts) do
@@ -289,10 +296,17 @@ defmodule Cinder.QueryBuilder do
   end
 
   # Execute query with keyset pagination (cursor-based)
-  defp execute_with_keyset_pagination(query, ash_opts, page_size, after_keyset, before_keyset) do
+  defp execute_with_keyset_pagination(
+         query,
+         ash_opts,
+         page_size,
+         after_keyset,
+         before_keyset,
+         count?
+       ) do
     # Build keyset pagination options
     keyset_opts =
-      [limit: page_size, count: true]
+      [limit: page_size, count: count?]
       |> maybe_add_keyset_cursor(:after, after_keyset)
       |> maybe_add_keyset_cursor(:before, before_keyset)
 

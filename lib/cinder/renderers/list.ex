@@ -13,6 +13,7 @@ defmodule Cinder.Renderers.List do
   import Cinder.Renderers.Helpers
 
   alias Cinder.Renderers.BulkActions
+  alias Cinder.Renderers.InfiniteStream
   alias Cinder.Renderers.Pagination
   alias Cinder.Renderers.SortControls
   alias Cinder.Selection
@@ -32,13 +33,24 @@ defmodule Cinder.Renderers.List do
 
     assigns =
       assigns
+      |> assign_infinite_defaults()
+      |> assign_new(:show_item_numbers, fn -> false end)
+      |> assign_new(:current_page, fn -> 1 end)
       |> assign(:has_item_slot, has_item_slot)
       |> assign(:list_container_class, container_class)
       |> assign(:list_item_class, item_class)
       |> assign(:list_item_data_key, item_data_key)
 
     ~H"""
-    <div class={[@theme.container_class, "relative"]} data-key="container_class">
+    <div
+      class={[@theme.container_class, "relative"]}
+      data-key="container_class"
+      data-cinder-infinite-root={@pagination_mode == :infinite}
+      data-selected-ids={if @pagination_mode == :infinite, do: InfiniteStream.encode_selected_ids(@selected_ids, Map.get(assigns, :infinite_item_ids))}
+      data-selected-classes={if @pagination_mode == :infinite, do: InfiniteStream.encode_selected_classes(InfiniteStream.selected_classes(Map.get(@theme, :selected_item_class)))}
+      id={if @pagination_mode == :infinite, do: "#{@id}-infinite-stream"}
+      phx-hook={if @pagination_mode == :infinite, do: "CinderInfiniteStream"}
+    >
       <!-- Controls Area (filters + sort) -->
       <div :if={@show_filters || (@show_sort && SortControls.has_sortable_columns?(@columns))} class={[@theme.controls_class, "!flex !flex-col"]} data-key="controls_class">
         <!-- Filter Controls (including search) -->
@@ -80,15 +92,67 @@ defmodule Cinder.Renderers.List do
         myself={@myself}
       />
 
+      <InfiniteStream.top_sentinel
+        id={@id}
+        myself={@myself}
+        theme={@theme}
+        show={@pagination_mode == :infinite and @infinite_has_previous and not @loading and not @error}
+      />
+
       <!-- List Items Container -->
-      <div class={@list_container_class} data-key="list_container_class">
+      <div
+        id={"#{@id}-items"}
+        class={@list_container_class}
+        data-key="list_container_class"
+        phx-update={if @pagination_mode == :infinite, do: "stream"}
+      >
         <%= if @has_item_slot do %>
           <div
-            :for={item <- @data} :if={not @error}
+            :for={{dom_id, payload} <- @stream_items} :if={@pagination_mode == :infinite}
+            id={dom_id}
+            class={selection_classes(@list_item_class, Map.get(assigns, :item_class), @item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), payload.record, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
+            data-item-id={payload.id}
+            data-item-number={payload.number}
+            data-key={@list_item_data_key}
+            phx-click={selection_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), payload.record, Map.get(assigns, :id_field, :id), @myself)}
+          >
+            <span :if={@show_item_numbers} class={@theme.pagination_count_class} data-item-number>
+              {payload.number}.
+            </span>
+            <div
+              :if={Selection.enabled?(Map.get(assigns, :selectable, false))}
+              class={@theme.list_selection_container_class}
+              data-key="list_selection_container_class"
+            >
+              <input
+                type="checkbox"
+                disabled={not Selection.item_toggleable?(@selectable, @selected_ids, payload.record, @id_field)}
+                checked={Selection.item_selected?(@selected_ids, payload.record, @id_field)}
+                phx-click="toggle_select"
+                phx-value-id={payload.id}
+                phx-target={@myself}
+                class={@theme.selection_checkbox_class}
+                data-cinder-selection-checkbox
+                data-key="selection_checkbox_class"
+              />
+            </div>
+            {render_slot(@item_slot, payload.record)}
+          </div>
+          <div
+            :for={{item, index} <- Enum.with_index(@data)} :if={@pagination_mode != :infinite and not @error}
             class={selection_classes(@list_item_class, Map.get(assigns, :item_class), @item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
+            data-item-id={to_string(Map.get(item, @id_field))}
+            data-item-number={item_number(index, @pagination_mode, @current_page, @page)}
             data-key={@list_item_data_key}
             phx-click={selection_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @myself)}
           >
+            <span
+              :if={@show_item_numbers}
+              class={@theme.pagination_count_class}
+              data-item-number
+            >
+              {item_number(index, @pagination_mode, @current_page, @page)}.
+            </span>
             <div
               :if={Selection.enabled?(Map.get(assigns, :selectable, false))}
               class={@theme.list_selection_container_class}
@@ -114,8 +178,7 @@ defmodule Cinder.Renderers.List do
           </div>
         <% end %>
 
-        <!-- Error State -->
-        <div :if={@error and not @loading} class={@theme.empty_class} data-key="error_class">
+        <div id={"#{@id}-error"} :if={@pagination_mode != :infinite and @error and not @loading} class={@theme.empty_class} data-key="error_class">
           <%= if has_slot?(assigns, :error_slot) do %>
             {render_slot(@error_slot)}
           <% else %>
@@ -125,8 +188,7 @@ defmodule Cinder.Renderers.List do
           <% end %>
         </div>
 
-        <!-- Empty State (only when not loading and not error) -->
-        <div :if={@data == [] and not @loading and not @error and @has_item_slot} class={@theme.empty_class} data-key="empty_class">
+        <div id={"#{@id}-empty"} :if={@pagination_mode != :infinite and @data == [] and not @loading and not @error and @has_item_slot} class={@theme.empty_class} data-key="empty_class">
           <%= if has_slot?(assigns, :empty_slot) do %>
             {render_slot(@empty_slot, empty_context(assigns))}
           <% else %>
@@ -135,8 +197,26 @@ defmodule Cinder.Renderers.List do
         </div>
       </div>
 
+      <div :if={@pagination_mode == :infinite and @error and @infinite_loaded_count == 0 and not @loading} class={@theme.empty_class} data-key="error_class">
+        <%= if has_slot?(assigns, :error_slot) do %>
+          {render_slot(@error_slot)}
+        <% else %>
+          <div class={@theme.error_container_class} data-key="error_container_class">
+            <span class={@theme.error_message_class} data-key="error_message_class">{@error_message}</span>
+          </div>
+        <% end %>
+      </div>
+
+      <div :if={@pagination_mode == :infinite and @infinite_loaded_count == 0 and not @loading and not @error and @has_item_slot} class={@theme.empty_class} data-key="empty_class">
+        <%= if has_slot?(assigns, :empty_slot) do %>
+          {render_slot(@empty_slot, empty_context(assigns))}
+        <% else %>
+          {@empty_message}
+        <% end %>
+      </div>
+
       <!-- Loading indicator -->
-      <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
+      <div :if={@loading and (@pagination_mode != :infinite or @infinite_loaded_count == 0)} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
         <%= if has_slot?(assigns, :loading_slot) do %>
           {render_slot(@loading_slot)}
         <% else %>
@@ -158,6 +238,19 @@ defmodule Cinder.Renderers.List do
         myself={@myself}
         show_pagination={@show_pagination}
         pagination_mode={@pagination_mode}
+        total_count={@total_count}
+        count_mode={@count_mode}
+        current_page={@current_page}
+        loaded_count={if(@pagination_mode == :infinite, do: @infinite_loaded_count, else: length(@data))}
+        range_start={@infinite_range_start}
+        range_end={@infinite_range_end}
+        has_previous={@infinite_has_previous}
+        has_next={@infinite_has_next}
+        loading={@loading}
+        error={@error}
+        infinite_load={Map.get(assigns, :infinite_load, :automatic)}
+        overscan={Map.get(assigns, :overscan, 1)}
+        load_more_label={Map.get(assigns, :load_more_label)}
         id={@id}
       />
     </div>

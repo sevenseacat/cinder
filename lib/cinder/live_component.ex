@@ -34,10 +34,17 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(Map.drop(assigns, [:refresh]))
       |> assign_defaults()
+      |> maybe_reset_infinite_pagination()
+      |> ensure_infinite_stream()
       |> assign_column_definitions()
+      |> invalidate_count()
       |> load_data()
 
     {:ok, socket}
+  end
+
+  def update(%{__infinite_prefetch__: true}, socket) do
+    {:ok, maybe_start_infinite_prefetch(socket)}
   end
 
   def update(%{__update_item__: {id, update_fn}}, socket) do
@@ -103,6 +110,7 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(assigns)
       |> assign_defaults()
+      |> ensure_infinite_stream()
       |> assign_column_definitions()
       |> decode_url_state(assigns)
       |> load_data_if_needed(prev_state)
@@ -111,17 +119,21 @@ defmodule Cinder.LiveComponent do
   end
 
   defp do_update_item_if_visible(socket, id, raw_item, update_fn, id_field) do
-    data = socket.assigns.data || []
+    if infinite_mode?(socket) do
+      do_update_infinite_item_if_visible(socket, id, raw_item, update_fn, id_field)
+    else
+      data = socket.assigns.data || []
 
-    case Enum.find(data, &(Map.get(&1, id_field) == id)) do
-      nil ->
-        {:ok, socket}
+      case Enum.find(data, &(Map.get(&1, id_field) == id)) do
+        nil ->
+          {:ok, socket}
 
-      old_item ->
-        input = raw_item || old_item
-        updated = update_fn.(input)
-        updated_data = Enum.map(data, &if(Map.get(&1, id_field) == id, do: updated, else: &1))
-        {:ok, assign(socket, :data, updated_data)}
+        old_item ->
+          input = raw_item || old_item
+          updated = update_fn.(input)
+          updated_data = Enum.map(data, &if(Map.get(&1, id_field) == id, do: updated, else: &1))
+          {:ok, assign(socket, :data, updated_data)}
+      end
     end
   end
 
@@ -131,24 +143,119 @@ defmodule Cinder.LiveComponent do
   end
 
   defp do_update_items_if_visible(socket, items_by_id, ids, update_fn, id_field) do
-    data = socket.assigns.data || []
-    id_set = MapSet.new(ids)
-    visible_ids = data |> Enum.map(&Map.get(&1, id_field)) |> MapSet.new()
-    ids_to_update = MapSet.intersection(id_set, visible_ids)
+    if infinite_mode?(socket) do
+      do_update_infinite_items_if_visible(socket, items_by_id, ids, update_fn, id_field)
+    else
+      data = socket.assigns.data || []
+      id_set = MapSet.new(ids)
+      visible_ids = data |> Enum.map(&Map.get(&1, id_field)) |> MapSet.new()
+      ids_to_update = MapSet.intersection(id_set, visible_ids)
 
-    if MapSet.size(ids_to_update) == 0 do
+      if MapSet.size(ids_to_update) == 0 do
+        {:ok, socket}
+      else
+        input_items = get_input_items(data, items_by_id, ids_to_update, id_field)
+        updated_by_id = update_fn.(input_items) |> to_map_by_id(id_field)
+
+        updated_data =
+          Enum.map(data, fn item ->
+            id = Map.get(item, id_field)
+            Map.get(updated_by_id, id, item)
+          end)
+
+        {:ok, assign(socket, :data, updated_data)}
+      end
+    end
+  end
+
+  # Infinite collections intentionally retain only IDs, cursors, numbering and
+  # selection metadata on the server. A full incoming record is therefore
+  # required for a targeted update; ID-only updates remain a safe no-op.
+  defp do_update_infinite_item_if_visible(socket, id, %{} = raw_item, update_fn, id_field) do
+    normalized_id = to_string(id)
+
+    if MapSet.member?(socket.assigns.infinite_item_ids, normalized_id) do
+      updated = update_fn.(raw_item)
+      {:ok, update_infinite_entries(socket, %{normalized_id => updated}, id_field)}
+    else
+      {:ok, socket}
+    end
+  end
+
+  defp do_update_infinite_item_if_visible(socket, _id, nil, _update_fn, _id_field),
+    do: {:ok, socket}
+
+  defp do_update_infinite_items_if_visible(socket, items_by_id, _ids, update_fn, id_field)
+       when is_map(items_by_id) do
+    raw_by_id = Map.new(items_by_id, fn {id, item} -> {to_string(id), item} end)
+
+    visible_items =
+      socket.assigns.infinite_pages
+      |> Enum.flat_map(& &1.items)
+      |> Enum.filter(&Map.has_key?(raw_by_id, &1.id))
+      |> Enum.map(&Map.fetch!(raw_by_id, &1.id))
+
+    if visible_items == [] do
       {:ok, socket}
     else
-      input_items = get_input_items(data, items_by_id, ids_to_update, id_field)
-      updated_by_id = update_fn.(input_items) |> to_map_by_id(id_field)
+      updated_by_id =
+        visible_items
+        |> update_fn.()
+        |> to_map_by_normalized_id(id_field)
 
-      updated_data =
-        Enum.map(data, fn item ->
-          id = Map.get(item, id_field)
-          Map.get(updated_by_id, id, item)
-        end)
+      {:ok, update_infinite_entries(socket, updated_by_id, id_field)}
+    end
+  end
 
-      {:ok, assign(socket, :data, updated_data)}
+  defp do_update_infinite_items_if_visible(socket, nil, _ids, _update_fn, _id_field),
+    do: {:ok, socket}
+
+  defp update_infinite_entries(socket, updated_by_id, id_field) do
+    selectable = socket.assigns.selectable
+
+    {pages, entries} =
+      Enum.map_reduce(socket.assigns.infinite_pages, [], fn page, entries ->
+        {items, entries} =
+          Enum.map_reduce(page.items, entries, fn item_meta, entries ->
+            case Map.fetch(updated_by_id, item_meta.id) do
+              {:ok, updated} ->
+                ensure_same_infinite_id!(updated, item_meta.id, id_field)
+                selectable? = Cinder.Selection.item_selectable?(selectable, updated)
+                item_meta = %{item_meta | selectable?: selectable?}
+
+                entry = %{
+                  record: updated,
+                  id: item_meta.id,
+                  number: item_meta.number,
+                  keyset: item_meta.keyset,
+                  selectable?: selectable?
+                }
+
+                {item_meta, [entry | entries]}
+
+              :error ->
+                {item_meta, entries}
+            end
+          end)
+
+        {refresh_infinite_page_meta(page, items), entries}
+      end)
+
+    selectable_ids =
+      pages
+      |> Enum.flat_map(& &1.selectable_ids)
+      |> MapSet.new()
+
+    socket
+    |> maybe_stream_items(Enum.reverse(entries), [])
+    |> assign(:infinite_pages, pages)
+    |> assign(:infinite_selectable_ids, selectable_ids)
+  end
+
+  defp ensure_same_infinite_id!(item, expected_id, id_field) do
+    if to_string(Map.get(item, id_field)) != expected_id do
+      raise ArgumentError,
+            "an infinite stream update must preserve the #{inspect(id_field)} field"
     end
   end
 
@@ -167,6 +274,14 @@ defmodule Cinder.LiveComponent do
   end
 
   defp to_map_by_id(items, _id_field) when is_map(items), do: items
+
+  defp to_map_by_normalized_id(items, id_field) when is_list(items) do
+    Map.new(items, &{to_string(Map.get(&1, id_field)), &1})
+  end
+
+  defp to_map_by_normalized_id(items, _id_field) when is_map(items) do
+    Map.new(items, fn {id, item} -> {to_string(id), item} end)
+  end
 
   @impl true
   def render(assigns) do
@@ -200,6 +315,7 @@ defmodule Cinder.LiveComponent do
     if socket.assigns.pagination_mode == :keyset do
       socket =
         socket
+        |> assign(:current_page, socket.assigns.current_page + 1)
         |> assign(:after_keyset, socket.assigns.last_keyset)
         |> assign(:before_keyset, nil)
         |> notify_state_change()
@@ -217,12 +333,33 @@ defmodule Cinder.LiveComponent do
     if socket.assigns.pagination_mode == :keyset do
       socket =
         socket
+        |> assign(:current_page, max(socket.assigns.current_page - 1, 1))
         |> assign(:before_keyset, socket.assigns.first_keyset)
         |> assign(:after_keyset, nil)
         |> notify_state_change()
         |> load_data()
 
       {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("load_more", _params, socket) do
+    {:noreply, maybe_load_infinite(socket, :append)}
+  end
+
+  @impl true
+  def handle_event("load_previous", _params, socket) do
+    {:noreply, maybe_load_infinite(socket, :prepend)}
+  end
+
+  @impl true
+  def handle_event("retry_load_more", _params, socket) do
+    if socket.assigns.pagination_mode == :infinite and socket.assigns.error and
+         not socket.assigns.loading do
+      {:noreply, socket |> assign(:error, false) |> load_data()}
     else
       {:noreply, socket}
     end
@@ -243,6 +380,8 @@ defmodule Cinder.LiveComponent do
         # Clear keyset cursors to restart from beginning when page size changes
         |> assign(:after_keyset, nil)
         |> assign(:before_keyset, nil)
+        |> assign(:infinite_append?, false)
+        |> mark_infinite_reset()
         |> notify_state_change()
         |> load_data()
 
@@ -260,6 +399,8 @@ defmodule Cinder.LiveComponent do
       |> assign(:current_page, 1)
       |> assign(:after_keyset, nil)
       |> assign(:before_keyset, nil)
+      |> assign(:infinite_append?, false)
+      |> mark_infinite_reset()
       |> load_data()
       |> notify_state_change()
 
@@ -282,6 +423,8 @@ defmodule Cinder.LiveComponent do
       |> assign(:current_page, 1)
       |> assign(:after_keyset, nil)
       |> assign(:before_keyset, nil)
+      |> assign(:infinite_append?, false)
+      |> mark_infinite_reset()
       |> load_data()
 
     socket = notify_state_change(socket, new_filters)
@@ -314,6 +457,8 @@ defmodule Cinder.LiveComponent do
       |> assign(:current_page, 1)
       |> assign(:after_keyset, nil)
       |> assign(:before_keyset, nil)
+      |> assign(:infinite_append?, false)
+      |> mark_infinite_reset()
       |> assign(:user_has_interacted, true)
 
     socket =
@@ -330,7 +475,14 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("refresh", _params, socket) do
-    {:noreply, load_data(socket)}
+    socket =
+      if socket.assigns.pagination_mode == :infinite do
+        reset_infinite_pagination(socket)
+      else
+        socket
+      end
+
+    {:noreply, socket |> invalidate_count() |> load_data()}
   end
 
   @impl true
@@ -343,6 +495,8 @@ defmodule Cinder.LiveComponent do
       |> assign(:current_page, 1)
       |> assign(:after_keyset, nil)
       |> assign(:before_keyset, nil)
+      |> assign(:infinite_append?, false)
+      |> mark_infinite_reset()
       |> load_data()
       |> notify_state_change()
 
@@ -382,10 +536,14 @@ defmodule Cinder.LiveComponent do
     selectable = socket.assigns[:selectable] || false
 
     page_ids =
-      socket.assigns.data
-      |> Enum.filter(&Cinder.Selection.item_selectable?(selectable, &1))
-      |> Enum.map(&to_string(Map.get(&1, id_field)))
-      |> MapSet.new()
+      if Map.get(socket.assigns, :pagination_mode, :offset) == :infinite do
+        Map.get(socket.assigns, :infinite_selectable_ids, MapSet.new())
+      else
+        socket.assigns.data
+        |> Enum.filter(&Cinder.Selection.item_selectable?(selectable, &1))
+        |> Enum.map(&to_string(Map.get(&1, id_field)))
+        |> MapSet.new()
+      end
 
     all_selected? =
       not Enum.empty?(page_ids) and MapSet.subset?(page_ids, socket.assigns.selected_ids)
@@ -466,6 +624,8 @@ defmodule Cinder.LiveComponent do
         |> assign(:current_page, 1)
         |> assign(:after_keyset, nil)
         |> assign(:before_keyset, nil)
+        |> assign(:infinite_append?, false)
+        |> mark_infinite_reset()
       else
         socket
       end
@@ -532,6 +692,8 @@ defmodule Cinder.LiveComponent do
       socket
       |> assign(:selected_ids, MapSet.new())
       |> notify_selection_change(:clear)
+      |> maybe_reset_infinite_pagination()
+      |> invalidate_count()
       |> load_data()
 
     if event_name = slot[:on_success] do
@@ -580,7 +742,7 @@ defmodule Cinder.LiveComponent do
 
   defp maybe_notify_query_change(socket, query) do
     if event_name = socket.assigns[:on_query_change] do
-      payload = %{query: query, count: page_count(socket.assigns[:page]), id: socket.assigns.id}
+      payload = %{query: query, count: socket.assigns[:total_count], id: socket.assigns.id}
       send(self(), {event_name, payload})
     end
 
@@ -601,9 +763,13 @@ defmodule Cinder.LiveComponent do
     selectable = socket.assigns[:selectable] || false
     id_field = socket.assigns[:id_field] || :id
 
-    case Enum.find(socket.assigns.data, &(to_string(Map.get(&1, id_field)) == id)) do
-      nil -> false
-      item -> Cinder.Selection.item_selectable?(selectable, item)
+    if Map.get(socket.assigns, :pagination_mode, :offset) == :infinite do
+      MapSet.member?(Map.get(socket.assigns, :infinite_selectable_ids, MapSet.new()), id)
+    else
+      case Enum.find(socket.assigns.data, &(to_string(Map.get(&1, id_field)) == id)) do
+        nil -> false
+        item -> Cinder.Selection.item_selectable?(selectable, item)
+      end
     end
   end
 
@@ -631,6 +797,7 @@ defmodule Cinder.LiveComponent do
       {:ok, page}
       |> handle_result(socket)
       |> maybe_notify_query_change(query)
+      |> maybe_start_async_count(query)
 
     {:noreply, socket}
   end
@@ -645,14 +812,30 @@ defmodule Cinder.LiveComponent do
     {:noreply, handle_result({:exit, reason}, socket)}
   end
 
+  @impl true
+  def handle_async({:load_count, attempt}, {:ok, result}, socket) do
+    {:noreply, apply_async_count_result(socket, attempt, result)}
+  end
+
+  @impl true
+  def handle_async({:load_count, attempt}, {:exit, reason}, socket) do
+    {:noreply, apply_async_count_result(socket, attempt, {:error, reason})}
+  end
+
   defp handle_result({:ok, page}, socket) do
-    socket
-    |> assign(:loading, false)
-    |> assign(:error, false)
-    |> assign(:data, page.results)
-    |> assign(:page, page)
-    # Update keyset cursors for navigation (only relevant in keyset mode)
-    |> maybe_update_keyset_cursors(page)
+    socket = maybe_store_sync_count(socket, page)
+
+    if Map.get(socket.assigns, :pagination_mode, :offset) == :infinite do
+      put_infinite_page(socket, page)
+    else
+      socket
+      |> assign(:loading, false)
+      |> assign(:error, false)
+      |> assign(:data, page.results)
+      |> assign(:page, page)
+      |> assign(:infinite_append?, false)
+      |> maybe_update_keyset_cursors(page)
+    end
   end
 
   defp handle_result({:error, error}, socket) do
@@ -667,11 +850,7 @@ defmodule Cinder.LiveComponent do
       }
     )
 
-    socket
-    |> assign(:loading, false)
-    |> assign(:error, true)
-    |> assign(:data, [])
-    |> assign(:page, nil)
+    handle_load_error(socket)
   end
 
   defp handle_result({:exit, reason}, socket) do
@@ -686,22 +865,29 @@ defmodule Cinder.LiveComponent do
       }
     )
 
-    socket
-    |> assign(:loading, false)
-    |> assign(:error, true)
-    |> assign(:data, [])
-    |> assign(:page, nil)
+    handle_load_error(socket)
+  end
+
+  defp handle_load_error(socket) do
+    if socket.assigns.pagination_mode == :infinite and socket.assigns.infinite_append? and
+         socket.assigns.infinite_loaded_count > 0 do
+      socket
+      |> assign(:loading, false)
+      |> assign(:error, true)
+    else
+      socket
+      |> assign(:loading, false)
+      |> assign(:error, true)
+      |> assign(:data, [])
+      |> assign(:page, nil)
+      |> assign(:infinite_append?, false)
+    end
   end
 
   defp maybe_update_keyset_cursors(socket, %Ash.Page.Keyset{} = page) do
-    results = page.results
-    # Extract keysets from first and last results for navigation
-    first_keyset = get_keyset_from_result(List.first(results))
-    last_keyset = get_keyset_from_result(List.last(results))
-
     socket
-    |> assign(:first_keyset, first_keyset)
-    |> assign(:last_keyset, last_keyset)
+    |> assign(:first_keyset, get_keyset_from_result(List.first(page.results)))
+    |> assign(:last_keyset, get_keyset_from_result(List.last(page.results)))
   end
 
   defp maybe_update_keyset_cursors(socket, _page), do: socket
@@ -715,6 +901,290 @@ defmodule Cinder.LiveComponent do
     end
   end
 
+  defp put_infinite_page(socket, page) do
+    direction = socket.assigns.infinite_direction
+    page_number = socket.assigns.current_page
+    id_field = socket.assigns.id_field
+    selectable = socket.assigns.selectable
+    existing_ids = socket.assigns.infinite_item_ids
+    number_start = infinite_number_start(socket, direction, length(page.results))
+
+    entries =
+      page.results
+      |> Enum.with_index(number_start)
+      |> Enum.map(fn {item, number} ->
+        id = to_string(Map.get(item, id_field))
+
+        %{
+          record: item,
+          id: id,
+          number: number,
+          keyset: get_keyset_from_result(item),
+          selectable?: Cinder.Selection.item_selectable?(selectable, item)
+        }
+      end)
+      |> Enum.reject(&MapSet.member?(existing_ids, &1.id))
+
+    page_meta = build_infinite_page_meta(page_number, entries)
+
+    stream_entries = if direction == :prepend, do: Enum.reverse(entries), else: entries
+
+    stream_limit =
+      if direction == :prepend, do: socket.assigns.window_size, else: -socket.assigns.window_size
+
+    stream_opts =
+      [at: if(direction == :prepend, do: 0, else: -1), limit: stream_limit]
+      |> Keyword.put(:reset, direction == :reset)
+
+    {pages, window_pruned?} =
+      update_infinite_pages(socket.assigns.infinite_pages, page_meta, direction, socket)
+
+    item_ids = pages |> Enum.flat_map(& &1.ids) |> MapSet.new()
+
+    selectable_ids =
+      pages
+      |> Enum.flat_map(& &1.selectable_ids)
+      |> MapSet.new()
+
+    first_page = List.first(pages)
+    last_page = List.last(pages)
+    {range_start, range_end} = infinite_range(pages, socket.assigns.page_size)
+
+    socket
+    |> maybe_stream_items(stream_entries, stream_opts)
+    |> assign(:loading, false)
+    |> assign(:error, false)
+    |> assign(:data, [])
+    |> assign(:page, strip_page_results(page))
+    |> assign(:infinite_pages, pages)
+    |> assign(:infinite_item_ids, item_ids)
+    |> assign(:infinite_selectable_ids, selectable_ids)
+    |> assign(:infinite_loaded_count, MapSet.size(item_ids))
+    |> assign(:infinite_range_start, range_start)
+    |> assign(:infinite_range_end, range_end)
+    |> assign(:first_keyset, first_page && first_page.first_keyset)
+    |> assign(:last_keyset, last_page && last_page.last_keyset)
+    |> update_infinite_boundaries(page, direction, window_pruned?)
+    |> assign(:infinite_append?, false)
+    |> assign(:infinite_direction, :append)
+    |> maybe_schedule_infinite_prefetch()
+  end
+
+  defp strip_page_results(%Ash.Page.Keyset{} = page), do: %{page | results: []}
+  defp strip_page_results(%Ash.Page.Offset{} = page), do: %{page | results: []}
+  defp strip_page_results(page), do: page
+
+  defp maybe_stream_items(%{private: %{lifecycle: _}} = socket, entries, opts) do
+    stream(socket, :items, entries, opts)
+  end
+
+  defp maybe_stream_items(socket, _entries, _opts), do: socket
+
+  defp infinite_number_start(_socket, :reset, _result_count), do: 1
+
+  defp infinite_number_start(socket, :prepend, result_count) do
+    max(socket.assigns.infinite_range_start - result_count, 1)
+  end
+
+  defp infinite_number_start(socket, _direction, _result_count) do
+    max(socket.assigns.infinite_range_end + 1, 1)
+  end
+
+  defp build_infinite_page_meta(page_number, entries) do
+    items = Enum.map(entries, &Map.take(&1, [:id, :keyset, :number, :selectable?]))
+    refresh_infinite_page_meta(%{page: page_number}, items)
+  end
+
+  defp refresh_infinite_page_meta(page, items) do
+    page
+    |> Map.put(:items, items)
+    |> Map.put(:ids, Enum.map(items, & &1.id))
+    |> Map.put(:selectable_ids, items |> Enum.filter(& &1.selectable?) |> Enum.map(& &1.id))
+    |> Map.put(:first_keyset, items |> List.first() |> then(&(&1 && &1.keyset)))
+    |> Map.put(:last_keyset, items |> List.last() |> then(&(&1 && &1.keyset)))
+  end
+
+  defp update_infinite_pages(_pages, %{items: []}, :reset, _socket), do: {[], false}
+
+  defp update_infinite_pages(pages, %{items: []}, _direction, _socket), do: {pages, false}
+
+  defp update_infinite_pages(_pages, page_meta, :reset, _socket), do: {[page_meta], false}
+
+  defp update_infinite_pages(pages, page_meta, :prepend, socket) do
+    trim_infinite_pages([page_meta | pages], socket.assigns.window_size, :end)
+  end
+
+  defp update_infinite_pages(pages, page_meta, _direction, socket) do
+    trim_infinite_pages(pages ++ [page_meta], socket.assigns.window_size, :start)
+  end
+
+  defp trim_infinite_pages(pages, limit, edge) do
+    overflow = max(Enum.sum(Enum.map(pages, &length(&1.items))) - limit, 0)
+
+    trimmed =
+      case edge do
+        :start -> trim_infinite_page_edge(pages, overflow)
+        :end -> trim_infinite_page_end(pages, overflow)
+      end
+
+    {trimmed, overflow > 0}
+  end
+
+  defp trim_infinite_page_edge(pages, 0), do: pages
+  defp trim_infinite_page_edge([], _drop), do: []
+
+  defp trim_infinite_page_edge([page | rest], drop) do
+    item_count = length(page.items)
+
+    if drop >= item_count do
+      trim_infinite_page_edge(rest, drop - item_count)
+    else
+      [refresh_infinite_page_meta(page, Enum.drop(page.items, drop)) | rest]
+    end
+  end
+
+  defp trim_infinite_page_end(pages, 0), do: pages
+  defp trim_infinite_page_end([], _drop), do: []
+
+  defp trim_infinite_page_end(pages, drop) do
+    page = List.last(pages)
+    item_count = length(page.items)
+
+    if drop >= item_count do
+      pages |> Enum.drop(-1) |> trim_infinite_page_end(drop - item_count)
+    else
+      kept_items = Enum.take(page.items, item_count - drop)
+      List.replace_at(pages, -1, refresh_infinite_page_meta(page, kept_items))
+    end
+  end
+
+  defp update_infinite_boundaries(socket, page, :reset, _window_pruned?) do
+    before? = not is_nil(socket.assigns.before_keyset)
+    after? = not is_nil(socket.assigns.after_keyset)
+
+    socket
+    |> assign(:infinite_has_previous, if(before?, do: has_more_results?(page), else: after?))
+    |> assign(:infinite_has_next, before? or has_more_results?(page))
+  end
+
+  defp update_infinite_boundaries(socket, page, :prepend, window_pruned?) do
+    socket
+    |> assign(:infinite_has_previous, has_more_results?(page))
+    |> assign(:infinite_has_next, socket.assigns.infinite_has_next or window_pruned?)
+  end
+
+  defp update_infinite_boundaries(socket, page, _direction, window_pruned?) do
+    socket
+    |> assign(:infinite_has_previous, socket.assigns.infinite_has_previous or window_pruned?)
+    |> assign(:infinite_has_next, has_more_results?(page))
+  end
+
+  defp infinite_range([], _page_size), do: {0, 0}
+
+  defp infinite_range(pages, _page_size) do
+    first_item = pages |> List.first() |> Map.fetch!(:items) |> List.first()
+    last_item = pages |> List.last() |> Map.fetch!(:items) |> List.last()
+    {first_item.number, last_item.number}
+  end
+
+  defp infinite_window_batches(socket),
+    do: div(socket.assigns.window_size, socket.assigns.page_size)
+
+  defp maybe_schedule_infinite_prefetch(socket) do
+    target_batches = min(1 + socket.assigns.overscan, infinite_window_batches(socket))
+
+    if socket.assigns.infinite_load == :automatic and connected?(socket) and
+         not socket.assigns.infinite_prefetch_scheduled? and
+         length(socket.assigns.infinite_pages) < target_batches and
+         socket.assigns.infinite_has_next do
+      send_update(__MODULE__, id: socket.assigns.id, __infinite_prefetch__: true)
+      assign(socket, :infinite_prefetch_scheduled?, true)
+    else
+      socket
+    end
+  end
+
+  defp maybe_start_infinite_prefetch(socket) do
+    socket
+    |> assign(:infinite_prefetch_scheduled?, false)
+    |> maybe_load_infinite(:append)
+  end
+
+  defp maybe_load_infinite(socket, direction) do
+    can_load? =
+      socket.assigns.pagination_mode == :infinite and not socket.assigns.loading and
+        not socket.assigns.error
+
+    case {can_load?, direction, socket.assigns.infinite_pages} do
+      {true, :append, pages} when pages != [] ->
+        last = List.last(pages)
+
+        if socket.assigns.infinite_has_next and not is_nil(last.last_keyset) do
+          socket
+          |> assign(:current_page, last.page + 1)
+          |> assign(:after_keyset, last.last_keyset)
+          |> assign(:before_keyset, nil)
+          |> assign(:infinite_append?, true)
+          |> assign(:infinite_direction, :append)
+          |> notify_state_change()
+          |> load_data()
+        else
+          socket
+        end
+
+      {true, :prepend, [first | _]} ->
+        if socket.assigns.infinite_has_previous and not is_nil(first.first_keyset) do
+          socket
+          |> assign(:current_page, max(first.page - 1, 1))
+          |> assign(:before_keyset, first.first_keyset)
+          |> assign(:after_keyset, nil)
+          |> assign(:infinite_append?, true)
+          |> assign(:infinite_direction, :prepend)
+          |> notify_state_change()
+          |> load_data()
+        else
+          socket
+        end
+
+      _ ->
+        socket
+    end
+  end
+
+  defp has_more_results?(%{more?: more?}), do: more?
+  defp has_more_results?(_page), do: false
+
+  defp mark_infinite_reset(socket) do
+    socket
+    |> assign(:infinite_direction, :reset)
+    |> assign(:infinite_pages, [])
+    |> assign(:infinite_item_ids, MapSet.new())
+    |> assign(:infinite_selectable_ids, MapSet.new())
+    |> assign(:infinite_loaded_count, 0)
+    |> assign(:infinite_range_start, 0)
+    |> assign(:infinite_range_end, 0)
+    |> assign(:infinite_has_previous, false)
+    |> assign(:infinite_has_next, false)
+  end
+
+  defp reset_infinite_pagination(socket) do
+    socket
+    |> assign(:current_page, 1)
+    |> assign(:after_keyset, nil)
+    |> assign(:before_keyset, nil)
+    |> assign(:first_keyset, nil)
+    |> assign(:last_keyset, nil)
+    |> assign(:infinite_append?, false)
+    |> mark_infinite_reset()
+  end
+
+  defp maybe_reset_infinite_pagination(socket) do
+    if infinite_mode?(socket), do: reset_infinite_pagination(socket), else: socket
+  end
+
+  defp infinite_mode?(socket),
+    do: Map.get(socket.assigns, :pagination_mode, :offset) == :infinite
+
   defp maybe_put_cursor(state, _key, nil), do: state
   defp maybe_put_cursor(state, key, cursor), do: Map.put(state, key, cursor)
 
@@ -724,12 +1194,12 @@ defmodule Cinder.LiveComponent do
 
   defp notify_state_change(socket, filters \\ nil) do
     filters = filters || socket.assigns.filters
-    current_page = socket.assigns.current_page
+    pagination_mode = socket.assigns.pagination_mode
+    current_page = if pagination_mode == :infinite, do: 1, else: socket.assigns.current_page
     sort_by = socket.assigns.sort_by
     page_size_config = socket.assigns.page_size_config
     search_term = socket.assigns.search_term
     filter_field_names = socket.assigns.filter_field_names
-    pagination_mode = socket.assigns.pagination_mode
 
     state = %{
       filters: filters,
@@ -741,9 +1211,9 @@ defmodule Cinder.LiveComponent do
       filter_field_names: filter_field_names
     }
 
-    # For keyset pagination, include after/before cursors for URL persistence
+    # Infinite pagination resumes from the same keyset cursor as keyset pagination.
     state =
-      if pagination_mode == :keyset do
+      if pagination_mode in [:keyset, :infinite] do
         state
         |> maybe_put_cursor(:after, socket.assigns.after_keyset)
         |> maybe_put_cursor(:before, socket.assigns.before_keyset)
@@ -807,9 +1277,9 @@ defmodule Cinder.LiveComponent do
           socket
         end
 
-      # Handle keyset cursors from URL (after/before params)
+      # Keyset and infinite pagination share cursor recovery.
       updated_socket =
-        if socket.assigns.pagination_mode == :keyset do
+        if socket.assigns.pagination_mode in [:keyset, :infinite] do
           updated_socket
           |> maybe_assign_cursor(:after_keyset, decoded_state.after)
           |> maybe_assign_cursor(:before_keyset, decoded_state.before)
@@ -819,7 +1289,10 @@ defmodule Cinder.LiveComponent do
 
       updated_socket
       |> assign(:filters, decoded_state.filters)
-      |> assign(:current_page, decoded_state.current_page)
+      |> assign(
+        :current_page,
+        if(socket.assigns.pagination_mode == :infinite, do: 1, else: decoded_state.current_page)
+      )
       |> assign(:sort_by, final_sort_by)
       |> assign(:search_term, decoded_state.search_term)
     else
@@ -849,6 +1322,8 @@ defmodule Cinder.LiveComponent do
 
     # Determine pagination mode (default to :offset for backwards compatibility)
     pagination_mode = assigns[:pagination_mode] || :offset
+    overscan = normalize_overscan(assigns[:overscan])
+    window_size = normalize_window_size(assigns[:window_size], selected_page_size, overscan)
 
     socket
     |> assign(:page_size, selected_page_size)
@@ -868,10 +1343,31 @@ defmodule Cinder.LiveComponent do
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
     # Keyset pagination state
     |> assign(:pagination_mode, pagination_mode)
+    |> assign(:count_mode, Map.get(assigns, :count_mode, :sync))
+    |> assign_new(:total_count, fn -> nil end)
+    |> assign_new(:count_query_state, fn -> nil end)
+    |> assign_new(:count_attempt, fn -> nil end)
+    |> assign(:window_size, window_size)
+    |> assign(:overscan, overscan)
+    |> assign(:show_item_numbers, assigns[:show_item_numbers] || false)
     |> assign(:after_keyset, assigns[:after_keyset])
     |> assign(:before_keyset, assigns[:before_keyset])
     |> assign(:first_keyset, assigns[:first_keyset])
     |> assign(:last_keyset, assigns[:last_keyset])
+    |> assign(:infinite_append?, assigns[:infinite_append?] || false)
+    |> assign(:infinite_direction, assigns[:infinite_direction] || :reset)
+    |> assign(:infinite_pages, assigns[:infinite_pages] || [])
+    |> assign(:infinite_item_ids, assigns[:infinite_item_ids] || MapSet.new())
+    |> assign(:infinite_selectable_ids, assigns[:infinite_selectable_ids] || MapSet.new())
+    |> assign(:infinite_loaded_count, assigns[:infinite_loaded_count] || 0)
+    |> assign(:infinite_range_start, assigns[:infinite_range_start] || 0)
+    |> assign(:infinite_range_end, assigns[:infinite_range_end] || 0)
+    |> assign(:infinite_has_previous, assigns[:infinite_has_previous] || false)
+    |> assign(:infinite_has_next, assigns[:infinite_has_next] || false)
+    |> assign(:infinite_prefetch_scheduled?, assigns[:infinite_prefetch_scheduled?] || false)
+    |> assign(:infinite_load, Map.get(assigns, :infinite_load, :automatic))
+    |> assign(:load_more_label, assigns[:load_more_label])
+    |> assign_new(:infinite_stream_configured?, fn -> false end)
     # Selection state
     |> assign(:selectable, assigns[:selectable] || false)
     |> assign_new(:selected_ids, fn -> MapSet.new() end)
@@ -881,6 +1377,32 @@ defmodule Cinder.LiveComponent do
     |> assign(:sort_mode, assigns[:sort_mode] || :additive)
     # Bulk actions
     |> assign_new(:bulk_action_slots, fn -> [] end)
+  end
+
+  defp normalize_overscan(value) when is_integer(value) and value >= 0, do: value
+  defp normalize_overscan(_value), do: 1
+
+  defp normalize_window_size(value, page_size, overscan) do
+    requested =
+      if is_integer(value) and value >= page_size do
+        value
+      else
+        page_size * (1 + 2 * overscan)
+      end
+
+    ceil(requested / page_size) * page_size
+  end
+
+  defp ensure_infinite_stream(socket) do
+    if socket.assigns.infinite_stream_configured? do
+      socket
+    else
+      component_id = socket.assigns.id
+
+      socket
+      |> stream_configure(:items, dom_id: &"#{component_id}-item-#{&1.id}")
+      |> assign(:infinite_stream_configured?, true)
+    end
   end
 
   defp assign_column_definitions(socket) do
@@ -939,12 +1461,25 @@ defmodule Cinder.LiveComponent do
   # Keys that affect data queries - changes to these trigger a reload.
   # Note: actor, tenant, and scope are normalized separately to avoid
   # false positives from Ecto struct metadata differences.
-  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts after_keyset before_keyset)a
+  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts pagination_mode after_keyset before_keyset)a
+  @count_keys ~w(filters search_term query query_opts action)a
 
   defp data_state(assigns) do
     base_state = Map.take(assigns, @data_keys)
 
     Map.merge(base_state, %{
+      count_mode: Map.get(assigns, :count_mode, :sync),
+      actor_id: normalize_auth(assigns[:actor]),
+      tenant_id: normalize_auth(assigns[:tenant]),
+      scope_id: normalize_scope(assigns[:scope])
+    })
+  end
+
+  defp count_query_state(assigns) do
+    base_state = Map.take(assigns, @count_keys)
+
+    Map.merge(base_state, %{
+      count_mode: Map.get(assigns, :count_mode, :sync),
       actor_id: normalize_auth(assigns[:actor]),
       tenant_id: normalize_auth(assigns[:tenant]),
       scope_id: normalize_scope(assigns[:scope])
@@ -1011,6 +1546,7 @@ defmodule Cinder.LiveComponent do
       columns: columns,
       search_term: search_term,
       pagination_mode: pagination_mode,
+      count_mode: count_mode,
       after_keyset: after_keyset,
       before_keyset: before_keyset
     } = socket.assigns
@@ -1036,15 +1572,17 @@ defmodule Cinder.LiveComponent do
       current_page: current_page,
       columns: query_columns,
       search_term: search_term,
-      search_fn: socket.assigns.search_fn,
+      search_fn: Map.get(socket.assigns, :search_fn),
       pagination_configured: socket.assigns.page_size_config.configurable || page_size != 25,
       # Keyset pagination options
       pagination_mode: pagination_mode,
+      count_mode: count_mode,
       after_keyset: after_keyset,
       before_keyset: before_keyset
     ]
 
     socket
+    |> prepare_count_for_load()
     |> assign(:loading, true)
     |> assign(:error, false)
     |> then(fn socket ->
@@ -1061,6 +1599,7 @@ defmodule Cinder.LiveComponent do
               |> Cinder.QueryBuilder.execute(options)
               |> handle_result(socket)
               |> maybe_notify_query_change(prepared_query)
+              |> maybe_start_async_count(prepared_query)
 
             {:error, _} = error ->
               handle_result(error, socket)
@@ -1080,5 +1619,71 @@ defmodule Cinder.LiveComponent do
         end)
       end
     end)
+  end
+
+  defp invalidate_count(socket) do
+    assign(socket, total_count: nil, count_query_state: nil, count_attempt: nil)
+  end
+
+  defp prepare_count_for_load(socket) do
+    state = count_query_state(socket.assigns)
+
+    if socket.assigns.count_query_state == state do
+      socket
+    else
+      assign(socket, total_count: nil, count_query_state: state, count_attempt: nil)
+    end
+  end
+
+  defp maybe_store_sync_count(%{assigns: %{count_mode: :sync}} = socket, page) do
+    assign(socket, :total_count, page_count(page))
+  end
+
+  defp maybe_store_sync_count(socket, _page), do: socket
+
+  defp maybe_start_async_count(%{assigns: %{count_mode: :async}} = socket, %Ash.Query{} = query) do
+    if is_integer(socket.assigns.total_count) or socket.assigns.count_attempt do
+      socket
+    else
+      attempt = make_ref()
+      socket = assign(socket, :count_attempt, attempt)
+      options = count_query_options(socket)
+
+      if Application.get_env(:ash, :disable_async?) do
+        apply_async_count_result(
+          socket,
+          attempt,
+          Cinder.QueryBuilder.count(query, options)
+        )
+      else
+        start_async(socket, {:load_count, attempt}, fn ->
+          Cinder.QueryBuilder.count(query, options)
+        end)
+      end
+    end
+  end
+
+  defp maybe_start_async_count(socket, _query), do: socket
+
+  defp apply_async_count_result(socket, attempt, {:ok, count})
+       when socket.assigns.count_attempt == attempt do
+    assign(socket, total_count: count, count_attempt: nil)
+  end
+
+  defp apply_async_count_result(socket, attempt, {:error, reason})
+       when socket.assigns.count_attempt == attempt do
+    Logger.warning("Cinder count query failed: #{inspect(reason)}")
+    assign(socket, :count_attempt, nil)
+  end
+
+  defp apply_async_count_result(socket, _attempt, _result), do: socket
+
+  defp count_query_options(socket) do
+    [
+      actor: socket.assigns.actor,
+      tenant: socket.assigns.tenant,
+      scope: Map.get(socket.assigns, :scope),
+      query_opts: socket.assigns.query_opts
+    ]
   end
 end

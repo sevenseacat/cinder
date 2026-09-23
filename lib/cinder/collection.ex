@@ -178,7 +178,45 @@ defmodule Cinder.Collection do
   attr(:pagination, :any,
     default: :offset,
     doc:
-      "Pagination mode: :offset (default) or :keyset. Keyset pagination is faster for large datasets but only supports prev/next navigation."
+      "Pagination mode: :offset (default), :keyset, or :infinite. Infinite pagination appends keyset batches as the viewport reaches the end."
+  )
+
+  attr(:count, :any,
+    default: nil,
+    doc:
+      "Total-count mode: :sync, :async, or false. Defaults to :sync for offset/keyset pagination and false for infinite pagination."
+  )
+
+  attr(:window_size, :integer,
+    default: nil,
+    doc:
+      "Maximum number of records retained in the browser DOM for infinite pagination. " <>
+        "Defaults to page_size * (1 + 2 * overscan)."
+  )
+
+  attr(:overscan, :integer,
+    default: 1,
+    doc:
+      "Number of additional page_size batches prefetched in infinite pagination; automatic loading also triggers this many extra viewport-heights ahead."
+  )
+
+  attr(:infinite_load, :atom,
+    default: :automatic,
+    values: [:automatic, :manual],
+    doc:
+      "How infinite pagination loads additional batches. :automatic attaches the viewport " <>
+        "sentinel hook; :manual leaves the Load More button in control."
+  )
+
+  attr(:load_more_label, :string,
+    default: nil,
+    doc: "Infinite pagination button label (defaults to translated \"Load more\")"
+  )
+
+  attr(:show_item_numbers, :boolean,
+    default: false,
+    doc:
+      "Show stable item numbers. Keyset pages use their sequential page position; infinite batches retain accumulated numbering."
   )
 
   attr(:show_filters, :any,
@@ -383,6 +421,7 @@ defmodule Cinder.Collection do
       |> assign(:loading_message, assigns[:loading_message] || dgettext("cinder", "Loading..."))
       |> assign(:filters_label, assigns[:filters_label] || dgettext("cinder", "Filters"))
       |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
+      |> assign(:load_more_label, assigns[:load_more_label] || dgettext("cinder", "Load more"))
       |> assign(:empty_message, assigns.empty_message || dgettext("cinder", "No results found"))
       |> assign(
         :error_message,
@@ -428,6 +467,7 @@ defmodule Cinder.Collection do
 
     # Parse pagination mode
     pagination_mode = parse_pagination_mode(assigns.pagination)
+    count_mode = normalize_count_mode(assigns.count, pagination_mode)
 
     # Select renderer based on layout (support both atoms and strings)
     layout = normalize_layout(assigns.layout)
@@ -465,6 +505,7 @@ defmodule Cinder.Collection do
       |> assign(:show_filters, show_filters)
       |> assign(:show_sort, show_sort)
       |> assign(:pagination_mode, pagination_mode)
+      |> assign(:count_mode, count_mode)
       |> assign(:renderer, renderer)
       |> assign(:item_slot, item_slot)
       |> assign(:bulk_action_slots, bulk_action_slots)
@@ -519,6 +560,12 @@ defmodule Cinder.Collection do
         search_placeholder={@search_placeholder}
         search_fn={@search_fn}
         pagination_mode={@pagination_mode}
+        count_mode={@count_mode}
+        window_size={@window_size}
+        overscan={@overscan}
+        infinite_load={@infinite_load}
+        load_more_label={@load_more_label}
+        show_item_numbers={@show_item_numbers}
         id_field={@id_field}
         selectable={@selectable}
         on_selection_change={@on_selection_change}
@@ -950,9 +997,21 @@ defmodule Cinder.Collection do
 
   defp parse_pagination_mode(:offset), do: :offset
   defp parse_pagination_mode(:keyset), do: :keyset
+  defp parse_pagination_mode(:infinite), do: :infinite
   defp parse_pagination_mode("offset"), do: :offset
   defp parse_pagination_mode("keyset"), do: :keyset
+  defp parse_pagination_mode("infinite"), do: :infinite
   defp parse_pagination_mode(_invalid), do: :offset
+
+  @doc false
+  def normalize_count_mode(nil, :infinite), do: false
+  def normalize_count_mode(nil, _pagination_mode), do: :sync
+  def normalize_count_mode(mode, _pagination_mode) when mode in [:sync, :async, false], do: mode
+
+  def normalize_count_mode(mode, _pagination_mode) do
+    raise ArgumentError,
+          "invalid count mode #{inspect(mode)}; expected :sync, :async, or false"
+  end
 
   # ============================================================================
   # PRIVATE HELPERS - Theme

@@ -57,6 +57,23 @@ defmodule Cinder.Renderers.TableSelectionTest do
   end
 
   describe "table selection rendering" do
+    test "renders stable visible keyset item numbers when enabled" do
+      assigns =
+        base_assigns()
+        |> Map.merge(%{
+          show_item_numbers: true,
+          pagination_mode: :keyset,
+          current_page: 3,
+          page: %{limit: 10},
+          data: [%{id: "user-1", name: "Alice"}, %{id: "user-2", name: "Bob"}]
+        })
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ ~r/data-item-number[^>]*>\s*21\s*</
+      assert html =~ ~r/data-item-number[^>]*>\s*22\s*</
+    end
+
     test "renders header checkbox with theme class when selectable=true" do
       assigns =
         base_assigns()
@@ -186,6 +203,29 @@ defmodule Cinder.Renderers.TableSelectionTest do
       # user-2 is non-selectable per the predicate but is currently selected,
       # so it must remain interactive to allow removal.
       assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["user-2"]))
+
+      html = render_component(&TableRenderer.render/1, assigns)
+
+      assert html =~ ~r/<input[^>]*checked[^>]*phx-value-id="user-2"/
+      refute html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="user-2"/
+    end
+
+    test "keeps an already-selected infinite row toggleable when it becomes non-selectable" do
+      record = %{id: "user-2", name: "Bob", status: :inactive}
+
+      assigns =
+        predicate_assigns()
+        |> Map.merge(%{
+          pagination_mode: :infinite,
+          data: [],
+          selected_ids: MapSet.new(["user-2"]),
+          streams: %{
+            items: [
+              {"test-table-items-user-2",
+               %{record: record, id: "user-2", number: 2, selectable?: false}}
+            ]
+          }
+        })
 
       html = render_component(&TableRenderer.render/1, assigns)
 
