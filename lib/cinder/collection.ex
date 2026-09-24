@@ -155,13 +155,22 @@ defmodule Cinder.Collection do
     doc: "Additional Ash query options"
   )
 
+  attr(:initial_load, :any,
+    default: nil,
+    doc:
+      ":async (default) loads data after the page renders; :sync loads it before, " <>
+        "putting the first page of data in the server-rendered HTML at the cost of " <>
+        "blocking the mount. Can also be set globally via " <>
+        "`config :cinder, default_initial_load: :sync`."
+  )
+
   attr(:on_state_change, :any, default: nil, doc: "Custom state change handler")
 
   attr(:on_query_change, :any,
     default: nil,
     doc:
       "Event name sent to parent when the query changes. " <>
-        "Parent receives {event_name, %{query: Ash.Query.t(), id: string()}}."
+        "Parent receives {event_name, %{query: Ash.Query.t(), count: integer() | nil, id: string()}}."
   )
 
   attr(:show_pagination, :boolean, default: true, doc: "Whether to show pagination controls")
@@ -367,6 +376,7 @@ defmodule Cinder.Collection do
       |> assign_new(:theme, fn -> "default" end)
       |> assign_new(:url_state, fn -> false end)
       |> assign_new(:query_opts, fn -> [] end)
+      |> assign(:initial_load, determine_initial_load(assigns))
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:on_query_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
@@ -482,6 +492,7 @@ defmodule Cinder.Collection do
         theme={@resolved_theme}
         url_raw_params={get_raw_url_params(@url_state)}
         query_opts={@query_opts}
+        initial_load={@initial_load}
         on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
         show_filters={@show_filters}
         show_sort={@show_sort}
@@ -847,6 +858,26 @@ defmodule Cinder.Collection do
   defp normalize_show_filters("toggle"), do: :toggle
   defp normalize_show_filters("toggle_open"), do: :toggle_open
   defp normalize_show_filters(other), do: other
+
+  defp determine_initial_load(assigns) do
+    mode =
+      case Map.get(assigns, :initial_load) do
+        nil -> Application.get_env(:cinder, :default_initial_load, :async)
+        explicit -> explicit
+      end
+
+    normalize_initial_load(mode)
+  end
+
+  defp normalize_initial_load(mode) when mode in [:sync, "sync"], do: :sync
+  defp normalize_initial_load(mode) when mode in [:async, "async", nil], do: :async
+
+  # Fall back to the mode that can't hurt, but say so — a typo silently turning off
+  # a synchronous first load is hard to spot from the outside.
+  defp normalize_initial_load(mode) do
+    Logger.warning("Unknown initial_load #{inspect(mode)}, falling back to :async")
+    :async
+  end
 
   defp layout_class(:table), do: "cinder-table"
   defp layout_class(:list), do: "cinder-list"

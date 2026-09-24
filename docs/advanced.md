@@ -10,6 +10,7 @@ This guide covers URL state management, relationships, embedded resources, refre
 - [Collection Refresh](#collection-refresh)
 - [Loading, Empty & Error States](#loading-empty-error-states)
 - [Performance Optimization](#performance-optimization)
+- [Synchronous v Asynchronous Initial Data Loading](#synchronous-v-asynchronous-initial-data-loading)
 - [Query Access](#query-access)
 - [Selection & Bulk Actions](#selection--bulk-actions)
 
@@ -461,15 +462,25 @@ Add `on_query_change` to receive the query in your parent LiveView via `handle_i
 ```
 
 ```elixir
-def handle_info({:query_changed, %{query: query, id: "users-table"}}, socket) do
-  # Store the query for later use (e.g., export)
-  {:noreply, assign(socket, :current_query, query)}
+def handle_info({:query_changed, %{query: query, count: count, id: "users-table"}}, socket) do
+  # Store the query for later use (e.g., export), and the total for display
+  {:noreply, assign(socket, current_query: query, total: count)}
 end
 ```
 
 The callback fires on initial load and whenever filters, sorting, or search change. The received query includes all filters and sorts but no pagination, so you can use it directly for exports.
 
 When you pass a `resource={...}` (or a query without an `action`), Cinder prepares it via `Ash.Query.for_read/4`, so the exposed query has `:scope`, `:actor`, `:tenant`, and scope-supplied `:context` (e.g. timezone) already baked on. The actor lives at the canonical `query.context.private.actor` location. When you pass a pre-prepared `query={Ash.Query.for_read(...)}`, Cinder leaves your auth setup untouched — the exposed query reflects exactly what you handed in, with Cinder's filters/sorts added on top.
+
+### Displaying the total elsewhere
+
+`count` is the total number of matching records — the same number the pagination footer shows. Cinder already asked Ash for it when it loaded the page, so rendering a total outside the collection (in a page header, say) costs no extra query:
+
+```heex
+<h1>Users <span :if={@total}>({@total})</span></h1>
+```
+
+An action without pagination reports the number of records it loaded instead. Any read where the data layer returns no count reports `nil`.
 
 ### Export Example
 
@@ -703,3 +714,43 @@ When `selectable` is enabled without a `click` handler, clicking rows/items togg
   ...
 </Cinder.collection>
 ```
+
+## Synchronous v Asynchronous Initial Data Loading
+
+Cinder runs a collection's first query after the page renders, so the initial
+HTML contains the table but not yet its rows. Set `initial_load={:sync}` to run
+that query first instead, putting the first page of data in the server-rendered
+HTML — useful for pages that need to be crawlable, or readable without JS:
+
+```heex
+<Cinder.collection resource={MyApp.User} initial_load={:sync}>
+  <:col :let={user} field="name">{user.name}</:col>
+</Cinder.collection>
+```
+
+Only the first load changes. Filtering, sorting, pagination, and refreshes stay
+asynchronous, and any state in the URL — filters, sort, page — is applied to
+that first render.
+
+The cost is latency. A synchronous load blocks both the initial HTTP response
+and the connected LiveView mount, so the query runs before either can complete
+and a slow one delays the page appearing and then delays it becoming
+interactive. That is the trade: rows in the first paint, in exchange for waiting
+on the query twice.
+
+You can change the default for every collection in the app, and override it per
+collection:
+
+```elixir
+config :cinder, default_initial_load: :sync
+```
+
+```heex
+<Cinder.collection resource={MyApp.AuditLog} initial_load={:async}>
+  ...
+</Cinder.collection>
+```
+
+Setting the global default applies the latency cost everywhere, including pages
+behind a login where nothing benefits from it, so it is usually better to opt in
+the specific collections that need it.

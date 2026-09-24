@@ -51,13 +51,20 @@ defmodule Cinder.Table do
   attr :theme, :any, default: "default", doc: "Theme name or theme map"
   attr :url_state, :any, default: false, doc: "URL state object from UrlSync.handle_params"
   attr :query_opts, :list, default: [], doc: "Additional Ash query options"
+
+  attr :initial_load, :any,
+    default: nil,
+    doc:
+      ":async (default) or :sync, which puts the first page of data in the " <>
+        "server-rendered HTML. See `Cinder.Collection`."
+
   attr :on_state_change, :any, default: nil, doc: "Custom state change handler"
 
   attr :on_query_change, :any,
     default: nil,
     doc:
       "Event name sent to parent when the query changes. " <>
-        "Parent receives {event_name, %{query: Ash.Query.t(), id: string()}}."
+        "Parent receives {event_name, %{query: Ash.Query.t(), count: integer() | nil, id: string()}}."
 
   attr :show_pagination, :boolean, default: true, doc: "Whether to show pagination controls"
   attr :show_filters, :boolean, default: nil, doc: "Whether to show filter controls"

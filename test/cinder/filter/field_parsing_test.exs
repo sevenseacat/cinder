@@ -154,12 +154,16 @@ defmodule Cinder.Filter.FieldParsingTest do
     import ExUnit.CaptureLog
 
     test "bracket notation still parses but logs a deprecation warning" do
-      # Use a field name unique to this test so the persistent_term once-guard doesn't
-      # swallow the warning (other tests may have already warned for shared field names).
+      # The warning fires once per distinct field for the life of the VM, so the probe
+      # field has to be unique per run — a name fixed in the source would only warn on
+      # the first one, and every repeat (`mix test --repeat-until-failure`) would see
+      # nothing.
+      field = "deprecation_probe_#{System.unique_integer([:positive])}"
+
       log =
         capture_log(fn ->
-          assert Cinder.Filter.Helpers.parse_field_notation("deprecation_probe[:nested]") ==
-                   {:embedded, "deprecation_probe", "nested"}
+          assert Cinder.Filter.Helpers.parse_field_notation("#{field}[:nested]") ==
+                   {:embedded, field, "nested"}
         end)
 
       assert log =~ "deprecated bracket notation"

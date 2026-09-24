@@ -335,6 +335,25 @@ import Cinder.Update
 end)}
 ```
 
+## Query Access
+
+Receive the built query and the total record count in the parent LiveView:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} on_query_change={:query_changed} id="users">
+```
+
+```elixir
+def handle_info({:query_changed, %{query: query, count: count, id: "users"}}, socket) do
+  {:noreply, assign(socket, current_query: query, total: count)}
+end
+```
+
+- Fires on initial load and whenever filters, sorting, or search change
+- `query` has all filters and sorts applied but no pagination - use it directly for exports
+- `count` is the total matching records, the same number the pagination footer shows. Cinder already asked Ash for it, so never run your own `Ash.count!` to display a total
+- `count` is `nil` when the read produced no count; an action without pagination reports the number of records it loaded
+
 ## Custom Filters
 
 ### 1. Configuration
