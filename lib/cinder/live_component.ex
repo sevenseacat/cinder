@@ -1519,10 +1519,29 @@ defmodule Cinder.LiveComponent do
     reload_requested = socket.assigns[:__reload_requested__] == true
     socket = assign(socket, :__reload_requested__, false)
 
-    if first_load or state_changed or reload_requested do
-      load_data(socket)
-    else
-      socket
+    cond do
+      first_load or reload_requested -> load_data(socket)
+      state_changed -> socket |> start_over(prev, curr) |> load_data()
+      true -> socket
+    end
+  end
+
+  @result_keys ~w(filters sort_by search_term query query_opts actor_id tenant_id scope_id)a
+  @cursor_keys ~w(current_page after_keyset before_keyset)a
+
+  # A new query, filter, search, sort or reader is a different result set, so an infinite
+  # stream starts over instead of keeping the old rows. A cursor arriving in the same update,
+  # such as one restored from the URL, is kept.
+  defp start_over(socket, prev, curr) do
+    cond do
+      not infinite_mode?(socket) or Map.take(prev, @result_keys) == Map.take(curr, @result_keys) ->
+        socket
+
+      Map.take(prev, @cursor_keys) != Map.take(curr, @cursor_keys) ->
+        mark_infinite_reset(socket)
+
+      true ->
+        reset_infinite_pagination(socket)
     end
   end
 

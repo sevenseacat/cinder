@@ -3,6 +3,8 @@ defmodule Cinder.Integration.InfiniteCursorRestoreTest do
   alias Cinder.LiveComponent
   alias Cinder.Support.SearchTestResource
 
+  require Ash.Query
+
   setup {Cinder.TestHelpers, :disable_async_loading}
 
   test "restoring the final batch keeps earlier records reachable" do
@@ -27,6 +29,17 @@ defmodule Cinder.Integration.InfiniteCursorRestoreTest do
     assert restored.assigns.infinite_has_next
     {:noreply, next} = LiveComponent.handle_event("load_more", %{}, restored)
     assert MapSet.subset?(last.assigns.infinite_item_ids, next.assigns.infinite_item_ids)
+  end
+
+  test "a new query starts the stream over instead of keeping the old rows" do
+    {:noreply, both} = LiveComponent.handle_event("load_more", %{}, first_page())
+    assert MapSet.size(both.assigns.infinite_item_ids) == 2
+
+    second = Ash.Query.filter(SearchTestResource, title == "Second")
+    {:ok, narrowed} = LiveComponent.update(%{query: second}, both)
+
+    [record] = Ash.read!(second, authorize?: false)
+    assert narrowed.assigns.infinite_item_ids == MapSet.new([to_string(record.id)])
   end
 
   defp first_page do

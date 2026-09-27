@@ -69,6 +69,7 @@ defmodule Cinder.Renderers.List do
           search_placeholder={@search_placeholder}
           raw_filter_params={Map.get(assigns, :raw_filter_params, %{})}
           controls_slot={Map.get(assigns, :controls_slot, [])}
+          total_count={@total_count}
         />
 
         <!-- Sort Controls (button group since no table headers) -->

@@ -81,6 +81,7 @@ defmodule Cinder.Controls do
   - `:filter_mode` — current filter display mode
   - `:filter_values` — shared filter values map (for render helpers)
   - `:raw_filter_params` — raw form params (for autocomplete filters)
+  - `:total_count` — how many records match, or `nil` until counted (and when counting is off)
   """
   def build_controls_data(assigns) do
     filterable_columns = Enum.filter(assigns.columns, & &1.filterable)
@@ -129,7 +130,8 @@ defmodule Cinder.Controls do
       filters_label: assigns.filters_label,
       filter_mode: filter_mode,
       filter_values: filter_values,
-      raw_filter_params: raw_filter_params
+      raw_filter_params: raw_filter_params,
+      total_count: Map.get(assigns, :total_count)
     }
   end
 
