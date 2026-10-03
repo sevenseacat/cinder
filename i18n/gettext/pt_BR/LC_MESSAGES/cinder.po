@@ -68,11 +68,6 @@ msgstr "Ir para página %{page}"
 
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen, elixir-format
-msgid "%{total} items"
-msgstr "%{total} itens"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen, elixir-format
 msgid "Next"
 msgstr "Próximo"
 
@@ -195,3 +190,39 @@ msgstr "Digite para pesquisar mais opções..."
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Um erro ocorreu ao carregar os dados"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Load more"
+msgstr "Carregar mais"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Loading failed. Try again"
+msgstr "Falha ao carregar. Tente novamente"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Loading more items..."
+msgstr "Carregando mais itens..."
+
+#: lib/cinder/renderers/infinite_stream.ex
+#, elixir-autogen, elixir-format
+msgid "Load previous"
+msgstr "Carregar anteriores"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Page %{current}"
+msgstr "Página %{current}"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "You have reached the end of this list"
+msgstr "Você chegou ao fim desta lista"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "%{total} items"
+msgstr "%{total} itens"

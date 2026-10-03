@@ -1,5 +1,6 @@
 defmodule Cinder.Filters.RegistryTest do
-  use ExUnit.Case, async: true
+  # These tests mutate the global filter registry configuration.
+  use ExUnit.Case, async: false
   import ExUnit.CaptureLog
 
   alias Cinder.Filters.Registry
@@ -54,6 +55,15 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   setup do
+    original_filters = Application.fetch_env(:cinder, :filters)
+
+    on_exit(fn ->
+      case original_filters do
+        {:ok, filters} -> Application.put_env(:cinder, :filters, filters)
+        :error -> Application.delete_env(:cinder, :filters)
+      end
+    end)
+
     # Clear any existing custom filters before each test
     Application.put_env(:cinder, :filters, [])
     :ok

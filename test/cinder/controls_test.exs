@@ -90,7 +90,13 @@ defmodule Cinder.ControlsTest do
 
   describe "build_controls_data/1" do
     test "builds keyword list of lean filter maps with shared context at top level" do
-      assigns = base_assigns(%{target: :some_target, raw_filter_params: %{"name" => "test"}})
+      assigns =
+        base_assigns(%{
+          target: :some_target,
+          raw_filter_params: %{"name" => "test"},
+          total_count: 12
+        })
+
       result = Controls.build_controls_data(assigns)
 
       # Top-level structure
@@ -106,6 +112,7 @@ defmodule Cinder.ControlsTest do
       assert result.theme == assigns.theme
       assert result.filter_values == %{"name" => "", "status" => ""}
       assert result.raw_filter_params == %{"name" => "test"}
+      assert result.total_count == 12
 
       # Filters is a keyword list keyed by field atom
       assert [{:name, name_filter}, {:status, status_filter}] = result.filters

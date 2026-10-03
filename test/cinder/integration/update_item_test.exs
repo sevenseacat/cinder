@@ -17,6 +17,38 @@ defmodule Cinder.Integration.UpdateItemTest do
     }
   end
 
+  defp make_infinite_socket(overrides \\ %{}) do
+    assigns = %{
+      id: "products",
+      id_field: :id,
+      data: [],
+      pagination_mode: :infinite,
+      selectable: & &1.selectable?,
+      infinite_item_ids: MapSet.new(["1", "2"]),
+      infinite_selectable_ids: MapSet.new(["1", "2"]),
+      infinite_pages: [
+        %{
+          page: 4,
+          items: [
+            %{id: "1", keyset: "cursor-1", number: 7, selectable?: true},
+            %{id: "2", keyset: "cursor-2", number: 8, selectable?: true}
+          ],
+          ids: ["1", "2"],
+          selectable_ids: ["1", "2"],
+          first_keyset: "cursor-1",
+          last_keyset: "cursor-2"
+        }
+      ]
+    }
+
+    socket = %Phoenix.LiveView.Socket{
+      assigns: assigns |> Map.merge(overrides) |> Map.put(:__changed__, %{}),
+      private: %{lifecycle: %Phoenix.LiveView.Lifecycle{}}
+    }
+
+    Phoenix.LiveView.stream_configure(socket, :items, dom_id: &"products-item-#{&1.id}")
+  end
+
   describe "LiveComponent update/2 with __update_item__" do
     test "updates a single item by ID" do
       # Simulate existing socket state with data
@@ -430,6 +462,80 @@ defmodule Cinder.Integration.UpdateItemTest do
 
       assert updated_socket.assigns.data == [%{uuid: "abc-123", value: "new", loaded: true}]
     end
+
+    test "updates a visible infinite-stream row from a raw incoming record" do
+      socket = make_infinite_socket()
+      raw_item = %{id: 2, name: "Fresh", selectable?: false}
+
+      assigns = %{
+        __update_item_if_visible__: {raw_item, &Map.put(&1, :loaded?, true)}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == []
+      assert updated_socket.assigns.infinite_item_ids == MapSet.new(["1", "2"])
+      assert updated_socket.assigns.infinite_selectable_ids == MapSet.new(["1"])
+
+      [page] = updated_socket.assigns.infinite_pages
+
+      assert Enum.map(page.items, &Map.take(&1, [:id, :number, :keyset])) == [
+               %{id: "1", number: 7, keyset: "cursor-1"},
+               %{id: "2", number: 8, keyset: "cursor-2"}
+             ]
+
+      assert [{"products-item-2", -1, entry, nil, nil}] =
+               updated_socket.assigns.streams.items.inserts
+
+      assert entry == %{
+               id: "2",
+               number: 8,
+               keyset: "cursor-2",
+               selectable?: false,
+               record: %{id: 2, name: "Fresh", selectable?: false, loaded?: true}
+             }
+    end
+
+    test "does not invoke a raw notification callback for a pruned infinite row" do
+      socket = make_infinite_socket()
+
+      assigns = %{
+        __update_item_if_visible__:
+          {%{id: 99, name: "Not visible", selectable?: true},
+           fn _ ->
+             flunk("update callback must not run for a row outside the stream window")
+           end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      refute Map.has_key?(updated_socket.assigns.streams, :items)
+      assert updated_socket.assigns.infinite_item_ids == MapSet.new(["1", "2"])
+    end
+
+    test "keeps ID-only updates as a no-op because stream records are not retained" do
+      socket = make_infinite_socket()
+
+      assigns = %{
+        __update_item_if_visible__: {"2", fn _ -> flunk("there is no retained record") end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      refute Map.has_key?(updated_socket.assigns.streams, :items)
+    end
+
+    test "rejects notification transforms that change the streamed identity" do
+      socket = make_infinite_socket()
+
+      assigns = %{
+        __update_item_if_visible__: {%{id: 2, selectable?: true}, fn item -> %{item | id: 3} end}
+      }
+
+      assert_raise ArgumentError, ~r/must preserve the :id field/, fn ->
+        LiveComponent.update(assigns, socket)
+      end
+    end
   end
 
   describe "LiveComponent update/2 with __update_items_if_visible__" do
@@ -497,6 +603,45 @@ defmodule Cinder.Integration.UpdateItemTest do
 
       # No changes when empty list
       assert updated_socket.assigns.data == [%{id: 1, value: "test"}]
+    end
+
+    test "batch-updates only raw incoming records in the infinite window" do
+      socket = make_infinite_socket()
+
+      raw_items = [
+        %{id: 2, name: "Two", selectable?: true},
+        %{id: 3, name: "Pruned", selectable?: true},
+        %{id: 1, name: "One", selectable?: true}
+      ]
+
+      assigns = %{
+        __update_items_if_visible__:
+          {raw_items,
+           fn visible ->
+             assert Enum.map(visible, & &1.id) == [1, 2]
+             Enum.map(visible, &Map.put(&1, :loaded?, true))
+           end}
+      }
+
+      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
+
+      assert updated_socket.assigns.data == []
+
+      assert Enum.map(updated_socket.assigns.infinite_pages, & &1.items) == [
+               [
+                 %{id: "1", keyset: "cursor-1", number: 7, selectable?: true},
+                 %{id: "2", keyset: "cursor-2", number: 8, selectable?: true}
+               ]
+             ]
+
+      assert updated_socket.assigns.streams.items.inserts
+             |> Enum.map(fn {dom_id, _at, entry, _limit, _update_only} ->
+               {dom_id, entry.number, entry.record.loaded?}
+             end)
+             |> Enum.sort() == [
+               {"products-item-1", 7, true},
+               {"products-item-2", 8, true}
+             ]
     end
   end
 
