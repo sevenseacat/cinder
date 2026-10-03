@@ -192,40 +192,6 @@ defmodule Cinder.Column do
   end
 
   @doc """
-  Validates a column configuration.
-  """
-  def validate(%__MODULE__{} = column) do
-    errors = []
-
-    errors = if column.field in [nil, ""], do: ["Field cannot be empty" | errors], else: errors
-    errors = if column.label in [nil, ""], do: ["Label cannot be empty" | errors], else: errors
-
-    # Validate filter type
-    valid_filter_types = [
-      :text,
-      :select,
-      :multi_select,
-      :multi_checkboxes,
-      :boolean,
-      :checkbox,
-      :date_range,
-      :number_range
-    ]
-
-    errors =
-      if column.filter_type in valid_filter_types do
-        errors
-      else
-        ["Invalid filter type: #{column.filter_type}" | errors]
-      end
-
-    case errors do
-      [] -> {:ok, column}
-      _ -> {:error, Enum.reverse(errors)}
-    end
-  end
-
-  @doc """
   Merges slot configuration with inferred defaults.
   """
   def merge_config(slot, inferred) do
