@@ -48,22 +48,6 @@ defmodule Cinder.Column do
   ]
 
   @doc """
-  Parses and normalizes column definitions from slots and resource information.
-
-  ## Parameters
-  - `slots` - List of column slot definitions
-  - `resource` - Ash resource module for type inference
-
-  ## Returns
-  List of normalized Column structs
-  """
-  def parse_columns(slots, resource) when is_list(slots) do
-    Enum.map(slots, fn slot ->
-      parse_column(slot, resource)
-    end)
-  end
-
-  @doc """
   Parses a single column definition with automatic type inference.
   """
   def parse_column(slot, resource) do

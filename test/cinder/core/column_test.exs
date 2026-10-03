@@ -119,24 +119,6 @@ defmodule Cinder.ColumnTest do
     end
   end
 
-  describe "parse_columns/2" do
-    test "parses multiple columns" do
-      slots = [
-        %{field: "id", label: "ID"},
-        %{field: "name", label: "Name"},
-        %{field: "email", label: "Email"}
-      ]
-
-      resource = nil
-
-      columns = Column.parse_columns(slots, resource)
-
-      assert length(columns) == 3
-      assert Enum.map(columns, & &1.field) == ["id", "name", "email"]
-      assert Enum.map(columns, & &1.label) == ["ID", "Name", "Email"]
-    end
-  end
-
   describe "merge_config/2" do
     test "merges slot config with inferred config" do
       slot = %{
@@ -349,7 +331,7 @@ defmodule Cinder.ColumnTest do
 
       resource = nil
 
-      columns = Column.parse_columns(slots, resource)
+      columns = Enum.map(slots, &Column.parse_column(&1, resource))
 
       # Only the email column should be filterable
       [id_col, name_col, email_col] = columns
@@ -367,7 +349,7 @@ defmodule Cinder.ColumnTest do
 
       resource = nil
 
-      columns = Column.parse_columns(slots, resource)
+      columns = Enum.map(slots, &Column.parse_column(&1, resource))
 
       [id_col, secret_col] = columns
 
@@ -393,7 +375,7 @@ defmodule Cinder.ColumnTest do
 
       resource = nil
 
-      columns = Column.parse_columns(slots, resource)
+      columns = Enum.map(slots, &Column.parse_column(&1, resource))
 
       filterable_columns = Enum.filter(columns, & &1.filterable)
       non_filterable_columns = Enum.reject(columns, & &1.filterable)
