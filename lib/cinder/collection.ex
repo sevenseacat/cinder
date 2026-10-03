@@ -152,7 +152,9 @@ defmodule Cinder.Collection do
 
   attr(:query_opts, :list,
     default: [],
-    doc: "Additional Ash query options"
+    doc:
+      "Additional Ash query options: `:load`, `:select`, `:tenant`, `:timeout`, " <>
+        "`:authorize?`, `:max_concurrency` and `:tracer`. Any other key logs a warning and is ignored."
   )
 
   attr(:initial_load, :any,
