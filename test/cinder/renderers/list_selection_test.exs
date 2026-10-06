@@ -29,6 +29,7 @@ defmodule Cinder.Renderers.ListSelectionTest do
       sort_by: [],
       sort_label: "Sort",
       loading: false,
+      show_loading_state: false,
       error: false,
       loading_message: "Loading...",
       empty_message: "No results",

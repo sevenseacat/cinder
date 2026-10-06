@@ -67,13 +67,13 @@ defmodule Cinder.Renderers.Table do
               </th>
               <th :for={column <- @columns} class={[@theme.th_class, column.class]} data-key="th_class">
                 <div :if={column.sortable}
-                     class={["cursor-pointer select-none", (@loading && "opacity-75" || "")]}
+                     class={["cursor-pointer select-none", (@show_loading_state && "opacity-75" || "")]}
                      phx-click="toggle_sort"
                      phx-value-key={column.field}
                      phx-target={@myself}>
                      {column.label}
                      <span class={@theme.sort_indicator_class} data-key="sort_indicator_class">
-                       <SortIcon.sort_icon sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@loading} />
+                       <SortIcon.sort_icon sort_direction={Cinder.QueryBuilder.get_sort_direction(@sort_by, column.field)} theme={@theme} loading={@show_loading_state} />
                      </span>
                 </div>
                 <div :if={not column.sortable}>
@@ -82,7 +82,7 @@ defmodule Cinder.Renderers.Table do
               </th>
             </tr>
           </thead>
-          <tbody class={[@theme.tbody_class, (@loading && "opacity-75" || "")]} data-key="tbody_class">
+          <tbody class={[@theme.tbody_class, (@show_loading_state && "opacity-75" || "")]} data-key="tbody_class">
             <tr :for={item <- @data} :if={not @error}
                 class={selection_classes(@theme.row_class, Map.get(assigns, :item_class), @row_click, @selectable, @selected_ids, item, @id_field, Map.get(@theme, :selected_row_class))}
                 data-item-id={to_string(Map.get(item, @id_field))}
@@ -131,7 +131,7 @@ defmodule Cinder.Renderers.Table do
       </div>
 
       <!-- Loading indicator -->
-      <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
+      <div :if={@show_loading_state} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
         <%= if has_slot?(assigns, :loading_slot) do %>
           {render_slot(@loading_slot)}
         <% else %>

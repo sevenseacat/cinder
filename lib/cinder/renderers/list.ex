@@ -67,7 +67,7 @@ defmodule Cinder.Renderers.List do
           sort_label={@sort_label}
           theme={@theme}
           myself={@myself}
-          loading={@loading}
+          loading={@show_loading_state}
         />
       </div>
 
@@ -136,7 +136,7 @@ defmodule Cinder.Renderers.List do
       </div>
 
       <!-- Loading indicator -->
-      <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
+      <div :if={@show_loading_state} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
         <%= if has_slot?(assigns, :loading_slot) do %>
           {render_slot(@loading_slot)}
         <% else %>

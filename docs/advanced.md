@@ -248,6 +248,31 @@ The `*_if_visible` variants never call your function if the item isn't displayed
 - For changes that affect derived data, use `refresh_table/2` instead.
 - If the item is not found in the current page, the update is silently ignored.
 
+For notification-driven changes that require a full requery, keep the current
+rows visible while their replacement loads with a silent asynchronous refresh:
+
+```elixir
+def handle_info(%Ash.Notifier.Notification{}, socket) do
+  {:noreply, refresh_table(socket, "users-table", silent: true)}
+end
+```
+
+A silent refresh keeps the collection marked as loading internally but hides the
+visual loading state. If it fails, the
+error is logged and the current data stays visible without an error indicator.
+Collections without existing rows use normal loading and error behavior, even
+when `silent: true` is requested. Omitting `:silent` or passing `false` keeps the
+normal refresh behavior.
+
+The option also applies to multiple collections:
+
+```elixir
+{:noreply, refresh_tables(socket, ["users-table", "audit-logs-table"], silent: true)}
+```
+
+Both `refresh_table/3` and `refresh_tables/3` require `:silent` to be a boolean;
+other values, such as `"true"`, raise `ArgumentError`.
+
 ## Loading, Empty & Error States
 
 Customize the loading spinner, empty message, and error display using slots. These replace the default string messages with rich content.

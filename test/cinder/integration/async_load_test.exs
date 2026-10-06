@@ -1,15 +1,18 @@
 defmodule Cinder.Integration.AsyncLoadTest do
   @moduledoc """
-  Covers `initial_load` — whether a collection's first query runs before or after
-  the page renders.
+  Covers initial loading and silent refreshes through a mounted LiveView.
 
   Every other integration test loads data synchronously (see `Cinder.ConnCase`)
   for simplicity. This test opts back into Cinder's default async mode, so the
   disconnected HTTP response only contains data when `initial_load` is `:sync`.
   """
   use Cinder.ConnCase, async: false
+  use Mimic
   import Phoenix.ConnTest, only: [get: 2, html_response: 2]
-  import Phoenix.LiveViewTest, only: [live: 2, element: 2, render_click: 1, render_async: 1]
+  import ExUnit.CaptureLog, only: [capture_log: 1]
+
+  import Phoenix.LiveViewTest,
+    only: [live: 2, element: 2, render_click: 1, render_async: 1, render: 1, has_element?: 2]
 
   # Opt back into async loading for this test (ConnCase's setup disabled it).
   setup {Cinder.TestHelpers, :enable_async_loading}
@@ -110,6 +113,114 @@ defmodule Cinder.Integration.AsyncLoadTest do
     conn
     |> visit(path)
     |> assert_has("td", text: "Async Album", timeout: 1000)
+  end
+
+  defp mount_refresh_collection(conn) do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.collection id="albums" resource={Cinder.Integration.Album}>
+          <:col :let={album} field="title">{album.title}</:col>
+        </Cinder.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+    render_async(view)
+    view
+  end
+
+  defp start_paused_refresh(view, read) do
+    # Pause the read so the pending UI assertions cannot race its result.
+    test_pid = self()
+    allow(Ash, test_pid, view.pid)
+
+    expect(Ash, :read, fn query, opts ->
+      send(test_pid, {:refresh_started, self()})
+
+      receive do
+        :continue_refresh -> read.(query, opts)
+      after
+        5_000 -> raise "test did not release the refresh query"
+      end
+    end)
+
+    send(view.pid, {:refresh_table, "albums", silent: true})
+    assert_receive {:refresh_started, query_pid}, 1_000
+    query_pid
+  end
+
+  test "silent refresh keeps rows without an overlay until the new data arrives", %{conn: conn} do
+    view = mount_refresh_collection(conn)
+    assert render(view) =~ "Async Album"
+
+    old_album =
+      Cinder.Integration.Album
+      |> Ash.read!()
+      |> Enum.find(&(&1.title == "Async Album"))
+
+    Ash.destroy!(old_album)
+    generate(album(title: "Replacement Album", artist_id: old_album.artist_id))
+
+    query_pid = start_paused_refresh(view, &call_original(Ash, :read, [&1, &2]))
+
+    try do
+      pending_html = render(view)
+      assert pending_html =~ "Async Album"
+      refute pending_html =~ "Replacement Album"
+      refute has_element?(view, ~s([data-key="loading_overlay_class"]))
+    after
+      send(query_pid, :continue_refresh)
+    end
+
+    refreshed_html = render_async(view)
+    assert refreshed_html =~ "Replacement Album"
+    refute refreshed_html =~ "Async Album"
+    assert refreshed_html =~ "Buffered Album"
+  end
+
+  test "failed silent refresh logs the error and keeps existing rows without an error indicator",
+       %{conn: conn} do
+    view = mount_refresh_collection(conn)
+    query_pid = start_paused_refresh(view, fn _query, _opts -> {:error, :refresh_failed} end)
+
+    log =
+      capture_log(fn ->
+        try do
+          assert render(view) =~ "Async Album"
+          refute has_element?(view, ~s([data-key="loading_overlay_class"]))
+        after
+          send(query_pid, :continue_refresh)
+        end
+
+        html = render_async(view)
+        assert html =~ "Async Album"
+        assert html =~ "Buffered Album"
+        refute has_element?(view, ~s([data-key="error_class"]))
+        refute has_element?(view, ~s([data-key="loading_overlay_class"]))
+      end)
+
+    assert log =~ "refresh_failed"
+  end
+
+  test "silent refresh of an empty collection uses normal loading and error states", %{conn: conn} do
+    Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
+    view = mount_refresh_collection(conn)
+    assert has_element?(view, ~s([data-key="empty_class"]))
+    query_pid = start_paused_refresh(view, fn _query, _opts -> {:error, :refresh_failed} end)
+
+    capture_log(fn ->
+      try do
+        assert has_element?(view, ~s([data-key="loading_overlay_class"]))
+        refute has_element?(view, ~s([data-key="empty_class"]))
+      after
+        send(query_pid, :continue_refresh)
+      end
+
+      render_async(view)
+      assert has_element?(view, ~s([data-key="error_class"]))
+      refute has_element?(view, ~s([data-key="loading_overlay_class"]))
+    end)
   end
 
   test "a synchronous initial load applies filters and sort from the URL", %{
