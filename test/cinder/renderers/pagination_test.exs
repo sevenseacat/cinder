@@ -75,4 +75,73 @@ defmodule Cinder.Renderers.PaginationTest do
       assert html =~ ~s(#users-table-page-size-options)
     end
   end
+
+  describe "pagination visibility" do
+    test "hides the footer by default when all results fit on one page" do
+      assigns =
+        base_assigns("small-table")
+        |> Map.merge(%{
+          page: %Ash.Page.Offset{
+            results: [%{id: 1}, %{id: 2}],
+            count: 2,
+            offset: 0,
+            limit: 10,
+            more?: false
+          }
+        })
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      refute html =~ ~s(data-key="pagination_wrapper_class")
+    end
+
+    test "hides the footer when always_show_pagination is configured false" do
+      assigns =
+        base_assigns("small-table")
+        |> Map.merge(%{
+          page: %Ash.Page.Offset{
+            results: [%{id: 1}, %{id: 2}],
+            count: 2,
+            offset: 0,
+            limit: 10,
+            more?: false
+          },
+          always_show_pagination: false
+        })
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      refute html =~ ~s(data-key="pagination_wrapper_class")
+    end
+
+    test "shows the footer when explicitly enabled and all results fit on one page" do
+      assigns =
+        base_assigns("small-table")
+        |> Map.merge(%{
+          page: %Ash.Page.Offset{
+            results: [%{id: 1}, %{id: 2}],
+            count: 2,
+            offset: 0,
+            limit: 10,
+            more?: false
+          },
+          always_show_pagination: true
+        })
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      assert html =~ ~s(data-key="pagination_wrapper_class")
+      assert html =~ "showing 1-2 of 2"
+    end
+
+    test "hides the footer when always enabled but page is not loaded" do
+      assigns =
+        base_assigns("loading-table")
+        |> Map.merge(%{page: nil, always_show_pagination: true})
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      refute html =~ ~s(data-key="pagination_wrapper_class")
+    end
+  end
 end

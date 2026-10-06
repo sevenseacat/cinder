@@ -175,6 +175,11 @@ defmodule Cinder.Collection do
 
   attr(:show_pagination, :boolean, default: true, doc: "Whether to show pagination controls")
 
+  attr(:always_show_pagination, :boolean,
+    default: false,
+    doc: "Whether to show the pagination footer when all results fit on one page"
+  )
+
   attr(:pagination, :any,
     default: :offset,
     doc:
@@ -380,6 +385,11 @@ defmodule Cinder.Collection do
       |> assign_new(:on_state_change, fn -> nil end)
       |> assign_new(:on_query_change, fn -> nil end)
       |> assign_new(:show_pagination, fn -> true end)
+      |> assign(
+        :always_show_pagination,
+        assigns.always_show_pagination ||
+          Application.get_env(:cinder, :always_show_pagination, false)
+      )
       |> assign(:loading_message, assigns[:loading_message] || dgettext("cinder", "Loading..."))
       |> assign(:filters_label, assigns[:filters_label] || dgettext("cinder", "Filters"))
       |> assign(:sort_label, assigns[:sort_label] || dgettext("cinder", "Sort by:"))
@@ -494,10 +504,11 @@ defmodule Cinder.Collection do
         query_opts={@query_opts}
         initial_load={@initial_load}
         on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
-        show_filters={@show_filters}
-        show_sort={@show_sort}
-        show_pagination={@show_pagination}
-        loading_message={@loading_message}
+         show_filters={@show_filters}
+         show_sort={@show_sort}
+         show_pagination={@show_pagination}
+         always_show_pagination={@always_show_pagination}
+         loading_message={@loading_message}
         filters_label={@filters_label}
         sort_label={@sort_label}
         empty_message={@empty_message}

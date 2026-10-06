@@ -863,6 +863,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
     |> assign(:initial_load, Map.get(assigns, :initial_load, :async))
+    |> assign(:always_show_pagination, Map.get(assigns, :always_show_pagination, false))
     |> assign_new(:action, fn -> nil end)
     |> assign_new(:page, fn -> nil end)
     |> assign(:user_has_interacted, Map.get(socket.assigns, :user_has_interacted, false))
