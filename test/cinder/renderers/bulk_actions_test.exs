@@ -134,6 +134,30 @@ defmodule Cinder.Renderers.BulkActionsTest do
       # Should not render themed button classes
       refute html =~ "btn-primary"
     end
+
+    test "lets custom slot confirmation content own the preparation click" do
+      assigns = %{
+        selectable: true,
+        selected_ids: MapSet.new(["1"]),
+        bulk_action_slots: [
+          %{
+            action: :delete,
+            confirmation: :slot,
+            inner_block: fn _assigns, context ->
+              "prepare=#{not is_nil(context.prepare)}"
+            end
+          }
+        ],
+        theme: @theme,
+        myself: %Phoenix.LiveComponent.CID{cid: 1}
+      }
+
+      html = render_component(&BulkActions.render/1, assigns)
+
+      assert html =~ "prepare=true"
+      refute html =~ "phx-click="
+      refute html =~ "data-confirm="
+    end
   end
 
   describe "render conditions" do
@@ -181,6 +205,81 @@ defmodule Cinder.Renderers.BulkActionsTest do
       html = render_component(&BulkActions.render/1, assigns)
 
       assert html =~ ~s(data-confirm="Delete 2 items?")
+    end
+
+    test "prepares a custom confirmation instead of using data-confirm" do
+      assigns = %{
+        selectable: true,
+        selected_ids: MapSet.new(["1", "2"]),
+        bulk_action_slots: [
+          %{action: :delete, label: "Delete", confirmation: :slot}
+        ],
+        bulk_action_confirmation_slot: [],
+        pending_bulk_action: nil,
+        theme: @theme,
+        myself: %Phoenix.LiveComponent.CID{cid: 1}
+      }
+
+      html = render_component(&BulkActions.render/1, assigns)
+
+      assert html =~ "bulk_action_prepare"
+      refute html =~ "data-confirm="
+      refute html =~ "bulk_action_execute"
+    end
+
+    test "renders the custom confirmation slot with action context" do
+      assigns = %{
+        selectable: true,
+        selected_ids: MapSet.new(["1", "2"]),
+        bulk_action_slots: [
+          %{action: :delete, label: "Delete", confirmation: :slot}
+        ],
+        bulk_action_confirmation_slot: [
+          %{
+            inner_block: fn _assigns, context ->
+              "Confirm #{context.selected_count} for #{context.action}: #{context.data} / #{context.error}; active=#{context.active?} ready=#{context.ready?} confirm=#{not is_nil(context.confirm)} cancel=#{not is_nil(context.cancel)}"
+            end
+          }
+        ],
+        bulk_action_confirmation: %{
+          index: 0,
+          selected_ids: MapSet.new(["1", "2"]),
+          data: "prepared",
+          error: "failed"
+        },
+        theme: @theme,
+        myself: %Phoenix.LiveComponent.CID{cid: 1}
+      }
+
+      html = render_component(&BulkActions.render/1, assigns)
+
+      assert html =~
+               "Confirm 2 for delete: prepared / failed; active=true ready=true confirm=true cancel=true"
+    end
+
+    test "renders the custom confirmation slot while inactive" do
+      assigns = %{
+        selectable: true,
+        selected_ids: MapSet.new(["1"]),
+        bulk_action_slots: [
+          %{action: :delete, label: "Delete", confirmation: :slot}
+        ],
+        bulk_action_confirmation_slot: [
+          %{
+            inner_block: fn _assigns, context ->
+              "active=#{context.active?} ready=#{context.ready?} data=#{inspect(context.data)} error=#{inspect(context.error)} confirm=#{not is_nil(context.confirm)} cancel=#{not is_nil(context.cancel)}"
+            end
+          }
+        ],
+        bulk_action_confirmation: nil,
+        theme: @theme,
+        myself: %Phoenix.LiveComponent.CID{cid: 1}
+      }
+
+      html = render_component(&BulkActions.render/1, assigns)
+
+      assert html =~
+               "active=false ready=false data=nil error=nil confirm=true cancel=true"
     end
   end
 end

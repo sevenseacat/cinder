@@ -46,6 +46,8 @@ defmodule Cinder.Renderers.Table do
         selectable={@selectable}
         selected_ids={@selected_ids}
         bulk_action_slots={@bulk_action_slots}
+        bulk_action_confirmation_slot={Map.get(assigns, :bulk_action_confirmation_slot, [])}
+        bulk_action_confirmation={Map.get(assigns, :bulk_action_confirmation)}
         theme={@theme}
         myself={@myself}
       />

@@ -45,8 +45,8 @@ defmodule Cinder.Renderers.BulkActions do
     <div class={@theme.bulk_actions_container_class} data-key="bulk_actions_container_class">
       <%= for {slot, index} <- Enum.with_index(@slots) do %>
         <span
-          phx-click={JS.push("bulk_action_execute", value: %{index: index}, target: @myself)}
-          data-confirm={slot[:confirm] && interpolate_text(slot[:confirm], @selected_count)}
+          phx-click={wrapper_click(slot, index, @myself)}
+          data-confirm={confirmation_message(slot, @selected_count)}
           class="contents"
         >
           <%= if has_label?(slot) do %>
@@ -57,11 +57,14 @@ defmodule Cinder.Renderers.BulkActions do
               selected_count={@selected_count}
             />
           <% else %>
-            {render_slot([slot], %{selected_ids: @selected_ids, selected_count: @selected_count})}
+            {render_slot([slot], action_context(assigns, slot, index))}
           <% end %>
         </span>
       <% end %>
     </div>
+    <%= if Map.get(assigns, :bulk_action_confirmation_slot, []) != [] do %>
+      {render_slot(@bulk_action_confirmation_slot, confirmation_context(assigns))}
+    <% end %>
     """
   end
 
@@ -92,6 +95,65 @@ defmodule Cinder.Renderers.BulkActions do
   end
 
   defp has_label?(slot), do: Map.has_key?(slot, :label) and slot[:label] != nil
+
+  defp wrapper_click(%{confirmation: :slot} = slot, index, target) do
+    if has_label?(slot), do: action_click(slot, index, target)
+  end
+
+  defp wrapper_click(slot, index, target), do: action_click(slot, index, target)
+
+  defp action_click(%{confirmation: :slot}, index, target) do
+    JS.push("bulk_action_prepare", value: %{index: index}, target: target)
+  end
+
+  defp action_click(_slot, index, target) do
+    JS.push("bulk_action_execute", value: %{index: index}, target: target)
+  end
+
+  defp confirmation_message(%{confirm: confirm}, count) when is_binary(confirm) do
+    interpolate_text(confirm, count)
+  end
+
+  defp confirmation_message(_slot, _count), do: nil
+
+  defp action_context(assigns, slot, index) do
+    %{
+      selected_ids: assigns.selected_ids,
+      selected_count: assigns.selected_count,
+      prepare:
+        if(slot[:confirmation] == :slot,
+          do: action_click(slot, index, assigns.myself)
+        )
+    }
+  end
+
+  defp confirmation_context(assigns) do
+    confirmation = Map.get(assigns, :bulk_action_confirmation)
+
+    {index, selected_ids} =
+      case confirmation do
+        %{index: index, selected_ids: selected_ids} ->
+          {index, selected_ids}
+
+        nil ->
+          {nil, assigns.selected_ids}
+      end
+
+    slot = index && Enum.at(assigns.slots, index)
+    prepared? = confirmation && Map.has_key?(confirmation, :data)
+
+    %{
+      active?: not is_nil(confirmation),
+      ready?: !!prepared?,
+      selected_ids: selected_ids,
+      selected_count: MapSet.size(selected_ids),
+      action: slot && slot[:action],
+      data: confirmation && Map.get(confirmation, :data),
+      error: confirmation && Map.get(confirmation, :error),
+      confirm: JS.push("bulk_action_confirm", target: assigns.myself),
+      cancel: JS.push("bulk_action_cancel", target: assigns.myself)
+    }
+  end
 
   defp variant_class(theme, :primary), do: theme.button_primary_class
   defp variant_class(theme, :secondary), do: theme.button_secondary_class

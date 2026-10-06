@@ -119,7 +119,7 @@ defmodule Cinder.BulkActionExecutor do
       {:error, _} = error -> error
       :ok -> {:ok, :ok}
       %Ash.BulkResult{status: :success} = bulk -> {:ok, bulk}
-      %Ash.BulkResult{status: :error, errors: errors} -> {:error, errors}
+      %Ash.BulkResult{errors: errors} when errors != [] -> {:error, errors}
       other -> {:ok, other}
     end
   end
