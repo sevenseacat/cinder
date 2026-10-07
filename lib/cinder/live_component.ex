@@ -925,8 +925,6 @@ defmodule Cinder.LiveComponent do
       end)
       |> Enum.reject(&MapSet.member?(existing_ids, &1.id))
 
-    page_meta = build_infinite_page_meta(page_number, entries)
-
     stream_entries = if direction == :prepend, do: Enum.reverse(entries), else: entries
 
     stream_limit =
@@ -936,8 +934,25 @@ defmodule Cinder.LiveComponent do
       [at: if(direction == :prepend, do: 0, else: -1), limit: stream_limit]
       |> Keyword.put(:reset, direction == :reset)
 
+    # A read of several batches (a first load with its overscan) is kept as those batches.
     {pages, window_pruned?} =
-      update_infinite_pages(socket.assigns.infinite_pages, page_meta, direction, socket)
+      entries
+      |> infinite_batches(socket.assigns.page_size)
+      |> Enum.with_index(page_number)
+      |> Enum.reduce({socket.assigns.infinite_pages, false}, fn {batch, number},
+                                                                {pages, pruned?} ->
+        batch_direction = if number == page_number, do: direction, else: :append
+
+        {pages, batch_pruned?} =
+          update_infinite_pages(
+            pages,
+            build_infinite_page_meta(number, batch),
+            batch_direction,
+            socket
+          )
+
+        {pages, pruned? or batch_pruned?}
+      end)
 
     item_ids = pages |> Enum.flat_map(& &1.ids) |> MapSet.new()
 
@@ -989,6 +1004,10 @@ defmodule Cinder.LiveComponent do
   defp infinite_number_start(socket, _direction, _result_count) do
     max(socket.assigns.infinite_range_end + 1, 1)
   end
+
+  # An empty read still resets the batches it would have replaced.
+  defp infinite_batches([], _page_size), do: [[]]
+  defp infinite_batches(entries, page_size), do: Enum.chunk_every(entries, page_size)
 
   defp build_infinite_page_meta(page_number, entries) do
     items = Enum.map(entries, &Map.take(&1, [:id, :keyset, :number, :selectable?]))
@@ -1090,12 +1109,36 @@ defmodule Cinder.LiveComponent do
   defp infinite_window_batches(socket),
     do: div(socket.assigns.window_size, socket.assigns.page_size)
 
-  defp maybe_schedule_infinite_prefetch(socket) do
-    target_batches = min(1 + socket.assigns.overscan, infinite_window_batches(socket))
+  # The batches an infinite collection keeps ahead of the reader: the one shown and its overscan,
+  # as many as its window holds.
+  defp infinite_batches_ahead(socket),
+    do: min(1 + socket.assigns.overscan, infinite_window_batches(socket))
 
+  # Where the prefetch would fill the batches kept ahead (a connected collection loading on its
+  # own), its first load from the top reads them all in one query instead. A load at a cursor (a
+  # restored URL), a manual collection's and every later load read one batch.
+  defp read_size(
+         %{
+           assigns: %{
+             pagination_mode: :infinite,
+             infinite_load: :automatic,
+             infinite_direction: :reset,
+             after_keyset: nil,
+             before_keyset: nil
+           }
+         } = socket
+       ) do
+    if connected?(socket),
+      do: socket.assigns.page_size * infinite_batches_ahead(socket),
+      else: socket.assigns.page_size
+  end
+
+  defp read_size(socket), do: socket.assigns.page_size
+
+  defp maybe_schedule_infinite_prefetch(socket) do
     if socket.assigns.infinite_load == :automatic and connected?(socket) and
          not socket.assigns.infinite_prefetch_scheduled? and
-         length(socket.assigns.infinite_pages) < target_batches and
+         length(socket.assigns.infinite_pages) < infinite_batches_ahead(socket) and
          socket.assigns.infinite_has_next do
       send_update(__MODULE__, id: socket.assigns.id, __infinite_prefetch__: true)
       assign(socket, :infinite_prefetch_scheduled?, true)
@@ -1615,7 +1658,7 @@ defmodule Cinder.LiveComponent do
       query_opts: query_opts,
       filters: filters,
       sort_by: sort_by,
-      page_size: page_size,
+      page_size: read_size(socket),
       current_page: current_page,
       columns: query_columns,
       search_term: search_term,

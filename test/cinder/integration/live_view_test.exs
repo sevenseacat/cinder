@@ -48,6 +48,21 @@ defmodule Cinder.Integration.LiveViewTest do
     """
   end
 
+  defp overscan_album_collection(assigns) do
+    ~H"""
+    <Cinder.collection
+      id="overscan-albums"
+      resource={Cinder.Integration.Album}
+      pagination={:infinite}
+      page_size={3}
+      overscan={1}
+      show_item_numbers
+    >
+      <:col :let={album} field="title">{album.title}</:col>
+    </Cinder.collection>
+    """
+  end
+
   defp empty_infinite_album_collection(assigns) do
     query = Ash.Query.filter(Cinder.Integration.Album, title == "No album has this title")
 
@@ -269,6 +284,47 @@ defmodule Cinder.Integration.LiveViewTest do
       |> refute_has("td", text: "Dirt")
     end
 
+    test "an infinite collection reads its first batch and its overscan in one query", %{
+      conn: conn
+    } do
+      path = Cinder.TestLive.Fixture.register(&overscan_album_collection/1)
+      test_pid = self()
+      handler = {__MODULE__, :album_reads}
+      domain = Ash.Domain.Info.short_name(Cinder.Integration.Domain)
+
+      :telemetry.attach(
+        handler,
+        [:ash, domain, :read, :stop],
+        fn
+          # The connected view's reads; in these synchronous tests the dead render, in the
+          # test process, reads its own first load.
+          _event, _measurements, %{resource: Cinder.Integration.Album}, _config
+          when self() != test_pid ->
+            send(test_pid, :album_read)
+
+          _event, _measurements, _metadata, _config ->
+            :ok
+        end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler) end)
+
+      conn
+      |> visit(path)
+      |> assert_has("tbody[phx-update=stream] tr[data-item-number]", count: 6)
+      |> unwrap(&Phoenix.LiveViewTest.render/1)
+      |> tap(fn _session -> assert album_reads() == 1 end)
+      |> unwrap(fn view ->
+        view
+        |> Phoenix.LiveViewTest.element("button[phx-click=load_more]")
+        |> Phoenix.LiveViewTest.render_click()
+      end)
+      |> assert_has("tbody[phx-update=stream] tr[data-item-number]", count: 9)
+
+      assert album_reads() == 1
+    end
+
     test "infinite streams prune the browser window instead of retaining every batch", %{
       conn: conn
     } do
@@ -348,6 +404,15 @@ defmodule Cinder.Integration.LiveViewTest do
       |> assert_has("td", text: "Dirt")
       |> refute_has("td", text: "Blue Train")
       |> assert_has("tr[data-key=row_class]:first-child td:first-child", text: "Dirt")
+    end
+  end
+
+  # The reads the collection sent since the last count.
+  defp album_reads(count \\ 0) do
+    receive do
+      :album_read -> album_reads(count + 1)
+    after
+      0 -> count
     end
   end
 end
