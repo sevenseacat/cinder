@@ -153,8 +153,6 @@ defmodule Cinder do
   defdelegate update_items_if_visible(socket, collection_id, ids, update_fn), to: Cinder.Update
   defdelegate remove_item(socket, collection_id, id), to: Cinder.Update
   defdelegate remove_items(socket, collection_id, ids), to: Cinder.Update
-  defdelegate deselect_item(socket, collection_id, id), to: Cinder.Update
-  defdelegate deselect_items(socket, collection_id, ids), to: Cinder.Update
 
   @doc """
   Sets up Cinder with configured custom filters.

@@ -1,11 +1,13 @@
 defmodule Cinder.TestLive.Fixture do
   @moduledoc """
-  A logic-free host LiveView whose template is supplied by the test.
+  A minimal host LiveView whose template is supplied by the test.
 
   This is the single fixture for full-lifecycle integration tests. It contains no
   collection-specific logic — the test provides the HEEx, so there is nothing in
   the fixture itself worth testing. It just wires up `mount`, `handle_params`, and
-  `Cinder.UrlSync`, then delegates `render/1` to the supplied function.
+  `Cinder.UrlSync`, forwards `{:remove_items, collection_id, ids}` messages to
+  `Cinder.remove_items/3` so a test can drive a mounted collection, then delegates
+  `render/1` to the supplied function.
 
   ## Usage
 
@@ -66,6 +68,11 @@ defmodule Cinder.TestLive.Fixture do
   @impl true
   def handle_params(params, uri, socket) do
     {:noreply, Cinder.UrlSync.handle_params(params, uri, socket)}
+  end
+
+  @impl true
+  def handle_info({:remove_items, collection_id, ids}, socket) do
+    {:noreply, Cinder.remove_items(socket, collection_id, ids)}
   end
 
   @impl true

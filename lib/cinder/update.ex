@@ -23,7 +23,7 @@ defmodule Cinder.Update do
         end)}
       end
 
-      # Remove a deleted item and invalidate its selection
+      # Remove a deleted item and drop it from the selection
       def handle_info({:user_deleted, user_id}, socket) do
         {:noreply, remove_item(socket, "users-table", user_id)}
       end
@@ -39,9 +39,10 @@ defmodule Cinder.Update do
 
   - These functions modify in-memory data only. Computed fields, aggregates,
     and calculations that come from the database will NOT be recalculated.
-  - Removing an item does not backfill its page or recalculate pagination totals.
-  - For changes that affect derived data, ordering, filtering, or pagination,
-    call `refresh_table/2` after applying the in-memory change.
+  - Removing an item does not backfill its page: rows from the next page move up on
+    the next refresh.
+  - For changes that affect derived data, ordering or filtering, use `refresh_table/2`
+    instead.
   - If the item is not found in the current data, the update is silently ignored.
   - The `update_if_visible` functions check visibility within the component itself.
   """
@@ -131,11 +132,13 @@ defmodule Cinder.Update do
 
   The item is removed from the currently rendered data without a database query.
   If it was selected, its ID is also removed from the collection's selection and
-  `on_selection_change` is notified with `action: :remove`.
+  `on_selection_change` is notified with `action: :remove`. The pagination footer
+  follows along: the row leaves `page.results` and the total count drops by the
+  number of rows actually removed.
 
-  This operation does not backfill the current page or recalculate pagination
-  totals, computed fields, or aggregates. Follow it with `refresh_table/2` when
-  those values must be reconciled.
+  Rows from the next page do not move up to fill the gap, and computed fields,
+  aggregates and ordering are not recalculated. Follow it with `refresh_table/2`
+  when those must be reconciled.
 
   ## Example
 
@@ -151,8 +154,8 @@ defmodule Cinder.Update do
   Removes multiple items from a collection by their IDs.
 
   This is the batch equivalent of `remove_item/3`. IDs not present on the current
-  page are ignored for rendered data but are still removed from the collection's
-  selection, which may span pages.
+  page are ignored for rendered data and the total count, but are still removed
+  from the collection's selection, which may span pages.
 
   ## Example
 
@@ -165,43 +168,6 @@ defmodule Cinder.Update do
     send_update(Cinder.LiveComponent,
       id: collection_id,
       __remove_items__: ids
-    )
-
-    socket
-  end
-
-  @doc """
-  Deselects one item without removing it from the collection.
-
-  This is useful when an externally observed change makes a rendered item no
-  longer eligible for an operation but the application still wants to display
-  it. If the ID was selected, Cinder removes it from the current selection and
-  notifies `on_selection_change` with `action: :deselect`.
-
-  The collection's filtered select-all scope is preserved because the item
-  still belongs to the collection.
-
-  ## Example
-
-      def handle_info({:product_unavailable, product_id}, socket) do
-        {:noreply, deselect_item(socket, "products-table", product_id)}
-      end
-  """
-  def deselect_item(socket, collection_id, id) when is_binary(collection_id) do
-    deselect_items(socket, collection_id, [id])
-  end
-
-  @doc """
-  Deselects multiple items without removing their rendered rows.
-
-  IDs that are not selected are ignored. Unlike `remove_items/3`, this function
-  does not change collection data or remove IDs from the cached filtered scope.
-  """
-  def deselect_items(socket, collection_id, ids)
-      when is_binary(collection_id) and is_list(ids) do
-    send_update(Cinder.LiveComponent,
-      id: collection_id,
-      __deselect_items__: ids
     )
 
     socket

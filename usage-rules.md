@@ -328,13 +328,9 @@ import Cinder.Update
 # Update multiple items
 {:noreply, update_items(socket, "table-id", user_ids, fn user -> %{user | active: false} end)}
 
-# Remove deleted items and prune their selection
+# Remove deleted items: drops the rows, prunes their selection, and keeps the footer count in step
 {:noreply, remove_item(socket, "table-id", user_id)}
 {:noreply, remove_items(socket, "table-id", user_ids)}
-
-# Keep rendered rows while removing IDs from Cinder's selection
-{:noreply, deselect_item(socket, "table-id", user_id)}
-{:noreply, deselect_items(socket, "table-id", user_ids)}
 
 # Only update if visible on current page (avoids unnecessary DB calls)
 {:noreply, update_if_visible(socket, "table-id", raw_user, fn raw ->
@@ -343,9 +339,8 @@ import Cinder.Update
 end)}
 ```
 
-Removal does not backfill the page or recalculate pagination, aggregates,
-ordering, or filters. Follow it with `refresh_table/2` when the collection query
-must be reconciled.
+Removal does not backfill the page or recalculate aggregates or ordering. Follow it with
+`refresh_table/2` when the collection query must be reconciled.
 
 ## Query Access
 
