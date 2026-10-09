@@ -63,23 +63,6 @@ defmodule Cinder.LiveComponent do
     {:ok, assign(socket, :data, updated_data)}
   end
 
-  def update(%{__deselect_items__: ids}, %{assigns: %{selection_mode: :all_matching}} = socket)
-      when is_list(ids) do
-    id_set = MapSet.new(ids, &to_string/1)
-    selected_ids = socket.assigns[:selected_ids] || MapSet.new()
-    updated_selected_ids = MapSet.union(selected_ids, id_set)
-    socket = assign(socket, :selected_ids, updated_selected_ids)
-
-    socket =
-      if MapSet.equal?(selected_ids, updated_selected_ids) do
-        socket
-      else
-        notify_selection_change(socket, :deselect)
-      end
-
-    {:ok, socket}
-  end
-
   # Single item update - raw item passed (has id field)
   def update(%{__update_item_if_visible__: {%{} = raw_item, update_fn}}, socket) do
     id_field = socket.assigns[:id_field] || :id
