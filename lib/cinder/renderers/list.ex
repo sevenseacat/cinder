@@ -14,6 +14,7 @@ defmodule Cinder.Renderers.List do
 
   alias Cinder.Renderers.BulkActions
   alias Cinder.Renderers.Pagination
+  alias Cinder.Renderers.SelectAll
   alias Cinder.Renderers.SortControls
   alias Cinder.Selection
 
@@ -33,6 +34,16 @@ defmodule Cinder.Renderers.List do
     assigns =
       assigns
       |> assign(:has_item_slot, has_item_slot)
+      |> assign(:selection_locked, Map.get(assigns, :selection_loading, false))
+      |> assign(
+        :render_selected_ids,
+        Selection.rendered_selected_ids(
+          Map.get(assigns, :selection_mode, :explicit),
+          assigns.selected_ids,
+          assigns.data,
+          assigns.id_field
+        )
+      )
       |> assign(:list_container_class, container_class)
       |> assign(:list_item_class, item_class)
       |> assign(:list_item_data_key, item_data_key)
@@ -67,7 +78,8 @@ defmodule Cinder.Renderers.List do
           sort_label={@sort_label}
           theme={@theme}
           myself={@myself}
-          loading={@loading}
+          loading={@loading or Map.get(assigns, :selection_loading, false)}
+          label={Map.get(assigns, :select_all_label)}
         />
       </div>
 
@@ -75,19 +87,38 @@ defmodule Cinder.Renderers.List do
       <BulkActions.render
         selectable={@selectable}
         selected_ids={@selected_ids}
+        selection_mode={Map.get(assigns, :selection_mode, :explicit)}
+        total_count={Map.get(assigns, :total_count) || (@page && Map.get(@page, :count))}
         bulk_action_slots={@bulk_action_slots}
         theme={@theme}
         myself={@myself}
       />
+
+      <div :if={Selection.enabled?(@selectable) and Map.get(assigns, :select_all, :query) != false} class="mb-3">
+        <SelectAll.render
+          data={@data}
+          id_field={@id_field}
+          loading={@loading or (Map.get(assigns, :select_all, :query) == :query and Map.get(assigns, :selection_loading, false))}
+          label={Map.get(assigns, :select_all_label)}
+          mode={Map.get(assigns, :select_all, :query)}
+          myself={@myself}
+          pending={Map.get(assigns, :select_all, :query) == :query and Map.get(assigns, :selection_loading, false)}
+          scope_ids={if Map.get(assigns, :select_all, :query) == :query, do: Map.get(assigns, :selection_scope_ids)}
+          selectable={@selectable}
+          selected_ids={@selected_ids}
+          selection_mode={Map.get(assigns, :selection_mode, :explicit)}
+          theme={@theme}
+        />
+      </div>
 
       <!-- List Items Container -->
       <div class={@list_container_class} data-key="list_container_class">
         <%= if @has_item_slot do %>
           <div
             :for={item <- @data} :if={not @error}
-            class={selection_classes(@list_item_class, Map.get(assigns, :item_class), @item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
+            class={selection_classes(@list_item_class, Map.get(assigns, :item_class), @item_click, if(@selection_locked, do: false, else: Map.get(assigns, :selectable, false)), @render_selected_ids, item, Map.get(assigns, :id_field, :id), Map.get(@theme, :selected_item_class))}
             data-key={@list_item_data_key}
-            phx-click={selection_click_action(@item_click, Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id), @myself)}
+            phx-click={selection_click_action(@item_click, if(@selection_locked, do: false, else: Map.get(assigns, :selectable, false)), @render_selected_ids, item, Map.get(assigns, :id_field, :id), @myself)}
           >
             <div
               :if={Selection.enabled?(Map.get(assigns, :selectable, false))}
@@ -96,8 +127,8 @@ defmodule Cinder.Renderers.List do
             >
               <input
                 type="checkbox"
-                disabled={not Selection.item_toggleable?(Map.get(assigns, :selectable, false), Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
-                checked={Selection.item_selected?(Map.get(assigns, :selected_ids, MapSet.new()), item, Map.get(assigns, :id_field, :id))}
+                disabled={@selection_locked or not Selection.item_toggleable?(Map.get(assigns, :selectable, false), @render_selected_ids, item, Map.get(assigns, :id_field, :id))}
+                checked={Selection.item_selected?(@render_selected_ids, item, Map.get(assigns, :id_field, :id))}
                 phx-click="toggle_select"
                 phx-value-id={to_string(Map.get(item, Map.get(assigns, :id_field, :id)))}
                 phx-target={@myself}

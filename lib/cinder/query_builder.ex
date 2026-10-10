@@ -221,6 +221,40 @@ defmodule Cinder.QueryBuilder do
     end
   end
 
+  @doc false
+  def read_all(%Ash.Query{} = prepared_query, options) do
+    prepared_query
+    |> Ash.read(Keyword.put(build_read_opts(options), :page, false))
+    |> case do
+      {:ok, results} when is_list(results) -> {:ok, results}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  @doc false
+  def stream_reduce(%Ash.Query{} = prepared_query, options, initial, reducer, stream_opts \\ [])
+      when is_function(reducer, 2) do
+    opts =
+      options
+      |> build_read_opts()
+      |> Keyword.merge(
+        Keyword.merge([batch_size: 5_000, allow_stream_with: :full_read], stream_opts)
+      )
+
+    try do
+      result =
+        prepared_query
+        |> Ash.stream!(opts)
+        |> Enum.reduce(initial, reducer)
+
+      {:ok, result}
+    rescue
+      error -> {:error, error}
+    catch
+      :exit, reason -> {:error, reason}
+    end
+  end
+
   # Prepare the query for execution by ensuring it has an action set.
   #
   # If the caller supplied an already-prepared `Ash.Query` (`query.action != nil`),

@@ -39,6 +39,8 @@ defmodule Cinder.BulkActionExecutor do
   @type opts :: [
           resource: Ash.Resource.t(),
           ids: [String.t()],
+          query: Ash.Query.t(),
+          exclude_ids: [String.t()],
           id_field: atom(),
           actor: any(),
           tenant: any(),
@@ -87,11 +89,17 @@ defmodule Cinder.BulkActionExecutor do
   @spec execute(action(), opts()) :: {:ok, any()} | {:error, any()}
   def execute(action, opts) do
     resource = Keyword.fetch!(opts, :resource)
-    ids = Keyword.fetch!(opts, :ids)
+    ids = Keyword.get(opts, :ids)
     id_field = Keyword.get(opts, :id_field, :id)
     action_opts = Keyword.get(opts, :action_opts, [])
 
-    query = build_query(resource, ids, id_field)
+    query =
+      case Keyword.get(opts, :query) do
+        %Ash.Query{} = query -> exclude_ids(query, Keyword.get(opts, :exclude_ids, []), id_field)
+        nil when is_list(ids) -> build_query(resource, ids, id_field)
+        nil -> raise ArgumentError, "expected either :ids or :query"
+      end
+
     base_opts = build_auth_opts(opts)
 
     run_action(action, query, base_opts, action_opts)
@@ -107,6 +115,13 @@ defmodule Cinder.BulkActionExecutor do
     resource
     |> Ash.Query.new()
     |> Ash.Query.filter_input(filter)
+  end
+
+  @doc false
+  def exclude_ids(query, [], _id_field), do: query
+
+  def exclude_ids(%Ash.Query{} = query, ids, id_field) do
+    Ash.Query.filter_input(query, %{not: %{id_field => [in: ids]}})
   end
 
   @doc """
