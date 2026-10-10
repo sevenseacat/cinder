@@ -215,8 +215,32 @@ defmodule MyAppWeb.UsersLive do
       %{user | active: false}
     end)}
   end
+
+  # Remove deleted items immediately
+  def handle_info({:user_deleted, user_id}, socket) do
+    {:noreply, remove_item(socket, "users-table", user_id)}
+  end
 end
 ```
+
+#### Removing Items
+
+Use `remove_item/3` or `remove_items/3` when the application knows that records no
+longer belong in the collection (for example after a delete broadcast). Cinder
+removes the matching rows, drops their IDs from the collection selection (sending
+`on_selection_change` with `action: :remove` if the selection changed), and keeps
+the pagination footer in step by decreasing the total count by the number of rows
+actually removed:
+
+```elixir
+def handle_info({:users_deleted, user_ids}, socket) do
+  {:noreply, remove_items(socket, "users-table", user_ids)}
+end
+```
+
+Rows from the next page do not move up to fill the gap, and aggregates and ordering
+are not recalculated. Follow the removal with `refresh_table/2` when the query must
+be reconciled.
 
 #### Lazy Loading with `update_if_visible`
 
@@ -245,6 +269,7 @@ The `*_if_visible` variants never call your function if the item isn't displayed
 #### Caveats
 
 - These functions modify in-memory data only. Computed fields, aggregates, and calculations from the database will NOT be recalculated.
+- Removing items does not backfill the page; rows from the next page move up on the next refresh.
 - For changes that affect derived data, use `refresh_table/2` instead.
 - If the item is not found in the current page, the update is silently ignored.
 
@@ -672,7 +697,7 @@ You can also track selection state in your parent LiveView. This is not necessar
 ```elixir
 def handle_info({:selection_changed, payload}, socket) do
   # payload contains: %{selected_ids, selected_count, component_id, action}
-  # action is one of: :select, :deselect, :select_all, :clear
+  # action is one of: :select, :deselect, :select_all, :clear, :remove
   {:noreply, assign(socket, :selected_count, payload.selected_count)}
 end
 ```

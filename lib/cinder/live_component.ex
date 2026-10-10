@@ -63,6 +63,36 @@ defmodule Cinder.LiveComponent do
     {:ok, assign(socket, :data, updated_data)}
   end
 
+  def update(%{__remove_items__: ids}, socket) when is_list(ids) do
+    id_field = socket.assigns[:id_field] || :id
+    id_set = MapSet.new(ids, &to_string/1)
+    data = socket.assigns.data || []
+
+    updated_data =
+      Enum.reject(data, fn item ->
+        MapSet.member?(id_set, to_string(Map.get(item, id_field)))
+      end)
+
+    removed = length(data) - length(updated_data)
+    selected_ids = socket.assigns[:selected_ids] || MapSet.new()
+    updated_selected_ids = MapSet.difference(selected_ids, id_set)
+
+    socket =
+      socket
+      |> assign(:data, updated_data)
+      |> assign(:selected_ids, updated_selected_ids)
+      |> assign(:page, drop_removed_from_page(socket.assigns[:page], updated_data, removed))
+
+    socket =
+      if MapSet.equal?(selected_ids, updated_selected_ids) do
+        socket
+      else
+        notify_selection_change(socket, :remove)
+      end
+
+    {:ok, socket}
+  end
+
   # Single item update - raw item passed (has id field)
   def update(%{__update_item_if_visible__: {%{} = raw_item, update_fn}}, socket) do
     id_field = socket.assigns[:id_field] || :id
@@ -575,6 +605,18 @@ defmodule Cinder.LiveComponent do
       _ -> nil
     end
   end
+
+  # The footer reads page.results and page.count
+  defp drop_removed_from_page(%{results: _} = page, updated_data, removed) do
+    page = %{page | results: updated_data}
+
+    case Map.get(page, :count) do
+      count when is_integer(count) -> %{page | count: max(count - removed, 0)}
+      _ -> page
+    end
+  end
+
+  defp drop_removed_from_page(page, _updated_data, _removed), do: page
 
   defp maybe_notify_query_change(socket, nil), do: socket
 
