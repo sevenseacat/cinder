@@ -48,6 +48,26 @@ defmodule Cinder.BulkActionExecutorTest do
   end
 
   describe "execute/2 with atom action" do
+    test "executes an all-matching query while excluding deselected IDs", %{
+      record1: record1,
+      record2: record2,
+      record3: record3
+    } do
+      query = Ash.Query.filter_input(SearchTestResource, %{status: "active"})
+
+      result =
+        BulkActionExecutor.execute(:archive,
+          resource: SearchTestResource,
+          query: query,
+          exclude_ids: [record2.id]
+        )
+
+      assert {:ok, %Ash.BulkResult{status: :success}} = result
+      assert {:ok, %{status: "archived"}} = Ash.get(SearchTestResource, record1.id)
+      assert {:ok, %{status: "active"}} = Ash.get(SearchTestResource, record2.id)
+      assert {:ok, %{status: "archived"}} = Ash.get(SearchTestResource, record3.id)
+    end
+
     test "executes bulk update action", %{ids: ids, record3: record3} do
       result =
         BulkActionExecutor.execute(:archive,

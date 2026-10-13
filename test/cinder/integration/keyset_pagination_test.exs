@@ -515,6 +515,52 @@ defmodule Cinder.Integration.KeysetPaginationTest do
       assert socket.assigns.after_keyset == nil
     end
 
+    test "keyset navigation preserves query-wide deselection exceptions" do
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
+
+      socket =
+        socket
+        |> Phoenix.LiveView.cancel_async(:load_data)
+        |> Phoenix.Component.assign(:selection_mode, :all_matching)
+        |> Phoenix.Component.assign(:selected_ids, MapSet.new(["excluded-id"]))
+        |> Phoenix.Component.assign(:first_keyset, "first_cursor")
+        |> Phoenix.Component.assign(:last_keyset, "last_cursor")
+
+      {:noreply, socket} = LiveComponent.handle_event("next_page", %{}, socket)
+
+      assert socket.assigns.selection_mode == :all_matching
+      assert socket.assigns.selected_ids == MapSet.new(["excluded-id"])
+
+      socket =
+        socket
+        |> Phoenix.LiveView.cancel_async(:load_data)
+        |> Phoenix.Component.assign(:first_keyset, "page2_first_cursor")
+
+      {:noreply, socket} = LiveComponent.handle_event("prev_page", %{}, socket)
+
+      assert socket.assigns.selection_mode == :all_matching
+      assert socket.assigns.selected_ids == MapSet.new(["excluded-id"])
+    end
+
+    test "offset navigation preserves query-wide deselection exceptions" do
+      assigns = build_keyset_test_assigns() |> Map.put(:pagination_mode, :offset)
+      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
+      {:ok, socket} = LiveComponent.update(assigns, socket)
+
+      socket =
+        socket
+        |> Phoenix.LiveView.cancel_async(:load_data)
+        |> Phoenix.Component.assign(:selection_mode, :all_matching)
+        |> Phoenix.Component.assign(:selected_ids, MapSet.new(["excluded-id"]))
+
+      {:noreply, socket} = LiveComponent.handle_event("goto_page", %{"page" => "2"}, socket)
+
+      assert socket.assigns.current_page == 2
+      assert socket.assigns.selection_mode == :all_matching
+      assert socket.assigns.selected_ids == MapSet.new(["excluded-id"])
+    end
+
     test "change_page_size event clears keyset cursors" do
       {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
       {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)

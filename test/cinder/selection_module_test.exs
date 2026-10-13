@@ -6,6 +6,9 @@ defmodule Cinder.SelectionModuleTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Selection
+  alias Cinder.Support.SearchTestResource
+
+  require Ash.Query
 
   describe "enabled?/1" do
     test "returns false for false and nil" do
@@ -86,5 +89,47 @@ defmodule Cinder.SelectionModuleTest do
       refute Selection.item_toggleable?(false, MapSet.new(), %{id: 1}, :id)
       refute Selection.item_toggleable?(fn _ -> false end, MapSet.new(), %{id: 1}, :id)
     end
+  end
+
+  describe "filtered_ids/4" do
+    test "derives an id-only, stable query when every matching item is selectable" do
+      query =
+        SearchTestResource
+        |> Ash.Query.select([:title])
+        |> Ash.Query.sort([:title])
+
+      selection_query = Selection.selection_query(query, :id, true)
+
+      assert MapSet.new(selection_query.select) == MapSet.new([:id])
+      assert selection_query.sort == [id: :asc]
+      assert selection_query.load == []
+    end
+
+    test "streams the complete filtered scope and evaluates selectable predicates" do
+      active = create_search_item!("Active", "active")
+      _inactive = create_search_item!("Inactive", "inactive")
+
+      query = Ash.Query.filter(SearchTestResource, status in ["active", "inactive"])
+      options = [query_opts: [authorize?: false], filters: %{}, columns: []]
+
+      assert {:ok, all_ids} = Selection.filtered_ids(query, options, :id, true)
+      assert MapSet.size(all_ids) == 2
+
+      assert {:ok, active_ids} =
+               Selection.filtered_ids(
+                 query,
+                 options,
+                 :id,
+                 &(&1.status == "active")
+               )
+
+      assert active_ids == MapSet.new([to_string(active.id)])
+    end
+  end
+
+  defp create_search_item!(title, status) do
+    SearchTestResource
+    |> Ash.Changeset.for_create(:create, %{title: title, status: status})
+    |> Ash.create!(authorize?: false)
   end
 end

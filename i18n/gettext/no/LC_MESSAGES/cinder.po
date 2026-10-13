@@ -198,3 +198,15 @@ msgstr "Skriv for å søke flere alternativer..."
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Det oppstod en feil under lasting av data"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/renderers/select_all.ex
+#, elixir-autogen, elixir-format
+msgid "Select all filtered items"
+msgstr "Velg alle filtrerte elementer"
+
+#: lib/cinder/collection.ex
+#: lib/cinder/renderers/select_all.ex
+#, elixir-autogen, elixir-format
+msgid "Select all visible items"
+msgstr ""

@@ -10,6 +10,7 @@ defmodule Cinder.Integration.LiveViewTest do
   separately by `Cinder.Integration.AsyncLoadTest`.
   """
   use Cinder.ConnCase, async: false
+  require Ash.Query
 
   # The collection markup under test. The fixture LiveView has no logic of its
   # own — this function supplies the template, so what's exercised is real
@@ -26,6 +27,22 @@ defmodule Cinder.Integration.LiveViewTest do
       <:col :let={album} field="price" filter sort>{Decimal.to_string(album.price)}</:col>
       <:col :let={album} field="release_date" filter sort>{to_string(album.release_date)}</:col>
       <:col :let={album} field="is_remastered" filter>{to_string(album.is_remastered)}</:col>
+    </Cinder.collection>
+    """
+  end
+
+  defp filtered_select_all_collection(assigns) do
+    assigns = assign(assigns, :query, Ash.Query.filter(Cinder.Integration.Album, genre == :jazz))
+
+    ~H"""
+    <Cinder.collection
+      query={@query}
+      url_state={@url_state}
+      page_size={2}
+      selectable
+    >
+      <:col :let={album} field="title">{album.title}</:col>
+      <:bulk_action action={fn selected_query, _opts -> {:ok, selected_query} end} label="Archive ({count})" />
     </Cinder.collection>
     """
   end
@@ -113,7 +130,27 @@ defmodule Cinder.Integration.LiveViewTest do
       Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
     end)
 
-    %{path: Cinder.TestLive.Fixture.register(&album_collection/1)}
+    %{
+      path: Cinder.TestLive.Fixture.register(&album_collection/1),
+      select_all_path: Cinder.TestLive.Fixture.register(&filtered_select_all_collection/1)
+    }
+  end
+
+  describe "selection" do
+    test "select all includes every record in the filtered query, not only the page", %{
+      conn: conn,
+      select_all_path: path
+    } do
+      conn
+      |> visit(path)
+      |> assert_has("button", text: "Archive (0)")
+      |> unwrap(fn view ->
+        view
+        |> Phoenix.LiveViewTest.element("input[phx-click=toggle_select_all]")
+        |> Phoenix.LiveViewTest.render_click()
+      end)
+      |> assert_has("button", text: "Archive (3)")
+    end
   end
 
   describe "initial render" do
