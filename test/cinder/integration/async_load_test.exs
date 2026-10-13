@@ -9,7 +9,9 @@ defmodule Cinder.Integration.AsyncLoadTest do
   """
   use Cinder.ConnCase, async: false
   import Phoenix.ConnTest, only: [get: 2, html_response: 2]
-  import Phoenix.LiveViewTest, only: [live: 2, element: 2, render_click: 1, render_async: 1]
+
+  import Phoenix.LiveViewTest,
+    only: [live: 2, element: 2, render_click: 1, render_change: 2, render_async: 1]
 
   # Opt back into async loading for this test (ConnCase's setup disabled it).
   setup {Cinder.TestHelpers, :enable_async_loading}
@@ -67,6 +69,21 @@ defmodule Cinder.Integration.AsyncLoadTest do
     """
   end
 
+  defp infinite_search_album_collection(assigns) do
+    ~H"""
+    <Cinder.collection
+      id="infinite-search-albums"
+      resource={Cinder.Integration.Album}
+      pagination={:infinite}
+      page_size={3}
+      initial_load={:sync}
+    >
+      <:col :let={album} field="title" search>{album.title}</:col>
+      <:loading><p id="albums-loading">Loading albums</p></:loading>
+    </Cinder.collection>
+    """
+  end
+
   setup do
     artist = generate(artist(name: "Async Artist"))
     generate(album(title: "Async Album", genre: :rock, artist_id: artist.id))
@@ -81,7 +98,8 @@ defmodule Cinder.Integration.AsyncLoadTest do
       sync_path: Cinder.TestLive.Fixture.register(&sync_album_collection/1),
       sync_no_url_path: Cinder.TestLive.Fixture.register(&sync_no_url_album_collection/1),
       default_path: Cinder.TestLive.Fixture.register(&default_album_collection/1),
-      async_path: Cinder.TestLive.Fixture.register(&async_album_collection/1)
+      async_path: Cinder.TestLive.Fixture.register(&async_album_collection/1),
+      infinite_search_path: Cinder.TestLive.Fixture.register(&infinite_search_album_collection/1)
     }
   end
 
@@ -199,5 +217,25 @@ defmodule Cinder.Integration.AsyncLoadTest do
       |> html_response(200)
 
     refute html =~ "Async Album"
+  end
+
+  test "an infinite collection starting over shows its loading state in place of the old rows", %{
+    conn: conn,
+    infinite_search_path: path
+  } do
+    {:ok, view, html} = live(conn, path)
+    assert html =~ "Async Album"
+
+    html =
+      view
+      |> element("form[phx-change=filter_change]")
+      |> render_change(%{"search" => "Buffered"})
+
+    refute html =~ "Async Album"
+    assert html =~ "Loading albums"
+
+    html = render_async(view)
+    assert html =~ "Buffered Album"
+    refute html =~ "Loading albums"
   end
 end

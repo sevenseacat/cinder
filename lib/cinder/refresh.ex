@@ -31,7 +31,9 @@ defmodule Cinder.Refresh do
   When a collection is refreshed:
   - Current filters are maintained
   - Sort order is preserved
-  - Pagination state is kept (user stays on current page if possible)
+  - Offset and keyset pagination state is kept (the user stays on the current page if possible)
+  - Infinite pagination resets to its first bounded window so inserts, deletes,
+    numbering, filtering, and sorting are recomputed consistently
   - Loading state is shown during refresh
   - Data is reloaded using the same query parameters
   """

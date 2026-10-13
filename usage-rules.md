@@ -243,6 +243,7 @@ The `<:controls>` slot replaces the default filter/search layout while keeping s
 - `target` - LiveComponent target for `phx-target`
 - `theme` - resolved theme map
 - `table_id`, `filters_label`, `filter_mode`, `filter_values`, `raw_filter_params`
+- `total_count` - how many records match, or nil until counted
 
 ### Available Helpers
 - `Cinder.Controls.render_filter/1` - single filter (label + input + clear)

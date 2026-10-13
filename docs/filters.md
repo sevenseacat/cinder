@@ -533,6 +533,7 @@ The `:let` binding provides:
 | `filter_mode` | any | Current filter display mode |
 | `filter_values` | map | Shared filter values (for render helpers) |
 | `raw_filter_params` | map | Raw form params (for autocomplete filters) |
+| `total_count` | integer or nil | How many records match, or nil until counted (and when counting is off) |
 
 ### Selective Rendering
 

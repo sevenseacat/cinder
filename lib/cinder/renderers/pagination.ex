@@ -2,9 +2,10 @@ defmodule Cinder.Renderers.Pagination do
   @moduledoc """
   Shared pagination component used by Table, List, and Grid renderers.
 
-  Supports two pagination modes:
+  Supports three pagination modes:
   - `Ash.Page.Offset` - Traditional page numbers with jump-to-page
   - `Ash.Page.Keyset` - Cursor-based with prev/next navigation (faster for large datasets)
+  - Infinite scrolling - Cursor-based batches appended as the viewport reaches the sentinel
 
   Uses `AshPhoenix.LiveView` helpers for working with Ash.Page structs directly.
   """
@@ -18,8 +19,13 @@ defmodule Cinder.Renderers.Pagination do
 
   Returns true if there are more results than fit on one page.
   """
-  def show_pagination?(%Ash.Page.Offset{count: count, limit: limit}), do: count > limit
-  def show_pagination?(%Ash.Page.Keyset{count: count, limit: limit}), do: count > limit
+  def show_pagination?(%Ash.Page.Offset{count: count, limit: limit}) when is_integer(count),
+    do: count > limit
+
+  def show_pagination?(%Ash.Page.Keyset{count: count, limit: limit}) when is_integer(count),
+    do: count > limit
+
+  def show_pagination?(%{more?: more?}), do: more?
   def show_pagination?(_), do: false
 
   @doc """
@@ -36,22 +42,43 @@ defmodule Cinder.Renderers.Pagination do
   - `show_pagination` - Boolean to enable/disable pagination (default: true)
   """
   def render(assigns) do
-    show = Map.get(assigns, :show_pagination, true) and show_pagination?(assigns.page)
+    pagination_mode = Map.get(assigns, :pagination_mode, :offset)
+
+    show =
+      Map.get(assigns, :show_pagination, true) and
+        show_pagination?(assigns.page, pagination_mode, assigns)
 
     if show do
       # Use pagination_mode (if provided) to determine UI, not just page struct type.
       # This handles the case where keyset mode returns Ash.Page.Offset on the first page
       # (when no cursor is provided yet).
-      pagination_mode = Map.get(assigns, :pagination_mode, :offset)
-
       case pagination_mode do
         :keyset -> render_keyset(assigns)
+        :infinite -> render_infinite(assigns)
         :offset -> render_offset(assigns)
       end
     else
       render_empty(assigns)
     end
   end
+
+  defp show_pagination?(nil, _pagination_mode, _assigns), do: false
+  defp show_pagination?(_page, :infinite, _assigns), do: true
+
+  defp show_pagination?(page, :keyset, assigns) do
+    show_pagination?(page) or keyset_cursor?(page) or Map.get(assigns, :current_page, 1) > 1
+  end
+
+  defp show_pagination?(%Ash.Page.Offset{offset: offset} = page, :offset, _assigns) do
+    show_pagination?(page) or offset > 0
+  end
+
+  defp show_pagination?(page, _pagination_mode, _assigns), do: show_pagination?(page)
+
+  defp keyset_cursor?(%Ash.Page.Keyset{after: after_cursor, before: before_cursor}),
+    do: not is_nil(after_cursor) or not is_nil(before_cursor)
+
+  defp keyset_cursor?(_page), do: false
 
   defp render_empty(assigns) do
     ~H"""
@@ -63,29 +90,39 @@ defmodule Cinder.Renderers.Pagination do
   defp render_offset(assigns) do
     %Ash.Page.Offset{} = page = assigns.page
     page_number = AshPhoenix.LiveView.page_number(page) + 1
-    total_pages = if page.count > 0, do: ceil(page.count / page.limit), else: 1
+    total_count = Map.get(assigns, :total_count) || page.count
+
+    total_pages =
+      if is_integer(total_count) and total_count > 0, do: ceil(total_count / page.limit)
+
     start_index = page.offset + 1
-    end_index = min(page.offset + length(page.results), page.count)
-    page_range = build_page_range(page_number, total_pages)
+    end_index = page.offset + length(page.results)
+    end_index = if is_integer(total_count), do: min(end_index, total_count), else: end_index
+    page_range = if total_pages, do: build_page_range(page_number, total_pages), else: []
 
     assigns =
       assigns
       |> assign(:page_range, page_range)
       |> assign(:page_number, page_number)
       |> assign(:total_pages, total_pages)
-      |> assign(:start_index, if(page.count > 0, do: start_index, else: 0))
-      |> assign(:end_index, if(page.count > 0, do: end_index, else: 0))
-      |> assign(:total_count, page.count)
-      |> assign(:has_prev, AshPhoenix.LiveView.prev_page?(page))
-      |> assign(:has_next, AshPhoenix.LiveView.next_page?(page))
+      |> assign(:start_index, if(page.results == [], do: 0, else: start_index))
+      |> assign(:end_index, if(page.results == [], do: 0, else: end_index))
+      |> assign(:total_count, total_count)
+      |> assign(:has_total_count, is_integer(total_count))
+      |> assign(:has_prev, page.offset > 0)
+      |> assign(:has_next, page.more?)
 
     ~H"""
     <div class={@theme.pagination_wrapper_class} data-key="pagination_wrapper_class">
       <div class={@theme.pagination_container_class} data-key="pagination_container_class">
       <!-- Left side: Page info -->
       <div class={@theme.pagination_info_class} data-key="pagination_info_class">
-        {dgettext("cinder", "Page %{current} of %{total}", current: @page_number, total: @total_pages)}
-        <span class={@theme.pagination_count_class} data-key="pagination_count_class">
+        <%= if @has_total_count do %>
+          {dgettext("cinder", "Page %{current} of %{total}", current: @page_number, total: @total_pages)}
+        <% else %>
+          {dgettext("cinder", "Page %{current}", current: @page_number)}
+        <% end %>
+        <span :if={@has_total_count} class={@theme.pagination_count_class} data-key="pagination_count_class">
           ({dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @start_index, end: @end_index, total: @total_count)})
         </span>
       </div>
@@ -156,7 +193,7 @@ defmodule Cinder.Renderers.Pagination do
           </button>
 
           <button
-            :if={@page_number < @total_pages - 1}
+            :if={@total_pages && @page_number < @total_pages - 1}
             phx-click="goto_page"
             phx-value-page={@total_pages}
             phx-target={@myself}
@@ -186,19 +223,31 @@ defmodule Cinder.Renderers.Pagination do
 
     has_prev = has_previous_keyset_page?(page)
     has_next = has_next_keyset_page?(page)
+    page_number = Map.get(assigns, :current_page, 1)
+    total_count = Map.get(assigns, :total_count) || page.count
+    start_index = if page.results == [], do: 0, else: (page_number - 1) * page.limit + 1
+    end_index = start_index + length(page.results) - 1
+    end_index = if is_integer(total_count), do: min(end_index, total_count), else: end_index
 
     assigns =
       assigns
-      |> assign(:total_count, page.count)
+      |> assign(:total_count, total_count)
+      |> assign(:has_total_count, is_integer(total_count))
       |> assign(:has_prev, has_prev)
       |> assign(:has_next, has_next)
+      |> assign(:page_number, page_number)
+      |> assign(:start_index, start_index)
+      |> assign(:end_index, max(end_index, 0))
 
     ~H"""
     <div class={@theme.pagination_wrapper_class} data-key="pagination_wrapper_class">
       <div class={@theme.pagination_container_class} data-key="pagination_container_class">
-      <!-- Left side: Count info -->
+      <!-- Left side: Count and stable ordinal range -->
       <div class={@theme.pagination_info_class} data-key="pagination_info_class">
-        {dgettext("cinder", "%{total} items", total: @total_count)}
+        {dgettext("cinder", "Page %{current}", current: @page_number)}
+        <span :if={@has_total_count} class={@theme.pagination_count_class} data-key="pagination_count_class">
+          ({dgettext("cinder", "showing %{start}-%{end} of %{total}", start: @start_index, end: @end_index, total: @total_count)})
+        </span>
       </div>
 
       <!-- Right side: Page size selector and navigation -->
@@ -235,6 +284,99 @@ defmodule Cinder.Renderers.Pagination do
           </button>
         </div>
       </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_infinite(assigns) do
+    page = assigns.page
+    has_next = Map.get(assigns, :has_next, has_next_keyset_page?(page))
+    total_count = Map.get(assigns, :total_count) || Map.get(page, :count)
+
+    assigns =
+      assigns
+      |> assign(:error, Map.get(assigns, :error, false))
+      |> assign(:has_next, has_next)
+      |> assign(:loading, Map.get(assigns, :loading, false))
+      |> assign(:infinite_load, Map.get(assigns, :infinite_load, :automatic))
+      |> assign(:overscan, Map.get(assigns, :overscan, 1))
+      |> assign(
+        :load_more_label,
+        Map.get(assigns, :load_more_label) || dgettext("cinder", "Load more")
+      )
+      |> assign(:total_count, total_count)
+
+    ~H"""
+    <div
+      class={@theme.pagination_wrapper_class}
+      data-key="pagination_wrapper_class"
+      data-pagination-mode="infinite"
+    >
+      <div class={@theme.pagination_container_class} data-key="pagination_container_class">
+        <div
+          :if={is_integer(@total_count)}
+          class={[
+            @theme.pagination_info_class,
+            @infinite_load == :automatic && "h-px overflow-hidden p-0"
+          ]}
+          data-key="pagination_info_class"
+          data-pagination-state="counted"
+        >
+          {dgettext("cinder", "%{total} items", total: @total_count)}
+        </div>
+
+        <div
+          :if={@loading}
+          class={@theme.pagination_info_class}
+          data-key="pagination_info_class"
+          data-pagination-state="loading"
+          role="status"
+        >
+          {dgettext("cinder", "Loading more items...")}
+        </div>
+
+        <button
+          :if={@error}
+          type="button"
+          class={@theme.pagination_button_class}
+          data-pagination-state="error"
+          phx-click="retry_load_more"
+          phx-target={@myself}
+        >
+          {dgettext("cinder", "Loading failed. Try again")}
+        </button>
+
+        <div
+          :if={@has_next and not @loading and not @error}
+          id={"#{@id}-infinite-sentinel"}
+          class={@theme.pagination_info_class}
+          data-key="pagination_info_class"
+          data-pagination-state="ready"
+          data-infinite-prefetch-distance={if @infinite_load == :automatic, do: "viewport"}
+          data-infinite-overscan={if @infinite_load == :automatic, do: @overscan}
+          phx-hook={if @infinite_load == :automatic, do: "CinderInfiniteSentinel"}
+          phx-target={@myself}
+        >
+          <button
+            type="button"
+            class={[@theme.pagination_button_class, @infinite_load == :automatic && "sr-only"]}
+            phx-click="load_more"
+            phx-target={@myself}
+          >
+            {@load_more_label}
+          </button>
+        </div>
+
+        <div
+          :if={not @has_next and not @loading and not @error}
+          class={@theme.pagination_info_class}
+          data-key="pagination_info_class"
+          data-pagination-state="end"
+          role="status"
+        >
+          {dgettext("cinder", "You have reached the end of this list")}
+        </div>
       </div>
     </div>
     """

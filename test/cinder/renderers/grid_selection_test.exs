@@ -55,6 +55,28 @@ defmodule Cinder.Renderers.GridSelectionTest do
     }
   end
 
+  test "selected infinite items remain deselectable after becoming ineligible" do
+    record = %{id: "selected", name: "Selected"}
+
+    assigns =
+      Map.merge(base_assigns(), %{
+        pagination_mode: :infinite,
+        selectable: fn _ -> false end,
+        selected_ids: MapSet.new([record.id]),
+        item_click: fn _ -> Phoenix.LiveView.JS.push("open") end,
+        streams: %{
+          items: [
+            {"test-selected", %{record: record, id: record.id, number: 1, selectable?: false}}
+          ]
+        }
+      })
+
+    html = render_component(&GridRenderer.render/1, assigns)
+    assert html =~ ~r/<input[^>]*checked[^>]*phx-value-id="selected"/
+    refute html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="selected"/
+    refute html =~ ~r/<input[^>]*phx-value-id="selected"[^>]*data-cinder-selection-disabled/
+  end
+
   describe "grid selection rendering" do
     test "renders overlay checkbox with theme classes when selectable=true" do
       assigns =

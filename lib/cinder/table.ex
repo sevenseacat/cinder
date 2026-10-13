@@ -67,6 +67,25 @@ defmodule Cinder.Table do
         "Parent receives {event_name, %{query: Ash.Query.t(), count: integer() | nil, id: string()}}."
 
   attr :show_pagination, :boolean, default: true, doc: "Whether to show pagination controls"
+
+  attr :pagination, :any,
+    default: :offset,
+    doc: "Pagination mode: :offset, :keyset, or :infinite"
+
+  attr :count, :any,
+    default: nil,
+    doc: "Total-count mode: :sync, :async, or false. Infinite pagination defaults to false."
+
+  attr :window_size, :integer,
+    default: nil,
+    doc: "Maximum browser DOM records retained for infinite pagination"
+
+  attr :overscan, :integer,
+    default: 1,
+    doc: "Additional page-size batches prefetched for infinite pagination"
+
+  attr :show_item_numbers, :boolean, default: false, doc: "Show stable item numbers"
+
   attr :show_filters, :boolean, default: nil, doc: "Whether to show filter controls"
   attr :loading_message, :string, default: nil, doc: "Message to show while loading"
   attr :filters_label, :string, default: nil, doc: "Label for the filters component"

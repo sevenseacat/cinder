@@ -55,7 +55,7 @@ defmodule Cinder.MixProject do
     [
       {:ash, "~> 3.0"},
       {:ash_phoenix, "~> 2.3"},
-      {:phoenix_live_view, "~> 1.0"},
+      {:phoenix_live_view, "~> 1.1"},
       {:gettext, "~> 1.0.0"},
       {:usage_rules, "~> 1.0", only: [:dev]},
       {:ex_doc, "~> 0.38", only: :dev, runtime: false},
@@ -83,7 +83,7 @@ defmodule Cinder.MixProject do
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url, "Website" => "https://cinder.sevenseacat.net"},
       files:
-        ~w(lib priv/cinder.css priv/themes i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
+        ~w(lib priv i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE usage-rules.md)
     ]
   end
 

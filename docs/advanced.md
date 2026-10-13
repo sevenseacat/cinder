@@ -242,11 +242,35 @@ end
 
 The `*_if_visible` variants never call your function if the item isn't displayed, avoiding wasted database calls.
 
+This also works with infinite collections backed by LiveView streams. Streams do
+not retain rendered records in the LiveView process, so use the raw-record forms
+shown above. Cinder checks visibility against its bounded ID/cursor metadata,
+preserves the existing cursor and item number, and streams the transformed record
+to the browser without adding it to socket assigns. ID-only update calls are a
+safe no-op for infinite collections because there is no retained record to pass
+to the callback.
+
+When your application receives an updated record—for example through PubSub or
+Ash.Notifier—pass it to `update_if_visible/4`. Cinder intentionally does not
+prescribe how the update reaches the parent LiveView:
+
+```elixir
+def handle_info(%Ash.Notifier.Notification{data: user, action: %{type: :update}}, socket) do
+  {:noreply, update_if_visible(socket, "users-table", user, & &1)}
+end
+```
+
+Use `refresh_table/2` for creates, removals, and updates that can
+change filters, sorting, keyset position, derived values, or numbering. In
+infinite mode, refresh clears the current client stream and requeries only the
+first bounded window; it does not load the entire result set into server memory.
+
 #### Caveats
 
 - These functions modify in-memory data only. Computed fields, aggregates, and calculations from the database will NOT be recalculated.
 - For changes that affect derived data, use `refresh_table/2` instead.
 - If the item is not found in the current page, the update is silently ignored.
+- Infinite stream transforms must preserve the collection's configured ID field.
 
 ## Loading, Empty & Error States
 
@@ -390,6 +414,20 @@ Use `query_opts` to load only needed data:
   resource={MyApp.User}
   actor={@current_user}
   pagination={:keyset}
+  count={:async}
+>
+  ...
+</Cinder.collection>
+
+<!-- Infinite scrolling with keyset batches -->
+<Cinder.collection
+  resource={MyApp.User}
+  actor={@current_user}
+  pagination={:infinite}
+  page_size={25}
+  window_size={75}
+  overscan={1}
+  show_item_numbers
 >
   ...
 </Cinder.collection>
@@ -409,12 +447,52 @@ config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
 
 Individual collections can still override with the `page_size` attribute.
 
-**Keyset vs Offset Pagination:**
+**Pagination Modes:**
 
 - **Offset** (default): Traditional page numbers, allows jumping to any page. Can be slow on large datasets.
-- **Keyset**: Cursor-based prev/next navigation. Much faster on large datasets but cannot jump to arbitrary pages.
+- **Keyset**: Cursor-based previous/next navigation. Much faster on large datasets but cannot jump to a page whose cursor has not been visited. Cinder displays the sequential current page number and tracks record numbers so both remain meaningful while navigating in either direction.
+- **Infinite**: Streams unique keyset batches into the browser as an upcoming sentinel enters a one-viewport prefetch margin, so loading begins before the user reaches the rendered edge. Its footer shows loading, retry, or end-of-list status and, when exact counting is explicitly enabled, the total; it does not render the ordinary pagination range or page-size selector. A “Load more” button remains available as an accessible fallback. The records themselves are released from LiveView socket state after render, and `window_size` bounds the records retained in the browser DOM; advancing past that window exposes a “Load previous” sentinel. Loading and retry states do not hide the retained window, and the end state cannot request another batch. Filtering, sorting, page-size changes, and refresh restart from the first batch.
 
-Use keyset pagination when you have large tables (10k+ rows) where offset queries become slow.
+**Total Counts:**
+
+Use the `count` attribute to control exact filtered totals independently from pagination:
+
+- `count={:sync}` waits for the exact count before rendering the page. This preserves the existing default for offset and keyset pagination.
+- `count={:async}` renders cursor navigation immediately from `more?`, then calculates and displays the exact total separately. The result is reused while navigating the same filtered query.
+- `count={false}` never calculates or displays an exact total. Previous/next and infinite sentinels use cursor state and `more?` instead.
+
+Infinite pagination defaults to `count={false}` because its loading and end states do not require a total. Set `count={:sync}` or `count={:async}` explicitly when an infinite collection needs the exact count. Offset and keyset pagination default to `count={:sync}` for backwards compatibility.
+
+For infinite pagination, `page_size` remains the Ash query batch size. `overscan` controls how many additional batches are prefetched (default `1`). `window_size` controls the client-side stream window and is rounded up to a whole number of batches; by default it is `page_size * (1 + 2 * overscan)`. For example, `page_size={25}`, `overscan={1}`, and `window_size={75}` load 25 records per query, prefetch one batch, and retain at most 75 rendered records. Cinder keeps cursor, page, ID, and selection metadata for the retained window, not the full record structs.
+
+Infinite collections use Cinder's LiveView hook to synchronize selection styling on records that the server has already released. Alias Cinder's shipped hook module in your asset bundler and include it in your `LiveSocket` hook registry. For example, with Vite:
+
+```javascript
+// vite.config.mjs
+import { fileURLToPath, URL } from "node:url"
+
+resolve: {
+  alias: {
+    cinder_hooks: fileURLToPath(
+      new URL(
+        "../deps/cinder/priv/static/cinder_hooks.js",
+        import.meta.url
+      )
+    )
+  }
+}
+
+// app.js
+import { hooks as cinderHooks } from "cinder_hooks"
+
+const liveSocket = new LiveSocket("/live", Socket, {
+  hooks: { ...cinderHooks, ...applicationHooks }
+})
+```
+
+Set `show_item_numbers` to render those stable numbers as a table column or a list/grid prefix. The `data-item-number` attribute is present on rendered items even when the visible number is disabled.
+
+Use keyset or infinite pagination when you have large collections (10k+ rows) where offset queries become slow.
 
 **Important:** Ensure your Ash action has pagination configured to prevent loading all records into memory:
 

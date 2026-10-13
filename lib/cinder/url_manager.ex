@@ -40,27 +40,25 @@ defmodule Cinder.UrlManager do
   def encode_state(%{filters: filters, sort_by: sort_by} = state) do
     encoded_filters = encode_filters(filters)
 
-    # Handle pagination state based on mode
-    # For keyset pagination, we store after/before cursors; for offset, we store page number
+    # Cursors recover the keyset position while the page number preserves its ordinal.
+    # Offset pagination uses only the page number.
     state_with_page =
       cond do
         # Keyset pagination with after cursor
         is_binary(Map.get(state, :after)) and Map.get(state, :after) != "" ->
-          Map.put(encoded_filters, :after, state.after)
+          encoded_filters
+          |> Map.put(:after, state.after)
+          |> maybe_put_page(state)
 
         # Keyset pagination with before cursor
         is_binary(Map.get(state, :before)) and Map.get(state, :before) != "" ->
-          Map.put(encoded_filters, :before, state.before)
+          encoded_filters
+          |> Map.put(:before, state.before)
+          |> maybe_put_page(state)
 
         # Offset pagination - store page number
         true ->
-          current_page = Map.get(state, :current_page, 1)
-
-          if current_page > 1 do
-            Map.put(encoded_filters, :page, to_string(current_page))
-          else
-            encoded_filters
-          end
+          maybe_put_page(encoded_filters, state)
       end
 
     # Add page_size if different from default
@@ -99,6 +97,16 @@ defmodule Cinder.UrlManager do
       state_with_search
     else
       Map.put(state_with_search, :_filter_fields, Enum.join(filter_field_names, ","))
+    end
+  end
+
+  defp maybe_put_page(params, state) do
+    case Map.get(state, :current_page, 1) do
+      current_page when is_integer(current_page) and current_page > 1 ->
+        Map.put(params, :page, to_string(current_page))
+
+      _ ->
+        params
     end
   end
 

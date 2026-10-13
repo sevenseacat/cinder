@@ -34,7 +34,13 @@ defmodule Cinder.Update do
 
   - These functions modify in-memory data only. Computed fields, aggregates,
     and calculations that come from the database will NOT be recalculated.
-  - For changes that affect derived data, use `refresh_table/2` instead.
+  - Infinite collections use LiveView streams and deliberately do not retain
+    records in the socket. Pass full records to `update_if_visible/4` or
+    `update_items_if_visible/4` so Cinder can stream visible replacements.
+    ID-only updates are a no-op in infinite mode.
+  - For creates, deletes, or changes that affect filtering, sorting, keysets,
+    derived data, or row numbering, use `Cinder.refresh_table/2` instead. An
+    infinite refresh resets and requeries its bounded window.
   - If the item is not found in the current data, the update is silently ignored.
   - The `update_if_visible` functions check visibility within the component itself.
   """
@@ -132,6 +138,12 @@ defmodule Cinder.Update do
   the existing table data - useful for lazy loading scenarios where you want
   to transform incoming PubSub data.
 
+  Infinite collections require the raw-item form because LiveView streams do
+  not retain rendered records on the server. Cinder checks the stream's small
+  metadata window before invoking the callback, preserves the row's cursor and
+  number, and sends the replacement record through the stream. The callback
+  must preserve the configured ID field.
+
   Safe to call when you're unsure if the item is currently displayed.
 
   ## Parameters
@@ -178,6 +190,10 @@ defmodule Cinder.Update do
   Like `update_if_visible/4` but for multiple IDs. Only items that are both
   in the provided list AND currently visible will be updated. The component
   itself determines which items are visible by checking its current data.
+
+  In infinite mode, pass raw items. Cinder passes only records whose IDs are in
+  the retained stream window, in rendered order, and streams the returned
+  replacements without retaining them in socket assigns.
 
   The update function is called ONCE with ALL visible items, enabling efficient
   batch operations. If no items are visible, the function is never called.
