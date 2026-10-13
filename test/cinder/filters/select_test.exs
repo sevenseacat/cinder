@@ -23,7 +23,7 @@ defmodule Cinder.Filters.SelectTest do
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.Operator.In{
-                   left: "tag1",
+                   left: :tag1,
                    operator: :in,
                    right: %{attribute: %{name: :tags}}
                  }
@@ -48,7 +48,7 @@ defmodule Cinder.Filters.SelectTest do
     test "array vs non-array fields produce different query structures", %{query: query} do
       filter_value = %{
         type: :select,
-        value: "test_value",
+        value: "tag2",
         operator: :equals
       }
 
@@ -65,7 +65,7 @@ defmodule Cinder.Filters.SelectTest do
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.Operator.In{
-                   left: "test_value",
+                   left: :tag2,
                    operator: :in,
                    right: %{attribute: %{name: :tags}}
                  }

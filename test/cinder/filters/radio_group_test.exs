@@ -110,7 +110,7 @@ defmodule Cinder.Filters.RadioGroupTest do
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.Operator.In{
-                   left: "tag1",
+                   left: :tag1,
                    operator: :in,
                    right: %{attribute: %{name: :tags}}
                  }
