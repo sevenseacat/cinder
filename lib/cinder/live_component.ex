@@ -1532,7 +1532,7 @@ defmodule Cinder.LiveComponent do
   # Keys that affect data queries - changes to these trigger a reload.
   # Note: actor, tenant, and scope are normalized separately to avoid
   # false positives from Ecto struct metadata differences.
-  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts pagination_mode after_keyset before_keyset)a
+  @data_keys ~w(filters sort_by current_page page_size search_term query query_opts pagination_mode after_keyset before_keyset renderer)a
   @count_keys ~w(filters search_term query query_opts action)a
 
   defp data_state(assigns) do
@@ -1597,12 +1597,13 @@ defmodule Cinder.LiveComponent do
     end
   end
 
-  @result_keys ~w(filters sort_by search_term query query_opts actor_id tenant_id scope_id)a
+  @result_keys ~w(filters sort_by search_term query query_opts actor_id tenant_id scope_id renderer)a
   @cursor_keys ~w(current_page after_keyset before_keyset)a
 
   # A new query, filter, search, sort or reader is a different result set, so an infinite
-  # stream starts over instead of keeping the old rows. A cursor arriving in the same update,
-  # such as one restored from the URL, is kept.
+  # stream starts over instead of keeping the old rows; so does a new layout, whose container
+  # has none of the rows streamed. A cursor arriving in the same update, such as one restored
+  # from the URL, is kept.
   defp start_over(socket, prev, curr) do
     cond do
       not infinite_mode?(socket) or Map.take(prev, @result_keys) == Map.take(curr, @result_keys) ->

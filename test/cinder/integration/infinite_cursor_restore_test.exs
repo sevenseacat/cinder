@@ -43,6 +43,16 @@ defmodule Cinder.Integration.InfiniteCursorRestoreTest do
     assert narrowed.assigns.infinite_item_ids == MapSet.new([to_string(record.id)])
   end
 
+  test "a new layout starts the stream over, as its container has none of the rows streamed" do
+    {:noreply, both} = LiveComponent.handle_event("load_more", %{}, first_page())
+    assert MapSet.size(both.assigns.infinite_item_ids) == 2
+
+    {:ok, regridded} = LiveComponent.update(%{renderer: Cinder.Renderers.Grid}, both)
+
+    assert regridded.assigns.current_page == 1
+    assert MapSet.size(regridded.assigns.infinite_item_ids) == 1
+  end
+
   test "an emitted URL round trip preserves the batch and does not read again" do
     socket = first_page()
     socket = Phoenix.Component.assign(socket, :on_state_change, :collection_state)
