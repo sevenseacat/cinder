@@ -341,7 +341,17 @@ defmodule Cinder.Collection do
     )
 
     attr(:confirm, :string,
-      doc: "Confirmation message. Supports {count} interpolation for selected count."
+      doc: "Browser confirmation message. Supports {count} interpolation for selected count."
+    )
+
+    attr(:confirmation, :atom,
+      values: [:slot],
+      doc: "Custom confirmation mode. Set to :slot to render bulk_action_confirmation."
+    )
+
+    attr(:prepare_confirmation, :fun,
+      doc:
+        "Optional function called with the confirmation context before rendering a slot confirmation. Returns {:ok, data}, {:error, reason}, :ok, or a plain data value."
     )
 
     attr(:on_success, :atom,
@@ -354,6 +364,12 @@ defmodule Cinder.Collection do
         "Message name sent to parent via handle_info on error. Payload: %{component_id, action, reason}"
     )
   end
+
+  slot(:bulk_action_confirmation,
+    required: false,
+    doc:
+      "Custom confirmation content for bulk actions using confirmation={:slot}. Receives active?, ready?, selected_ids, selected_count, action, data, error, confirm, and cancel via :let."
+  )
 
   slot(:controls,
     required: false,
@@ -438,6 +454,12 @@ defmodule Cinder.Collection do
 
     # Get the bulk_action slots
     bulk_action_slots = Map.get(assigns, :bulk_action, [])
+    bulk_action_confirmation_slot = Map.get(assigns, :bulk_action_confirmation, [])
+
+    warn_bulk_action_confirmation_configuration(
+      bulk_action_slots,
+      bulk_action_confirmation_slot
+    )
 
     # Get state content slots
     controls_slot = Map.get(assigns, :controls, [])
@@ -468,6 +490,7 @@ defmodule Cinder.Collection do
       |> assign(:renderer, renderer)
       |> assign(:item_slot, item_slot)
       |> assign(:bulk_action_slots, bulk_action_slots)
+      |> assign(:bulk_action_confirmation_slot, bulk_action_confirmation_slot)
       |> assign(:controls_slot, controls_slot)
       |> assign(:loading_slot, loading_slot)
       |> assign(:empty_slot, empty_slot)
@@ -524,10 +547,33 @@ defmodule Cinder.Collection do
         on_selection_change={@on_selection_change}
         on_query_change={@on_query_change}
         bulk_action_slots={@bulk_action_slots}
+        bulk_action_confirmation_slot={@bulk_action_confirmation_slot}
         sort_mode={@sort_mode}
       />
     </div>
     """
+  end
+
+  defp warn_bulk_action_confirmation_configuration(actions, confirmation_slot) do
+    slot_actions = Enum.filter(actions, &(&1[:confirmation] == :slot))
+
+    if slot_actions != [] and confirmation_slot == [] do
+      Logger.warning(
+        "Cinder: bulk actions using confirmation={:slot} require a <:bulk_action_confirmation> slot"
+      )
+    end
+
+    if slot_actions == [] and confirmation_slot != [] do
+      Logger.warning(
+        "Cinder: <:bulk_action_confirmation> is unused because no bulk action has confirmation={:slot}"
+      )
+    end
+
+    if Enum.any?(slot_actions, &is_binary(&1[:confirm])) do
+      Logger.warning(
+        "Cinder: a bulk action cannot use both confirm=\"...\" and confirmation={:slot}; the slot confirmation takes precedence"
+      )
+    end
   end
 
   # ============================================================================

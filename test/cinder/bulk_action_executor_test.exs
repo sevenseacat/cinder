@@ -555,6 +555,13 @@ defmodule Cinder.BulkActionExecutorTest do
       assert {:error, ^errors} = BulkActionExecutor.normalize_result(bulk)
     end
 
+    test "preserves nested errors from partially successful BulkResults" do
+      errors = [%{errors: [%{message: "nested validation failed"}]}]
+      bulk = %Ash.BulkResult{status: :partial_success, errors: errors}
+
+      assert {:error, ^errors} = BulkActionExecutor.normalize_result(bulk)
+    end
+
     test "wraps other values as {:ok, value}" do
       assert {:ok, [1, 2, 3]} = BulkActionExecutor.normalize_result([1, 2, 3])
       assert {:ok, "string"} = BulkActionExecutor.normalize_result("string")
