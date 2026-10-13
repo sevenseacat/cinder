@@ -23,7 +23,7 @@ defmodule Cinder.Filters.MultiSelectTest do
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.Operator.In{
-                   left: "tag1",
+                   left: :tag1,
                    operator: :in,
                    right: %{attribute: %{name: :tags}}
                  }
@@ -54,17 +54,17 @@ defmodule Cinder.Filters.MultiSelectTest do
              )
     end
 
-    test "handles multiple values with different types", %{query: query} do
+    test "handles three or more values", %{query: query} do
       filter_value = %{
         type: :multi_select,
-        value: ["Morrowind.esm", "Tribunal.esm", "Bloodmoon.esm"],
+        value: ["tag1", "tag2", "tag3"],
         operator: :in
       }
 
       result_query = MultiSelect.build_query(query, "tags", filter_value)
 
       # Should create nested OR conditions for 3 values:
-      # (("Morrowind.esm" in tags) OR ("Tribunal.esm" in tags)) OR ("Bloodmoon.esm" in tags)
+      # (("tag1" in tags) OR ("tag2" in tags)) OR ("tag3" in tags)
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.BooleanExpression{
@@ -93,7 +93,7 @@ defmodule Cinder.Filters.MultiSelectTest do
     test "array vs non-array fields produce different query structures", %{query: query} do
       filter_value = %{
         type: :multi_select,
-        value: ["test_value"],
+        value: ["tag2"],
         operator: :in
       }
 
@@ -110,7 +110,7 @@ defmodule Cinder.Filters.MultiSelectTest do
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.Operator.In{
-                   left: "test_value",
+                   left: :tag2,
                    operator: :in,
                    right: %{attribute: %{name: :tags}}
                  }
