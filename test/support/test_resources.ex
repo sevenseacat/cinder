@@ -48,6 +48,7 @@ defmodule TestResourceForInference do
     attribute(:created_at, :date)
     attribute(:status_enum, TestStatusEnum)
     attribute(:tags, {:array, TestTagEnum})
+    attribute(:flags, {:array, :boolean})
     attribute(:description, :string)
     attribute(:weapon_type, TestWeaponTypeEnum)
     attribute(:profile, TestProfile)
