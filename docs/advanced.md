@@ -409,6 +409,18 @@ config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
 
 Individual collections can still override with the `page_size` attribute.
 
+**Always Show Pagination:**
+
+By default, the pagination footer is hidden when all results fit on one page. Show
+it consistently for all collections with:
+
+```elixir
+# config/config.exs
+config :cinder, always_show_pagination: true
+```
+
+Individual collections can also enable it with `always_show_pagination={true}`.
+
 **Keyset vs Offset Pagination:**
 
 - **Offset** (default): Traditional page numbers, allows jumping to any page. Can be slow on large datasets.
