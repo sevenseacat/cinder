@@ -461,9 +461,7 @@ defmodule Cinder.LiveComponent do
 
     url_sync_enabled = !!socket.assigns[:on_state_change]
 
-    # Only reset pagination when filters or search actually change
-    filters_changed = new_filters != socket.assigns.filters
-    search_changed = search_term != socket.assigns.search_term
+    changed? = new_filters != socket.assigns.filters or search_term != socket.assigns.search_term
 
     socket =
       socket
@@ -471,24 +469,25 @@ defmodule Cinder.LiveComponent do
       |> assign(:raw_filter_params, raw_filter_params)
       |> assign(:search_term, search_term)
 
+    # A change that leaves the filters and search as they were, such as typing in an
+    # autocomplete filter's search box, only redraws the filters: no reset, no reload.
     socket =
-      if filters_changed or search_changed do
-        socket
-        |> assign(:current_page, 1)
-        |> assign(:after_keyset, nil)
-        |> assign(:before_keyset, nil)
+      if changed? do
+        socket =
+          socket
+          |> assign(:current_page, 1)
+          |> assign(:after_keyset, nil)
+          |> assign(:before_keyset, nil)
+
+        socket =
+          if url_sync_enabled,
+            do: assign(socket, :__reload_requested__, true),
+            else: load_data(socket)
+
+        notify_state_change(socket, new_filters)
       else
         socket
       end
-
-    socket =
-      if url_sync_enabled do
-        assign(socket, :__reload_requested__, true)
-      else
-        load_data(socket)
-      end
-
-    socket = notify_state_change(socket, new_filters)
 
     {:noreply, socket}
   end

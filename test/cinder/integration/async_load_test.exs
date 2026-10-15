@@ -18,15 +18,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
   setup {Cinder.TestHelpers, :enable_async_loading}
 
   defp put_default_initial_load(mode) do
-    original = Application.fetch_env(:cinder, :default_initial_load)
-    Application.put_env(:cinder, :default_initial_load, mode)
-
-    on_exit(fn ->
-      case original do
-        {:ok, value} -> Application.put_env(:cinder, :default_initial_load, value)
-        :error -> Application.delete_env(:cinder, :default_initial_load)
-      end
-    end)
+    Cinder.TestHelpers.put_app_env(:default_initial_load, mode)
   end
 
   defp sync_album_collection(assigns) do
