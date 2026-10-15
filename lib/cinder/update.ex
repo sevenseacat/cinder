@@ -40,7 +40,7 @@ defmodule Cinder.Update do
   - These functions modify in-memory data only. Computed fields, aggregates,
     and calculations that come from the database will NOT be recalculated.
   - Removing an item does not backfill its page: rows from the next page move up on
-    the next refresh.
+    the next refresh. A removal that empties the page reads it again.
   - For changes that affect derived data, ordering or filtering, use `refresh_table/2`
     instead.
   - If the item is not found in the current data, the update is silently ignored.
@@ -138,7 +138,8 @@ defmodule Cinder.Update do
 
   Rows from the next page do not move up to fill the gap, and computed fields,
   aggregates and ordering are not recalculated. Follow it with `refresh_table/2`
-  when those must be reconciled.
+  when those must be reconciled. If the removal empties the page, the collection
+  reads that page again (or the previous one, if the emptied page was the last).
 
   ## Example
 

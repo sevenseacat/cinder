@@ -7,7 +7,9 @@ defmodule Cinder.Integration.RemoveItemsTest do
   use Cinder.ConnCase, async: false
 
   import Phoenix.ConnTest, only: [get: 2]
-  import Phoenix.LiveViewTest, only: [live: 2, element: 2, render: 1, render_click: 1]
+
+  import Phoenix.LiveViewTest,
+    only: [live: 2, element: 2, render: 1, render_click: 1, assert_patch: 1]
 
   defp offset_collection(assigns) do
     ~H"""
@@ -59,7 +61,7 @@ defmodule Cinder.Integration.RemoveItemsTest do
   end
 
   defp remove(view, ids) do
-    send(view.pid, {:run, &Cinder.remove_items(&1, "albums", ids)})
+    Cinder.TestLive.Fixture.run(view, &Cinder.remove_items(&1, "albums", ids))
     render(view)
   end
 
@@ -120,19 +122,41 @@ defmodule Cinder.Integration.RemoveItemsTest do
       assert checked_ids(html) == [albums["Bravo"].id]
     end
 
-    test "keeps the total consistent when a whole page is removed", %{
+    test "reloads a page that the removal empties, so the next rows move up", %{
       conn: conn,
       offset_path: path,
       albums: albums
     } do
       {:ok, view, _html} = live(conn, path)
 
+      Enum.each([albums["Alpha"], albums["Bravo"]], &Ash.destroy!/1)
       html = remove(view, [albums["Alpha"].id, albums["Bravo"].id])
 
       refute html =~ "Alpha"
       refute html =~ "Bravo"
-      refute html =~ "of 5"
-      assert html =~ "of 3"
+      assert html =~ "Charlie"
+      assert html =~ "Delta"
+      assert html =~ "showing 1-2 of 3"
+    end
+
+    test "steps back a page when the removal empties the last page", %{
+      conn: conn,
+      offset_path: path,
+      albums: albums
+    } do
+      {:ok, view, html} = live(conn, path <> "&page=3")
+      assert html =~ "Echo"
+
+      Ash.destroy!(albums["Echo"])
+      html = remove(view, [albums["Echo"].id])
+
+      refute html =~ "Echo"
+      assert html =~ "Charlie"
+      assert html =~ "Delta"
+      assert html =~ "Page 2 of 2"
+
+      assert %{"page" => "2"} =
+               view |> assert_patch() |> URI.parse() |> Map.get(:query) |> URI.decode_query()
     end
   end
 

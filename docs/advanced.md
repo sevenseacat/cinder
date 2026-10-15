@@ -240,7 +240,8 @@ end
 
 Rows from the next page do not move up to fill the gap, and aggregates and ordering
 are not recalculated. Follow the removal with `refresh_table/2` when the query must
-be reconciled.
+be reconciled. The exception is a removal that empties the page: the collection then
+reads that page again, or the previous one if the emptied page was the last.
 
 #### Lazy Loading with `update_if_visible`
 
@@ -269,7 +270,7 @@ The `*_if_visible` variants never call your function if the item isn't displayed
 #### Caveats
 
 - These functions modify in-memory data only. Computed fields, aggregates, and calculations from the database will NOT be recalculated.
-- Removing items does not backfill the page; rows from the next page move up on the next refresh.
+- Removing items does not backfill the page; rows from the next page move up on the next refresh. A removal that empties the page reads it again.
 - For changes that affect derived data, use `refresh_table/2` instead.
 - If the item is not found in the current page, the update is silently ignored.
 

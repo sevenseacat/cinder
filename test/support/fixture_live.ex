@@ -27,10 +27,9 @@ defmodule Cinder.TestLive.Fixture do
   brought in by `Cinder.ConnCase`.)
 
   To call a parent-side function such as `Cinder.refresh_table/3` from a test,
-  give the collection an explicit ID and send the fixture a function of the
-  socket. It runs inside the LiveView, as a parent's `handle_info/2` would:
+  give the collection an explicit ID and use `run/2`:
 
-      send(view.pid, {:run, &Cinder.refresh_table(&1, "albums", silent: true)})
+      Cinder.TestLive.Fixture.run(view, &Cinder.refresh_table(&1, "albums", silent: true))
   """
   use Phoenix.LiveView, layout: false
   use Cinder.UrlSync
@@ -58,6 +57,24 @@ defmodule Cinder.TestLive.Fixture do
     "/c/#{id}"
   end
 
+  @doc """
+  Runs `fun` on the mounted LiveView's socket, as a parent's `handle_info/2`
+  would, and returns once it has run.
+
+  Anything `fun` queues for the LiveView, such as a `send_update`, is then
+  handled before the next `render/1`, so the render sees its effect.
+  """
+  def run(view, fun) when is_function(fun, 1) do
+    ref = make_ref()
+    send(view.pid, {:run, {self(), ref}, fun})
+
+    receive do
+      {^ref, :ok} -> :ok
+    after
+      1000 -> raise "the fixture LiveView did not run the function"
+    end
+  end
+
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     case :ets.lookup(@table, id) do
@@ -76,8 +93,10 @@ defmodule Cinder.TestLive.Fixture do
   end
 
   @impl true
-  def handle_info({:run, fun}, socket) when is_function(fun, 1) do
-    {:noreply, fun.(socket)}
+  def handle_info({:run, {pid, ref}, fun}, socket) do
+    socket = fun.(socket)
+    send(pid, {ref, :ok})
+    {:noreply, socket}
   end
 
   @impl true

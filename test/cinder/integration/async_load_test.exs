@@ -137,7 +137,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
       end
     end)
 
-    send(view.pid, {:run, &Cinder.refresh_table(&1, "albums", silent: true)})
+    Cinder.TestLive.Fixture.run(view, &Cinder.refresh_table(&1, "albums", silent: true))
     assert_receive {:refresh_started, query_pid}, 1_000
     query_pid
   end

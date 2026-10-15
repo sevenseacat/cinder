@@ -351,8 +351,9 @@ import Cinder.Update
 end)}
 ```
 
-Removal does not backfill the page or recalculate aggregates or ordering. Follow it with
-`refresh_table/2` when the collection query must be reconciled.
+Removal does not backfill the page or recalculate aggregates or ordering, unless it empties
+the page: then the page is read again (or the previous one, if it was the last). Follow it
+with `refresh_table/2` when the collection query must be reconciled.
 
 ## Query Access
 

@@ -94,6 +94,13 @@ defmodule Cinder.LiveComponent do
         notify_selection_change(socket, :remove)
       end
 
+    socket =
+      if updated_data == [] and data != [] do
+        reload_emptied_page(socket)
+      else
+        socket
+      end
+
     {:ok, socket}
   end
 
@@ -627,6 +634,26 @@ defmodule Cinder.LiveComponent do
   end
 
   defp drop_removed_from_page(page, _updated_data, _removed), do: page
+
+  # A removal that empties the page reads it again, so the following rows move up
+  # instead of the empty state showing. If the emptied page was the last offset page,
+  # step back to the one before it.
+  defp reload_emptied_page(socket) do
+    %{pagination_mode: mode, current_page: current_page, page_size: page_size} =
+      socket.assigns
+
+    remaining = page_count(socket.assigns[:page])
+
+    if mode == :offset and current_page > 1 and is_integer(remaining) and
+         remaining <= (current_page - 1) * page_size do
+      socket
+      |> assign(:current_page, current_page - 1)
+      |> load_data()
+      |> notify_state_change()
+    else
+      load_data(socket)
+    end
+  end
 
   defp maybe_notify_query_change(socket, nil), do: socket
 
