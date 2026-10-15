@@ -1,11 +1,12 @@
 defmodule Cinder.TestLive.Fixture do
   @moduledoc """
-  A minimal host LiveView whose template is supplied by the test.
+  A logic-free host LiveView whose template is supplied by the test.
 
   This is the single fixture for full-lifecycle integration tests. It contains no
-  collection-specific rendering logic — the test provides the HEEx. It wires up
-  `mount`, `handle_params`, and `Cinder.UrlSync`, forwards refresh messages to
-  `Cinder.refresh_table/3`, and delegates `render/1` to the supplied function.
+  collection-specific logic — the test provides the HEEx, so there is nothing in
+  the fixture itself worth testing. It just wires up `mount`, `handle_params`, and
+  `Cinder.UrlSync`, runs functions the test sends it, and delegates `render/1` to
+  the supplied function.
 
   ## Usage
 
@@ -25,12 +26,10 @@ defmodule Cinder.TestLive.Fixture do
   the `~H` sigil and `@field` references resolve. (`import Phoenix.Component` is
   brought in by `Cinder.ConnCase`.)
 
-  To request a refresh from a mounted LiveView test, give the collection an
-  explicit ID and send the fixture a message:
+  To call a parent-side function such as `Cinder.refresh_table/3` from a test,
+  give the collection an explicit ID and use `run/2`:
 
-      send(view.pid, {:refresh_table, "albums", silent: true})
-
-  Pass `[]` as the final tuple element for an ordinary refresh.
+      Cinder.TestLive.Fixture.run(view, &Cinder.refresh_table(&1, "albums", silent: true))
   """
   use Phoenix.LiveView, layout: false
   use Cinder.UrlSync
@@ -58,6 +57,24 @@ defmodule Cinder.TestLive.Fixture do
     "/c/#{id}"
   end
 
+  @doc """
+  Runs `fun` on the mounted LiveView's socket, as a parent's `handle_info/2`
+  would, and returns once it has run.
+
+  Anything `fun` queues for the LiveView, such as a `send_update`, is then
+  handled before the next `render/1`, so the render sees its effect.
+  """
+  def run(view, fun) when is_function(fun, 1) do
+    ref = make_ref()
+    send(view.pid, {:run, {self(), ref}, fun})
+
+    receive do
+      {^ref, :ok} -> :ok
+    after
+      1000 -> raise "the fixture LiveView did not run the function"
+    end
+  end
+
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     case :ets.lookup(@table, id) do
@@ -76,8 +93,10 @@ defmodule Cinder.TestLive.Fixture do
   end
 
   @impl true
-  def handle_info({:refresh_table, collection_id, opts}, socket) do
-    {:noreply, Cinder.refresh_table(socket, collection_id, opts)}
+  def handle_info({:run, {pid, ref}, fun}, socket) do
+    socket = fun.(socket)
+    send(pid, {ref, :ok})
+    {:noreply, socket}
   end
 
   @impl true
