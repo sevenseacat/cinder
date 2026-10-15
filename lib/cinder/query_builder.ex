@@ -529,13 +529,16 @@ defmodule Cinder.QueryBuilder do
 
   # Builds individual filter conditions for searchable columns
   defp build_search_conditions(query, searchable_columns, search_term) do
+    # Existing filters stay on the outer query, not inside each search branch.
+    search_query = %{Ash.Query.new(query) | filter: nil}
+
     Enum.reduce(searchable_columns, [], fn column, acc ->
       # Use case-insensitive search by wrapping with Ash.CiString
       case_insensitive_term = Ash.CiString.new(search_term)
 
       test_query =
         Cinder.Filter.Helpers.build_ash_filter(
-          query,
+          search_query,
           column.field,
           case_insensitive_term,
           :contains

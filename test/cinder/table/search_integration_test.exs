@@ -4,6 +4,64 @@ defmodule Cinder.Table.SearchIntegrationTest do
   alias Cinder.Support.SearchTestResource
 
   describe "complete search attribute integration" do
+    test "keeps supplied and toggleable filters once across search branches" do
+      require Ash.Query
+
+      [title_match, description_match, archived_match | _] =
+        for {title, description, category, status} <- [
+              {"Widget", "Title match", "allowed", "active"},
+              {"Other", "Widget", "allowed", "active"},
+              {"Widget", "Archived match", "allowed", "archived"},
+              {"Widget", "Wrong category", "other", "active"},
+              {"Other", "No match", "allowed", "active"},
+              {"Other", nil, "allowed", "active"}
+            ] do
+          Ash.create!(SearchTestResource, %{
+            title: title,
+            description: description,
+            category: category,
+            status: status
+          })
+        end
+
+      base_query =
+        SearchTestResource
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.filter(category == "allowed")
+        |> Ash.Query.set_context(%{caller: :search_regression})
+
+      columns = [
+        %{field: "title", searchable: true},
+        %{field: "description", searchable: true},
+        %{field: "status", searchable: false, filter_fn: nil}
+      ]
+
+      assert {:ok, filtered_query} =
+               Cinder.QueryBuilder.build_query(base_query,
+                 columns: columns,
+                 search_term: "widget",
+                 filters: %{"status" => %{type: :select, value: "active", operator: :equals}}
+               )
+
+      assert MapSet.new(Ash.read!(filtered_query), & &1.id) ==
+               MapSet.new([title_match.id, description_match.id])
+
+      assert filtered_query.context == base_query.context
+      predicates = Ash.Filter.list_predicates(filtered_query.filter)
+      assert Enum.count(predicates, &match?(%{right: "allowed"}, &1)) == 1
+      assert Enum.count(predicates, &match?(%{right: "active"}, &1)) == 1
+
+      assert {:ok, unfiltered_query} =
+               Cinder.QueryBuilder.build_query(base_query,
+                 columns: columns,
+                 search_term: "widget",
+                 filters: %{}
+               )
+
+      assert MapSet.new(Ash.read!(unfiltered_query), & &1.id) ==
+               MapSet.new([title_match.id, description_match.id, archived_match.id])
+    end
+
     test "end-to-end search flow with column processing and query execution" do
       # Full integration: slot -> column -> query -> execution
       col_slots = [
