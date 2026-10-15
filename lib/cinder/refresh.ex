@@ -32,8 +32,14 @@ defmodule Cinder.Refresh do
   - Current filters are maintained
   - Sort order is preserved
   - Pagination state is kept (user stays on current page if possible)
-  - Loading state is shown during refresh
+  - Loading state is shown during refresh by default
   - Data is reloaded using the same query parameters
+
+  Pass `silent: true` to keep the currently rendered data visible without the
+  loading treatment while its asynchronous replacement query runs.
+  If that query fails, the error is logged, the existing data stays visible,
+  and no error indicator is shown. Collections without existing rows use normal
+  loading and error behavior, even when `silent: true` is requested.
   """
 
   import Phoenix.LiveView, only: [send_update: 2]
@@ -49,6 +55,17 @@ defmodule Cinder.Refresh do
 
   - `socket` - The LiveView socket
   - `collection_id` - The ID of the collection to refresh (string)
+  - `opts` - Optional keyword list (defaults to `[]`)
+
+  ## Options
+
+  - `:silent` - Boolean, defaults to `false`. When `true` and the collection has
+    existing rows, keeps those rows visible without a loading indicator until
+    the replacement data arrives. A failed silent refresh logs the error and
+    retains the rows without showing an error indicator. Empty collections use
+    normal loading and error behavior.
+
+  Raises `ArgumentError` if `:silent` is not a boolean.
 
   ## Returns
 
@@ -59,6 +76,9 @@ defmodule Cinder.Refresh do
       # Refresh a specific collection
       {:noreply, refresh_table(socket, "users-table")}
 
+      # Refresh existing rows without a loading indicator
+      {:noreply, refresh_table(socket, "users-table", silent: true)}
+
       # In a handle_event callback
       def handle_event("delete_user", %{"id" => id}, socket) do
         MyApp.User
@@ -68,8 +88,13 @@ defmodule Cinder.Refresh do
         {:noreply, refresh_table(socket, "users-table")}
       end
   """
-  def refresh_table(socket, collection_id) when is_binary(collection_id) do
-    send_update(Cinder.LiveComponent, id: collection_id, refresh: true)
+  def refresh_table(socket, collection_id, opts \\ []) when is_binary(collection_id) do
+    send_update(Cinder.LiveComponent,
+      id: collection_id,
+      refresh: true,
+      silent: silent_option!(opts)
+    )
+
     socket
   end
 
@@ -83,6 +108,15 @@ defmodule Cinder.Refresh do
 
   - `socket` - The LiveView socket
   - `collection_ids` - List of collection IDs to refresh
+  - `opts` - Optional keyword list (defaults to `[]`), with the same `:silent`
+    option as `refresh_table/3`
+
+  With `silent: true`, each collection with existing rows keeps them visible
+  while loading replacement data. Failures are logged without displaying an
+  error indicator or clearing those rows. Collections without existing rows
+  retain normal loading and error behavior.
+
+  Raises `ArgumentError` if `:silent` is not a boolean.
 
   ## Returns
 
@@ -91,13 +125,32 @@ defmodule Cinder.Refresh do
   ## Examples
 
       {:noreply, refresh_tables(socket, ["users-table", "orders-table"])}
+
+      {:noreply, refresh_tables(socket, ["users-table", "orders-table"], silent: true)}
   """
-  def refresh_tables(socket, collection_ids) when is_list(collection_ids) do
+  def refresh_tables(socket, collection_ids, opts \\ [])
+      when is_list(collection_ids) and is_list(opts) do
+    silent = silent_option!(opts)
+
     Enum.each(collection_ids, fn collection_id ->
-      send_update(Cinder.LiveComponent, id: collection_id, refresh: true)
+      send_update(Cinder.LiveComponent,
+        id: collection_id,
+        refresh: true,
+        silent: silent
+      )
     end)
 
     socket
+  end
+
+  defp silent_option!(opts) do
+    case Keyword.get(opts, :silent, false) do
+      value when is_boolean(value) ->
+        value
+
+      value ->
+        raise ArgumentError, "expected :silent to be a boolean, got: #{inspect(value)}"
+    end
   end
 
   # Delegate to Cinder.Update for in-memory updates
