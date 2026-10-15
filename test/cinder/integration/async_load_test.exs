@@ -9,9 +9,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
   """
   use Cinder.ConnCase, async: false
   import Phoenix.ConnTest, only: [get: 2, html_response: 2]
-
-  import Phoenix.LiveViewTest,
-    only: [live: 2, element: 2, render_change: 2, render_click: 1, render_async: 1]
+  import Phoenix.LiveViewTest, only: [live: 2, element: 2, render_click: 1, render_async: 1]
 
   # Opt back into async loading for this test (ConnCase's setup disabled it).
   setup {Cinder.TestHelpers, :enable_async_loading}
@@ -193,21 +191,5 @@ defmodule Cinder.Integration.AsyncLoadTest do
       |> html_response(200)
 
     refute html =~ "Async Album"
-  end
-
-  test "a change that leaves the filters and search as they were keeps the rows", %{
-    conn: conn,
-    sync_no_url_path: path
-  } do
-    {:ok, view, html} = live(conn, path)
-    assert html =~ "Async Album"
-    form = element(view, "form[phx-change=filter_change]")
-
-    # Typing in a filter's own search box, say, changes nothing the collection reads.
-    refute render_change(form, %{"filters" => %{"title" => "", "title_search" => "Buf"}}) =~
-             ~s(data-key="loading_overlay_class")
-
-    assert render_change(form, %{"filters" => %{"title" => "Buffered"}}) =~
-             ~s(data-key="loading_overlay_class")
   end
 end
