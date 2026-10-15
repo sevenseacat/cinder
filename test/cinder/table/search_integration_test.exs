@@ -62,6 +62,32 @@ defmodule Cinder.Table.SearchIntegrationTest do
                MapSet.new([title_match.id, description_match.id, archived_match.id])
     end
 
+    test "a searchable column with an invalid field doesn't disable search on a filtered query" do
+      require Ash.Query
+
+      widget = Ash.create!(SearchTestResource, %{title: "Widget", category: "allowed"})
+      Ash.create!(SearchTestResource, %{title: "Other", category: "allowed"})
+
+      base_query =
+        SearchTestResource
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.filter(category == "allowed")
+
+      columns = [
+        %{field: "title", searchable: true},
+        %{field: "invalid field", searchable: true}
+      ]
+
+      assert {:ok, query} =
+               Cinder.QueryBuilder.build_query(base_query,
+                 columns: columns,
+                 search_term: "widget",
+                 filters: %{}
+               )
+
+      assert Enum.map(Ash.read!(query), & &1.id) == [widget.id]
+    end
+
     test "end-to-end search flow with column processing and query execution" do
       # Full integration: slot -> column -> query -> execution
       col_slots = [
