@@ -1,6 +1,8 @@
 defmodule Cinder.Filters.RegistryTest do
-  use ExUnit.Case, async: true
+  # These tests mutate the global filter registry configuration.
+  use ExUnit.Case, async: false
   import ExUnit.CaptureLog
+  import Cinder.TestHelpers, only: [put_app_env: 2]
 
   alias Cinder.Filters.Registry
 
@@ -54,9 +56,8 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   setup do
-    # Clear any existing custom filters before each test
-    Application.put_env(:cinder, :filters, [])
-    :ok
+    # Start every test with no custom filters registered
+    put_app_env(:filters, [])
   end
 
   describe "built-in filter management" do

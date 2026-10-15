@@ -1,13 +1,12 @@
 defmodule Cinder.TestLive.Fixture do
   @moduledoc """
-  A minimal host LiveView whose template is supplied by the test.
+  A logic-free host LiveView whose template is supplied by the test.
 
   This is the single fixture for full-lifecycle integration tests. It contains no
   collection-specific logic — the test provides the HEEx, so there is nothing in
   the fixture itself worth testing. It just wires up `mount`, `handle_params`, and
-  `Cinder.UrlSync`, forwards `{:remove_items, collection_id, ids}` messages to
-  `Cinder.remove_items/3` so a test can drive a mounted collection, then delegates
-  `render/1` to the supplied function.
+  `Cinder.UrlSync`, runs functions the test sends it, and delegates `render/1` to
+  the supplied function.
 
   ## Usage
 
@@ -26,6 +25,12 @@ defmodule Cinder.TestLive.Fixture do
   and returns the rendered template. Its parameter **must** be named `assigns` so
   the `~H` sigil and `@field` references resolve. (`import Phoenix.Component` is
   brought in by `Cinder.ConnCase`.)
+
+  To call a parent-side function such as `Cinder.refresh_table/3` from a test,
+  give the collection an explicit ID and send the fixture a function of the
+  socket. It runs inside the LiveView, as a parent's `handle_info/2` would:
+
+      send(view.pid, {:run, &Cinder.refresh_table(&1, "albums", silent: true)})
   """
   use Phoenix.LiveView, layout: false
   use Cinder.UrlSync
@@ -71,8 +76,8 @@ defmodule Cinder.TestLive.Fixture do
   end
 
   @impl true
-  def handle_info({:remove_items, collection_id, ids}, socket) do
-    {:noreply, Cinder.remove_items(socket, collection_id, ids)}
+  def handle_info({:run, fun}, socket) when is_function(fun, 1) do
+    {:noreply, fun.(socket)}
   end
 
   @impl true

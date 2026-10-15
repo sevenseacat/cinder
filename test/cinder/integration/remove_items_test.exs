@@ -59,7 +59,7 @@ defmodule Cinder.Integration.RemoveItemsTest do
   end
 
   defp remove(view, ids) do
-    send(view.pid, {:remove_items, "albums", ids})
+    send(view.pid, {:run, &Cinder.remove_items(&1, "albums", ids)})
     render(view)
   end
 

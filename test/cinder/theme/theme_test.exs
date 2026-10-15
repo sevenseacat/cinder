@@ -1,5 +1,7 @@
 defmodule Cinder.ThemeTest do
-  use ExUnit.Case, async: true
+  # get_default_theme/0 tests change the global :default_theme config
+  use ExUnit.Case, async: false
+  import Cinder.TestHelpers, only: [put_app_env: 2, delete_app_env: 1]
 
   alias Cinder.Theme
 
@@ -150,28 +152,21 @@ defmodule Cinder.ThemeTest do
 
   describe "get_default_theme/0" do
     test "returns 'default' when no configuration is set" do
-      # Ensure no config is set
-      Application.delete_env(:cinder, :default_theme)
+      delete_app_env(:default_theme)
 
       assert Theme.get_default_theme() == "default"
     end
 
     test "returns configured theme when set" do
-      Application.put_env(:cinder, :default_theme, "modern")
+      put_app_env(:default_theme, "modern")
 
       assert Theme.get_default_theme() == "modern"
-
-      # Cleanup
-      Application.delete_env(:cinder, :default_theme)
     end
 
     test "returns configured theme module when set" do
-      Application.put_env(:cinder, :default_theme, Cinder.Themes.Dark)
+      put_app_env(:default_theme, Cinder.Themes.Dark)
 
       assert Theme.get_default_theme() == Cinder.Themes.Dark
-
-      # Cleanup
-      Application.delete_env(:cinder, :default_theme)
     end
 
     test "handles various theme configurations" do
@@ -184,12 +179,9 @@ defmodule Cinder.ThemeTest do
       ]
 
       for config <- theme_configs do
-        Application.put_env(:cinder, :default_theme, config)
+        put_app_env(:default_theme, config)
         assert Theme.get_default_theme() == config
       end
-
-      # Cleanup
-      Application.delete_env(:cinder, :default_theme)
     end
   end
 
