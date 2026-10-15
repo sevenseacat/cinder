@@ -157,13 +157,14 @@ defmodule Cinder.Integration.KeysetPaginationTest do
     end
 
     test "parses pagination modes and count options" do
-      assert Cinder.Collection.parse_pagination(:offset) == {:offset, :sync}
-      assert Cinder.Collection.parse_pagination("keyset") == {:keyset, :sync}
+      assert Cinder.Collection.parse_pagination(:offset) == {:offset, true}
+      assert Cinder.Collection.parse_pagination("keyset") == {:keyset, true}
       assert Cinder.Collection.parse_pagination(count: :async) == {:offset, :async}
       assert Cinder.Collection.parse_pagination(mode: :keyset, count: false) == {:keyset, false}
 
       assert_raise ArgumentError, fn -> Cinder.Collection.parse_pagination(count: :eventually) end
-      assert_raise ArgumentError, fn -> Cinder.Collection.parse_pagination(cunt: false) end
+      assert_raise ArgumentError, fn -> Cinder.Collection.parse_pagination(mode: :keyest) end
+      assert_raise ArgumentError, fn -> Cinder.Collection.parse_pagination(counts: false) end
     end
 
     test "navigates forward with after cursor" do
@@ -567,32 +568,6 @@ defmodule Cinder.Integration.KeysetPaginationTest do
       assert socket.assigns.count_mode == false
       socket = Phoenix.LiveView.cancel_async(socket, :load_data)
       assert socket.assigns.total_count == nil
-    end
-
-    test "an asynchronous count updates only its current attempt" do
-      {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
-      {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
-      socket = Phoenix.LiveView.cancel_async(socket, :load_data)
-      current_attempt = make_ref()
-
-      socket =
-        Phoenix.Component.assign(socket,
-          count_mode: :async,
-          count_attempt: current_attempt,
-          total_count: nil
-        )
-
-      {:noreply, unchanged} =
-        LiveComponent.handle_async({:load_count, make_ref()}, {:ok, {:ok, 99}}, socket)
-
-      assert unchanged.assigns.total_count == nil
-      assert unchanged.assigns.count_attempt == current_attempt
-
-      {:noreply, counted} =
-        LiveComponent.handle_async({:load_count, current_attempt}, {:ok, {:ok, 10}}, unchanged)
-
-      assert counted.assigns.total_count == 10
-      assert counted.assigns.count_attempt == nil
     end
 
     test "prev_page event sets before_keyset from first_keyset" do

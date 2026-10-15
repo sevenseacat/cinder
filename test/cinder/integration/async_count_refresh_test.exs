@@ -4,7 +4,7 @@ defmodule Cinder.Integration.AsyncCountRefreshTest do
   alias Cinder.LiveComponent
   alias Cinder.Support.SearchTestResource
 
-  # Run reads deterministically while exercising the :async count cache policy.
+  # Run reads, and the async count, inline so the tests are deterministic.
   setup {Cinder.TestHelpers, :disable_async_loading}
 
   for refresh <- [:update, :event] do
@@ -46,7 +46,8 @@ defmodule Cinder.Integration.AsyncCountRefreshTest do
     assert socket.assigns.total_count == 1
   end
 
-  test "navigation reuses the count for an unchanged query" do
+  # The count isn't cached yet, so even navigating within the same query recounts
+  test "navigation recounts" do
     create_item("First")
     socket = collection_socket()
     assert socket.assigns.total_count == 1
@@ -55,34 +56,31 @@ defmodule Cinder.Integration.AsyncCountRefreshTest do
     {:noreply, socket} = LiveComponent.handle_event("goto_page", %{"page" => "1"}, socket)
 
     assert length(socket.assigns.data) == 2
-    assert socket.assigns.total_count == 1
+    assert socket.assigns.total_count == 2
   end
 
-  test "refresh invalidates a pending count so its late result cannot overwrite the new total" do
+  test "on_query_change is notified again once the count arrives" do
     create_item("First")
-    socket = collection_socket()
-    old_attempt = make_ref()
-    socket = Phoenix.Component.assign(socket, total_count: nil, count_attempt: old_attempt)
-    create_item("Second")
+    collection_socket(on_query_change: :query_changed)
 
-    {:ok, socket} = LiveComponent.update(%{refresh: true}, socket)
-    assert socket.assigns.total_count == 2
-
-    {:noreply, socket} =
-      LiveComponent.handle_async({:load_count, old_attempt}, {:ok, {:ok, 1}}, socket)
-
-    assert socket.assigns.total_count == 2
+    assert_received {:query_changed, %{count: nil, query: %Ash.Query{} = query}}
+    assert_received {:query_changed, %{count: 1, query: ^query}}
   end
 
   test "a failed count tells the controls, until the collection counts again" do
     create_item("First")
     socket = collection_socket()
-    attempt = make_ref()
-    socket = Phoenix.Component.assign(socket, total_count: nil, count_attempt: attempt)
 
-    {:noreply, socket} =
-      LiveComponent.handle_async({:load_count, attempt}, {:exit, :database_unavailable}, socket)
+    log =
+      ExUnit.CaptureLog.capture_log(fn ->
+        {:noreply, socket} =
+          LiveComponent.handle_async(:load_count, {:exit, :database_unavailable}, socket)
 
+        send(self(), {:socket, socket})
+      end)
+
+    assert_received {:socket, socket}
+    assert log =~ "Cinder count query failed: :database_unavailable"
     assert socket.assigns.count_failed?
 
     {:ok, socket} = LiveComponent.update(%{refresh: true}, socket)
@@ -90,24 +88,23 @@ defmodule Cinder.Integration.AsyncCountRefreshTest do
     assert socket.assigns.total_count == 1
   end
 
-  defp collection_socket do
+  defp collection_socket(extra_assigns \\ []) do
     {:ok, socket} =
-      LiveComponent.update(
-        %{
-          id: "async-count",
-          query: SearchTestResource,
-          actor: nil,
-          tenant: nil,
-          query_opts: [authorize?: false],
-          col: [],
-          search_fn: nil,
-          pagination_mode: :offset,
-          count_mode: :async,
-          selectable: true,
-          bulk_action_slots: [%{action: :destroy, action_opts: [authorize?: false]}]
-        },
-        %Phoenix.LiveView.Socket{}
-      )
+      %{
+        id: "async-count",
+        query: SearchTestResource,
+        actor: nil,
+        tenant: nil,
+        query_opts: [authorize?: false],
+        col: [],
+        search_fn: nil,
+        pagination_mode: :offset,
+        count_mode: :async,
+        selectable: true,
+        bulk_action_slots: [%{action: :destroy, action_opts: [authorize?: false]}]
+      }
+      |> Map.merge(Map.new(extra_assigns))
+      |> LiveComponent.update(%Phoenix.LiveView.Socket{})
 
     socket
   end

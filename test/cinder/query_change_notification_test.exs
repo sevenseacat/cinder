@@ -12,7 +12,7 @@ defmodule Cinder.QueryChangeNotificationTest do
       filters: %{},
       sort_by: [],
       current_page: 1,
-      count_mode: :sync,
+      count_mode: true,
       total_count: nil,
       data: [],
       page: nil,

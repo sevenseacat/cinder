@@ -179,7 +179,7 @@ defmodule Cinder.Collection do
     default: :offset,
     doc:
       "Pagination mode: :offset (default) or :keyset. Keyset pagination is faster for large datasets but only supports prev/next navigation. " <>
-        "Also accepts a keyword list: `[mode: :keyset, count: :async]`, where `count` is :sync (default), :async or false to skip the total count."
+        "Also accepts a keyword list: `[mode: :keyset, count: :async]`, where `count` is true (default, counted with each page), :async (counted in the background) or false (never counted)."
   )
 
   attr(:show_filters, :any,
@@ -957,19 +957,29 @@ defmodule Cinder.Collection do
   defp parse_pagination_mode("keyset"), do: :keyset
   defp parse_pagination_mode(_invalid), do: :offset
 
+  # The keyword form is strict: unknown keys and invalid values raise, unlike the
+  # older atom/string form above.
   @doc false
   def parse_pagination(options) when is_list(options) do
-    options = Keyword.validate!(options, mode: :offset, count: :sync)
-    {parse_pagination_mode(options[:mode]), normalize_count_mode(options[:count])}
+    options = Keyword.validate!(options, mode: :offset, count: true)
+    {validate_pagination_mode(options[:mode]), validate_count_mode(options[:count])}
   end
 
-  def parse_pagination(mode), do: {parse_pagination_mode(mode), :sync}
+  def parse_pagination(mode), do: {parse_pagination_mode(mode), true}
 
-  defp normalize_count_mode(mode) when mode in [:sync, :async, false], do: mode
+  defp validate_pagination_mode(mode) when mode in [:offset, :keyset, "offset", "keyset"],
+    do: parse_pagination_mode(mode)
 
-  defp normalize_count_mode(mode) do
+  defp validate_pagination_mode(mode) do
     raise ArgumentError,
-          "invalid count mode #{inspect(mode)}; expected :sync, :async, or false"
+          "invalid pagination mode #{inspect(mode)}; expected :offset or :keyset"
+  end
+
+  defp validate_count_mode(mode) when mode in [true, false, :async], do: mode
+
+  defp validate_count_mode(mode) do
+    raise ArgumentError,
+          "invalid pagination count #{inspect(mode)}; expected true, false or :async"
   end
 
   # ============================================================================

@@ -170,7 +170,7 @@ defmodule Cinder.QueryBuilder do
 
     # Keyset pagination options
     pagination_mode = Keyword.get(options, :pagination_mode, :offset)
-    count? = Keyword.get(options, :count_mode, :sync) == :sync
+    count? = Keyword.get(options, :count_mode, true) == true
     after_keyset = Keyword.get(options, :after_keyset)
     before_keyset = Keyword.get(options, :before_keyset)
 

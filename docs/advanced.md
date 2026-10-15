@@ -464,8 +464,8 @@ Individual collections can still override with the `page_size` attribute.
 
 By default every page read also counts the matching records, which powers the "Page 2 of 10" and "showing 11-20 of 100" footer. On large tables that count can cost more than the page itself, so it can be changed with the `count` option of `pagination`:
 
-- `count: :sync` (default): counts as part of each page read.
-- `count: :async`: reads the page first and counts in the background, so the total appears when it is ready. The count is reused while only the page or sort changes, and recalculated after a refresh, a filter change or a successful bulk action. `on_query_change` payloads have a `nil` count, as it has not arrived yet.
+- `count: true` (default): counts as part of each page read.
+- `count: :async`: reads the page first and counts in the background, so the total appears when it is ready. The previous total stays on screen until the new one arrives. `on_query_change` is notified twice: once when the page loads, with a `nil` count, and again with the count once it arrives.
 - `count: false`: never counts. Pagination shows only previous/next navigation, and the `on_query_change` payload and controls slot have a `nil` total.
 
 ```heex
