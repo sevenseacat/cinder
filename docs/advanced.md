@@ -460,6 +460,20 @@ config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
 
 Individual collections can still override with the `page_size` attribute.
 
+**Counting Records:**
+
+By default every page read also counts the matching records, which powers the "Page 2 of 10" and "showing 11-20 of 100" footer. On large tables that count can cost more than the page itself, so it can be changed with the `count` option of `pagination`:
+
+- `count: true` (default): counts as part of each page read.
+- `count: :async`: reads the page first and counts in the background, so the total appears when it is ready. The previous total stays on screen until the new one arrives. `on_query_change` is notified twice: once when the page loads, with a `nil` count, and again with the count once it arrives.
+- `count: false`: never counts. Pagination shows only previous/next navigation, and the `on_query_change` payload and controls slot have a `nil` total.
+
+```heex
+<Cinder.collection resource={MyApp.Event} actor={@current_user} pagination={[mode: :keyset, count: false]}>
+  ...
+</Cinder.collection>
+```
+
 **Keyset vs Offset Pagination:**
 
 - **Offset** (default): Traditional page numbers, allows jumping to any page. Can be slow on large datasets.

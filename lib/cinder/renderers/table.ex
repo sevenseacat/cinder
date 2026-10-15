@@ -153,6 +153,7 @@ defmodule Cinder.Renderers.Table do
         myself={@myself}
         show_pagination={@show_pagination}
         pagination_mode={@pagination_mode}
+        total_count={Map.get(assigns, :total_count)}
         id={@id}
       />
     </div>

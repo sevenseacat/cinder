@@ -198,3 +198,8 @@ msgstr "Skriv för att söka fler alternativ..."
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Ett fel uppstod vid laddning av data"
+
+#: lib/cinder/renderers/pagination.ex
+#, elixir-autogen, elixir-format
+msgid "Page %{current}"
+msgstr "Sida %{current}"
