@@ -1,7 +1,9 @@
 defmodule Cinder.TableTest do
-  use ExUnit.Case, async: true
+  # The theme integration tests change the global :default_theme config
+  use ExUnit.Case, async: false
   import Phoenix.LiveViewTest
   import ExUnit.CaptureLog
+  import Cinder.TestHelpers, only: [put_app_env: 2, delete_app_env: 1]
 
   # Mock Ash resource for testing
   defmodule TestUser do
@@ -412,8 +414,7 @@ defmodule Cinder.TableTest do
     end
 
     test "uses configured default theme when no theme specified" do
-      # Set up default theme configuration
-      Application.put_env(:cinder, :default_theme, "modern")
+      put_app_env(:default_theme, "modern")
 
       assigns = %{
         resource: TestUser,
@@ -426,14 +427,10 @@ defmodule Cinder.TableTest do
       # Should use modern theme (has shadow-lg class)
       assert html =~ "cinder-table"
       assert html =~ "shadow-lg"
-
-      # Cleanup
-      Application.delete_env(:cinder, :default_theme)
     end
 
     test "explicit theme overrides configured default theme" do
-      # Set up default theme configuration
-      Application.put_env(:cinder, :default_theme, "modern")
+      put_app_env(:default_theme, "modern")
 
       assigns = %{
         resource: TestUser,
@@ -448,14 +445,10 @@ defmodule Cinder.TableTest do
       assert html =~ "cinder-table"
       assert html =~ "gray-900"
       refute html =~ "shadow-lg"
-
-      # Cleanup
-      Application.delete_env(:cinder, :default_theme)
     end
 
     test "uses system default when no config and no explicit theme" do
-      # Ensure no config is set
-      Application.delete_env(:cinder, :default_theme)
+      delete_app_env(:default_theme)
 
       assigns = %{
         resource: TestUser,
@@ -473,8 +466,7 @@ defmodule Cinder.TableTest do
     end
 
     test "handles theme modules in configuration" do
-      # Set up theme module configuration
-      Application.put_env(:cinder, :default_theme, Cinder.Themes.Retro)
+      put_app_env(:default_theme, Cinder.Themes.Retro)
 
       assigns = %{
         resource: TestUser,
@@ -487,9 +479,6 @@ defmodule Cinder.TableTest do
       # Should use retro theme
       assert html =~ "cinder-table"
       assert html =~ "bg-gray-900" || html =~ "border-cyan-400"
-
-      # Cleanup
-      Application.delete_env(:cinder, :default_theme)
     end
   end
 

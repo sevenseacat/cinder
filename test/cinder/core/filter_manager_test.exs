@@ -2,6 +2,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
   use ExUnit.Case, async: false
   import ExUnit.CaptureLog
   import Phoenix.LiveViewTest
+  import Cinder.TestHelpers, only: [put_app_env: 2]
 
   alias Cinder.FilterManager
   alias Cinder.Filters.Registry
@@ -101,9 +102,8 @@ defmodule Cinder.FilterManagerRuntimeTest do
   end
 
   setup do
-    # Clear any existing filters before each test
-    Application.put_env(:cinder, :filters, [])
-    :ok
+    # Start every test with no custom filters registered
+    put_app_env(:filters, [])
   end
 
   describe "filter_input/1 with custom filters" do
