@@ -470,14 +470,19 @@ defmodule Cinder.LiveComponent do
         socket
       end
 
+    # A change that leaves the filters and search as they were, such as typing in a filter's own
+    # search box, redraws the filters without reading the collection again.
     socket =
-      if url_sync_enabled do
-        assign(socket, :__reload_requested__, true)
-      else
-        load_data(socket)
-      end
+      cond do
+        not (filters_changed or search_changed) ->
+          socket
 
-    socket = notify_state_change(socket, new_filters)
+        url_sync_enabled ->
+          socket |> assign(:__reload_requested__, true) |> notify_state_change(new_filters)
+
+        true ->
+          socket |> load_data() |> notify_state_change(new_filters)
+      end
 
     {:noreply, socket}
   end
