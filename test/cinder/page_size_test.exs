@@ -7,7 +7,7 @@ defmodule Cinder.PageSizeTest do
   alias Cinder.PageSize
 
   setup do
-    on_exit(fn -> Application.delete_env(:cinder, :default_page_size) end)
+    Cinder.TestHelpers.delete_app_env(:default_page_size)
   end
 
   describe "get_default_page_size/0" do

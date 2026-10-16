@@ -25,14 +25,7 @@ defmodule Cinder.Mix.Tasks.CinderUpgradeTest do
     """
 
     setup do
-      original = Application.get_env(:cinder, :default_theme, :not_set)
-
-      on_exit(fn ->
-        case original do
-          :not_set -> Application.delete_env(:cinder, :default_theme)
-          value -> Application.put_env(:cinder, :default_theme, value)
-        end
-      end)
+      Cinder.TestHelpers.delete_app_env(:default_theme)
     end
 
     describe "0.14.0 — v4 app.css migration" do

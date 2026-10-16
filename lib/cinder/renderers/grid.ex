@@ -69,7 +69,7 @@ defmodule Cinder.Renderers.Grid do
           sort_label={@sort_label}
           theme={@theme}
           myself={@myself}
-          loading={@loading}
+          loading={@show_loading_state}
         />
       </div>
 
@@ -138,7 +138,7 @@ defmodule Cinder.Renderers.Grid do
       </div>
 
       <!-- Loading indicator -->
-      <div :if={@loading} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
+      <div :if={@show_loading_state} class={@theme.loading_overlay_class} data-key="loading_overlay_class">
         <%= if has_slot?(assigns, :loading_slot) do %>
           {render_slot(@loading_slot)}
         <% else %>
@@ -160,6 +160,7 @@ defmodule Cinder.Renderers.Grid do
         myself={@myself}
         show_pagination={@show_pagination}
         pagination_mode={@pagination_mode}
+        total_count={Map.get(assigns, :total_count)}
         id={@id}
       />
     </div>

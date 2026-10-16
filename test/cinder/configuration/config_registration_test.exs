@@ -1,5 +1,6 @@
 defmodule Cinder.ConfigRegistrationTest do
   use ExUnit.Case, async: false
+  import Cinder.TestHelpers, only: [put_app_env: 2]
 
   alias Cinder.Filters.Registry
 
@@ -123,16 +124,8 @@ defmodule Cinder.ConfigRegistrationTest do
   end
 
   setup do
-    # Clear any existing configuration
-    original_config = Application.get_env(:cinder, :filters, [])
-
-    Application.put_env(:cinder, :filters, [])
-
-    on_exit(fn ->
-      Application.put_env(:cinder, :filters, original_config)
-    end)
-
-    :ok
+    # Start every test with no custom filters registered
+    put_app_env(:filters, [])
   end
 
   describe "configuration-based registration" do

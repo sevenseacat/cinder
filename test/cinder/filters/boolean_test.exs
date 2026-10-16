@@ -72,15 +72,15 @@ defmodule Cinder.Filters.BooleanTest do
         operator: :equals
       }
 
-      result_query = Boolean.build_query(query, "tags", filter_value)
+      result_query = Boolean.build_query(query, "flags", filter_value)
 
-      # Should create: true in tags (not tags == true)
+      # Should create: true in flags (not flags == true)
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.Operator.In{
                    left: true,
                    operator: :in,
-                   right: %{attribute: %{name: :tags}}
+                   right: %{attribute: %{name: :flags}}
                  }
                },
                result_query.filter
@@ -94,15 +94,15 @@ defmodule Cinder.Filters.BooleanTest do
         operator: :equals
       }
 
-      result_query = Boolean.build_query(query, "tags", filter_value)
+      result_query = Boolean.build_query(query, "flags", filter_value)
 
-      # Should create: false in tags (not tags == false)
+      # Should create: false in flags (not flags == false)
       assert match?(
                %Ash.Filter{
                  expression: %Ash.Query.Operator.In{
                    left: false,
                    operator: :in,
-                   right: %{attribute: %{name: :tags}}
+                   right: %{attribute: %{name: :flags}}
                  }
                },
                result_query.filter
@@ -116,7 +116,7 @@ defmodule Cinder.Filters.BooleanTest do
         operator: :equals
       }
 
-      result_query = Boolean.build_query(query, "tags", filter_value)
+      result_query = Boolean.build_query(query, "flags", filter_value)
 
       # Empty values should not modify the query, even for array fields
       assert result_query == query
@@ -133,7 +133,7 @@ defmodule Cinder.Filters.BooleanTest do
       bool_query = Boolean.build_query(query, "active", filter_value)
 
       # Array field should use containment
-      array_query = Boolean.build_query(query, "tags", filter_value)
+      array_query = Boolean.build_query(query, "flags", filter_value)
 
       # Should produce different filter structures
       refute bool_query.filter == array_query.filter
@@ -144,7 +144,7 @@ defmodule Cinder.Filters.BooleanTest do
                  expression: %Ash.Query.Operator.In{
                    left: true,
                    operator: :in,
-                   right: %{attribute: %{name: :tags}}
+                   right: %{attribute: %{name: :flags}}
                  }
                },
                array_query.filter

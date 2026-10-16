@@ -75,4 +75,110 @@ defmodule Cinder.Renderers.PaginationTest do
       assert html =~ ~s(#users-table-page-size-options)
     end
   end
+
+  describe "without a total count" do
+    test "offset pagination renders previous/next navigation without totals" do
+      assigns =
+        base_assigns("offset-no-count")
+        |> Map.merge(%{
+          total_count: nil,
+          page: %Ash.Page.Offset{
+            results: [%{id: 1}, %{id: 2}],
+            count: nil,
+            offset: 10,
+            limit: 10,
+            more?: true
+          }
+        })
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      assert html =~ "Page 2"
+      assert html =~ ~s(title="Previous page")
+      assert html =~ ~s(title="Next page")
+      refute html =~ "showing"
+      refute html =~ "Page 2 of"
+      refute html =~ ~s(title="Last page")
+    end
+
+    test "is hidden when everything fits on one page" do
+      assigns =
+        base_assigns("offset-one-page")
+        |> Map.merge(%{
+          total_count: nil,
+          page: %Ash.Page.Offset{
+            results: [%{id: 1}],
+            count: nil,
+            offset: 0,
+            limit: 10,
+            more?: false
+          }
+        })
+
+      assert render_component(&Pagination.render/1, assigns) =~ ~r/^\s*$/
+    end
+
+    test "uses an asynchronously loaded total once it arrives" do
+      assigns =
+        base_assigns("offset-async-count")
+        |> Map.merge(%{
+          total_count: 100,
+          page: %Ash.Page.Offset{
+            results: [%{id: 1}],
+            count: nil,
+            offset: 0,
+            limit: 10,
+            more?: true
+          }
+        })
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      assert html =~ "Page 1 of 10"
+      assert html =~ "showing 1-1 of 100"
+    end
+
+    test "keyset pagination renders cursor navigation without a total" do
+      assigns =
+        base_assigns("keyset-no-count")
+        |> Map.merge(%{
+          pagination_mode: :keyset,
+          total_count: nil,
+          page: %Ash.Page.Keyset{
+            results: [%{id: 1}],
+            count: nil,
+            limit: 10,
+            more?: true,
+            after: nil,
+            before: nil,
+            rerun: nil
+          }
+        })
+
+      html = render_component(&Pagination.render/1, assigns)
+
+      assert html =~ "Next"
+      refute html =~ ~r/\d+ items/
+    end
+
+    test "keyset pagination stays visible after navigating back to the first page" do
+      assigns =
+        base_assigns("keyset-back")
+        |> Map.merge(%{
+          pagination_mode: :keyset,
+          total_count: nil,
+          page: %Ash.Page.Keyset{
+            results: [%{id: 1}],
+            count: nil,
+            limit: 10,
+            more?: false,
+            after: nil,
+            before: "cursor",
+            rerun: nil
+          }
+        })
+
+      assert render_component(&Pagination.render/1, assigns) =~ "Next"
+    end
+  end
 end

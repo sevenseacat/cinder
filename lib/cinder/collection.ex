@@ -178,7 +178,8 @@ defmodule Cinder.Collection do
   attr(:pagination, :any,
     default: :offset,
     doc:
-      "Pagination mode: :offset (default) or :keyset. Keyset pagination is faster for large datasets but only supports prev/next navigation."
+      "Pagination mode: :offset (default) or :keyset. Keyset pagination is faster for large datasets but only supports prev/next navigation. " <>
+        "Also accepts a keyword list: `[mode: :keyset, count: :async]`, where `count` is true (default, counted with each page), :async (counted in the background) or false (never counted)."
   )
 
   attr(:show_filters, :any,
@@ -427,7 +428,7 @@ defmodule Cinder.Collection do
     page_size_config = Cinder.PageSize.parse(assigns.page_size)
 
     # Parse pagination mode
-    pagination_mode = parse_pagination_mode(assigns.pagination)
+    {pagination_mode, count_mode} = parse_pagination(assigns.pagination)
 
     # Select renderer based on layout (support both atoms and strings)
     layout = normalize_layout(assigns.layout)
@@ -465,6 +466,7 @@ defmodule Cinder.Collection do
       |> assign(:show_filters, show_filters)
       |> assign(:show_sort, show_sort)
       |> assign(:pagination_mode, pagination_mode)
+      |> assign(:count_mode, count_mode)
       |> assign(:renderer, renderer)
       |> assign(:item_slot, item_slot)
       |> assign(:bulk_action_slots, bulk_action_slots)
@@ -519,6 +521,7 @@ defmodule Cinder.Collection do
         search_placeholder={@search_placeholder}
         search_fn={@search_fn}
         pagination_mode={@pagination_mode}
+        count_mode={@count_mode}
         id_field={@id_field}
         selectable={@selectable}
         on_selection_change={@on_selection_change}
@@ -953,6 +956,31 @@ defmodule Cinder.Collection do
   defp parse_pagination_mode("offset"), do: :offset
   defp parse_pagination_mode("keyset"), do: :keyset
   defp parse_pagination_mode(_invalid), do: :offset
+
+  # The keyword form is strict: unknown keys and invalid values raise, unlike the
+  # older atom/string form above.
+  @doc false
+  def parse_pagination(options) when is_list(options) do
+    options = Keyword.validate!(options, mode: :offset, count: true)
+    {validate_pagination_mode(options[:mode]), validate_count_mode(options[:count])}
+  end
+
+  def parse_pagination(mode), do: {parse_pagination_mode(mode), true}
+
+  defp validate_pagination_mode(mode) when mode in [:offset, :keyset, "offset", "keyset"],
+    do: parse_pagination_mode(mode)
+
+  defp validate_pagination_mode(mode) do
+    raise ArgumentError,
+          "invalid pagination mode #{inspect(mode)}; expected :offset or :keyset"
+  end
+
+  defp validate_count_mode(mode) when mode in [true, false, :async], do: mode
+
+  defp validate_count_mode(mode) do
+    raise ArgumentError,
+          "invalid pagination count #{inspect(mode)}; expected true, false or :async"
+  end
 
   # ============================================================================
   # PRIVATE HELPERS - Theme

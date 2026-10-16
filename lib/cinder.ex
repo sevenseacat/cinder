@@ -133,7 +133,7 @@ defmodule Cinder do
       # Or use fully qualified names
       def handle_event("delete", %{"id" => id}, socket) do
         # ... delete logic ...
-        {:noreply, Cinder.Table.Refresh.refresh_table(socket, "my-table")}
+        {:noreply, Cinder.refresh_table(socket, "my-table")}
       end
 
   For comprehensive examples and documentation, see the [README](readme.html) and [Examples](examples.html).
@@ -144,13 +144,17 @@ defmodule Cinder do
 
   # Refresh functions
   defdelegate refresh_table(socket, table_id), to: Cinder.Refresh
+  defdelegate refresh_table(socket, table_id, opts), to: Cinder.Refresh
   defdelegate refresh_tables(socket, table_ids), to: Cinder.Refresh
+  defdelegate refresh_tables(socket, table_ids, opts), to: Cinder.Refresh
 
-  # In-memory update functions (efficient for small PubSub-driven changes)
+  # In-memory change functions (efficient for small PubSub-driven changes)
   defdelegate update_item(socket, collection_id, id, update_fn), to: Cinder.Update
   defdelegate update_items(socket, collection_id, ids, update_fn), to: Cinder.Update
   defdelegate update_if_visible(socket, collection_id, id, update_fn), to: Cinder.Update
   defdelegate update_items_if_visible(socket, collection_id, ids, update_fn), to: Cinder.Update
+  defdelegate remove_item(socket, collection_id, id), to: Cinder.Update
+  defdelegate remove_items(socket, collection_id, ids), to: Cinder.Update
 
   @doc """
   Sets up Cinder with configured custom filters.

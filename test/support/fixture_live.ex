@@ -5,7 +5,8 @@ defmodule Cinder.TestLive.Fixture do
   This is the single fixture for full-lifecycle integration tests. It contains no
   collection-specific logic — the test provides the HEEx, so there is nothing in
   the fixture itself worth testing. It just wires up `mount`, `handle_params`, and
-  `Cinder.UrlSync`, then delegates `render/1` to the supplied function.
+  `Cinder.UrlSync`, runs functions the test sends it, and delegates `render/1` to
+  the supplied function.
 
   ## Usage
 
@@ -24,6 +25,11 @@ defmodule Cinder.TestLive.Fixture do
   and returns the rendered template. Its parameter **must** be named `assigns` so
   the `~H` sigil and `@field` references resolve. (`import Phoenix.Component` is
   brought in by `Cinder.ConnCase`.)
+
+  To call a parent-side function such as `Cinder.refresh_table/3` from a test,
+  give the collection an explicit ID and use `run/2`:
+
+      Cinder.TestLive.Fixture.run(view, &Cinder.refresh_table(&1, "albums", silent: true))
   """
   use Phoenix.LiveView, layout: false
   use Cinder.UrlSync
@@ -51,6 +57,24 @@ defmodule Cinder.TestLive.Fixture do
     "/c/#{id}"
   end
 
+  @doc """
+  Runs `fun` on the mounted LiveView's socket, as a parent's `handle_info/2`
+  would, and returns once it has run.
+
+  Anything `fun` queues for the LiveView, such as a `send_update`, is then
+  handled before the next `render/1`, so the render sees its effect.
+  """
+  def run(view, fun) when is_function(fun, 1) do
+    ref = make_ref()
+    send(view.pid, {:run, {self(), ref}, fun})
+
+    receive do
+      {^ref, :ok} -> :ok
+    after
+      1000 -> raise "the fixture LiveView did not run the function"
+    end
+  end
+
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     case :ets.lookup(@table, id) do
@@ -66,6 +90,13 @@ defmodule Cinder.TestLive.Fixture do
   @impl true
   def handle_params(params, uri, socket) do
     {:noreply, Cinder.UrlSync.handle_params(params, uri, socket)}
+  end
+
+  @impl true
+  def handle_info({:run, {pid, ref}, fun}, socket) do
+    socket = fun.(socket)
+    send(pid, {ref, :ok})
+    {:noreply, socket}
   end
 
   @impl true
