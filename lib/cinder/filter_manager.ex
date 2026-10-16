@@ -74,6 +74,7 @@ defmodule Cinder.FilterManager do
 
     ~H"""
     <div :if={@has_content} class={@theme.filter_container_class} data-key="filter_container_class">
+      <.clear_inputs_hook />
       <form id={"#{@table_id}-filters"} phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
         {render_slot(@controls_slot, @controls_data)}
       </form>
@@ -97,6 +98,7 @@ defmodule Cinder.FilterManager do
 
     ~H"""
     <div :if={@has_content} class={@theme.filter_container_class} data-key="filter_container_class">
+      <.clear_inputs_hook />
       <Cinder.Controls.render_header
         table_id={@table_id}
         filters_label={@filters_label}
@@ -129,6 +131,23 @@ defmodule Cinder.FilterManager do
         </form>
       </div>
     </div>
+    """
+  end
+
+  defp clear_inputs_hook(assigns) do
+    ~H"""
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".ClearInputs" runtime>
+      {
+        mounted() {
+          this.el.addEventListener("click", () => {
+            this.el
+              .closest('[data-key="filter_input_wrapper_class"], [data-key="filter_container_class"]')
+              .querySelectorAll("input:invalid")
+              .forEach((input) => { input.value = "" })
+          })
+        }
+      }
+    </script>
     """
   end
 
@@ -250,7 +269,7 @@ defmodule Cinder.FilterManager do
     assigns = assign(assigns, :filter_content, filter_content)
 
     ~H"""
-    <div class="flex items-center">
+    <div class="flex items-center group/cinder-filter">
       <div class="flex-1">
         <%= @filter_content %>
       </div>
@@ -258,12 +277,14 @@ defmodule Cinder.FilterManager do
       <!-- Clear individual filter button - always present but invisible when no value -->
       <button
         type="button"
+        id={filter_id(@table_id, @column.field, "clear")}
+        phx-hook=".ClearInputs"
         phx-click="clear_filter"
         phx-value-key={@column.field}
         phx-target={@target}
         class={[
           @theme.filter_clear_button_class,
-          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible", else: "")
+          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-has-[input:invalid]/cinder-filter:visible", else: "")
         ]}
         data-key="filter_clear_button_class"
         title={dgettext("cinder", "Clear filter")}
