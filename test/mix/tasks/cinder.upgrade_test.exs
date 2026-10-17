@@ -217,4 +217,53 @@ defmodule Mix.Tasks.Cinder.UpgradeTest do
       assert result.issues == []
     end
   end
+
+  describe "import_colocated_hooks/2" do
+    @app_js """
+    import "phoenix_html"
+    import {Socket} from "phoenix"
+    import {LiveSocket} from "phoenix_live_view"
+    import {hooks as colocatedHooks} from "phoenix-colocated/my_app"
+
+    const liveSocket = new LiveSocket("/live", Socket, {
+      params: {_csrf_token: csrfToken},
+      hooks: {...colocatedHooks},
+    })
+    """
+
+    test "imports Cinder's hooks and registers them on the LiveSocket" do
+      test_project(files: %{"assets/js/app.js" => @app_js})
+      |> Upgrade.import_colocated_hooks(%{})
+      |> assert_has_patch("assets/js/app.js", """
+      3  3   |import {LiveSocket} from "phoenix_live_view"
+         4 + |import {hooks as cinderHooks} from "phoenix-colocated/cinder"
+      4  5   |import {hooks as colocatedHooks} from "phoenix-colocated/my_app"
+      5  6   |
+      6  7   |const liveSocket = new LiveSocket("/live", Socket, {
+      7  8   |  params: {_csrf_token: csrfToken},
+      8    - |  hooks: {...colocatedHooks},
+         9 + |  hooks: {...cinderHooks, ...colocatedHooks},
+      """)
+    end
+
+    test "leaves app.js alone when the hooks are already imported" do
+      test_project(files: %{"assets/js/app.js" => @app_js})
+      |> Upgrade.import_colocated_hooks(%{})
+      |> apply_igniter!()
+      |> Upgrade.import_colocated_hooks(%{})
+      |> assert_unchanged("assets/js/app.js")
+    end
+
+    test "explains the manual setup when the LiveSocket hooks are not an object literal" do
+      app_js = String.replace(@app_js, "hooks: {...colocatedHooks}", "hooks: Hooks")
+
+      igniter =
+        test_project(files: %{"assets/js/app.js" => app_js})
+        |> Upgrade.import_colocated_hooks(%{})
+
+      assert_unchanged(igniter, "assets/js/app.js")
+      assert [notice] = igniter.notices
+      assert notice =~ ~s(import {hooks as cinderHooks} from "phoenix-colocated/cinder")
+    end
+  end
 end

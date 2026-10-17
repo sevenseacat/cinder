@@ -54,7 +54,7 @@ Then run:
 
 ```bash
 mix deps.get
-mix cinder.install  # Configure Tailwind CSS
+mix cinder.install  # Configure Tailwind CSS and LiveView hooks
 ```
 
 ## Quick Start
@@ -91,7 +91,7 @@ For list or grid layouts:
 
 ## Requirements
 
-- Phoenix LiveView 1.0+
+- Phoenix LiveView 1.1+ (Phoenix 1.8+)
 - Ash Framework 3.0+
 - Elixir 1.17+
 

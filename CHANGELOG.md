@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Breaking changes
+
+* Requires `phoenix_live_view ~> 1.1` and Phoenix 1.8+. Cinder now ships a colocated hook, which your `app.js` has to import from `phoenix-colocated/cinder`; `mix cinder.upgrade 0.17.0 0.18.0` adds the import. See the [upgrading guide](docs/upgrading.md) for details.
+
 ### Features
 
 * Added `initial_load={:sync}`, which puts the first page of data in the server-rendered HTML. Thanks @Alt-iOS! ([#203](https://github.com/sevenseacat/cinder/pull/203))
@@ -14,6 +18,8 @@
 
 * Global search no longer repeats the query's existing filters inside every search branch, and a searchable column with an invalid field no longer stops search from narrowing a filtered query. Thanks @Alt-iOS! ([#244](https://github.com/sevenseacat/cinder/pull/244))
 * Typing in an autocomplete filter's search box no longer reloads the collection on every keystroke. Thanks @Alt-iOS! ([#246](https://github.com/sevenseacat/cinder/pull/246))
+* Clearing a filter now also clears a date or number input holding a partially entered value. The browser reports such a value as empty, so the server never saw it and the entered parts stayed on screen.
+* The filter's × and "Clear all" now show while a filter holds a partially entered value, instead of only when the server has a value for it.
 
 ## v0.17.0 (2026-08-08)
 

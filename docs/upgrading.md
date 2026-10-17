@@ -2,6 +2,35 @@
 
 This guide covers breaking changes, deprecations, and migration paths for Cinder.
 
+## Upgrading to 0.18.0
+
+### Required: import Cinder's hooks in `app.js`
+
+Cinder now uses a [colocated hook](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedHook.html)
+to clear partially entered dates and numbers, so it requires Phoenix LiveView 1.1+ and Phoenix 1.8+,
+and your LiveSocket has to register Cinder's hooks.
+
+#### Automatic Migration
+
+```bash
+mix cinder.upgrade 0.17.0 0.18.0
+```
+
+#### Manual Migration
+
+```javascript
+import {hooks as cinderHooks} from "phoenix-colocated/cinder"
+
+const liveSocket = new LiveSocket("/live", Socket, {
+  hooks: {...cinderHooks, ...colocatedHooks},
+  // ...
+})
+```
+
+Your bundler has to resolve `phoenix-colocated`. New Phoenix 1.8 apps already add
+`Mix.Project.build_path()` to esbuild's `NODE_PATH`; see the
+[ColocatedJS docs](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedJS.html#module-internals) otherwise.
+
 ## Upgrading to 0.16.0
 
 ### Removed: Unicode sort-glyph theme keys

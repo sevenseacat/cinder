@@ -321,9 +321,13 @@ defmodule Cinder.Controls do
       <button
         :if={@has_filters}
         type="button"
+        data-cinder-clear
         phx-click="clear_all_filters"
         phx-target={@target}
-        class={[@theme.filter_clear_all_class, if(@active_filter_count == 0, do: "invisible", else: "")]}
+        class={[
+          @theme.filter_clear_all_class,
+          if(@active_filter_count == 0, do: "invisible group-data-[invalid]/cinder-filters:visible", else: "")
+        ]}
         data-key="filter_clear_all_class"
       >
         {dgettext("cinder", "Clear all")}

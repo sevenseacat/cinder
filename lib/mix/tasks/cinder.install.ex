@@ -33,8 +33,9 @@ if Code.ensure_loaded?(Igniter) do
     ## What it does
 
     1. Adds Cinder's files to your Tailwind configuration content paths
-    2. Provides setup instructions for using Cinder in your application
-    3. Shows example usage to get you started quickly
+    2. Registers Cinder's LiveView hooks in your `assets/js/app.js`
+    3. Provides setup instructions for using Cinder in your application
+    4. Shows example usage to get you started quickly
 
     ## Tailwind Configuration
 
@@ -72,6 +73,7 @@ if Code.ensure_loaded?(Igniter) do
       |> Igniter.Project.Formatter.import_dep(:cinder)
       |> configure_tailwind()
       |> configure_default_theme()
+      |> Mix.Tasks.Cinder.Upgrade.import_colocated_hooks([])
     end
 
     @tailwind_v3_prefix """
