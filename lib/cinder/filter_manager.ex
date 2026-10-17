@@ -162,6 +162,7 @@ defmodule Cinder.FilterManager do
             scope.querySelectorAll("input:invalid").forEach((input) => { input.value = "" })
             this.sync()
           })
+          this.sync()
         },
         updated() {
           this.sync()

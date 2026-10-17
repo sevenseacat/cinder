@@ -254,16 +254,21 @@ defmodule Mix.Tasks.Cinder.UpgradeTest do
       |> assert_unchanged("assets/js/app.js")
     end
 
-    test "explains the manual setup when the LiveSocket hooks are not an object literal" do
-      app_js = String.replace(@app_js, "hooks: {...colocatedHooks}", "hooks: Hooks")
+    for {description, from, to} <- [
+          {"are not an object literal", "hooks: {...colocatedHooks}", "hooks: Hooks"},
+          {"are ambiguous", "const liveSocket", "const editor = {hooks: {}}\nconst liveSocket"}
+        ] do
+      test "explains the manual setup when the LiveSocket hooks #{description}" do
+        app_js = String.replace(@app_js, unquote(from), unquote(to))
 
-      igniter =
-        test_project(files: %{"assets/js/app.js" => app_js})
-        |> Upgrade.import_colocated_hooks(%{})
+        igniter =
+          test_project(files: %{"assets/js/app.js" => app_js})
+          |> Upgrade.import_colocated_hooks(%{})
 
-      assert_unchanged(igniter, "assets/js/app.js")
-      assert [notice] = igniter.notices
-      assert notice =~ ~s(import {hooks as cinderHooks} from "phoenix-colocated/cinder")
+        assert_unchanged(igniter, "assets/js/app.js")
+        assert [notice] = igniter.notices
+        assert notice =~ ~s(import {hooks as cinderHooks} from "phoenix-colocated/cinder")
+      end
     end
   end
 end

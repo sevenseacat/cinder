@@ -317,7 +317,7 @@ if Code.ensure_loaded?(Igniter) do
            content = Rewrite.Source.get(source, :content),
            false <- String.contains?(content, "phoenix-colocated/cinder"),
            [live_view_import] <- Regex.run(~r/^import .*["']phoenix_live_view["'];?$/m, content),
-           true <- content =~ ~r/hooks:\s*\{/ do
+           [_] <- Regex.scan(~r/hooks:\s*\{/, content) do
         new_content =
           content
           |> String.replace(live_view_import, live_view_import <> "\n" <> @hooks_import,
