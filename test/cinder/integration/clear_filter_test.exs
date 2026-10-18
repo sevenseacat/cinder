@@ -49,11 +49,11 @@ defmodule Cinder.Integration.ClearFilterTest do
 
     assert has_element?(
              view,
-             ~s([phx-hook="Cinder.FilterManager.InvalidInputs"] #{@release_date_clear})
+             ~s([phx-hook="Cinder.FilterManager.PartialInputs"] #{@release_date_clear})
            )
   end
 
-  test "clearing filters that hold no value keeps the rows", %{conn: conn, path: path} do
+  test "clearing filters that hold no value skips the reload", %{conn: conn, path: path} do
     {:ok, view, _html} = live(conn, path)
 
     # The browser reports a partially entered date as empty, so the server has nothing to clear
@@ -63,7 +63,7 @@ defmodule Cinder.Integration.ClearFilterTest do
              @loading_overlay
   end
 
-  test "clearing a filter that holds a value reloads the rows", %{conn: conn, path: path} do
+  test "clearing a filter that holds a value triggers a reload", %{conn: conn, path: path} do
     {:ok, view, _html} = live(conn, path)
 
     view

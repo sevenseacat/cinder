@@ -140,15 +140,16 @@ defmodule Cinder.FilterManager do
     ~H"""
     <div
       id={"#{@table_id}-filter-container"}
-      phx-hook=".InvalidInputs"
+      phx-hook=".PartialInputs"
       class={[@theme.filter_container_class, "group/cinder-filters"]}
       data-key="filter_container_class"
     >
-      <script :type={Phoenix.LiveView.ColocatedHook} name=".InvalidInputs">
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".PartialInputs">
         export default {
           mounted() {
-            this.js().ignoreAttributes(this.el, "data-cinder-invalid")
-            for (const type of ["input", "change", "keyup", "focusout"]) {
+            this.js().ignoreAttributes(this.el, "data-cinder-partial")
+            // Editing a partly typed value keeps it "", so no input event fires: keyup and focusout catch those edits
+            for (const type of ["input", "keyup", "focusout"]) {
               this.el.addEventListener(type, () => this.sync())
             }
             this.el.addEventListener("click", (event) => {
@@ -167,11 +168,11 @@ defmodule Cinder.FilterManager do
             return [...scope.querySelectorAll("input")].filter((input) => input.validity.badInput)
           },
           sync() {
-            this.el.toggleAttribute("data-cinder-invalid", this.partialInputs(this.el).length > 0)
+            this.el.toggleAttribute("data-cinder-partial", this.partialInputs(this.el).length > 0)
             this.el.querySelectorAll("[data-cinder-filter]").forEach((filter) => {
-              const invalid = this.partialInputs(filter).length > 0
-              if (invalid) this.js().ignoreAttributes(filter, "data-cinder-invalid")
-              filter.toggleAttribute("data-cinder-invalid", invalid)
+              const partial = this.partialInputs(filter).length > 0
+              if (partial) this.js().ignoreAttributes(filter, "data-cinder-partial")
+              filter.toggleAttribute("data-cinder-partial", partial)
             })
           }
         }
@@ -313,7 +314,7 @@ defmodule Cinder.FilterManager do
         phx-target={@target}
         class={[
           @theme.filter_clear_button_class,
-          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-data-[cinder-invalid]/cinder-filter:visible", else: "")
+          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-data-[cinder-partial]/cinder-filter:visible", else: "")
         ]}
         data-key="filter_clear_button_class"
         title={dgettext("cinder", "Clear filter")}

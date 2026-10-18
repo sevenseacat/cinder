@@ -326,7 +326,7 @@ defmodule Cinder.Controls do
         phx-target={@target}
         class={[
           @theme.filter_clear_all_class,
-          if(@active_filter_count == 0, do: "invisible group-data-[cinder-invalid]/cinder-filters:visible", else: "")
+          if(@active_filter_count == 0, do: "invisible group-data-[cinder-partial]/cinder-filters:visible", else: "")
         ]}
         data-key="filter_clear_all_class"
       >

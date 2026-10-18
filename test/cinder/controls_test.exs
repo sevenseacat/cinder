@@ -522,7 +522,7 @@ defmodule Cinder.ControlsTest do
       document = render_controls(base_assigns())
 
       assert attr(document, "#test-table-filter-container", "phx-hook") == [
-               "Cinder.FilterManager.InvalidInputs"
+               "Cinder.FilterManager.PartialInputs"
              ]
 
       assert [class] = attr(document, "#test-table-filter-container", "class")
@@ -534,7 +534,7 @@ defmodule Cinder.ControlsTest do
       document = render_controls(Map.put(base_assigns(), :controls_slot, controls_slot))
 
       assert attr(document, "#test-table-filter-container", "phx-hook") == [
-               "Cinder.FilterManager.InvalidInputs"
+               "Cinder.FilterManager.PartialInputs"
              ]
     end
 
@@ -548,7 +548,7 @@ defmodule Cinder.ControlsTest do
       end
 
       for class <- attr(document, "[data-cinder-filter] > button[data-cinder-clear]", "class") do
-        assert class =~ "invisible group-data-[cinder-invalid]/cinder-filter:visible"
+        assert class =~ "invisible group-data-[cinder-partial]/cinder-filter:visible"
       end
     end
 
@@ -562,7 +562,7 @@ defmodule Cinder.ControlsTest do
                  "class"
                )
 
-      assert class =~ "invisible group-data-[cinder-invalid]/cinder-filters:visible"
+      assert class =~ "invisible group-data-[cinder-partial]/cinder-filters:visible"
     end
 
     test "keeps clear buttons visible for active filters" do
