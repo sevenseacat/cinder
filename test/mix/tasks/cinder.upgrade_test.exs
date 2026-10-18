@@ -270,6 +270,9 @@ defmodule Mix.Tasks.Cinder.UpgradeTest do
     end
 
     for {description, from, to} <- [
+          {"app.js imports Cinder's hooks without registering them",
+           ~s(from "phoenix-colocated/my_app"\n),
+           ~s(from "phoenix-colocated/my_app"\nimport {hooks as cinderHooks} from "phoenix-colocated/cinder"\n)},
           {"app.js imports no colocated JS yet",
            ~s(import {hooks as colocatedHooks} from "phoenix-colocated/my_app"\n), ""},
           {"the LiveSocket hooks are not an object literal", "hooks: {...colocatedHooks}",

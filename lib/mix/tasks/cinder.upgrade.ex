@@ -315,6 +315,7 @@ if Code.ensure_loaded?(Igniter) do
 
       with {:ok, source} <- Rewrite.source(igniter.rewrite, @app_js_path),
            content = Rewrite.Source.get(source, :content),
+           {:registered, false} <- {:registered, String.contains?(content, "...cinderHooks")},
            false <- String.contains?(content, "phoenix-colocated/cinder"),
            [colocated_import] <- Regex.run(~r/^import .*["']phoenix-colocated\/.+$/m, content),
            [_] <- Regex.scan(~r/hooks:\s*\{/, content) do
@@ -332,7 +333,7 @@ if Code.ensure_loaded?(Igniter) do
         source = Rewrite.Source.update(source, :content, new_content)
         %{igniter | rewrite: Rewrite.update!(igniter.rewrite, source)}
       else
-        true -> igniter
+        {:registered, true} -> igniter
         _ -> explain_colocated_hooks(igniter)
       end
     end
