@@ -111,6 +111,31 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
       end
     end
 
+    describe "LiveView hooks" do
+      test "registers Cinder's hooks in app.js" do
+        app_js = """
+        import {hooks as colocatedHooks} from "phoenix-colocated/my_app"
+
+        const liveSocket = new LiveSocket("/live", Socket, {hooks: {...colocatedHooks}})
+        """
+
+        test_project(
+          files: %{"assets/css/app.css" => @blank_app_css, "assets/js/app.js" => app_js}
+        )
+        |> Igniter.compose_task("cinder.install", [])
+        |> assert_has_patch("assets/js/app.js", """
+        1 1   |import {hooks as colocatedHooks} from "phoenix-colocated/my_app"
+          2 + |import {hooks as cinderHooks} from "phoenix-colocated/cinder"
+        """)
+      end
+
+      test "explains the manual setup without an app.js" do
+        test_project(files: %{"assets/css/app.css" => @blank_app_css})
+        |> Igniter.compose_task("cinder.install", [])
+        |> assert_has_notice(&(&1 =~ ~s(from "phoenix-colocated/cinder")))
+      end
+    end
+
     defp source_content(igniter, path) do
       igniter.rewrite |> Rewrite.source!(path) |> Rewrite.Source.get(:content)
     end

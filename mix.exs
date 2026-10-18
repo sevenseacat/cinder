@@ -11,6 +11,7 @@ defmodule Cinder.MixProject do
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
+      compilers: [:phoenix_live_view] ++ Mix.compilers(),
       consolidate_protocols: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
@@ -55,6 +56,7 @@ defmodule Cinder.MixProject do
     [
       {:ash, "~> 3.0"},
       {:ash_phoenix, "~> 2.3"},
+      {:phoenix, "~> 1.8"},
       {:phoenix_live_view, "~> 1.1"},
       {:gettext, "~> 1.0.0"},
       {:usage_rules, "~> 1.0", only: [:dev]},
@@ -65,6 +67,7 @@ defmodule Cinder.MixProject do
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:mimic, "~> 2.3", only: :test},
       {:phoenix_test, "~> 0.11", only: :test, runtime: false},
+      {:lazy_html, ">= 0.1.0", only: :test},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},

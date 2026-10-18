@@ -54,8 +54,10 @@ Then run:
 
 ```bash
 mix deps.get
-mix cinder.install  # Configure Tailwind CSS
+mix cinder.install  # Configure Tailwind CSS and LiveView hooks
 ```
+
+Without Igniter, register Cinder's LiveView hooks by hand as shown in the [Upgrading Guide](https://cinder.hexdocs.pm/upgrading.html#upgrading-to-0-18-0).
 
 ## Quick Start
 
@@ -91,7 +93,7 @@ For list or grid layouts:
 
 ## Requirements
 
-- Phoenix LiveView 1.0+
+- Phoenix LiveView 1.1+ (Phoenix 1.8+)
 - Ash Framework 3.0+
 - Elixir 1.17+
 

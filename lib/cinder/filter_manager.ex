@@ -73,12 +73,11 @@ defmodule Cinder.FilterManager do
       |> assign(:has_content, has_content)
 
     ~H"""
-    <div :if={@has_content} class={@theme.filter_container_class} data-key="filter_container_class">
-      <.clear_inputs_hook />
+    <.filter_container :if={@has_content} table_id={@table_id} theme={@theme}>
       <form id={"#{@table_id}-filters"} phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
         {render_slot(@controls_slot, @controls_data)}
       </form>
-    </div>
+    </.filter_container>
     """
   end
 
@@ -97,8 +96,7 @@ defmodule Cinder.FilterManager do
       |> assign(:initially_collapsed, initially_collapsed)
 
     ~H"""
-    <div :if={@has_content} class={@theme.filter_container_class} data-key="filter_container_class">
-      <.clear_inputs_hook />
+    <.filter_container :if={@has_content} table_id={@table_id} theme={@theme}>
       <Cinder.Controls.render_header
         table_id={@table_id}
         filters_label={@filters_label}
@@ -130,24 +128,57 @@ defmodule Cinder.FilterManager do
           </div>
         </form>
       </div>
-    </div>
+    </.filter_container>
     """
   end
 
-  defp clear_inputs_hook(assigns) do
+  attr :table_id, :string, required: true
+  attr :theme, :map, required: true
+  slot :inner_block, required: true
+
+  defp filter_container(assigns) do
     ~H"""
-    <script :type={Phoenix.LiveView.ColocatedHook} name=".ClearInputs" runtime>
-      {
-        mounted() {
-          this.el.addEventListener("click", () => {
-            this.el
-              .closest('[data-key="filter_input_wrapper_class"], [data-key="filter_container_class"]')
-              .querySelectorAll("input:invalid")
-              .forEach((input) => { input.value = "" })
-          })
+    <div
+      id={"#{@table_id}-filter-container"}
+      phx-hook=".PartialInputs"
+      class={[@theme.filter_container_class, "group/cinder-filters"]}
+      data-key="filter_container_class"
+    >
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".PartialInputs">
+        export default {
+          mounted() {
+            this.js().ignoreAttributes(this.el, "data-cinder-partial")
+            // Editing a partly typed value keeps it "", so no input event fires: keyup and focusout catch those edits
+            for (const type of ["input", "keyup", "focusout"]) {
+              this.el.addEventListener(type, () => this.sync())
+            }
+            this.el.addEventListener("click", (event) => {
+              const button = event.target.closest("[data-cinder-clear]")
+              if (!button) return
+              const scope = button.closest("[data-cinder-filter]") || this.el
+              this.partialInputs(scope).forEach((input) => { input.value = "" })
+              this.sync()
+            })
+            this.sync()
+          },
+          updated() {
+            this.sync()
+          },
+          partialInputs(scope) {
+            return [...scope.querySelectorAll("input")].filter((input) => input.validity.badInput)
+          },
+          sync() {
+            this.el.toggleAttribute("data-cinder-partial", this.partialInputs(this.el).length > 0)
+            this.el.querySelectorAll("[data-cinder-filter]").forEach((filter) => {
+              const partial = this.partialInputs(filter).length > 0
+              if (partial) this.js().ignoreAttributes(filter, "data-cinder-partial")
+              filter.toggleAttribute("data-cinder-partial", partial)
+            })
+          }
         }
-      }
-    </script>
+      </script>
+      {render_slot(@inner_block)}
+    </div>
     """
   end
 
@@ -269,7 +300,7 @@ defmodule Cinder.FilterManager do
     assigns = assign(assigns, :filter_content, filter_content)
 
     ~H"""
-    <div class="flex items-center group/cinder-filter">
+    <div class="flex items-center group/cinder-filter" data-cinder-filter={@column.field}>
       <div class="flex-1">
         <%= @filter_content %>
       </div>
@@ -277,14 +308,13 @@ defmodule Cinder.FilterManager do
       <!-- Clear individual filter button - always present but invisible when no value -->
       <button
         type="button"
-        id={filter_id(@table_id, @column.field, "clear")}
-        phx-hook=".ClearInputs"
+        data-cinder-clear
         phx-click="clear_filter"
         phx-value-key={@column.field}
         phx-target={@target}
         class={[
           @theme.filter_clear_button_class,
-          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-has-[input:invalid]/cinder-filter:visible", else: "")
+          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-data-[cinder-partial]/cinder-filter:visible", else: "")
         ]}
         data-key="filter_clear_button_class"
         title={dgettext("cinder", "Clear filter")}

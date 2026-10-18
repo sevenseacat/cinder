@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Breaking changes
+
+* Cinder now requires `phoenix_live_view ~> 1.1` and Phoenix 1.8, and ships a colocated hook that your `app.js` must register. Run `mix cinder.upgrade 0.17.0 0.18.0`, or see the [upgrading guide](docs/upgrading.md).
+
 ### Features
 
 * Added `initial_load={:sync}`, which puts the first page of data in the server-rendered HTML. Thanks @Alt-iOS! ([#203](https://github.com/sevenseacat/cinder/pull/203))
@@ -14,12 +18,9 @@
 
 * Global search no longer repeats the query's existing filters inside every search branch, and a searchable column with an invalid field no longer stops search from narrowing a filtered query. Thanks @Alt-iOS! ([#244](https://github.com/sevenseacat/cinder/pull/244))
 * Typing in an autocomplete filter's search box no longer reloads the collection on every keystroke. Thanks @Alt-iOS! ([#246](https://github.com/sevenseacat/cinder/pull/246))
+* Clearing a date or number filter now also clears a partially typed value, and the filter's × and "Clear all" show while one is typed.
 
 ## v0.17.0 (2026-08-08)
-
-### Breaking changes
-
-* Requires `phoenix_live_view ~> 1.1` (and Phoenix 1.8+), for the colocated hook the filter clear buttons use
 
 ### Features
 
@@ -32,8 +33,6 @@
 * `toggle_select` events now validate the given ID against the data on the current page, instead of adding arbitrary client-provided ids to the selection.
 * `mix cinder.gen.filter --template=multi_checkboxes` now generates a filter based on `Cinder.Filters.MultiCheckboxes` instead of falling back to a text filter.
 * Checkbox filters are correctly vertically aligned again in non-DaisyUI themes
-* Clearing a filter now also clears date and number inputs holding a partially entered value. Such an input reads back as empty, so the filter was already empty server-side and no diff ever reached the browser — the entered parts stayed visible after clicking the clear button.
-* A filter whose only input holds a partially entered value keeps its clear button reachable. The button's visibility follows the server-side filter value, which is empty in that case, so there was nothing to click.
 
 ## v0.16.0 (2026-07-15)
 
