@@ -57,6 +57,8 @@ mix deps.get
 mix cinder.install  # Configure Tailwind CSS and LiveView hooks
 ```
 
+Without Igniter, register Cinder's LiveView hooks by hand as shown in the [Upgrading Guide](https://cinder.hexdocs.pm/upgrading.html#upgrading-to-0-18-0).
+
 ## Quick Start
 
 ```heex

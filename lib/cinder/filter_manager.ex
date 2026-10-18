@@ -80,7 +80,6 @@ defmodule Cinder.FilterManager do
       class={[@theme.filter_container_class, "group/cinder-filters"]}
       data-key="filter_container_class"
     >
-      <.invalid_inputs_hook />
       <form id={"#{@table_id}-filters"} phx-change="filter_change" phx-submit="filter_change" phx-target={@target}>
         {render_slot(@controls_slot, @controls_data)}
       </form>
@@ -151,7 +150,7 @@ defmodule Cinder.FilterManager do
     <script :type={Phoenix.LiveView.ColocatedHook} name=".InvalidInputs">
       export default {
         mounted() {
-          this.js().ignoreAttributes(this.el, "data-invalid")
+          this.js().ignoreAttributes(this.el, "data-cinder-invalid")
           for (const type of ["input", "change", "keyup", "focusout"]) {
             this.el.addEventListener(type, () => this.sync())
           }
@@ -159,7 +158,7 @@ defmodule Cinder.FilterManager do
             const button = event.target.closest("[data-cinder-clear]")
             if (!button) return
             const scope = button.closest("[data-cinder-filter]") || this.el
-            scope.querySelectorAll("input:invalid").forEach((input) => { input.value = "" })
+            this.partialInputs(scope).forEach((input) => { input.value = "" })
             this.sync()
           })
           this.sync()
@@ -167,11 +166,15 @@ defmodule Cinder.FilterManager do
         updated() {
           this.sync()
         },
+        partialInputs(scope) {
+          return [...scope.querySelectorAll("input")].filter((input) => input.validity.badInput)
+        },
         sync() {
-          this.el.toggleAttribute("data-invalid", this.el.querySelector("input:invalid") !== null)
+          this.el.toggleAttribute("data-cinder-invalid", this.partialInputs(this.el).length > 0)
           this.el.querySelectorAll("[data-cinder-filter]").forEach((filter) => {
-            this.js().ignoreAttributes(filter, "data-invalid")
-            filter.toggleAttribute("data-invalid", filter.querySelector("input:invalid") !== null)
+            const invalid = this.partialInputs(filter).length > 0
+            if (invalid) this.js().ignoreAttributes(filter, "data-cinder-invalid")
+            filter.toggleAttribute("data-cinder-invalid", invalid)
           })
         }
       }
@@ -311,7 +314,7 @@ defmodule Cinder.FilterManager do
         phx-target={@target}
         class={[
           @theme.filter_clear_button_class,
-          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-data-[invalid]/cinder-filter:visible", else: "")
+          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-data-[cinder-invalid]/cinder-filter:visible", else: "")
         ]}
         data-key="filter_clear_button_class"
         title={dgettext("cinder", "Clear filter")}

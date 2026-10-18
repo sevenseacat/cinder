@@ -235,14 +235,29 @@ defmodule Mix.Tasks.Cinder.UpgradeTest do
       test_project(files: %{"assets/js/app.js" => @app_js})
       |> Upgrade.import_colocated_hooks(%{})
       |> assert_has_patch("assets/js/app.js", """
-      3  3   |import {LiveSocket} from "phoenix_live_view"
-         4 + |import {hooks as cinderHooks} from "phoenix-colocated/cinder"
-      4  5   |import {hooks as colocatedHooks} from "phoenix-colocated/my_app"
+      4  4   |import {hooks as colocatedHooks} from "phoenix-colocated/my_app"
+         5 + |import {hooks as cinderHooks} from "phoenix-colocated/cinder"
       5  6   |
       6  7   |const liveSocket = new LiveSocket("/live", Socket, {
       7  8   |  params: {_csrf_token: csrfToken},
       8    - |  hooks: {...colocatedHooks},
          9 + |  hooks: {...cinderHooks, ...colocatedHooks},
+      """)
+    end
+
+    test "ends the import with a semicolon when app.js uses them" do
+      app_js =
+        String.replace(
+          @app_js,
+          ~s(from "phoenix-colocated/my_app"\n),
+          ~s(from "phoenix-colocated/my_app";\n)
+        )
+
+      test_project(files: %{"assets/js/app.js" => app_js})
+      |> Upgrade.import_colocated_hooks(%{})
+      |> assert_has_patch("assets/js/app.js", """
+      4  4   |import {hooks as colocatedHooks} from "phoenix-colocated/my_app";
+         5 + |import {hooks as cinderHooks} from "phoenix-colocated/cinder";
       """)
     end
 
@@ -255,19 +270,22 @@ defmodule Mix.Tasks.Cinder.UpgradeTest do
     end
 
     for {description, from, to} <- [
-          {"are not an object literal", "hooks: {...colocatedHooks}", "hooks: Hooks"},
-          {"are ambiguous", "const liveSocket", "const editor = {hooks: {}}\nconst liveSocket"}
+          {"app.js imports no colocated JS yet",
+           ~s(import {hooks as colocatedHooks} from "phoenix-colocated/my_app"\n), ""},
+          {"the LiveSocket hooks are not an object literal", "hooks: {...colocatedHooks}",
+           "hooks: Hooks"},
+          {"app.js has more than one hooks object", "const liveSocket",
+           "const editor = {hooks: {}}\nconst liveSocket"}
         ] do
-      test "explains the manual setup when the LiveSocket hooks #{description}" do
+      test "explains the manual setup when #{description}" do
         app_js = String.replace(@app_js, unquote(from), unquote(to))
 
-        igniter =
-          test_project(files: %{"assets/js/app.js" => app_js})
-          |> Upgrade.import_colocated_hooks(%{})
-
-        assert_unchanged(igniter, "assets/js/app.js")
-        assert [notice] = igniter.notices
-        assert notice =~ ~s(import {hooks as cinderHooks} from "phoenix-colocated/cinder")
+        test_project(files: %{"assets/js/app.js" => app_js})
+        |> Upgrade.import_colocated_hooks(%{})
+        |> assert_unchanged("assets/js/app.js")
+        |> assert_has_notice(
+          &(&1 =~ ~s(import {hooks as cinderHooks} from "phoenix-colocated/cinder"))
+        )
       end
     end
   end

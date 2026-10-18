@@ -508,7 +508,7 @@ defmodule Cinder.ControlsTest do
     end
   end
 
-  describe "invalid input hook wiring" do
+  describe "partial input hook wiring" do
     defp render_controls(assigns) do
       render_component(&FilterManager.render_filter_controls/1, assigns)
       |> LazyHTML.from_fragment()
@@ -518,7 +518,7 @@ defmodule Cinder.ControlsTest do
       document |> LazyHTML.query(selector) |> LazyHTML.attribute(name)
     end
 
-    test "the filter container runs the hook in the default layout" do
+    test "renders the hook on the filter container" do
       document = render_controls(base_assigns())
 
       assert attr(document, "#test-table-filter-container", "phx-hook") == [
@@ -529,7 +529,7 @@ defmodule Cinder.ControlsTest do
       assert class =~ "group/cinder-filters"
     end
 
-    test "the filter container runs the hook in a custom controls layout" do
+    test "renders the hook on the filter container with a :controls slot" do
       controls_slot = [%{__slot__: :controls, inner_block: fn _assigns, _controls -> "" end}]
       document = render_controls(Map.put(base_assigns(), :controls_slot, controls_slot))
 
@@ -538,7 +538,7 @@ defmodule Cinder.ControlsTest do
              ]
     end
 
-    test "each filter is marked for the hook and its clear button shows when it is invalid" do
+    test "marks each filter and keys its clear button off the hook's attribute" do
       document = render_controls(base_assigns())
 
       assert attr(document, "[data-cinder-filter]", "data-cinder-filter") == ["name", "status"]
@@ -548,11 +548,11 @@ defmodule Cinder.ControlsTest do
       end
 
       for class <- attr(document, "[data-cinder-filter] > button[data-cinder-clear]", "class") do
-        assert class =~ "invisible group-data-[invalid]/cinder-filter:visible"
+        assert class =~ "invisible group-data-[cinder-invalid]/cinder-filter:visible"
       end
     end
 
-    test "clear all is marked for the hook and shows when any filter is invalid" do
+    test "keys clear all off the hook's attribute on the container" do
       document = render_controls(base_assigns())
 
       assert [class] =
@@ -562,10 +562,10 @@ defmodule Cinder.ControlsTest do
                  "class"
                )
 
-      assert class =~ "invisible group-data-[invalid]/cinder-filters:visible"
+      assert class =~ "invisible group-data-[cinder-invalid]/cinder-filters:visible"
     end
 
-    test "clear buttons of active filters stay visible regardless of the hook" do
+    test "keeps clear buttons visible for active filters" do
       filters = %{"name" => %{type: :text, value: "john", operator: :contains}}
       document = render_controls(base_assigns(%{filters: filters}))
 

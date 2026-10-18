@@ -73,7 +73,7 @@ if Code.ensure_loaded?(Igniter) do
       |> Igniter.Project.Formatter.import_dep(:cinder)
       |> configure_tailwind()
       |> configure_default_theme()
-      |> Mix.Tasks.Cinder.Upgrade.import_colocated_hooks([])
+      |> Mix.Tasks.Cinder.Upgrade.import_colocated_hooks(%{})
     end
 
     @tailwind_v3_prefix """

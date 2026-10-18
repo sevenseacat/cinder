@@ -316,11 +316,15 @@ if Code.ensure_loaded?(Igniter) do
       with {:ok, source} <- Rewrite.source(igniter.rewrite, @app_js_path),
            content = Rewrite.Source.get(source, :content),
            false <- String.contains?(content, "phoenix-colocated/cinder"),
-           [live_view_import] <- Regex.run(~r/^import .*["']phoenix_live_view["'];?$/m, content),
+           [colocated_import] <- Regex.run(~r/^import .*["']phoenix-colocated\/.+$/m, content),
            [_] <- Regex.scan(~r/hooks:\s*\{/, content) do
+        semicolon = if String.ends_with?(colocated_import, ";"), do: ";", else: ""
+
         new_content =
           content
-          |> String.replace(live_view_import, live_view_import <> "\n" <> @hooks_import,
+          |> String.replace(
+            colocated_import,
+            colocated_import <> "\n" <> @hooks_import <> semicolon,
             global: false
           )
           |> then(&Regex.replace(~r/hooks:\s*\{/, &1, "\\0...cinderHooks, ", global: false))

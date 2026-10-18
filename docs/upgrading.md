@@ -4,11 +4,14 @@ This guide covers breaking changes, deprecations, and migration paths for Cinder
 
 ## Upgrading to 0.18.0
 
-### Required: import Cinder's hooks in `app.js`
+### Changed: Cinder requires LiveView 1.1 and ships a JS hook
 
-Cinder now uses a [colocated hook](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedHook.html)
-to clear partially entered dates and numbers, so it requires Phoenix LiveView 1.1+ and Phoenix 1.8+,
-and your LiveSocket has to register Cinder's hooks.
+Cinder now includes a [colocated hook](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedHook.html)
+that clears partially typed date and number filters. It requires `phoenix_live_view ~> 1.1`
+and Phoenix 1.8, and your `LiveSocket` has to register Cinder's hooks.
+
+**This affects every app using Cinder.** Without the hook, filters still work, but partially
+typed values are not cleared and LiveView logs an "unknown hook" error in the browser console.
 
 #### Automatic Migration
 
@@ -27,9 +30,10 @@ const liveSocket = new LiveSocket("/live", Socket, {
 })
 ```
 
-Your bundler has to resolve `phoenix-colocated`. New Phoenix 1.8 apps already add
-`Mix.Project.build_path()` to esbuild's `NODE_PATH`; see the
-[ColocatedJS docs](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedJS.html#module-internals) otherwise.
+Your bundler must resolve `phoenix-colocated`. Apps generated with Phoenix 1.8 already do;
+otherwise add `Mix.Project.build_path()` to esbuild's `NODE_PATH` (see the
+[ColocatedJS docs](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedJS.html#module-internals)).
+In release builds, run `mix compile` before `mix assets.deploy`.
 
 ## Upgrading to 0.16.0
 
