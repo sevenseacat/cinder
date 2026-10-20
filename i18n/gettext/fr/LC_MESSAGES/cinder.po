@@ -141,12 +141,14 @@ msgstr "Tous les %{label}"
 
 #: lib/cinder/collection.ex
 #: lib/cinder/controls.ex
+#: lib/cinder/next/config.ex
 #, elixir-autogen, elixir-format
 msgid "Search"
 msgstr "Rechercher"
 
 #: lib/cinder/collection.ex
 #: lib/cinder/controls.ex
+#: lib/cinder/next/config.ex
 #, elixir-autogen, elixir-format
 msgid "Search..."
 msgstr "Rechercher..."
