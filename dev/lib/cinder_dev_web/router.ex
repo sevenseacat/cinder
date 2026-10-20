@@ -16,6 +16,12 @@ defmodule CinderDevWeb.Router do
     live_session :demo, on_mount: CinderDevWeb.DemoHook do
       live "/", TableLive
       live "/filters", FiltersLive
+      live "/list", ListLive
+      live "/grid", GridLive
+      live "/pagination", PaginationLive
+      live "/selection", SelectionLive
+      live "/controls", ControlsLive
+      live "/states", StatesLive
     end
   end
 end

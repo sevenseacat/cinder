@@ -93,5 +93,26 @@ defmodule Music.Album do
 
   actions do
     defaults([:read, :destroy])
+
+    read :paginated do
+      pagination(offset?: true, keyset?: true, countable: true, required?: false)
+    end
+
+    # For showing the loading and error states in the dev app
+    read :slow do
+      prepare(fn query, _context ->
+        Process.sleep(1500)
+        query
+      end)
+    end
+
+    read :failing do
+      prepare(fn query, _context -> Ash.Query.add_error(query, "Simulated failure") end)
+    end
+
+    update :remaster do
+      require_atomic?(false)
+      change(set_attribute(:is_remastered, true))
+    end
   end
 end
