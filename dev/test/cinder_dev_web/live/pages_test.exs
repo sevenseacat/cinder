@@ -14,5 +14,11 @@ defmodule CinderDevWeb.PagesTest do
       # States page's slow read action takes 1.5s.
       assert render_async(view, 3_000) =~ ~r/Album \d+/
     end
+
+    test "#{label} page switches theme", %{conn: conn} do
+      {:ok, view, _html} = live(conn, unquote(path))
+
+      assert view |> element("a", "modern") |> render_click() =~ "Theme: modern"
+    end
   end
 end

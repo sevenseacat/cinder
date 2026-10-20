@@ -13,11 +13,18 @@ defmodule CinderDevWeb.DemoHook do
   def on_mount(:default, _params, _session, socket) do
     {:cont,
      attach_hook(socket, :theme, :handle_params, fn params, uri, socket ->
-       {:cont,
-        socket
-        |> assign(:theme, params["theme"] || @default_theme)
-        |> assign(:current_path, URI.parse(uri).path)
-        |> assign(:query_params, params)}
+       socket =
+         socket
+         |> assign(:theme, params["theme"] || @default_theme)
+         |> assign(:current_path, URI.parse(uri).path)
+         |> assign(:query_params, params)
+
+       # Pages without URL sync have no handle_params/3 to continue on to
+       if function_exported?(socket.view, :handle_params, 3) do
+         {:cont, socket}
+       else
+         {:halt, socket}
+       end
      end)}
   end
 end
