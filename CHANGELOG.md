@@ -16,6 +16,7 @@
 * Typing in an autocomplete filter's search box no longer reloads the collection on every keystroke. Thanks @Alt-iOS! ([#246](https://github.com/sevenseacat/cinder/pull/246))
 * Radio group and autocomplete filters on enum fields now list the enum's values when no `options` are given, like select filters already did.
 * Radio group filters with non-string option values (like enum atoms) now show the chosen option as selected, instead of losing it on the first click.
+* Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
 
 ## v0.17.0 (2026-08-08)
 

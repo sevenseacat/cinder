@@ -752,8 +752,8 @@ defmodule Cinder.LiveComponent do
     |> assign(:error, false)
     |> assign(:data, page.results)
     |> assign(:page, page)
-    # Update keyset cursors for navigation (only relevant in keyset mode)
-    |> maybe_update_keyset_cursors(page)
+    # Update keyset cursors for navigation (only read in keyset mode)
+    |> update_keyset_cursors(page)
   end
 
   defp handle_result({:error, error}, socket) do
@@ -801,8 +801,10 @@ defmodule Cinder.LiveComponent do
     end
   end
 
-  defp maybe_update_keyset_cursors(socket, %Ash.Page.Keyset{} = page) do
-    results = page.results
+  # Not just `Ash.Page.Keyset`: keyset mode's first page can arrive as an
+  # `Ash.Page.Offset` (Ash falls back to the app's `default_page_type` when there's
+  # no cursor), and its records still carry keyset metadata.
+  defp update_keyset_cursors(socket, %{results: results}) do
     # Extract keysets from first and last results for navigation
     first_keyset = get_keyset_from_result(List.first(results))
     last_keyset = get_keyset_from_result(List.last(results))
@@ -811,8 +813,6 @@ defmodule Cinder.LiveComponent do
     |> assign(:first_keyset, first_keyset)
     |> assign(:last_keyset, last_keyset)
   end
-
-  defp maybe_update_keyset_cursors(socket, _page), do: socket
 
   defp get_keyset_from_result(nil), do: nil
 
