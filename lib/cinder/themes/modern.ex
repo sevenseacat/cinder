@@ -203,7 +203,7 @@ defmodule Cinder.Themes.Modern do
 
   # Selection
   set :selection_checkbox_class,
-      "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+      "h-4 w-4 bg-white border-gray-300 rounded checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-2 cursor-pointer"
 
   set :selected_row_class, "bg-blue-50/50"
   set :grid_selection_overlay_class, "mb-2"
