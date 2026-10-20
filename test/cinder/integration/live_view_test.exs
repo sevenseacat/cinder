@@ -17,7 +17,7 @@ defmodule Cinder.Integration.LiveViewTest do
   defp album_collection(assigns) do
     ~H"""
     <Cinder.collection
-      resource={Cinder.Integration.Album}
+      resource={Music.Album}
       url_state={@url_state}
       page_size={[default: 25, options: [3, 5, 10, 25]]}
     >
@@ -109,8 +109,8 @@ defmodule Cinder.Integration.LiveViewTest do
     )
 
     on_exit(fn ->
-      Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
-      Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
+      Ash.bulk_destroy!(Music.Album, :destroy, %{})
+      Ash.bulk_destroy!(Music.Artist, :destroy, %{})
     end)
 
     %{path: Cinder.TestLive.Fixture.register(&album_collection/1)}

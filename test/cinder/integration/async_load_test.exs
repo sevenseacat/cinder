@@ -24,7 +24,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
   defp sync_album_collection(assigns) do
     ~H"""
     <Cinder.collection
-      resource={Cinder.Integration.Album}
+      resource={Music.Album}
       url_state={@url_state}
       initial_load={:sync}
     >
@@ -36,7 +36,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
   # Deliberately uses the string form of the mode, so it stays covered.
   defp sync_no_url_album_collection(assigns) do
     ~H"""
-    <Cinder.collection resource={Cinder.Integration.Album} initial_load="sync">
+    <Cinder.collection resource={Music.Album} initial_load="sync">
       <:col :let={album} field="title" filter sort>{album.title}</:col>
     </Cinder.collection>
     """
@@ -44,7 +44,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
 
   defp default_album_collection(assigns) do
     ~H"""
-    <Cinder.collection resource={Cinder.Integration.Album} url_state={@url_state}>
+    <Cinder.collection resource={Music.Album} url_state={@url_state}>
       <:col :let={album} field="title" filter sort>{album.title}</:col>
     </Cinder.collection>
     """
@@ -53,7 +53,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
   defp async_album_collection(assigns) do
     ~H"""
     <Cinder.collection
-      resource={Cinder.Integration.Album}
+      resource={Music.Album}
       url_state={@url_state}
       initial_load={:async}
     >
@@ -68,8 +68,8 @@ defmodule Cinder.Integration.AsyncLoadTest do
     generate(album(title: "Buffered Album", genre: :rock, artist_id: artist.id))
 
     on_exit(fn ->
-      Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
-      Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
+      Ash.bulk_destroy!(Music.Album, :destroy, %{})
+      Ash.bulk_destroy!(Music.Artist, :destroy, %{})
     end)
 
     %{
@@ -111,7 +111,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
     path =
       Cinder.TestLive.Fixture.register(fn assigns ->
         ~H"""
-        <Cinder.collection id="albums" resource={Cinder.Integration.Album}>
+        <Cinder.collection id="albums" resource={Music.Album}>
           <:col :let={album} field="title">{album.title}</:col>
         </Cinder.collection>
         """
@@ -147,7 +147,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
     assert render(view) =~ "Async Album"
 
     old_album =
-      Cinder.Integration.Album
+      Music.Album
       |> Ash.read!()
       |> Enum.find(&(&1.title == "Async Album"))
 
@@ -196,7 +196,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
   end
 
   test "silent refresh of an empty collection uses normal loading and error states", %{conn: conn} do
-    Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
+    Ash.bulk_destroy!(Music.Album, :destroy, %{})
     view = mount_refresh_collection(conn)
     assert has_element?(view, ~s([data-key="empty_class"]))
     query_pid = start_paused_refresh(view, fn _query, _opts -> {:error, :refresh_failed} end)
@@ -279,7 +279,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
     path =
       Cinder.TestLive.Fixture.register(fn assigns ->
         ~H"""
-        <Cinder.collection resource={Cinder.Integration.Album} initial_load={:synk}>
+        <Cinder.collection resource={Music.Album} initial_load={:synk}>
           <:col :let={album} field="title">{album.title}</:col>
         </Cinder.collection>
         """

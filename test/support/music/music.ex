@@ -1,4 +1,5 @@
-# Resources for LiveView integration tests.
+# Resources shared by the LiveView integration tests and the dev app in `dev/`,
+# which compiles this directory too, so it must stay self-contained.
 #
 # These use `private?(false)` so data is visible across processes (test process,
 # LiveView process, and async task processes). This is required because ETS
@@ -7,20 +8,31 @@
 # Do NOT use these in unit tests — use the per-process-isolated resources in
 # test_resources.ex instead.
 
-defmodule Cinder.Integration.Domain do
+defmodule Music.Genre do
+  @moduledoc false
+  use Ash.Type.Enum,
+    values: [
+      rock: [label: "Rock"],
+      pop: [label: "Pop"],
+      jazz: [label: "Jazz"],
+      classical: [label: "Classical"]
+    ]
+end
+
+defmodule Music do
   @moduledoc false
   use Ash.Domain, validate_config_inclusion?: false
 
   resources do
-    resource(Cinder.Integration.Artist)
-    resource(Cinder.Integration.Album)
+    resource(Music.Artist)
+    resource(Music.Album)
   end
 end
 
-defmodule Cinder.Integration.Artist do
+defmodule Music.Artist do
   @moduledoc false
   use Ash.Resource,
-    domain: Cinder.Integration.Domain,
+    domain: Music,
     data_layer: Ash.DataLayer.Ets
 
   ets do
@@ -33,7 +45,7 @@ defmodule Cinder.Integration.Artist do
   end
 
   relationships do
-    has_many(:albums, Cinder.Integration.Album)
+    has_many(:albums, Music.Album)
   end
 
   actions do
@@ -41,10 +53,10 @@ defmodule Cinder.Integration.Artist do
   end
 end
 
-defmodule Cinder.Integration.Album do
+defmodule Music.Album do
   @moduledoc false
   use Ash.Resource,
-    domain: Cinder.Integration.Domain,
+    domain: Music,
     data_layer: Ash.DataLayer.Ets
 
   ets do
@@ -54,7 +66,7 @@ defmodule Cinder.Integration.Album do
   attributes do
     uuid_primary_key(:id)
     attribute(:title, :string)
-    attribute(:genre, TestGenreEnum)
+    attribute(:genre, Music.Genre)
     attribute(:price, :decimal)
     attribute(:release_date, :date)
     attribute(:is_remastered, :boolean)
@@ -62,7 +74,7 @@ defmodule Cinder.Integration.Album do
   end
 
   relationships do
-    belongs_to(:artist, Cinder.Integration.Artist)
+    belongs_to(:artist, Music.Artist)
   end
 
   actions do

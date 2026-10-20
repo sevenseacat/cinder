@@ -14,7 +14,7 @@ defmodule Cinder.Integration.CountTest do
 
       ~H"""
       <Cinder.collection
-        resource={Cinder.Integration.Album}
+        resource={Music.Album}
         url_state={@url_state}
         page_size={2}
         pagination={@pagination}
@@ -33,8 +33,8 @@ defmodule Cinder.Integration.CountTest do
     end
 
     on_exit(fn ->
-      Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
-      Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
+      Ash.bulk_destroy!(Music.Album, :destroy, %{})
+      Ash.bulk_destroy!(Music.Artist, :destroy, %{})
     end)
 
     :ok

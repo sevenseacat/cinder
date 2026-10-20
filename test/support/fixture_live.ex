@@ -13,7 +13,7 @@ defmodule Cinder.TestLive.Fixture do
       path =
         Cinder.TestLive.Fixture.register(fn assigns ->
           ~H\"\"\"
-          <Cinder.collection resource={Cinder.Integration.Album} url_state={@url_state}>
+          <Cinder.collection resource={Music.Album} url_state={@url_state}>
             <:col :let={album} field="title" filter sort>{album.title}</:col>
           </Cinder.collection>
           \"\"\"

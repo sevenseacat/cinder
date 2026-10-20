@@ -12,7 +12,7 @@ defmodule Cinder.Generator do
   """
   def artist(opts \\ []) do
     seed_generator(
-      %Cinder.Integration.Artist{name: sequence(:artist_name, &"Artist #{&1}")},
+      %Music.Artist{name: sequence(:artist_name, &"Artist #{&1}")},
       overrides: opts
     )
   end
@@ -37,7 +37,7 @@ defmodule Cinder.Generator do
         end)
 
     seed_generator(
-      %Cinder.Integration.Album{
+      %Music.Album{
         title: sequence(:album_title, &"Album #{&1}"),
         genre: StreamData.member_of([:rock, :pop, :jazz, :classical]),
         price: Decimal.new("9.99"),
