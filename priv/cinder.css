@@ -15,6 +15,7 @@
 @source "../lib/cinder/*.ex";
 @source "../lib/cinder/filter/**/*.ex";
 @source "../lib/cinder/filters/**/*.ex";
+@source "../lib/cinder/next/**/*.ex";
 @source "../lib/cinder/renderers/**/*.ex";
 @source "../lib/cinder/table/**/*.ex";
 @source "../lib/cinder/theme/**/*.ex";
