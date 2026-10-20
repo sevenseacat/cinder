@@ -26,14 +26,14 @@ defmodule CinderDevWeb.NextLive do
         url_state={@url_state}
         query_opts={[load: [:artist]]}
       >
-        <:col :let={album} field="title" filter sort>{album.title}</:col>
-        <:col :let={album} field="artist.name" label="Artist" filter sort>
+        <:col :let={album} field="title" filter={[type: :text]} search sort>{album.title}</:col>
+        <:col :let={album} field="artist.name" label="Artist" filter={[type: :text]} sort>
           {album.artist.name}
         </:col>
-        <:col field="genre" filter sort />
-        <:col :let={album} field="price" filter sort>{Decimal.to_string(album.price)}</:col>
-        <:col field="release_date" filter sort />
-        <:col field="is_remastered" label="Remastered" filter />
+        <:col field="genre" filter={[type: :select]} sort />
+        <:col :let={album} field="price" sort>{Decimal.to_string(album.price)}</:col>
+        <:col field="release_date" sort />
+        <:col field="is_remastered" label="Remastered" />
       </Cinder.Next.collection>
     </Layouts.app>
     """

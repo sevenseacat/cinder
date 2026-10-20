@@ -11,6 +11,44 @@ defmodule Cinder.Next.Parts do
 
   attr :view, :map, required: true
 
+  def toolbar(assigns) do
+    ~H"""
+    <div :if={@view.search || @view.filters != []} data-part="toolbar">
+      <.search :if={@view.search} search={@view.search} />
+      <.filter :for={filter <- @view.filters} filter={filter} />
+    </div>
+    """
+  end
+
+  attr :search, :map, required: true
+
+  def search(assigns) do
+    ~H"""
+    <div {@search.attrs}>
+      <label for={@search.input_attrs["id"]}>{@search.label}</label>
+      <input {@search.input_attrs} />
+      <button {@search.clear_attrs}>×</button>
+    </div>
+    """
+  end
+
+  attr :filter, :map, required: true
+
+  def filter(assigns) do
+    ~H"""
+    <div {@filter.attrs}>
+      <label {@filter.label_attrs}>{@filter.label}</label>
+      <input :if={@filter.type == :text} {@filter.input_attrs} />
+      <select :if={@filter.type == :select} {@filter.input_attrs}>
+        <option :for={option <- @filter.options} {option.attrs}>{option.label}</option>
+      </select>
+      <button {@filter.clear_attrs}>×</button>
+    </div>
+    """
+  end
+
+  attr :view, :map, required: true
+
   def table(assigns) do
     ~H"""
     <table data-part="grid">

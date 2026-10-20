@@ -21,6 +21,7 @@ defmodule Cinder.Next do
   attr :query_opts, :list, default: []
   attr :page_size, :integer, default: 25
   attr :url_state, :any, default: false
+  attr :search, :any, default: nil
 
   slot :col do
     attr :field, :string
@@ -36,12 +37,23 @@ defmodule Cinder.Next do
         raise ArgumentError, "a :resource or :query is required"
 
     resource = Ash.Query.new(query).resource
+    columns = Collection.process_columns(assigns.col, resource)
+
+    {search_label, search_placeholder, search_enabled?, search_fn} =
+      Collection.process_search_config(assigns.search, columns)
 
     assigns =
       assign(assigns, :config, %{
         query: query,
         resource: resource,
-        columns: Collection.process_columns(assigns.col, resource),
+        columns: columns,
+        form_id: "#{assigns.id}-filters",
+        search: %{
+          enabled?: search_enabled?,
+          label: search_label,
+          placeholder: search_placeholder,
+          fn: search_fn
+        },
         action: assigns.action,
         actor: assigns.actor,
         tenant: assigns.tenant,

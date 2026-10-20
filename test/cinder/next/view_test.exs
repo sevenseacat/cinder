@@ -26,7 +26,11 @@ defmodule Cinder.Next.ViewTest do
     state = Keyword.get(opts, :state, State.new(page_size: 10))
 
     View.build(%{
-      config: %{columns: Keyword.get(opts, :columns, [column("title", true)])},
+      config: %{
+        columns: Keyword.get(opts, :columns, [column("title", true)]),
+        form_id: "albums-filters",
+        search: %{enabled?: false}
+      },
       state: state,
       page: Keyword.get(opts, :page, offset_page(state.page)),
       status: :idle,
@@ -56,6 +60,33 @@ defmodule Cinder.Next.ViewTest do
       # Unsortable columns don't claim a sort state at all
       refute genre.attrs["aria-sort"]
       refute genre.attrs["data-sortable"]
+    end
+  end
+
+  describe "filters" do
+    defp text_filter_column(field) do
+      Map.merge(column(field, false), %{filterable: true, filter_type: :text, filter_options: []})
+    end
+
+    test "inputs join the collection's form, wherever they're rendered" do
+      [filter] = build(columns: [text_filter_column("title")]).filters
+
+      assert filter.input_attrs["form"] == "albums-filters"
+      assert filter.input_attrs["name"] == "filters[title]"
+      assert filter.label_attrs["for"] == filter.input_attrs["id"]
+      assert filter.clear_attrs["phx-target"] == @myself
+      assert filter.clear_attrs["hidden"] == true
+    end
+
+    test "an active filter says so, and shows its clear button" do
+      filters = %{"title" => %{type: :text, value: "alp", operator: :contains}}
+      state = State.new(page_size: 10) |> State.set_filters(filters, "")
+
+      [filter] = build(state: state, columns: [text_filter_column("title")]).filters
+
+      assert filter.attrs["data-active"] == true
+      assert filter.input_attrs["value"] == "alp"
+      refute filter.clear_attrs["hidden"]
     end
   end
 

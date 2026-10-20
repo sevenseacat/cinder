@@ -7,7 +7,7 @@ defmodule Cinder.Next.Component do
   use Phoenix.LiveComponent
 
   alias Cinder.Next.{Parts, State, View}
-  alias Cinder.QueryBuilder
+  alias Cinder.{FilterManager, QueryBuilder}
 
   @impl true
   def update(%{config: config} = assigns, socket) do
@@ -34,6 +34,18 @@ defmodule Cinder.Next.Component do
     end
   end
 
+  def handle_event("filter", params, socket) do
+    %{columns: columns} = socket.assigns.config
+    filters = FilterManager.params_to_filters(Map.get(params, "filters", %{}), columns)
+    search = Map.get(params, "search", socket.assigns.state.search)
+
+    {:noreply, commit(socket, &State.set_filters(&1, filters, search))}
+  end
+
+  def handle_event("clear_filter", %{"field" => field}, socket) do
+    {:noreply, commit(socket, &State.clear_filter(&1, field))}
+  end
+
   def handle_event("go_to_page", %{"page" => page}, socket) do
     case Integer.parse(page) do
       {number, ""} -> {:noreply, commit(socket, &State.go_to_page(&1, number))}
@@ -56,6 +68,8 @@ defmodule Cinder.Next.Component do
 
     ~H"""
     <div id={@id} {@view.attrs}>
+      <form {@view.form_attrs}></form>
+      <Parts.toolbar view={@view} />
       <Parts.table view={@view} />
       <Parts.pagination :if={@view.pagination} pagination={@view.pagination} />
     </div>
@@ -84,7 +98,8 @@ defmodule Cinder.Next.Component do
         scope: config.scope,
         action: config.action,
         query_opts: config.query_opts,
-        columns: config.columns
+        columns: config.columns,
+        search_fn: config.search.fn
       ] ++ State.query_options(state)
 
     socket

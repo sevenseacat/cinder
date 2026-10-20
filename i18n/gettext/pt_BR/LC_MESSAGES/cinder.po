@@ -14,6 +14,7 @@ msgid "Clear all"
 msgstr "Limpar todos"
 
 #: lib/cinder/filter_manager.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen
 msgid "Clear filter"
 msgstr "Limpar filtro"
@@ -96,6 +97,7 @@ msgid "Sort by:"
 msgstr "Ordenar por:"
 
 #: lib/cinder/filters/text.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Filter %{label}..."
 msgstr "Filtrar %{label}..."
@@ -132,6 +134,7 @@ msgstr "Para"
 
 #: lib/cinder/filter_manager.ex
 #: lib/cinder/filters/select.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "All %{label}"
 msgstr "Todos %{label}"
@@ -154,6 +157,7 @@ msgid "Select options..."
 msgstr "Selecionar opções..."
 
 #: lib/cinder/controls.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Clear search"
 msgstr "Limpar pesquisa"
