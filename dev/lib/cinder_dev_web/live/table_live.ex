@@ -1,4 +1,4 @@
-defmodule CinderDevWeb.AlbumsLive do
+defmodule CinderDevWeb.TableLive do
   use CinderDevWeb, :live_view
   use Cinder.UrlSync
 
@@ -10,10 +10,16 @@ defmodule CinderDevWeb.AlbumsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app
+      flash={@flash}
+      theme={@theme}
+      current_path={@current_path}
+      query_params={@query_params}
+    >
       <Cinder.collection
         id="albums"
         resource={Music.Album}
+        theme={@theme}
         url_state={@url_state}
         query_opts={[load: [:artist]]}
       >

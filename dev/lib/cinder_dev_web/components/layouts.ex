@@ -11,6 +11,11 @@ defmodule CinderDevWeb.Layouts do
   # and other static content.
   embed_templates "layouts/*"
 
+  @pages [{"/", "Table"}, {"/filters", "Filters"}]
+
+  @doc "The demo pages, as `{path, label}`, for the nav and the smoke tests."
+  def pages, do: @pages
+
   @doc """
   Renders your app layout.
 
@@ -26,16 +31,42 @@ defmodule CinderDevWeb.Layouts do
 
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
+  attr :theme, :string, required: true, doc: "the Cinder theme in use"
+  attr :current_path, :string, required: true
+  attr :query_params, :map, required: true
 
   slot :inner_block, required: true
 
   def app(assigns) do
+    assigns = assign(assigns, :pages, @pages)
+
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="text-sm font-semibold">Cinder dev</a>
+    <%!-- Above the page: some Cinder themes give filter containers a z-index --%>
+    <header class="navbar relative z-100 gap-4 px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-1 items-center gap-4">
+        <span class="text-sm font-semibold">Cinder dev</span>
+        <ul class="menu menu-horizontal">
+          <li :for={{path, label} <- @pages}>
+            <.link
+              navigate={"#{path}?theme=#{@theme}"}
+              class={path == @current_path && "menu-active"}
+            >
+              {label}
+            </.link>
+          </li>
+        </ul>
       </div>
-      <div class="flex-none">
+      <div class="flex flex-none items-center gap-4">
+        <div class="dropdown dropdown-end">
+          <div tabindex="0" role="button" class="btn btn-sm">Theme: {@theme}</div>
+          <ul tabindex="0" class="dropdown-content menu z-10 w-48 rounded-box bg-base-100 shadow">
+            <li :for={theme <- Cinder.Theme.presets()}>
+              <.link patch={"?" <> Plug.Conn.Query.encode(Map.put(@query_params, "theme", theme))}>
+                {theme}
+              </.link>
+            </li>
+          </ul>
+        </div>
         <.theme_toggle />
       </div>
     </header>

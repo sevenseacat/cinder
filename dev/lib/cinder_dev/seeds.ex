@@ -10,6 +10,12 @@ defmodule CinderDev.Seeds do
   @tags ~w(live compilation debut soundtrack deluxe instrumental)
   @labels ["Blue Note", "Motown", "Sub Pop", "Rough Trade", "Deutsche Grammophon"]
 
+  @doc "The tags seeded albums can have."
+  def tags, do: @tags
+
+  @doc "The record labels seeded albums can be on."
+  def labels, do: @labels
+
   def run do
     # A fixed seed gives the same data on every boot, so pages look the same
     # between restarts.

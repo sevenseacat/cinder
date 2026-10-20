@@ -13,6 +13,9 @@ defmodule CinderDevWeb.Router do
   scope "/", CinderDevWeb do
     pipe_through :browser
 
-    live "/", AlbumsLive
+    live_session :demo, on_mount: CinderDevWeb.DemoHook do
+      live "/", TableLive
+      live "/filters", FiltersLive
+    end
   end
 end
