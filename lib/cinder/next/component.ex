@@ -9,20 +9,25 @@ defmodule Cinder.Next.Component do
   alias Cinder.Next.{Parts, State, View}
   alias Cinder.{FilterManager, QueryBuilder}
 
+  # `url_params` is nil unless the collection is URL-synced. When it is, every
+  # URL change arrives here: our own patches (which match the state already, so
+  # nothing reloads) and browser back/forward (which don't).
   @impl true
-  def update(%{config: config} = assigns, socket) do
-    socket = assign(socket, id: assigns.id, config: config)
+  def update(%{config: config, url_params: url_params} = assigns, socket) do
+    socket = assign(socket, id: assigns.id, config: config, url_params: url_params)
 
-    if socket.assigns[:state] do
-      {:ok, socket}
-    else
-      state =
-        State.new(
-          page_size: config.page_size,
-          sort: QueryBuilder.extract_query_sorts(config.query, config.columns)
-        )
+    case socket.assigns[:state] do
+      nil ->
+        state =
+          State.new(
+            page_size: config.page_size,
+            sort: QueryBuilder.extract_query_sorts(config.query, config.columns)
+          )
 
-      {:ok, socket |> assign(state: state, page: nil) |> load()}
+        {:ok, socket |> assign(state: from_url(state, socket), page: nil) |> load()}
+
+      state ->
+        {:ok, apply_state(socket, from_url(state, socket))}
     end
   end
 
@@ -76,16 +81,38 @@ defmodule Cinder.Next.Component do
     """
   end
 
-  # The one path for every state change: apply it, and reload only if the query changed
+  # The one path for every user-driven state change. It loads straight away rather
+  # than waiting for the URL to come back, so it works the same without URL sync.
   defp commit(socket, transition) do
-    old = socket.assigns.state
-    new = transition.(old)
+    new = transition.(socket.assigns.state)
+    changed? = State.query_changed?(socket.assigns.state, new)
+    socket = apply_state(socket, new)
 
-    if State.query_changed?(old, new) do
+    if changed? and socket.assigns.url_params do
+      filter_fields =
+        for column <- socket.assigns.config.columns, column.filterable, do: column.field
+
+      send(
+        self(),
+        {:table_state_change, socket.assigns.id, State.to_url_params(new, filter_fields)}
+      )
+    end
+
+    socket
+  end
+
+  defp apply_state(socket, new) do
+    if State.query_changed?(socket.assigns.state, new) do
       socket |> assign(:state, new) |> load()
     else
       socket
     end
+  end
+
+  defp from_url(state, %{assigns: %{url_params: nil}}), do: state
+
+  defp from_url(state, %{assigns: %{url_params: params, config: config}}) do
+    State.from_url_params(state, params, config.columns)
   end
 
   defp load(socket) do

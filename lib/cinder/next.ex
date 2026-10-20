@@ -63,7 +63,16 @@ defmodule Cinder.Next do
       })
 
     ~H"""
-    <.live_component module={Cinder.Next.Component} id={@id} config={@config} />
+    <.live_component
+      module={Cinder.Next.Component}
+      id={@id}
+      config={@config}
+      url_params={url_params(@url_state)}
+    />
     """
   end
+
+  # `Cinder.UrlSync.handle_params/3` keeps the raw URL params under `:filters`
+  defp url_params(%{filters: params}), do: params
+  defp url_params(_url_state), do: nil
 end
