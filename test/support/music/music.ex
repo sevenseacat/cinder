@@ -19,6 +19,16 @@ defmodule Music.Genre do
     ]
 end
 
+defmodule Music.AlbumDetails do
+  @moduledoc false
+  use Ash.Resource, data_layer: :embedded
+
+  attributes do
+    attribute(:label, :string, public?: true)
+    attribute(:catalog_number, :string, public?: true)
+  end
+end
+
 defmodule Music do
   @moduledoc false
   use Ash.Domain, validate_config_inclusion?: false
@@ -68,8 +78,12 @@ defmodule Music.Album do
     attribute(:title, :string)
     attribute(:genre, Music.Genre)
     attribute(:price, :decimal)
+    attribute(:track_count, :integer)
     attribute(:release_date, :date)
+    attribute(:added_at, :utc_datetime)
     attribute(:is_remastered, :boolean)
+    attribute(:tags, {:array, :string})
+    attribute(:details, Music.AlbumDetails)
     attribute(:artist_id, :uuid)
   end
 
