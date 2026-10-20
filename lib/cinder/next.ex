@@ -31,6 +31,9 @@ defmodule Cinder.Next do
     attr :search, :boolean
   end
 
+  slot :pagination,
+    doc: "Replaces the default pagination. Receives the pagination view-model via `:let`."
+
   def collection(assigns) do
     query =
       assigns.query || assigns.resource ||
@@ -47,6 +50,8 @@ defmodule Cinder.Next do
         query: query,
         resource: resource,
         columns: columns,
+        # Inside the config, not a top-level assign, for the same reason as the columns
+        pagination_slot: assigns.pagination,
         form_id: "#{assigns.id}-filters",
         search: %{
           enabled?: search_enabled?,

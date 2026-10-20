@@ -137,4 +137,34 @@ defmodule Cinder.Next.ComponentTest do
     assert length(titles(html)) == 2
     assert html =~ "showing 1-2 of 5"
   end
+
+  test "a custom pagination slot replaces the default and works through the attribute maps",
+       %{conn: conn} do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album} page_size={2}>
+          <:col :let={album} field="title" sort>{album.title}</:col>
+          <:pagination :let={pagination}>
+            <ol id="custom-pagination">
+              <li :for={page <- pagination.pages}>
+                <a :if={page.kind == :page} {page.attrs}>Page {page.label}</a>
+              </li>
+            </ol>
+          </:pagination>
+        </Cinder.Next.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+    html = render_async(view)
+
+    assert html =~ ~s(id="custom-pagination")
+    refute html =~ ~s(data-part="summary")
+
+    click(view, ~s([data-part="sort"][phx-value-field="title"]))
+    html = click(view, ~s(#custom-pagination [phx-value-page="3"]))
+
+    assert titles(html) == ["Echo"]
+  end
 end

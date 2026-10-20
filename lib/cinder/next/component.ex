@@ -76,7 +76,13 @@ defmodule Cinder.Next.Component do
       <form {@view.form_attrs}></form>
       <Parts.toolbar view={@view} />
       <Parts.table view={@view} />
-      <Parts.pagination :if={@view.pagination} pagination={@view.pagination} />
+      <%= if @view.pagination do %>
+        <%= if @config.pagination_slot != [] do %>
+          {render_slot(@config.pagination_slot, @view.pagination)}
+        <% else %>
+          <Parts.pagination pagination={@view.pagination} />
+        <% end %>
+      <% end %>
     </div>
     """
   end

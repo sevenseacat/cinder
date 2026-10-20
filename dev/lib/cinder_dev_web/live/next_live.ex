@@ -35,6 +35,21 @@ defmodule CinderDevWeb.NextLive do
         <:col field="release_date" sort />
         <:col field="is_remastered" label="Remastered" />
       </Cinder.Next.collection>
+
+      <h2 class="mt-10 text-lg font-semibold">Custom pagination slot (not URL-synced)</h2>
+      <Cinder.Next.collection id="albums-next-custom" resource={Music.Album} page_size={5}>
+        <:col :let={album} field="title" sort>{album.title}</:col>
+        <:col field="genre" />
+        <:pagination :let={pagination}>
+          <div class="join self-center">
+            <button class="join-item btn btn-sm" {pagination.prev.attrs}>«</button>
+            <button class="join-item btn btn-sm pointer-events-none">
+              Page {pagination.page} of {pagination.page_count}
+            </button>
+            <button class="join-item btn btn-sm" {pagination.next.attrs}>»</button>
+          </div>
+        </:pagination>
+      </Cinder.Next.collection>
     </Layouts.app>
     """
   end
