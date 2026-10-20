@@ -27,6 +27,21 @@ defmodule Cinder.Next.Component do
   end
 
   @impl true
+  def handle_event("sort", %{"field" => field}, socket) do
+    case Enum.find(socket.assigns.config.columns, &(&1.field == field and &1.sortable)) do
+      nil -> {:noreply, socket}
+      column -> {:noreply, commit(socket, &State.toggle_sort(&1, field, column.sort_cycle))}
+    end
+  end
+
+  def handle_event("go_to_page", %{"page" => page}, socket) do
+    case Integer.parse(page) do
+      {number, ""} -> {:noreply, commit(socket, &State.go_to_page(&1, number))}
+      _ -> {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_async(:load, {:ok, {:ok, page}}, socket) do
     {:noreply, assign(socket, page: page, status: :idle)}
   end
@@ -42,8 +57,21 @@ defmodule Cinder.Next.Component do
     ~H"""
     <div id={@id} {@view.attrs}>
       <Parts.table view={@view} />
+      <Parts.pagination :if={@view.pagination} pagination={@view.pagination} />
     </div>
     """
+  end
+
+  # The one path for every state change: apply it, and reload only if the query changed
+  defp commit(socket, transition) do
+    old = socket.assigns.state
+    new = transition.(old)
+
+    if State.query_changed?(old, new) do
+      socket |> assign(:state, new) |> load()
+    else
+      socket
+    end
   end
 
   defp load(socket) do

@@ -16,7 +16,15 @@ defmodule Cinder.Next.Parts do
     <table data-part="grid">
       <thead>
         <tr>
-          <th :for={column <- @view.columns} {column.attrs}>{column.label}</th>
+          <th :for={column <- @view.columns} {column.attrs}>
+            <%= if column.sortable? do %>
+              <button {column.sort_attrs}>
+                {column.label}<span {column.indicator_attrs}></span>
+              </button>
+            <% else %>
+              {column.label}
+            <% end %>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -39,6 +47,22 @@ defmodule Cinder.Next.Parts do
         </tr>
       </tbody>
     </table>
+    """
+  end
+
+  attr :pagination, :map, required: true
+
+  def pagination(assigns) do
+    ~H"""
+    <nav {@pagination.attrs}>
+      <span :if={@pagination.summary} data-part="summary">{@pagination.summary}</span>
+      <button {@pagination.prev.attrs}>{@pagination.prev.label}</button>
+      <%= for page <- @pagination.pages do %>
+        <span :if={page.kind == :gap} {page.attrs}>{page.label}</span>
+        <button :if={page.kind != :gap} {page.attrs}>{page.label}</button>
+      <% end %>
+      <button {@pagination.next.attrs}>{@pagination.next.label}</button>
+    </nav>
     """
   end
 end

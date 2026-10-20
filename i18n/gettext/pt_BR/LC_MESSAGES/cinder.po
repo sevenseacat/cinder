@@ -30,6 +30,7 @@ msgstr[1] "ativos"
 msgid "Page %{current} of %{total}"
 msgstr "Página %{current} de %{total}"
 
+#: lib/cinder/next/view.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "showing %{start}-%{end} of %{total}"
@@ -41,11 +42,13 @@ msgstr "mostrando %{start}-%{end} de %{total}"
 msgid "to"
 msgstr "para"
 
+#: lib/cinder/next/view.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Next page"
 msgstr "Próxima página"
 
+#: lib/cinder/next/view.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Previous page"
@@ -61,6 +64,7 @@ msgstr "Primeira página"
 msgid "Last page"
 msgstr "Última página"
 
+#: lib/cinder/next/view.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Go to page %{page}"
