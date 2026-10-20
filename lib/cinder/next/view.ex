@@ -16,14 +16,15 @@ defmodule Cinder.Next.View do
     %{
       status: status,
       attrs: %{"data-cinder" => "collection", "data-state" => to_string(status)},
-      # Filter inputs join this form through their `form` attribute, so they can sit
-      # anywhere in the DOM and still arrive together in one `phx-change` event
+      # The default toolbar renders inside this form, so it works with any test
+      # tooling. Filter inputs also name it in their `form` attribute, so custom
+      # layouts can put them anywhere and they still arrive in one `phx-change`.
       form_attrs: %{
         "id" => config.form_id,
+        "data-part" => "filter-form",
         "phx-change" => "filter",
         "phx-submit" => "filter",
-        "phx-target" => myself,
-        "hidden" => true
+        "phx-target" => myself
       },
       search: search(config, state, myself),
       filters:

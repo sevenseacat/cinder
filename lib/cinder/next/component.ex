@@ -59,13 +59,11 @@ defmodule Cinder.Next.Component do
   end
 
   @impl true
-  def handle_async(:load, {:ok, {:ok, page}}, socket) do
-    {:noreply, assign(socket, page: page, status: :idle)}
-  end
+  def handle_async(:load, {:ok, result}, socket), do: {:noreply, loaded(socket, result)}
+  def handle_async(:load, {:exit, _reason}, socket), do: {:noreply, loaded(socket, :error)}
 
-  def handle_async(:load, _error_or_exit, socket) do
-    {:noreply, assign(socket, status: :error)}
-  end
+  defp loaded(socket, {:ok, page}), do: assign(socket, page: page, status: :idle)
+  defp loaded(socket, _error), do: assign(socket, status: :error)
 
   @impl true
   def render(assigns) do
@@ -73,8 +71,9 @@ defmodule Cinder.Next.Component do
 
     ~H"""
     <div id={@id} {@view.attrs}>
-      <form {@view.form_attrs}></form>
-      <Parts.toolbar view={@view} />
+      <form {@view.form_attrs}>
+        <Parts.toolbar view={@view} />
+      </form>
       <Parts.table view={@view} />
       <%= if @view.pagination do %>
         <%= if @config.pagination_slot != [] do %>
@@ -135,8 +134,14 @@ defmodule Cinder.Next.Component do
         search_fn: config.search.fn
       ] ++ State.query_options(state)
 
-    socket
-    |> assign(:status, :loading)
-    |> start_async(:load, fn -> QueryBuilder.build_and_execute(config.query, opts) end)
+    run = fn -> QueryBuilder.build_and_execute(config.query, opts) end
+    socket = assign(socket, :status, :loading)
+
+    # Ash's test helpers set this to make reads synchronous, as the current shell honours
+    if Application.get_env(:ash, :disable_async?) do
+      loaded(socket, run.())
+    else
+      start_async(socket, :load, run)
+    end
   end
 end
