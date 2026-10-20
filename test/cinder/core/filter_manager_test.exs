@@ -591,6 +591,32 @@ defmodule Cinder.FilterManagerRuntimeTest do
     end
   end
 
+  describe "infer_filter_config/3 enum options" do
+    @genre_options [{"Rock", :rock}, {"Pop", :pop}, {"Jazz", :jazz}, {"Classical", :classical}]
+
+    for filter_type <- [:select, :multi_select, :multi_checkboxes, :radio_group, :autocomplete] do
+      test "#{filter_type} gets options from an enum attribute" do
+        slot = %{filterable: true, filter_type: unquote(filter_type), filter_options: []}
+
+        config = FilterManager.infer_filter_config("genre", Music.Album, slot)
+
+        assert config.filter_options[:options] == @genre_options
+      end
+    end
+
+    test "explicit options win over the enum's" do
+      slot = %{
+        filterable: true,
+        filter_type: :radio_group,
+        filter_options: [options: [{"Just rock", :rock}]]
+      }
+
+      config = FilterManager.infer_filter_config("genre", Music.Album, slot)
+
+      assert config.filter_options[:options] == [{"Just rock", :rock}]
+    end
+  end
+
   describe "filter label accessibility" do
     setup do
       theme = Cinder.Theme.default()

@@ -13,6 +13,9 @@ defmodule Cinder.FilterManager do
 
   import Cinder.Filter, only: [filter_id: 2, filter_id: 3]
 
+  # Filter types whose options are filled in from an enum attribute when not given
+  @option_filter_types [:select, :multi_select, :multi_checkboxes, :radio_group, :autocomplete]
+
   @type filter_type ::
           :text
           | :select
@@ -472,18 +475,17 @@ defmodule Cinder.FilterManager do
       # Merge slot options with defaults (slot options take precedence)
       merged_options = Keyword.merge(default_options, slot_options)
 
-      # Enhance options with Ash-specific data for select/multi_select filters
+      # Enhance options with Ash-specific data for filters that take a list of options
       # Use explicit label if provided, otherwise humanize the field key
       label =
         Map.get(slot, :label) ||
           Cinder.Filter.Helpers.humanize_embedded_field(key)
 
       enhanced_options =
-        case filter_type do
-          :select -> enhance_select_options(merged_options, attribute, label)
-          :multi_select -> enhance_select_options(merged_options, attribute, label)
-          :multi_checkboxes -> enhance_select_options(merged_options, attribute, label)
-          _ -> merged_options
+        if filter_type in @option_filter_types do
+          enhance_select_options(merged_options, attribute, label)
+        else
+          merged_options
         end
 
       %{filter_type: filter_type, filter_options: enhanced_options}
