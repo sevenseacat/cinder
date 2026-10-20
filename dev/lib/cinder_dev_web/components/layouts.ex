@@ -19,7 +19,8 @@ defmodule CinderDevWeb.Layouts do
     {"/pagination", "Pagination"},
     {"/selection", "Selection"},
     {"/controls", "Controls"},
-    {"/states", "States"}
+    {"/states", "States"},
+    {"/next", "Next (spike)"}
   ]
 
   @doc "The demo pages, as `{path, label}`, for the nav and the smoke tests."

@@ -167,6 +167,7 @@ msgstr "Keine Optionen verfügbar"
 
 #: lib/cinder/collection.ex
 #: lib/cinder/filters/autocomplete.ex
+#: lib/cinder/next/parts.ex
 #, elixir-autogen, elixir-format
 msgid "No results found"
 msgstr "Keine Ergebnisse gefunden"
@@ -192,6 +193,7 @@ msgid "Type to search more options..."
 msgstr "Tippen, um weitere Optionen zu suchen..."
 
 #: lib/cinder/collection.ex
+#: lib/cinder/next/parts.ex
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Beim Laden der Daten ist ein Fehler aufgetreten"

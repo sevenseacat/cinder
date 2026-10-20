@@ -22,6 +22,7 @@ defmodule CinderDevWeb.Router do
       live "/selection", SelectionLive
       live "/controls", ControlsLive
       live "/states", StatesLive
+      live "/next", NextLive
     end
   end
 end

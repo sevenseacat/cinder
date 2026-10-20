@@ -170,6 +170,7 @@ msgstr "Ingen alternativer tilgjengelig"
 
 #: lib/cinder/collection.ex
 #: lib/cinder/filters/autocomplete.ex
+#: lib/cinder/next/parts.ex
 #, elixir-autogen, elixir-format
 msgid "No results found"
 msgstr "Ingen resultater funnet"
@@ -195,6 +196,7 @@ msgid "Type to search more options..."
 msgstr "Skriv for å søke flere alternativer..."
 
 #: lib/cinder/collection.ex
+#: lib/cinder/next/parts.ex
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Det oppstod en feil under lasting av data"
