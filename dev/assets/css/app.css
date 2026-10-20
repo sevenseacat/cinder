@@ -22,6 +22,10 @@
 /* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
 @source "../../_build/dev/phoenix-colocated/cinder_dev/*/";
 
+/* Recommended in Cinder's theming guide: base styles that make checkboxes
+   and radios styleable, and that the appearance-none themes rely on. */
+@plugin "@tailwindcss/forms";
+
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
