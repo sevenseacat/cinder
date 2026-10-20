@@ -43,8 +43,13 @@ defmodule Cinder.Next.Component do
     columns = socket.assigns.config.engine_columns
     filters = FilterManager.params_to_filters(Map.get(params, "filters", %{}), columns)
     search = Map.get(params, "search", socket.assigns.state.search)
+    sort = parse_sort(params["sort_by"], socket.assigns.config)
 
-    {:noreply, commit(socket, &State.set_filters(&1, filters, search))}
+    {:noreply,
+     commit(socket, fn state ->
+       state = State.set_filters(state, filters, search)
+       if sort, do: State.set_sort(state, sort), else: state
+     end)}
   end
 
   def handle_event("clear_filter", %{"field" => field}, socket) do
@@ -72,12 +77,17 @@ defmodule Cinder.Next.Component do
     ~H"""
     <div id={@id} {@view.attrs}>
       <form {@view.form_attrs}>
-        <div :if={@view.search || @view.filters != []} data-part="toolbar">
+        <div :if={@view.search || @view.filters != [] || grid_sort?(@view)} data-part="toolbar">
           <Cinder.Next.search :if={@view.search} search={@view.search} />
           <Cinder.Next.filter :for={filter <- @view.filters} filter={filter} />
+          <Cinder.Next.sort_select :if={grid_sort?(@view)} sort_select={@view.sort_select} />
         </div>
       </form>
-      <Cinder.Next.table view={@view} />
+      <%= if @view.layout == :grid do %>
+        <Cinder.Next.grid view={@view} item={@config.item_slot} />
+      <% else %>
+        <Cinder.Next.table view={@view} />
+      <% end %>
       <%= if @view.pagination do %>
         <%= if @config.pagination_slot != [] do %>
           {render_slot(@config.pagination_slot, @view.pagination)}
@@ -87,6 +97,24 @@ defmodule Cinder.Next.Component do
       <% end %>
     </div>
     """
+  end
+
+  # Tables sort from their column headers; other layouts get the dropdown
+  defp grid_sort?(view), do: view.layout == :grid and view.sort_select != nil
+
+  # The dropdown's value, in the URL's encoding: "" for none, "-field" for descending.
+  # Only declared sorts are accepted; anything else leaves the sort alone.
+  defp parse_sort(nil, _config), do: nil
+  defp parse_sort("", _config), do: []
+
+  defp parse_sort(value, config) do
+    {field, direction} =
+      case value do
+        "-" <> field -> {field, :desc}
+        field -> {field, :asc}
+      end
+
+    if field in config.sort_order, do: [{field, direction}]
   end
 
   # The one path for every user-driven state change. It loads straight away rather

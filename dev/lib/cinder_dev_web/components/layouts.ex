@@ -20,7 +20,8 @@ defmodule CinderDevWeb.Layouts do
     {"/selection", "Selection"},
     {"/controls", "Controls"},
     {"/states", "States"},
-    {"/next", "Next (spike)"}
+    {"/next", "Next (spike)"},
+    {"/next/grid", "Next grid"}
   ]
 
   @doc "The demo pages, as `{path, label}`, for the nav and the smoke tests."

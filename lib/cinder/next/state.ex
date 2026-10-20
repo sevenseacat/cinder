@@ -60,6 +60,9 @@ defmodule Cinder.Next.State do
     reset_if_changed(state, %{state | sort: sort})
   end
 
+  @doc "Replaces the whole sort, as an exclusive sort control (a dropdown) does."
+  def set_sort(state, sort), do: reset_if_changed(state, %{state | sort: sort})
+
   def go_to_page(state, page) when is_integer(page) and page > 0, do: %{state | page: page}
   def go_to_page(state, _page), do: state
 

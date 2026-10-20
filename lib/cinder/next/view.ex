@@ -32,9 +32,72 @@ defmodule Cinder.Next.View do
       search: search(config, state, myself),
       filters: filters,
       filters_by_field: Map.new(filters, &{&1.field, &1}),
+      sorts: for(name <- config.sort_order, do: sort(config.fields[name], state, myself)),
+      sort_select: sort_select(config, state),
+      layout: config.layout,
       columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
-      rows: rows(page),
+      rows: rows(page, config.layout),
       pagination: pagination(page, state, myself)
+    }
+  end
+
+  # Each declared sort, with the same wiring as a sortable column header, for
+  # markup like chips or a segmented control
+  defp sort(field, state, myself) do
+    direction = QueryBuilder.get_sort_direction(state.sort, field.name)
+
+    %{
+      field: field.name,
+      label: field.label,
+      direction: direction,
+      attrs: %{
+        "type" => "button",
+        "data-part" => "sort",
+        "data-active" => direction != nil,
+        "phx-click" => "sort",
+        "phx-value-field" => field.name,
+        "phx-target" => myself
+      },
+      indicator_attrs: %{
+        "data-part" => "sort-indicator",
+        "data-direction" => direction,
+        "aria-hidden" => "true"
+      }
+    }
+  end
+
+  # An exclusive sort as one `<select>`, joined to the collection's form: each
+  # field in both directions, with values in the URL's encoding (`price`, `-price`).
+  # The arrows avoid new strings to translate, for the spike.
+  defp sort_select(%{sort_order: []}, _state), do: nil
+
+  defp sort_select(config, state) do
+    current =
+      case state.sort do
+        [{field, :desc} | _] -> "-" <> field
+        [{field, _asc} | _] -> field
+        [] -> ""
+      end
+
+    options =
+      [{"—", ""}] ++
+        for name <- config.sort_order,
+            label = config.fields[name].label,
+            option <- [{"#{label} ↑", name}, {"#{label} ↓", "-" <> name}],
+            do: option
+
+    %{
+      label: dgettext("cinder", "Sort by:"),
+      attrs: %{"data-part" => "sort-select"},
+      select_attrs: %{
+        "id" => "#{config.form_id}-sort",
+        "name" => "sort_by",
+        "form" => config.form_id
+      },
+      options:
+        for {label, value} <- options do
+          %{label: label, attrs: %{"value" => value, "selected" => value == current}}
+        end
     }
   end
 
@@ -177,13 +240,15 @@ defmodule Cinder.Next.View do
   defp aria_sort(:desc), do: "descending"
   defp aria_sort(_), do: "none"
 
-  defp rows(nil), do: []
+  defp rows(nil, _layout), do: []
 
-  defp rows(%{results: results}) do
+  defp rows(%{results: results}, layout) do
+    part = if layout == :grid, do: "item", else: "row"
+
     for record <- results do
       %{
         record: record,
-        attrs: %{"data-part" => "row", "data-row-id" => to_string(Map.get(record, :id))}
+        attrs: %{"data-part" => part, "data-row-id" => to_string(Map.get(record, :id))}
       }
     end
   end

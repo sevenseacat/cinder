@@ -33,7 +33,8 @@ defmodule Cinder.Next.ViewTest do
         id: "albums",
         resource: Music.Album,
         col: Keyword.get(opts, :col, [col("title", sort: true)]),
-        filter: Keyword.get(opts, :filter, [])
+        filter: Keyword.get(opts, :filter, []),
+        sort: Keyword.get(opts, :sort, [])
       })
 
     View.build(%{
@@ -106,6 +107,39 @@ defmodule Cinder.Next.ViewTest do
 
       assert Enum.map(view.filters, & &1.field) == ["genre", "title"]
       assert view.filters_by_field["title"].type == :text
+    end
+  end
+
+  describe "sorts" do
+    defp sort(field), do: %{field: field, inner_block: nil}
+
+    test "each declared sort gets the same wiring as a sortable header, for chips" do
+      state = State.new() |> State.toggle_sort("title")
+      view = build(state: state, col: [], sort: [sort("title"), sort("genre")])
+
+      assert [%{field: "title", direction: :asc}, %{field: "genre", direction: nil}] = view.sorts
+      assert hd(view.sorts).attrs["data-active"] == true
+      assert hd(view.sorts).attrs["phx-target"] == @myself
+    end
+
+    test "the dropdown offers each field both ways, in the URL's encoding, and marks the current one" do
+      state = State.new() |> State.set_sort([{"genre", :desc}])
+      select = build(state: state, col: [], sort: [sort("title"), sort("genre")]).sort_select
+
+      assert Enum.map(select.options, & &1.attrs["value"]) == [
+               "",
+               "title",
+               "-title",
+               "genre",
+               "-genre"
+             ]
+
+      assert Enum.find(select.options, & &1.attrs["selected"]).attrs["value"] == "-genre"
+      assert select.select_attrs["form"] == "albums-filters"
+    end
+
+    test "there's no dropdown without declared sorts" do
+      refute build(col: []).sort_select
     end
   end
 

@@ -32,6 +32,7 @@ defmodule Cinder.Next do
   attr :query_opts, :list, default: []
   attr :page_size, :integer, default: 25
   attr :url_state, :any, default: false
+  attr :layout, :any, default: :table, values: [:table, :grid, "table", "grid"]
 
   attr :search, :any,
     default: nil,
@@ -67,6 +68,8 @@ defmodule Cinder.Next do
     attr :label, :string
     attr :cycle, :list
   end
+
+  slot :item, doc: "A grid layout's card for each record, via `:let`"
 
   slot :pagination,
     doc: "Replaces the default pagination. Receives the pagination view-model via `:let`."
@@ -126,11 +129,42 @@ defmodule Cinder.Next do
     """
   end
 
+  attr :sort_select, :map, required: true
+
+  @doc "An exclusive sort as a dropdown: the default for layouts without column headers."
+  def sort_select(assigns) do
+    ~H"""
+    <div {@sort_select.attrs}>
+      <label for={@sort_select.select_attrs["id"]}>{@sort_select.label}</label>
+      <select {@sort_select.select_attrs}>
+        <option :for={option <- @sort_select.options} {option.attrs}>{option.label}</option>
+      </select>
+    </div>
+    """
+  end
+
+  attr :view, :map, required: true
+  attr :item, :list, required: true, doc: "The collection's `<:item>` slot"
+
+  def grid(assigns) do
+    ~H"""
+    <div data-part="grid">
+      <div :for={row <- @view.rows} {row.attrs}>{render_slot(@item, row.record)}</div>
+      <p :if={@view.rows == [] and @view.status == :idle} data-part="empty">
+        {dgettext("cinder", "No results found")}
+      </p>
+      <p :if={@view.status == :error} data-part="error">
+        {dgettext("cinder", "An error occurred while loading data")}
+      </p>
+    </div>
+    """
+  end
+
   attr :view, :map, required: true
 
   def table(assigns) do
     ~H"""
-    <table data-part="grid">
+    <table data-part="table">
       <thead>
         <tr>
           <th :for={column <- @view.columns} {column.attrs}>

@@ -147,6 +147,17 @@ defmodule Cinder.Next.ConfigTest do
            } = Enum.find(Config.engine_columns(config), &(&1.field == "title"))
   end
 
+  describe "layout" do
+    test "defaults to a table, and takes the string form" do
+      assert build([]).layout == :table
+      assert build(layout: "grid").layout == :grid
+    end
+
+    test "an unknown layout is an error" do
+      assert_raise ArgumentError, ~r/unknown layout "cards"/, fn -> build(layout: "cards") end
+    end
+  end
+
   describe "scope" do
     test "is passed through as it is" do
       scope = %{actor: :someone, tenant: "acme", shared: %{tz: "UTC"}}

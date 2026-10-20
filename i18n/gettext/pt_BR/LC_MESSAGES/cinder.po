@@ -92,6 +92,7 @@ msgid "Filters"
 msgstr "Filtros"
 
 #: lib/cinder/collection.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Sort by:"
 msgstr "Ordenar por:"

@@ -80,6 +80,14 @@ defmodule Cinder.Next.StateTest do
     end
   end
 
+  describe "set_sort/2" do
+    test "replaces the whole sort and goes back to the first page" do
+      state = State.new() |> State.toggle_sort("title") |> on_page(3)
+
+      assert %{sort: [{"price", :desc}], page: 1} = State.set_sort(state, [{"price", :desc}])
+    end
+  end
+
   describe "go_to_page/2" do
     test "ignores pages that aren't positive integers" do
       state = State.new() |> on_page(2)

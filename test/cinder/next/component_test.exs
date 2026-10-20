@@ -198,4 +198,49 @@ defmodule Cinder.Next.ComponentTest do
 
     assert titles(render_async(view)) == ["Echo"]
   end
+
+  describe "grid layout" do
+    setup do
+      path =
+        Cinder.TestLive.Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album} layout="grid" page_size={5}>
+            <:filter field="genre" />
+            <:sort field="title" />
+            <:item :let={album}><h3>{album.title}</h3></:item>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      %{grid_path: path}
+    end
+
+    test "renders cards from <:item>, with no columns declared", %{conn: conn, grid_path: path} do
+      {:ok, view, _html} = live(conn, path)
+      html = render_async(view)
+
+      assert length(Regex.scan(~r/data-part="item"/, html)) == 5
+      refute html =~ "<table"
+    end
+
+    test "sorts through the dropdown, alongside filtering", %{conn: conn, grid_path: path} do
+      {:ok, view, _html} = live(conn, path)
+      render_async(view)
+
+      html = change(view, %{"filters" => %{"genre" => ""}, "sort_by" => "-title"})
+      assert titles(html) == ["Echo", "Delta", "Charlie", "Bravo", "Alpha"]
+      assert html =~ ~r/<option(?=[^>]*value="-title")[^>]*selected/
+
+      html = change(view, %{"filters" => %{"genre" => "rock"}, "sort_by" => "title"})
+      assert titles(html) == ["Alpha", "Charlie"]
+    end
+
+    test "ignores a sort that wasn't declared", %{conn: conn, grid_path: path} do
+      {:ok, view, _html} = live(conn, path)
+      render_async(view)
+
+      html = change(view, %{"filters" => %{"genre" => ""}, "sort_by" => "-price"})
+      refute html =~ ~r/<option[^>]*selected[^>]*value="-price"/
+    end
+  end
 end

@@ -27,7 +27,7 @@
   }
 
   /* Keep the current rows visible while loading, just dimmed */
-  :where([data-cinder][data-state="loading"] [data-part="grid"]) {
+  :where([data-cinder][data-state="loading"] :is([data-part="table"], [data-part="grid"])) {
     opacity: 0.55;
     transition: opacity 0.15s;
   }
@@ -40,21 +40,21 @@
     gap: var(--cinder-gap);
   }
 
-  :where([data-cinder] :is([data-part="search"], [data-part="filter"])) {
+  :where([data-cinder] :is([data-part="search"], [data-part="filter"], [data-part="sort-select"])) {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 4px;
   }
 
-  :where([data-cinder] :is([data-part="search"], [data-part="filter"]) > label) {
+  :where([data-cinder] :is([data-part="search"], [data-part="filter"], [data-part="sort-select"]) > label) {
     grid-column: 1 / -1;
     font-size: 12px;
     font-weight: 600;
     color: var(--cinder-muted);
   }
 
-  :where([data-cinder] :is([data-part="search"], [data-part="filter"]) :is(input, select)) {
+  :where([data-cinder] :is([data-part="search"], [data-part="filter"], [data-part="sort-select"]) :is(input, select)) {
     height: var(--cinder-control-height);
     padding: 0 10px;
     border: 1px solid var(--cinder-border);
@@ -83,7 +83,7 @@
   }
 
   /* Table */
-  :where([data-cinder] [data-part="grid"]) {
+  :where([data-cinder] [data-part="table"]) {
     width: 100%;
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
@@ -136,6 +136,27 @@
   }
 
   :where([data-cinder] :is([data-part="empty"], [data-part="error"]) td) {
+    padding: 32px 12px;
+    color: var(--cinder-muted);
+    text-align: center;
+  }
+
+  /* Grid layout: cards from the <:item> slot */
+  :where([data-cinder] [data-part="grid"]) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--cinder-gap);
+  }
+
+  :where([data-cinder] [data-part="item"]) {
+    padding: 12px;
+    border: 1px solid var(--cinder-border);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-bg);
+  }
+
+  :where([data-cinder] [data-part="grid"] > :is([data-part="empty"], [data-part="error"])) {
+    grid-column: 1 / -1;
     padding: 32px 12px;
     color: var(--cinder-muted);
     text-align: center;

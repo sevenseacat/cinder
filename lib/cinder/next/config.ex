@@ -53,7 +53,9 @@ defmodule Cinder.Next.Config do
     :scope,
     filter_order: [],
     sort_order: [],
+    layout: :table,
     columns: [],
+    item_slot: [],
     search: %{enabled?: false},
     query_opts: [],
     page_size: 25,
@@ -116,6 +118,8 @@ defmodule Cinder.Next.Config do
       columns:
         for(col <- cols, do: %Column{field: col.field, label: fields[col.field].label, slot: col}),
       search: search(assigns[:search], search_fields),
+      layout: layout(assigns[:layout]),
+      item_slot: assigns[:item] || [],
       id: assigns[:id],
       form_id: assigns[:id] && "#{assigns[:id]}-filters",
       action: assigns[:action],
@@ -220,6 +224,13 @@ defmodule Cinder.Next.Config do
   end
 
   defp filter_type(type, _name), do: type
+
+  defp layout(layout) when layout in [nil, :table, "table"], do: :table
+  defp layout(layout) when layout in [:grid, "grid"], do: :grid
+
+  defp layout(layout) do
+    raise ArgumentError, "unknown layout #{inspect(layout)}. Known layouts: :table, :grid"
+  end
 
   defp to_atom(value) when is_binary(value), do: String.to_existing_atom(value)
   defp to_atom(value), do: value
