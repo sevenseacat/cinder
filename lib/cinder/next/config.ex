@@ -15,6 +15,7 @@ defmodule Cinder.Next.Config do
 
   alias Cinder.FilterManager
   alias Cinder.Filter.Helpers
+  alias Cinder.Filters.Registry
 
   defmodule Field do
     @moduledoc false
@@ -45,10 +46,20 @@ defmodule Cinder.Next.Config do
     :query,
     :resource,
     :fields,
+    :id,
+    :form_id,
+    :action,
+    # The only auth the engine sees; `actor`/`tenant` attrs are normalised into it
+    :scope,
     filter_order: [],
     sort_order: [],
     columns: [],
-    search: %{enabled?: false}
+    search: %{enabled?: false},
+    query_opts: [],
+    page_size: 25,
+    pagination_slot: [],
+    # The registry as the engine's column maps, built once
+    engine_columns: []
   ]
 
   # `<:filter>` attrs that become the filter's options, as the engine expects them
@@ -96,7 +107,7 @@ defmodule Cinder.Next.Config do
         {name, field}
       end)
 
-    %__MODULE__{
+    config = %__MODULE__{
       query: query,
       resource: resource,
       fields: fields,
@@ -104,8 +115,32 @@ defmodule Cinder.Next.Config do
       sort_order: sort_order,
       columns:
         for(col <- cols, do: %Column{field: col.field, label: fields[col.field].label, slot: col}),
-      search: search(assigns[:search], search_fields)
+      search: search(assigns[:search], search_fields),
+      id: assigns[:id],
+      form_id: assigns[:id] && "#{assigns[:id]}-filters",
+      action: assigns[:action],
+      scope: scope(assigns),
+      query_opts: assigns[:query_opts] || [],
+      page_size: assigns[:page_size] || 25,
+      pagination_slot: assigns[:pagination] || []
     }
+
+    %{config | engine_columns: engine_columns(config)}
+  end
+
+  # Either a scope, or an actor and/or tenant made into one (Ash implements
+  # `Ash.Scope.ToOpts` for maps). Only the keys given go in, so an absent actor
+  # isn't mistaken for an explicit `actor: nil`. Both at once would need
+  # precedence rules, so it's an error instead.
+  defp scope(assigns) do
+    auth = for key <- [:actor, :tenant], assigns[key] != nil, into: %{}, do: {key, assigns[key]}
+
+    case {assigns[:scope], auth} do
+      {nil, auth} when auth == %{} -> nil
+      {nil, auth} -> auth
+      {scope, auth} when auth == %{} -> scope
+      _both -> raise ArgumentError, "pass either a scope, or an actor and/or tenant, but not both"
+    end
   end
 
   @doc """
@@ -155,12 +190,15 @@ defmodule Cinder.Next.Config do
   defp filter(:shorthand, name, resource), do: filter(%{}, name, resource)
 
   defp filter(slot, name, resource) do
-    options = for attr <- @filter_option_attrs, Map.has_key?(slot, attr), do: {attr, slot[attr]}
+    options =
+      for attr <- @filter_option_attrs, Map.has_key?(slot, attr) do
+        {attr, if(attr in [:operator, :match_mode], do: to_atom(slot[attr]), else: slot[attr])}
+      end
 
     inferred =
       FilterManager.infer_filter_config(name, resource, %{
         filterable: true,
-        filter_type: slot[:type],
+        filter_type: filter_type(slot[:type], name),
         filter_options: options
       })
 
@@ -171,6 +209,20 @@ defmodule Cinder.Next.Config do
       render: if(slot[:inner_block], do: slot)
     }
   end
+
+  # The string form of a type (`type="select"`) is matched against the known types,
+  # rather than made into a new atom
+  defp filter_type(type, name) when is_binary(type) do
+    Enum.find(Registry.filter_types(), &(Atom.to_string(&1) == type)) ||
+      raise ArgumentError,
+            "unknown filter type #{inspect(type)} for the field #{inspect(name)}. " <>
+              "Known types: #{Enum.map_join(Registry.filter_types(), ", ", &inspect/1)}"
+  end
+
+  defp filter_type(type, _name), do: type
+
+  defp to_atom(value) when is_binary(value), do: String.to_existing_atom(value)
+  defp to_atom(value), do: value
 
   defp sort(nil), do: nil
   defp sort(:shorthand), do: %Sort{}

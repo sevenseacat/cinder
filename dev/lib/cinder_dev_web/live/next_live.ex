@@ -26,11 +26,12 @@ defmodule CinderDevWeb.NextLive do
         url_state={@url_state}
         query_opts={[load: [:artist]]}
       >
-        <:col :let={album} field="title" filter={[type: :text]} search sort>{album.title}</:col>
-        <:col :let={album} field="artist.name" label="Artist" filter={[type: :text]} sort>
+        <:col :let={album} field="title" filter search sort>{album.title}</:col>
+        <:col :let={album} field="artist.name" label="Artist" filter sort>
           {album.artist.name}
         </:col>
-        <:col field="genre" filter={[type: :select]} sort />
+        <:col field="genre" sort />
+        <:filter field="genre" type="select" prompt="Any genre" help="Only one genre at a time" />
         <:col :let={album} field="price" sort>{Decimal.to_string(album.price)}</:col>
         <:col field="release_date" sort />
         <:col field="is_remastered" label="Remastered" />

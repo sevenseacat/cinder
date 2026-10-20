@@ -55,8 +55,8 @@ defmodule Cinder.Next.UrlStateTest do
           url_state={@url_state}
           page_size={2}
         >
-          <:col :let={album} field="title" filter={[type: :text]} sort>{album.title}</:col>
-          <:col field="genre" filter={[type: :select]} />
+          <:col :let={album} field="title" filter sort>{album.title}</:col>
+          <:col field="genre" filter />
         </Cinder.Next.collection>
         """
       end)

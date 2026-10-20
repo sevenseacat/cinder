@@ -1,9 +1,10 @@
 defmodule Cinder.Next.View do
   @moduledoc """
   Spike: view-models for the new shell's markup. Built from the component's
-  assigns, with no markup of its own. Each part comes with ready-to-spread
-  attribute maps that carry its wiring (`phx-click`, `phx-value-*`,
-  `phx-target`, ARIA, state), so default and custom markup behave the same.
+  assigns and the config's field registry, with no markup of its own. Each part
+  comes with ready-to-spread attribute maps that carry its wiring (`phx-click`,
+  `phx-value-*`, `phx-target`, ARIA, state), so default and custom markup behave
+  the same.
   """
   use Cinder.Messages
 
@@ -13,6 +14,8 @@ defmodule Cinder.Next.View do
 
   @doc "The whole collection's view-model, from the component's assigns."
   def build(%{config: config, state: state, page: page, status: status, myself: myself}) do
+    filters = for name <- config.filter_order, f = filter(config, name, state, myself), do: f
+
     %{
       status: status,
       attrs: %{"data-cinder" => "collection", "data-state" => to_string(status)},
@@ -27,9 +30,9 @@ defmodule Cinder.Next.View do
         "phx-target" => myself
       },
       search: search(config, state, myself),
-      filters:
-        for(column <- config.columns, filter = filter(column, config, state, myself), do: filter),
-      columns: Enum.map(config.columns, &column(&1, state, myself)),
+      filters: filters,
+      filters_by_field: Map.new(filters, &{&1.field, &1}),
+      columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
       rows: rows(page),
       pagination: pagination(page, state, myself)
     }
@@ -64,94 +67,96 @@ defmodule Cinder.Next.View do
   end
 
   # Text and select only, for the spike
-  defp filter(%{filterable: true, filter_type: type} = column, config, state, myself)
-       when type in [:text, :select] do
-    input_id = Cinder.Filter.filter_id(config.form_id, column.field)
-    value = get_in(state.filters, [column.field, :value])
-    value = if value, do: to_string(value), else: ""
+  defp filter(config, name, state, myself) do
+    %{label: label, filter: filter} = config.fields[name]
 
-    %{
-      field: column.field,
-      label: column.label,
-      type: type,
-      value: value,
-      options: filter_options(column, value),
-      attrs: %{
-        "data-part" => "filter",
-        "data-field" => column.field,
-        "data-filter-type" => type,
-        "data-active" => value != ""
-      },
-      label_attrs: %{"for" => input_id},
-      input_attrs: filter_input_attrs(type, column, input_id, value, config.form_id),
-      clear_attrs: %{
-        "type" => "button",
-        "data-part" => "filter-clear",
-        "aria-label" => dgettext("cinder", "Clear filter"),
-        "hidden" => value == "",
-        "phx-click" => "clear_filter",
-        "phx-value-field" => column.field,
-        "phx-target" => myself
+    if filter.type in [:text, :select] do
+      input_id = Cinder.Filter.filter_id(config.form_id, name)
+      help_id = "#{input_id}-help"
+      value = get_in(state.filters, [name, :value])
+      value = if value, do: to_string(value), else: ""
+
+      %{
+        field: name,
+        label: label,
+        type: filter.type,
+        value: value,
+        help: filter.help,
+        render: filter.render,
+        options: filter_options(filter, label, value),
+        attrs: %{
+          "data-part" => "filter",
+          "data-field" => name,
+          "data-filter-type" => filter.type,
+          "data-active" => value != ""
+        },
+        label_attrs: %{"for" => input_id},
+        help_attrs: %{"id" => help_id, "data-part" => "filter-help"},
+        input_attrs:
+          filter.type
+          |> filter_input_attrs(name, label, filter, input_id, value, config.form_id)
+          |> Map.put("aria-describedby", filter.help && help_id),
+        clear_attrs: %{
+          "type" => "button",
+          "data-part" => "filter-clear",
+          "aria-label" => dgettext("cinder", "Clear filter"),
+          "hidden" => value == "",
+          "phx-click" => "clear_filter",
+          "phx-value-field" => name,
+          "phx-target" => myself
+        }
       }
-    }
+    end
   end
 
-  defp filter(_column, _config, _state, _myself), do: nil
-
-  defp filter_input_attrs(:text, column, input_id, value, form_id) do
+  defp filter_input_attrs(:text, name, label, filter, input_id, value, form_id) do
     %{
       "id" => input_id,
       "type" => "text",
-      "name" => Cinder.Filter.field_name(column.field),
+      "name" => Cinder.Filter.field_name(name),
       "value" => value,
       "placeholder" =>
-        Keyword.get(
-          column.filter_options,
-          :placeholder,
-          dgettext("cinder", "Filter %{label}...", label: column.label)
-        ),
+        filter.options[:placeholder] || dgettext("cinder", "Filter %{label}...", label: label),
       "form" => form_id,
       "phx-debounce" => "300"
     }
   end
 
-  defp filter_input_attrs(:select, column, input_id, _value, form_id) do
-    %{"id" => input_id, "name" => Cinder.Filter.field_name(column.field), "form" => form_id}
+  defp filter_input_attrs(:select, name, _label, _filter, input_id, _value, form_id) do
+    %{"id" => input_id, "name" => Cinder.Filter.field_name(name), "form" => form_id}
   end
 
   # A select's options, starting with the prompt that clears it
-  defp filter_options(%{filter_type: :select} = column, value) do
-    prompt =
-      Keyword.get(
-        column.filter_options,
-        :prompt,
-        dgettext("cinder", "All %{label}", label: column.label)
-      )
+  defp filter_options(%{type: :select, options: options}, label, value) do
+    prompt = options[:prompt] || dgettext("cinder", "All %{label}", label: label)
 
-    options = Keyword.get(column.filter_options, :options, [])
-
-    for {label, option_value} <- [{prompt, ""} | options] do
+    for {option_label, option_value} <- [{prompt, ""} | Keyword.get(options, :options, [])] do
       option_value = to_string(option_value)
-      %{label: label, attrs: %{"value" => option_value, "selected" => option_value == value}}
+
+      %{
+        label: option_label,
+        attrs: %{"value" => option_value, "selected" => option_value == value}
+      }
     end
   end
 
-  defp filter_options(_column, _value), do: []
+  defp filter_options(_filter, _label, _value), do: []
 
-  defp column(column, state, myself) do
-    direction = column.sortable && QueryBuilder.get_sort_direction(state.sort, column.field)
+  defp column(column, field, state, myself) do
+    sortable? = field.sort != nil
+    direction = sortable? && QueryBuilder.get_sort_direction(state.sort, column.field)
 
     %{
       field: column.field,
       label: column.label,
       slot: column.slot,
-      sortable?: column.sortable,
+      sortable?: sortable?,
       direction: direction,
       attrs: %{
         "data-part" => "header-cell",
         "data-field" => column.field,
-        "data-sortable" => column.sortable,
-        "aria-sort" => column.sortable && aria_sort(direction)
+        "data-sortable" => sortable?,
+        "aria-sort" => sortable? && aria_sort(direction)
       },
       sort_attrs: %{
         "type" => "button",

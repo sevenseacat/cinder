@@ -37,6 +37,20 @@ defmodule Cinder.Next.ConfigTest do
   end
 
   describe "explicit slots" do
+    test "atom-valued attrs also take their string form" do
+      genre =
+        build(filter: [filter("genre", type: "multi_select", match_mode: "all")]).fields["genre"]
+
+      assert genre.filter.type == :multi_select
+      assert genre.filter.options[:match_mode] == :all
+    end
+
+    test "an unknown string type is an error that lists the known ones" do
+      assert_raise ArgumentError, ~r/unknown filter type "selectt".*:select/, fn ->
+        build(filter: [filter("genre", type: "selectt")])
+      end
+    end
+
     test "a <:filter> infers its type and options from the attribute" do
       genre = build(filter: [filter("genre", type: :select, prompt: "Any genre")]).fields["genre"]
 
@@ -131,5 +145,25 @@ defmodule Cinder.Next.ConfigTest do
              sortable: true,
              searchable: false
            } = Enum.find(Config.engine_columns(config), &(&1.field == "title"))
+  end
+
+  describe "scope" do
+    test "is passed through as it is" do
+      scope = %{actor: :someone, tenant: "acme", shared: %{tz: "UTC"}}
+
+      assert build(scope: scope).scope == scope
+    end
+
+    test "is made from an actor and/or tenant, with only the keys given" do
+      assert build(actor: :someone).scope == %{actor: :someone}
+      assert build(actor: :someone, tenant: "acme").scope == %{actor: :someone, tenant: "acme"}
+      assert build([]).scope == nil
+    end
+
+    test "can't be given alongside an actor or tenant" do
+      assert_raise ArgumentError, ~r/either a scope, or an actor and\/or tenant/, fn ->
+        build(scope: %{actor: :someone}, tenant: "acme")
+      end
+    end
   end
 end

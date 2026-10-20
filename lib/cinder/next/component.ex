@@ -6,7 +6,7 @@ defmodule Cinder.Next.Component do
   """
   use Phoenix.LiveComponent
 
-  alias Cinder.Next.{Parts, State, View}
+  alias Cinder.Next.{State, View}
   alias Cinder.{FilterManager, QueryBuilder}
 
   # `url_params` is nil unless the collection is URL-synced. When it is, every
@@ -21,7 +21,7 @@ defmodule Cinder.Next.Component do
         state =
           State.new(
             page_size: config.page_size,
-            sort: QueryBuilder.extract_query_sorts(config.query, config.columns)
+            sort: QueryBuilder.extract_query_sorts(config.query, config.engine_columns)
           )
 
         {:ok, socket |> assign(state: from_url(state, socket), page: nil) |> load()}
@@ -33,14 +33,14 @@ defmodule Cinder.Next.Component do
 
   @impl true
   def handle_event("sort", %{"field" => field}, socket) do
-    case Enum.find(socket.assigns.config.columns, &(&1.field == field and &1.sortable)) do
-      nil -> {:noreply, socket}
-      column -> {:noreply, commit(socket, &State.toggle_sort(&1, field, column.sort_cycle))}
+    case socket.assigns.config.fields[field] do
+      %{sort: %{cycle: cycle}} -> {:noreply, commit(socket, &State.toggle_sort(&1, field, cycle))}
+      _not_sortable -> {:noreply, socket}
     end
   end
 
   def handle_event("filter", params, socket) do
-    %{columns: columns} = socket.assigns.config
+    columns = socket.assigns.config.engine_columns
     filters = FilterManager.params_to_filters(Map.get(params, "filters", %{}), columns)
     search = Map.get(params, "search", socket.assigns.state.search)
 
@@ -72,14 +72,17 @@ defmodule Cinder.Next.Component do
     ~H"""
     <div id={@id} {@view.attrs}>
       <form {@view.form_attrs}>
-        <Parts.toolbar view={@view} />
+        <div :if={@view.search || @view.filters != []} data-part="toolbar">
+          <Cinder.Next.search :if={@view.search} search={@view.search} />
+          <Cinder.Next.filter :for={filter <- @view.filters} filter={filter} />
+        </div>
       </form>
-      <Parts.table view={@view} />
+      <Cinder.Next.table view={@view} />
       <%= if @view.pagination do %>
         <%= if @config.pagination_slot != [] do %>
           {render_slot(@config.pagination_slot, @view.pagination)}
         <% else %>
-          <Parts.pagination pagination={@view.pagination} />
+          <Cinder.Next.pagination pagination={@view.pagination} />
         <% end %>
       <% end %>
     </div>
@@ -94,13 +97,8 @@ defmodule Cinder.Next.Component do
     socket = apply_state(socket, new)
 
     if changed? and socket.assigns.url_params do
-      filter_fields =
-        for column <- socket.assigns.config.columns, column.filterable, do: column.field
-
-      send(
-        self(),
-        {:table_state_change, socket.assigns.id, State.to_url_params(new, filter_fields)}
-      )
+      params = State.to_url_params(new, socket.assigns.config.filter_order)
+      send(self(), {:table_state_change, socket.assigns.id, params})
     end
 
     socket
@@ -117,7 +115,7 @@ defmodule Cinder.Next.Component do
   defp from_url(state, %{assigns: %{url_params: nil}}), do: state
 
   defp from_url(state, %{assigns: %{url_params: params, config: config}}) do
-    State.from_url_params(state, params, config.columns)
+    State.from_url_params(state, params, config.engine_columns)
   end
 
   defp load(socket) do
@@ -125,13 +123,11 @@ defmodule Cinder.Next.Component do
 
     opts =
       [
-        actor: config.actor,
-        tenant: config.tenant,
         scope: config.scope,
         action: config.action,
         query_opts: config.query_opts,
-        columns: config.columns,
-        search_fn: config.search.fn
+        columns: config.engine_columns,
+        search_fn: config.search[:fn]
       ] ++ State.query_options(state)
 
     run = fn -> QueryBuilder.build_and_execute(config.query, opts) end

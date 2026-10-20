@@ -41,7 +41,7 @@ defmodule Cinder.Next.ParityTest do
       ~H"""
       <Cinder.Next.collection resource={Music.Album} url_state={@url_state} page_size={25}>
         <:col :let={album} field="title" filter sort search>{album.title}</:col>
-        <:col :let={album} field="genre" filter={[type: :select]} sort>{album.genre}</:col>
+        <:col :let={album} field="genre" filter sort>{album.genre}</:col>
         <:col :let={album} field="price" sort>{Decimal.to_string(album.price)}</:col>
       </Cinder.Next.collection>
       """

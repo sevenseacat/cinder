@@ -29,8 +29,8 @@ defmodule Cinder.Next.ComponentTest do
       Cinder.TestLive.Fixture.register(fn assigns ->
         ~H"""
         <Cinder.Next.collection id="albums" resource={Music.Album} page_size={2}>
-          <:col :let={album} field="title" filter={[type: :text]} search sort>{album.title}</:col>
-          <:col field="genre" filter={[type: :select]} />
+          <:col :let={album} field="title" filter search sort>{album.title}</:col>
+          <:col field="genre" filter />
         </Cinder.Next.collection>
         """
       end)
@@ -166,5 +166,36 @@ defmodule Cinder.Next.ComponentTest do
     html = click(view, ~s(#custom-pagination [phx-value-page="3"]))
 
     assert titles(html) == ["Echo"]
+  end
+
+  test "a <:filter> with content replaces that filter's markup, and keeps its wiring",
+       %{conn: conn} do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album} page_size={5}>
+          <:col :let={album} field="title">{album.title}</:col>
+          <:filter :let={f} field="genre" help="One genre at a time">
+            <fieldset id="custom-genre">
+              <legend>{f.label} <abbr title={f.help}>(?)</abbr></legend>
+              <select {f.input_attrs}>
+                <option :for={option <- f.options} {option.attrs}>{option.label}</option>
+              </select>
+            </fieldset>
+          </:filter>
+        </Cinder.Next.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+    html = render_async(view)
+
+    assert html =~ ~s(id="custom-genre")
+    assert html =~ ~s(title="One genre at a time")
+    refute html =~ ~s(data-part="filter-help")
+
+    view |> element("#albums-filters") |> render_change(%{"filters" => %{"genre" => "pop"}})
+
+    assert titles(render_async(view)) == ["Echo"]
   end
 end

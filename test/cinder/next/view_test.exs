@@ -1,12 +1,15 @@
 defmodule Cinder.Next.ViewTest do
   use ExUnit.Case, async: true
 
-  alias Cinder.Next.{State, View}
+  alias Cinder.Next.{Config, State, View}
 
   @myself %Phoenix.LiveComponent.CID{cid: 1}
 
-  defp column(field, sortable),
-    do: %{field: field, label: field, slot: %{}, sortable: sortable, sort_cycle: nil}
+  # Slot entries as HEEx hands them to the collection
+  defp col(field, attrs \\ []), do: Map.merge(%{field: field, inner_block: nil}, Map.new(attrs))
+
+  defp filter(field, attrs \\ []),
+    do: Map.merge(%{field: field, inner_block: nil}, Map.new(attrs))
 
   defp offset_page(page_number, opts \\ []) do
     limit = Keyword.get(opts, :limit, 10)
@@ -25,12 +28,16 @@ defmodule Cinder.Next.ViewTest do
   defp build(opts) do
     state = Keyword.get(opts, :state, State.new(page_size: 10))
 
+    config =
+      Config.build(%{
+        id: "albums",
+        resource: Music.Album,
+        col: Keyword.get(opts, :col, [col("title", sort: true)]),
+        filter: Keyword.get(opts, :filter, [])
+      })
+
     View.build(%{
-      config: %{
-        columns: Keyword.get(opts, :columns, [column("title", true)]),
-        form_id: "albums-filters",
-        search: %{enabled?: false}
-      },
+      config: config,
       state: state,
       page: Keyword.get(opts, :page, offset_page(state.page)),
       status: :idle,
@@ -51,7 +58,7 @@ defmodule Cinder.Next.ViewTest do
       state = State.new() |> State.toggle_sort("title")
 
       [title, genre] =
-        build(state: state, columns: [column("title", true), column("genre", false)]).columns
+        build(state: state, col: [col("title", sort: true), col("genre")]).columns
 
       assert title.attrs["aria-sort"] == "ascending"
       assert title.attrs["data-sortable"] == true
@@ -64,12 +71,8 @@ defmodule Cinder.Next.ViewTest do
   end
 
   describe "filters" do
-    defp text_filter_column(field) do
-      Map.merge(column(field, false), %{filterable: true, filter_type: :text, filter_options: []})
-    end
-
     test "inputs join the collection's form, wherever they're rendered" do
-      [filter] = build(columns: [text_filter_column("title")]).filters
+      [filter] = build(filter: [filter("title", type: :text)]).filters
 
       assert filter.input_attrs["form"] == "albums-filters"
       assert filter.input_attrs["name"] == "filters[title]"
@@ -82,11 +85,27 @@ defmodule Cinder.Next.ViewTest do
       filters = %{"title" => %{type: :text, value: "alp", operator: :contains}}
       state = State.new(page_size: 10) |> State.set_filters(filters, "")
 
-      [filter] = build(state: state, columns: [text_filter_column("title")]).filters
+      [filter] = build(state: state, filter: [filter("title", type: :text)]).filters
 
       assert filter.attrs["data-active"] == true
       assert filter.input_attrs["value"] == "alp"
       refute filter.clear_attrs["hidden"]
+    end
+
+    test "help text is linked to the input for assistive tech" do
+      [with_help, without] =
+        build(filter: [filter("title", type: :text, help: "Exact words"), filter("genre")]).filters
+
+      assert with_help.help == "Exact words"
+      assert with_help.input_attrs["aria-describedby"] == with_help.help_attrs["id"]
+      refute without.input_attrs["aria-describedby"]
+    end
+
+    test "follow the declared order, and can be looked up by field" do
+      view = build(filter: [filter("genre", type: :select), filter("title", type: :text)])
+
+      assert Enum.map(view.filters, & &1.field) == ["genre", "title"]
+      assert view.filters_by_field["title"].type == :text
     end
   end
 
