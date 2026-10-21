@@ -34,6 +34,12 @@ defmodule CinderDevWeb.NextDaisyLive do
       >
         <:filter field="genre" type="select" prompt="All" />
         <:filter field="title" type="text" help="Matches anywhere in the title" />
+        <:filter
+          field="tags"
+          type="multi_checkboxes"
+          options={Enum.map(CinderDev.Seeds.tags(), &{&1, &1})}
+        />
+        <:filter field="price" type="number_range" label="Price ($)" />
         <:sort field="title" />
         <:sort field="price" label="Price" />
         <:sort field="release_date" label="Released" />
@@ -124,6 +130,25 @@ defmodule CinderDevWeb.NextDaisyLive do
                 <input class="input w-full" {title.input_attrs} />
                 <p class="label" {title.help_attrs}>{title.help}</p>
               </fieldset>
+              <% tags = c.filters_by_field["tags"] %>
+              <fieldset class="fieldset">
+                <legend class="fieldset-legend">{tags.label}</legend>
+                <div class="flex flex-wrap gap-x-4 gap-y-2">
+                  <label :for={option <- tags.options} class="label">
+                    <input class="checkbox checkbox-sm" {option.input_attrs} /> {option.label}
+                  </label>
+                </div>
+              </fieldset>
+
+              <% price = c.filters_by_field["price"] %>
+              <fieldset class="fieldset">
+                <legend class="fieldset-legend">{price.label}</legend>
+                <div class="join">
+                  <input class="input join-item" {price.input_attrs.min} />
+                  <input class="input join-item" {price.input_attrs.max} />
+                </div>
+              </fieldset>
+
               <div class="modal-action">
                 <button class="btn btn-ghost" {c.clear_all_attrs}>Clear all</button>
                 <form method="dialog"><button class="btn">Done</button></form>

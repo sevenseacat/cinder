@@ -42,6 +42,7 @@ msgstr ""
 
 #: lib/cinder/filters/date_range.ex
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next.ex
 #, elixir-autogen
 msgid "to"
 msgstr ""
@@ -112,11 +113,13 @@ msgid "From"
 msgstr ""
 
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Max"
 msgstr ""
 
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Min"
 msgstr ""

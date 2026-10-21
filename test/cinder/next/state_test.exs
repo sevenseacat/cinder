@@ -80,6 +80,41 @@ defmodule Cinder.Next.StateTest do
     end
   end
 
+  describe "raw form input" do
+    @price_columns [
+      %{field: "price", filterable: true, filter_type: :number_range, filter_options: []}
+    ]
+
+    test "isn't part of the query, so changing it alone changes nothing that reloads" do
+      state = State.new() |> on_page(3)
+      new = State.set_filters(state, state.filters, state.search, %{"price_min" => "2"})
+
+      refute State.query_changed?(state, new)
+      assert new.raw == %{"price_min" => "2"}
+      assert new.page == 3
+    end
+
+    test "clearing a filter drops its raw params, and only its" do
+      raw = %{"price_min" => "2", "price_max" => "", "title" => "a"}
+      state = State.new() |> State.set_filters(%{}, "", raw)
+
+      assert State.clear_filter(state, "price").raw == %{"title" => "a"}
+      assert State.clear_all(state).raw == %{}
+    end
+
+    test "from the URL, is kept while it still describes the filter, and dropped once it doesn't" do
+      raw = %{"price_min" => "25", "price_max" => ""}
+      filters = Cinder.FilterManager.params_to_filters(raw, @price_columns)
+      state = State.new() |> State.set_filters(filters, "", raw)
+
+      same_url =
+        State.to_url_params(state, ["price"]) |> Map.new(fn {k, v} -> {to_string(k), v} end)
+
+      assert State.from_url_params(state, same_url, @price_columns).raw == raw
+      assert State.from_url_params(state, %{}, @price_columns).raw == %{}
+    end
+  end
+
   describe "set_sort/2" do
     test "replaces the whole sort and goes back to the first page" do
       state = State.new() |> State.toggle_sort("title") |> on_page(3)

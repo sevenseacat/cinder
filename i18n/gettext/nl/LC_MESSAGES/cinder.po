@@ -42,6 +42,7 @@ msgstr "toont %{start}-%{end} van %{total}"
 
 #: lib/cinder/filters/date_range.ex
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next.ex
 #, elixir-autogen
 msgid "to"
 msgstr "tot"
@@ -112,11 +113,13 @@ msgid "From"
 msgstr "Van"
 
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Max"
 msgstr "Max"
 
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Min"
 msgstr "Min"

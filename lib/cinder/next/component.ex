@@ -42,13 +42,14 @@ defmodule Cinder.Next.Component do
 
   def handle_event("filter", params, socket) do
     columns = socket.assigns.config.engine_columns
-    filters = FilterManager.params_to_filters(Map.get(params, "filters", %{}), columns)
+    raw = Map.get(params, "filters", %{})
+    filters = FilterManager.params_to_filters(raw, columns)
     search = Map.get(params, "search", socket.assigns.state.search)
     sort = parse_sort(params["sort_by"], socket.assigns.config)
 
     {:noreply,
      commit(socket, fn state ->
-       state = State.set_filters(state, filters, search)
+       state = State.set_filters(state, filters, search, raw)
        if sort, do: State.set_sort(state, sort), else: state
      end)}
   end
@@ -133,17 +134,20 @@ defmodule Cinder.Next.Component do
   # loaded) in `update/2` when they come back. Applying it here too would render
   # twice, because the patch re-renders the parent, and slot closures capture the
   # parent's assigns, so every cell would be sent again with the same rows.
+  #
+  # Raw form input isn't part of the query, so it's kept straight away either way.
   defp commit(socket, transition) do
-    new = transition.(socket.assigns.state)
+    old = socket.assigns.state
+    new = transition.(old)
 
     cond do
-      not State.query_changed?(socket.assigns.state, new) ->
-        socket
+      not State.query_changed?(old, new) ->
+        socket |> assign(:state, new) |> assign_view()
 
       socket.assigns.url_params ->
         params = State.to_url_params(new, socket.assigns.config.filter_order)
         send(self(), {:table_state_change, socket.assigns.id, params})
-        socket
+        socket |> assign(:state, %{old | raw: new.raw}) |> assign_view()
 
       true ->
         socket |> apply_state(new) |> assign_view()

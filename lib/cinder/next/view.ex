@@ -156,41 +156,57 @@ defmodule Cinder.Next.View do
     }
   end
 
-  # Text and select only, for the spike
+  @filter_types [:text, :select, :multi_select, :multi_checkboxes, :number_range]
+  @multi_types [:multi_select, :multi_checkboxes]
+
+  # The types the spike renders; the rest are left out of the view-model
   defp filter(config, name, state, myself) do
     %{label: label, filter: filter} = config.fields[name]
 
-    if filter.type in [:text, :select] do
+    if filter.type in @filter_types do
       input_id = Cinder.Filter.filter_id(config.form_id, name)
       help_id = "#{input_id}-help"
-      value = get_in(state.filters, [name, :value])
-      value = if value, do: to_string(value), else: ""
+      described_by = filter.help && help_id
+      active? = Map.has_key?(state.filters, name)
+
+      # What the details of each type's inputs need
+      ctx = %{
+        name: name,
+        label: label,
+        filter: filter,
+        input_id: input_id,
+        form_id: config.form_id,
+        described_by: described_by
+      }
+
+      value = current_value(filter.type, name, state)
 
       %{
         field: name,
         label: label,
         type: filter.type,
         value: value,
+        active?: active?,
         help: filter.help,
         render: filter.render,
-        options: filter_options(filter, label, value, name, input_id, config.form_id),
+        options: options(filter.type, ctx, value),
         attrs: %{
           "data-part" => "filter",
           "data-field" => name,
           "data-filter-type" => filter.type,
-          "data-active" => value != ""
+          "data-active" => active?
         },
-        label_attrs: %{"for" => input_id},
+        # Multi filters label a group of checkboxes, so there's no single input to point at
+        label_attrs: %{
+          "for" => if(filter.type not in @multi_types, do: label_target(filter.type, input_id))
+        },
         help_attrs: %{"id" => help_id, "data-part" => "filter-help"},
-        input_attrs:
-          filter.type
-          |> filter_input_attrs(name, label, filter, input_id, value, config.form_id)
-          |> Map.put("aria-describedby", filter.help && help_id),
+        input_attrs: input_attrs(filter.type, ctx, value),
         clear_attrs: %{
           "type" => "button",
           "data-part" => "filter-clear",
           "aria-label" => dgettext("cinder", "Clear filter"),
-          "hidden" => value == "",
+          "hidden" => not active?,
           "phx-click" => "clear_filter",
           "phx-value-field" => name,
           "phx-target" => myself
@@ -199,53 +215,133 @@ defmodule Cinder.Next.View do
     end
   end
 
-  defp filter_input_attrs(:text, name, label, filter, input_id, value, form_id) do
+  defp label_target(:number_range, input_id), do: input_id <> "-min"
+  defp label_target(_type, input_id), do: input_id
+
+  # What the inputs show: the raw form input while there is any, else the filter's value
+  defp current_value(:number_range, name, state) do
+    value = get_in(state.filters, [name, :value]) || %{}
+
     %{
-      "id" => input_id,
-      "type" => "text",
-      "name" => Cinder.Filter.field_name(name),
-      "value" => value,
-      "placeholder" =>
-        filter.options[:placeholder] || dgettext("cinder", "Filter %{label}...", label: label),
-      "form" => form_id,
-      "phx-debounce" => "300"
+      min: state.raw[name <> "_min"] || to_string(value[:min] || ""),
+      max: state.raw[name <> "_max"] || to_string(value[:max] || "")
     }
   end
 
-  defp filter_input_attrs(:select, name, _label, _filter, input_id, _value, form_id) do
-    %{"id" => input_id, "name" => Cinder.Filter.field_name(name), "form" => form_id}
+  defp current_value(type, name, state) when type in @multi_types do
+    case state.raw[name] do
+      values when is_list(values) -> values
+      _none -> Enum.map(get_in(state.filters, [name, :value]) || [], &to_string/1)
+    end
+  end
+
+  defp current_value(_type, name, state) do
+    case state.raw[name] do
+      value when is_binary(value) -> value
+      _none -> to_string(get_in(state.filters, [name, :value]) || "")
+    end
+  end
+
+  defp input_attrs(:text, ctx, value) do
+    %{
+      "id" => ctx.input_id,
+      "type" => "text",
+      "name" => Cinder.Filter.field_name(ctx.name),
+      "value" => value,
+      "placeholder" =>
+        ctx.filter.options[:placeholder] ||
+          dgettext("cinder", "Filter %{label}...", label: ctx.label),
+      "form" => ctx.form_id,
+      "phx-debounce" => "300",
+      "aria-describedby" => ctx.described_by
+    }
+  end
+
+  defp input_attrs(:select, ctx, _value) do
+    %{
+      "id" => ctx.input_id,
+      "name" => Cinder.Filter.field_name(ctx.name),
+      "form" => ctx.form_id,
+      "aria-describedby" => ctx.described_by
+    }
+  end
+
+  # Each checkbox is an option's `input_attrs`
+  defp input_attrs(type, _ctx, _value) when type in @multi_types, do: nil
+
+  # Two inputs, one filter
+  defp input_attrs(:number_range, ctx, value) do
+    for {bound, placeholder} <- [min: dgettext("cinder", "Min"), max: dgettext("cinder", "Max")],
+        into: %{} do
+      {bound,
+       %{
+         "id" => "#{ctx.input_id}-#{bound}",
+         "type" => "number",
+         "name" => Cinder.Filter.field_name(ctx.name, Atom.to_string(bound)),
+         "value" => value[bound],
+         "placeholder" => placeholder,
+         "step" => ctx.filter.options[:step],
+         "form" => ctx.form_id,
+         "phx-debounce" => "300",
+         "aria-describedby" => ctx.described_by
+       }}
+    end
   end
 
   # A select's options, starting with the prompt that clears it. `attrs` are for an
   # `<option>`; `input_attrs` render the same option as a radio button that joins the
   # form, for a button group or radio list instead of a dropdown.
-  defp filter_options(%{type: :select, options: options}, label, value, name, input_id, form_id) do
-    prompt = options[:prompt] || dgettext("cinder", "All %{label}", label: label)
+  defp options(:select, ctx, value) do
+    prompt = ctx.filter.options[:prompt] || dgettext("cinder", "All %{label}", label: ctx.label)
+    choices = [{prompt, ""} | Keyword.get(ctx.filter.options, :options, [])]
 
-    for {{option_label, option_value}, index} <-
-          Enum.with_index([{prompt, ""} | Keyword.get(options, :options, [])]) do
+    for {{label, option_value}, index} <- Enum.with_index(choices) do
       option_value = to_string(option_value)
       selected? = option_value == value
 
       %{
-        label: option_label,
+        label: label,
         value: option_value,
         selected?: selected?,
         attrs: %{"value" => option_value, "selected" => selected?},
         input_attrs: %{
           "type" => "radio",
-          "id" => "#{input_id}-#{index}",
-          "name" => Cinder.Filter.field_name(name),
+          "id" => "#{ctx.input_id}-#{index}",
+          "name" => Cinder.Filter.field_name(ctx.name),
           "value" => option_value,
           "checked" => selected?,
-          "form" => form_id,
-          "aria-label" => option_label
+          "form" => ctx.form_id,
+          "aria-label" => label
         }
       }
     end
   end
 
-  defp filter_options(_filter, _label, _value, _name, _input_id, _form_id), do: []
+  # Checkboxes posting a list (`filters[tags][]`), so several can be chosen
+  defp options(type, ctx, values) when type in @multi_types do
+    for {{label, option_value}, index} <-
+          Enum.with_index(Keyword.get(ctx.filter.options, :options, [])) do
+      option_value = to_string(option_value)
+      selected? = option_value in values
+
+      %{
+        label: label,
+        value: option_value,
+        selected?: selected?,
+        attrs: %{"value" => option_value, "selected" => selected?},
+        input_attrs: %{
+          "type" => "checkbox",
+          "id" => "#{ctx.input_id}-#{index}",
+          "name" => Cinder.Filter.field_name(ctx.name) <> "[]",
+          "value" => option_value,
+          "checked" => selected?,
+          "form" => ctx.form_id
+        }
+      }
+    end
+  end
+
+  defp options(_type, _ctx, _value), do: []
 
   defp column(column, field, state, myself) do
     sortable? = field.sort != nil

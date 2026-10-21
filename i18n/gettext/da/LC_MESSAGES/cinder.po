@@ -42,6 +42,7 @@ msgstr "viser %{start}-%{end} af %{total}"
 
 #: lib/cinder/filters/date_range.ex
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next.ex
 #, elixir-autogen
 msgid "to"
 msgstr "til"
@@ -112,11 +113,13 @@ msgid "From"
 msgstr "Fra"
 
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Max"
 msgstr "Maks"
 
 #: lib/cinder/filters/number_range.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Min"
 msgstr "Min"

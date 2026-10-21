@@ -164,6 +164,21 @@ defmodule Cinder.Next do
     """
   end
 
+  # A group of checkboxes is labelled by a legend, not a label pointing at one input
+  def filter(%{filter: %{type: type}} = assigns)
+      when type in [:multi_select, :multi_checkboxes] do
+    ~H"""
+    <fieldset {merge(@filter.attrs, @class, @rest)}>
+      <legend>{@filter.label}</legend>
+      <label :for={option <- @filter.options} data-part="filter-option">
+        <input {option.input_attrs} /> {option.label}
+      </label>
+      <button {@filter.clear_attrs}>×</button>
+      <p :if={@filter.help} {@filter.help_attrs}>{@filter.help}</p>
+    </fieldset>
+    """
+  end
+
   def filter(assigns) do
     ~H"""
     <div {merge(@filter.attrs, @class, @rest)}>
@@ -172,6 +187,11 @@ defmodule Cinder.Next do
       <select :if={@filter.type == :select} {@filter.input_attrs}>
         <option :for={option <- @filter.options} {option.attrs}>{option.label}</option>
       </select>
+      <span :if={@filter.type == :number_range} data-part="filter-range">
+        <input {@filter.input_attrs.min} />
+        <span>{dgettext("cinder", "to")}</span>
+        <input {@filter.input_attrs.max} />
+      </span>
       <button {@filter.clear_attrs}>×</button>
       <p :if={@filter.help} {@filter.help_attrs}>{@filter.help}</p>
     </div>

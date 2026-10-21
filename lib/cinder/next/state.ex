@@ -5,9 +5,14 @@ defmodule Cinder.Next.State do
 
   Any transition that changes which records match (filters, search, sort, page
   size) also goes back to the first page, so callers can't forget to.
+
+  `raw` keeps the filter form's params as typed (`price_min`, `tags`, ...), so
+  input that hasn't become a filter yet, or never will (half a range, an
+  autocomplete's search text), survives a re-render. It isn't part of the query:
+  changing it alone never reloads or touches the URL.
   """
 
-  alias Cinder.{QueryBuilder, UrlManager}
+  alias Cinder.{FilterManager, QueryBuilder, UrlManager}
 
   @type sort :: [{String.t(), :asc | :desc}]
 
@@ -18,10 +23,12 @@ defmodule Cinder.Next.State do
           page: pos_integer(),
           page_size: pos_integer(),
           default_sort: sort(),
-          default_page_size: pos_integer()
+          default_page_size: pos_integer(),
+          raw: %{String.t() => term()}
         }
 
   defstruct filters: %{},
+            raw: %{},
             search: "",
             sort: [],
             page: 1,
@@ -42,17 +49,26 @@ defmodule Cinder.Next.State do
     }
   end
 
-  @doc "Sets filters and search together, as one form submission carries both."
-  def set_filters(state, filters, search) do
-    reset_if_changed(state, %{state | filters: filters, search: search || ""})
+  @doc """
+  Sets filters and search together, as one form submission carries both, along
+  with the form's raw params when there are any.
+  """
+  def set_filters(state, filters, search, raw \\ nil) do
+    new = %{state | filters: filters, search: search || "", raw: raw || state.raw}
+    reset_if_changed(state, new)
   end
 
   def clear_filter(state, "search"), do: set_filters(state, state.filters, "")
 
-  def clear_filter(state, field),
-    do: set_filters(state, Map.delete(state.filters, field), state.search)
+  def clear_filter(state, field) do
+    raw = Map.reject(state.raw, fn {key, _value} -> param_field?(key, field) end)
+    set_filters(state, Map.delete(state.filters, field), state.search, raw)
+  end
 
-  def clear_all(state), do: set_filters(state, %{}, "")
+  def clear_all(state), do: %{set_filters(state, %{}, "") | raw: %{}}
+
+  @doc "Whether a form param (`price_min`, `tags`) belongs to a field (`price`, `tags`)."
+  def param_field?(param, field), do: param == field or String.starts_with?(param, field <> "_")
 
   @doc "Cycles a field's sort, using the column's sort cycle if it has one."
   def toggle_sort(state, field, cycle \\ nil, mode \\ :additive) do
@@ -107,6 +123,7 @@ defmodule Cinder.Next.State do
     %{
       state
       | filters: decoded.filters,
+        raw: current_raw(state.raw, decoded.filters, columns),
         search: decoded.search_term,
         sort: if(Map.has_key?(params, "sort"), do: decoded.sort_by, else: state.default_sort),
         page: decoded.current_page,
@@ -116,6 +133,19 @@ defmodule Cinder.Next.State do
             else: state.default_page_size
           )
     }
+  end
+
+  # Raw input is kept only for fields where it still describes the filter the URL
+  # has. On browser back/forward it usually doesn't, and the URL wins.
+  defp current_raw(raw, filters, columns) do
+    from_raw = FilterManager.params_to_filters(raw, columns)
+
+    Map.filter(raw, fn {param, _value} ->
+      case Enum.find(columns, &(&1.filterable and param_field?(param, &1.field))) do
+        nil -> false
+        column -> from_raw[column.field] == filters[column.field]
+      end
+    end)
   end
 
   defp reset_if_changed(old, new) do
