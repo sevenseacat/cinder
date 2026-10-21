@@ -26,10 +26,8 @@ defmodule CinderDevWeb.NextPetalLive do
       query_params={@query_params}
     >
       <Cinder.Next.collection
-        :let={c}
         id="petal"
         resource={Music.Album}
-        layout="custom"
         url_state={@url_state}
         query_opts={[load: [:artist]]}
         page_size={10}
@@ -69,96 +67,96 @@ defmodule CinderDevWeb.NextPetalLive do
         <:sort field="title" />
         <:sort field="price" />
         <:sort field="release_date" />
+        <:page :let={c}>
+          <div class="space-y-4">
+            <%!-- Petal's inputs assume they're inside a form, so they are --%>
+            <form {c.form_attrs} class="space-y-4">
+              <div class="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Field.field {attrs(c.search.input_attrs)} label={c.search.label} />
+                <Cinder.Next.filter collection={c} field="genre" />
+                <div class="lg:col-span-2"><Cinder.Next.filter collection={c} field="price" /></div>
+              </div>
+              <Cinder.Next.filter collection={c} field="tags" />
+            </form>
 
-        <div class="space-y-4">
-          <%!-- Petal's inputs assume they're inside a form, so they are --%>
-          <form {c.form_attrs} class="space-y-4">
-            <div class="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field.field {attrs(c.search.input_attrs)} label={c.search.label} />
-              <Cinder.Next.filter collection={c} field="genre" />
-              <div class="lg:col-span-2"><Cinder.Next.filter collection={c} field="price" /></div>
+            <div class="flex items-center gap-3">
+              <Button.button
+                {attrs(c.clear_all_attrs)}
+                link_type="button"
+                variant="outline"
+                size="sm"
+                disabled={c.active_filter_count == 0}
+              >
+                Clear filters
+                <Badge.badge
+                  :if={c.active_filter_count > 0}
+                  size="xs"
+                  label={to_string(c.active_filter_count)}
+                />
+              </Button.button>
+              <Loading.spinner show={c.status == :loading} />
             </div>
-            <Cinder.Next.filter collection={c} field="tags" />
-          </form>
 
-          <div class="flex items-center gap-3">
-            <Button.button
-              {attrs(c.clear_all_attrs)}
-              link_type="button"
-              variant="outline"
-              size="sm"
-              disabled={c.active_filter_count == 0}
+            <.petal_pagination pagination={c.pagination} target={c.target} />
+
+            <Table.table
+              rows={c.rows}
+              row_item={& &1.record}
+              sort_by={c.primary_sort && c.primary_sort.field}
+              sort_dir={if c.primary_sort, do: to_string(c.primary_sort.direction), else: "asc"}
+              on_sort={&Cinder.Next.sort_command(c, &1)}
             >
-              Clear filters
-              <Badge.badge
-                :if={c.active_filter_count > 0}
-                size="xs"
-                label={to_string(c.active_filter_count)}
-              />
-            </Button.button>
-            <Loading.spinner show={c.status == :loading} />
+              <:col :let={album} label="Title" sortable sort_key="title">{album.title}</:col>
+              <:col :let={album} label="Artist">{album.artist.name}</:col>
+              <:col :let={album} label="Genre">{album.genre}</:col>
+              <:col :let={album} label="Price" sortable sort_key="price">
+                ${Decimal.to_string(album.price)}
+              </:col>
+              <:col :let={album} label="Released" sortable sort_key="release_date">
+                {album.release_date}
+              </:col>
+              <:empty_state>No albums match.</:empty_state>
+            </Table.table>
+
+            <.petal_pagination pagination={c.pagination} target={c.target} />
           </div>
-
-          <.petal_pagination pagination={c.pagination} target={c.target} />
-
-          <Table.table
-            rows={c.rows}
-            row_item={& &1.record}
-            sort_by={c.primary_sort && c.primary_sort.field}
-            sort_dir={if c.primary_sort, do: to_string(c.primary_sort.direction), else: "asc"}
-            on_sort={&Cinder.Next.sort_command(c, &1)}
-          >
-            <:col :let={album} label="Title" sortable sort_key="title">{album.title}</:col>
-            <:col :let={album} label="Artist">{album.artist.name}</:col>
-            <:col :let={album} label="Genre">{album.genre}</:col>
-            <:col :let={album} label="Price" sortable sort_key="price">
-              ${Decimal.to_string(album.price)}
-            </:col>
-            <:col :let={album} label="Released" sortable sort_key="release_date">
-              {album.release_date}
-            </:col>
-            <:empty_state>No albums match.</:empty_state>
-          </Table.table>
-
-          <.petal_pagination pagination={c.pagination} target={c.target} />
-        </div>
+        </:page>
       </Cinder.Next.collection>
 
       <h2 class="mt-12 text-lg font-semibold">
         Phoenix's generated core_components (not URL-synced)
       </h2>
       <Cinder.Next.collection
-        :let={c}
         id="core"
         resource={Music.Album}
         action={:with_min_tracks}
-        layout="custom"
         page_size={5}
       >
         <:col :let={album} field="title">{album.title}</:col>
         <:argument name="min_tracks" label="At least this many tracks" />
         <:filter field="genre" type="select" />
         <:filter field="price" type="number_range" />
-
-        <%!-- Looked up inline instead, with the markup in the layout --%>
-        <form {c.form_attrs} class="grid gap-x-4 sm:grid-cols-4">
-          <.input
-            field={c.filters["min_tracks"].form_field}
-            type="number"
-            label={c.filters["min_tracks"].label}
-          />
-          <.input
-            field={c.filters["genre"].form_field}
-            type="select"
-            label={c.filters["genre"].label}
-            options={options(c.filters["genre"])}
-          />
-          <.input field={c.filters["price"].form_field.min} type="number" label="Min price" />
-          <.input field={c.filters["price"].form_field.max} type="number" label="Max price" />
-        </form>
-        <ul :if={c.status == :idle}>
-          <li :for={row <- c.rows}>{row.record.title} ({row.record.track_count} tracks)</li>
-        </ul>
+        <:page :let={c}>
+          <%!-- Looked up inline instead, with the markup in the layout --%>
+          <form {c.form_attrs} class="grid gap-x-4 sm:grid-cols-4">
+            <.input
+              field={c.filters["min_tracks"].form_field}
+              type="number"
+              label={c.filters["min_tracks"].label}
+            />
+            <.input
+              field={c.filters["genre"].form_field}
+              type="select"
+              label={c.filters["genre"].label}
+              options={options(c.filters["genre"])}
+            />
+            <.input field={c.filters["price"].form_field.min} type="number" label="Min price" />
+            <.input field={c.filters["price"].form_field.max} type="number" label="Max price" />
+          </form>
+          <ul :if={c.status == :idle}>
+            <li :for={row <- c.rows}>{row.record.title} ({row.record.track_count} tracks)</li>
+          </ul>
+        </:page>
       </Cinder.Next.collection>
     </Layouts.app>
     """

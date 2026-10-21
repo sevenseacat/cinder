@@ -29,10 +29,9 @@ defmodule CinderDevWeb.NextDaisyLive do
       query_params={@query_params}
     >
       <Cinder.Next.collection
-        :let={c}
         id="daisy"
         resource={Music.Album}
-        layout="custom"
+        layout="grid"
         url_state={@url_state}
         query_opts={[load: [:artist]]}
         page_size={12}
@@ -119,131 +118,133 @@ defmodule CinderDevWeb.NextDaisyLive do
             </div>
           </div>
         </:item>
+        <:page :let={c}>
+          <div class="space-y-4">
+            <%!-- The search, genre and sort controls sit in the collection's form; the
+                 teleported modal can't, so its inputs join it through `form=` --%>
+            <form {c.form_attrs} class="space-y-4">
+              <div class="flex flex-wrap items-center gap-3">
+                <label class="input">
+                  <.icon name="hero-magnifying-glass" class="size-4 opacity-50" />
+                  <input {c.search.input_attrs} class="grow" />
+                </label>
 
-        <div class="space-y-4">
-          <%!-- The search, genre and sort controls sit in the collection's form; the
-               teleported modal can't, so its inputs join it through `form=` --%>
-          <form {c.form_attrs} class="space-y-4">
-            <div class="flex flex-wrap items-center gap-3">
-              <label class="input">
-                <.icon name="hero-magnifying-glass" class="size-4 opacity-50" />
-                <input {c.search.input_attrs} class="grow" />
-              </label>
-
-              <button type="button" class="btn" onclick="daisy_filters.showModal()">
-                Filters
-                <span :if={c.active_filter_count > 0} class="badge badge-primary badge-sm">
-                  {c.active_filter_count}
-                </span>
-              </button>
-
-              <%!-- A select filter as a button group, from each option's radio attrs --%>
-              <div class="join">
-                <input
-                  :for={option <- c.filters["genre"].options}
-                  class="join-item btn btn-sm"
-                  {option.input_attrs}
-                />
-              </div>
-
-              <div class="join">
-                <button
-                  :for={layout <- c.layouts}
-                  class={["join-item btn btn-sm", layout.active? && "btn-active"]}
-                  {layout.attrs}
-                >
-                  {layout.label}
+                <button type="button" class="btn" onclick="daisy_filters.showModal()">
+                  Filters
+                  <span :if={c.active_filter_count > 0} class="badge badge-primary badge-sm">
+                    {c.active_filter_count}
+                  </span>
                 </button>
+
+                <%!-- A select filter as a button group, from each option's radio attrs --%>
+                <div class="join">
+                  <input
+                    :for={option <- c.filters["genre"].options}
+                    class="join-item btn btn-sm"
+                    {option.input_attrs}
+                  />
+                </div>
+
+                <div class="join">
+                  <button
+                    :for={layout <- c.layouts}
+                    class={["join-item btn btn-sm", layout.active? && "btn-active"]}
+                    {layout.attrs}
+                  >
+                    {layout.label}
+                  </button>
+                </div>
+
+                <span :if={c.status == :loading} class="loading loading-spinner loading-sm"></span>
               </div>
 
-              <span :if={c.status == :loading} class="loading loading-spinner loading-sm"></span>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-sm opacity-70">Sort:</span>
-              <%!-- Chips: additive, from each sort's attrs --%>
-              <button
-                :for={sort <- c.sorts}
-                class={["btn btn-xs", sort.direction && "btn-primary"]}
-                {sort.attrs}
-              >
-                {sort.label}
-                <span :if={sort.direction}>{if sort.direction == :asc, do: "↑", else: "↓"}</span>
-              </button>
-              <span class="divider divider-horizontal mx-0"></span>
-              <%!-- The same sorts as an exclusive dropdown --%>
-              <select class="select select-sm w-auto" {c.sort_select.select_attrs}>
-                <option :for={option <- c.sort_select.options} {option.attrs}>{option.label}</option>
-              </select>
-            </div>
-          </form>
-
-          <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
-
-          <Cinder.Next.table :if={c.layout == :table} collection={c} class="table" />
-          <Cinder.Next.grid :if={c.layout == :grid} collection={c} />
-
-          <div :if={c.rows == [] and c.status == :idle} class="alert">No albums match.</div>
-
-          <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
-        </div>
-
-        <%!-- Teleported to <body>: these inputs are outside the component's DOM entirely --%>
-        <.portal id="daisy-filters-portal" target="body">
-          <%!-- showModal() sets `open` in the browser; without this, every re-render
-               (like a filter change) would strip it and leave the page inert --%>
-          <dialog
-            id="daisy_filters"
-            class="modal"
-            phx-mounted={JS.ignore_attributes(["open"])}
-          >
-            <div class="modal-box space-y-4">
-              <h3 class="text-lg font-bold">Filters</h3>
-              <Cinder.Next.filter
-                :for={field <- ~w(title artist.name tags price)}
-                collection={c}
-                field={field}
-              />
-
-              <div class="modal-action">
-                <button class="btn btn-ghost" {c.clear_all_attrs}>Clear all</button>
-                <form method="dialog"><button class="btn">Done</button></form>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm opacity-70">Sort:</span>
+                <%!-- Chips: additive, from each sort's attrs --%>
+                <button
+                  :for={sort <- c.sorts}
+                  class={["btn btn-xs", sort.direction && "btn-primary"]}
+                  {sort.attrs}
+                >
+                  {sort.label}
+                  <span :if={sort.direction}>{if sort.direction == :asc, do: "↑", else: "↓"}</span>
+                </button>
+                <span class="divider divider-horizontal mx-0"></span>
+                <%!-- The same sorts as an exclusive dropdown --%>
+                <select class="select select-sm w-auto" {c.sort_select.select_attrs}>
+                  <option :for={option <- c.sort_select.options} {option.attrs}>
+                    {option.label}
+                  </option>
+                </select>
               </div>
-            </div>
-            <form method="dialog" class="modal-backdrop"><button>close</button></form>
-          </dialog>
-        </.portal>
+            </form>
+
+            <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
+
+            <Cinder.Next.table :if={c.layout == :table} collection={c} class="table" />
+            <Cinder.Next.grid :if={c.layout == :grid} collection={c} />
+
+            <div :if={c.rows == [] and c.status == :idle} class="alert">No albums match.</div>
+
+            <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
+          </div>
+
+          <%!-- Teleported to <body>: these inputs are outside the component's DOM entirely --%>
+          <.portal id="daisy-filters-portal" target="body">
+            <%!-- showModal() sets `open` in the browser; without this, every re-render
+                 (like a filter change) would strip it and leave the page inert --%>
+            <dialog
+              id="daisy_filters"
+              class="modal"
+              phx-mounted={JS.ignore_attributes(["open"])}
+            >
+              <div class="modal-box space-y-4">
+                <h3 class="text-lg font-bold">Filters</h3>
+                <Cinder.Next.filter
+                  :for={field <- ~w(title artist.name tags price)}
+                  collection={c}
+                  field={field}
+                />
+
+                <div class="modal-action">
+                  <button class="btn btn-ghost" {c.clear_all_attrs}>Clear all</button>
+                  <form method="dialog"><button class="btn">Done</button></form>
+                </div>
+              </div>
+              <form method="dialog" class="modal-backdrop"><button>close</button></form>
+            </dialog>
+          </.portal>
+        </:page>
       </Cinder.Next.collection>
 
       <h2 class="mt-12 text-lg font-semibold">A read action argument (not URL-synced)</h2>
       <Cinder.Next.collection
-        :let={c}
         id="daisy-tracks"
         resource={Music.Album}
         action={:with_min_tracks}
-        layout="custom"
         page_size={6}
       >
         <:col :let={album} field="title">{album.title}</:col>
         <:col field="track_count" label="Tracks" />
         <:argument name="min_tracks" label="At least this many tracks" />
         <:filter field="genre" type="select" prompt="All" />
-
-        <form {c.form_attrs}>
-          <fieldset :for={min <- c.filters} class="fieldset max-w-xs">
-            <legend class="fieldset-legend">{min.label}</legend>
-            <input class={["input", min.errors != [] && "input-error"]} {min.input_attrs} />
-            <p :if={min.errors != []} class="label text-error" {min.error_attrs}>
-              {Enum.join(min.errors, ", ")}
-            </p>
-          </fieldset>
-        </form>
-        <table :if={c.status == :idle} class="table">
-          <tr :for={row <- c.rows} {row.attrs}>
-            <td>{row.record.title}</td>
-            <td>{row.record.track_count}</td>
-          </tr>
-        </table>
+        <:page :let={c}>
+          <form {c.form_attrs}>
+            <fieldset :for={min <- c.filters} class="fieldset max-w-xs">
+              <legend class="fieldset-legend">{min.label}</legend>
+              <input class={["input", min.errors != [] && "input-error"]} {min.input_attrs} />
+              <p :if={min.errors != []} class="label text-error" {min.error_attrs}>
+                {Enum.join(min.errors, ", ")}
+              </p>
+            </fieldset>
+          </form>
+          <table :if={c.status == :idle} class="table">
+            <tr :for={row <- c.rows} {row.attrs}>
+              <td>{row.record.title}</td>
+              <td>{row.record.track_count}</td>
+            </tr>
+          </table>
+        </:page>
       </Cinder.Next.collection>
     </Layouts.app>
     """

@@ -195,10 +195,12 @@ defmodule Cinder.Next.ComponentTest do
     path =
       Cinder.TestLive.Fixture.register(fn assigns ->
         ~H"""
-        <Cinder.Next.collection :let={c} id="albums" resource={Music.Album} page_size={2} layout="custom">
+        <Cinder.Next.collection id="albums" resource={Music.Album} page_size={2}>
           <:sort field="title" />
-          <button id="by-title" phx-click={Cinder.Next.sort_command(c, "title")}>Title</button>
-          <p :for={row <- c.rows}>{row.record.title}</p>
+          <:page :let={c}>
+            <button id="by-title" phx-click={Cinder.Next.sort_command(c, "title")}>Title</button>
+            <p :for={row <- c.rows}>{row.record.title}</p>
+          </:page>
         </Cinder.Next.collection>
         """
       end)
@@ -214,18 +216,20 @@ defmodule Cinder.Next.ComponentTest do
     path =
       Cinder.TestLive.Fixture.register(fn assigns ->
         ~H"""
-        <Cinder.Next.collection :let={c} id="albums" resource={Music.Album} layout="custom">
+        <Cinder.Next.collection id="albums" resource={Music.Album}>
           <:filter :let={f} field="genre">
             <select id="custom-genre" {f.input_attrs}>
               <option :for={option <- f.options} {option.attrs}>{option.label}</option>
             </select>
           </:filter>
           <:filter field="title" />
-          <form {c.form_attrs}>
-            <div id="top"><Cinder.Next.filter collection={c} field="genre" /></div>
-            <div id="bottom"><Cinder.Next.filter collection={c} field="title" /></div>
-          </form>
-          <p :for={row <- c.rows}>{row.record.title}</p>
+          <:page :let={c}>
+            <form {c.form_attrs}>
+              <div id="top"><Cinder.Next.filter collection={c} field="genre" /></div>
+              <div id="bottom"><Cinder.Next.filter collection={c} field="title" /></div>
+            </form>
+            <p :for={row <- c.rows}>{row.record.title}</p>
+          </:page>
         </Cinder.Next.collection>
         """
       end)

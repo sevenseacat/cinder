@@ -80,24 +80,23 @@ defmodule Cinder.Next.LayoutsTest do
       <Cinder.Next.collection
         id="albums"
         resource={Music.Album}
-        layout="custom"
         url_state={@url_synced? && @url_state}
         page_size={2}
-        :let={c}
       >
         <:col :let={album} field="title" sort search>{album.title}</:col>
         <:filter field="genre" />
-
-        <form {c.form_attrs} class="sidebar">
-          <Cinder.Next.filter :for={f <- c.filters} filter={f} />
-        </form>
-        <%!-- Outside the form, joining it through `form=` --%>
-        <Cinder.Next.search search={c.search} />
-        <main>
-          <Cinder.Next.pagination collection={c} id="top-pagination" />
-          <Cinder.Next.table collection={c} />
-          <Cinder.Next.pagination collection={c} id="bottom-pagination" />
-        </main>
+        <:page :let={c}>
+          <form {c.form_attrs} class="sidebar">
+            <Cinder.Next.filter :for={f <- c.filters} filter={f} />
+          </form>
+          <%!-- Outside the form, joining it through `form=` --%>
+          <Cinder.Next.search search={c.search} />
+          <main>
+            <Cinder.Next.pagination collection={c} id="top-pagination" />
+            <Cinder.Next.table collection={c} />
+            <Cinder.Next.pagination collection={c} id="bottom-pagination" />
+          </main>
+        </:page>
       </Cinder.Next.collection>
       """
     end
@@ -149,9 +148,11 @@ defmodule Cinder.Next.LayoutsTest do
     view =
       mount(conn, fn assigns ->
         ~H"""
-        <Cinder.Next.collection id="albums" resource={Music.Album} layout="custom" :let={c}>
+        <Cinder.Next.collection id="albums" resource={Music.Album}>
           <:col :let={album} field="title">{album.title}</:col>
-          <Cinder.Next.table collection={c} class="striped" data-density="compact" data-part="nope" />
+          <:page :let={c}>
+            <Cinder.Next.table collection={c} class="striped" data-density="compact" data-part="nope" />
+          </:page>
         </Cinder.Next.collection>
         """
       end)

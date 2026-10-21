@@ -1,8 +1,8 @@
 defmodule CinderDevWeb.NextLayoutsLive do
   @moduledoc """
   The shell-rewrite spike's layout customisation: a `:toolbar` region slot, a
-  custom layout, a list, and a grid with breakpoint columns. Only the custom
-  layout is URL-synced, because two URL-synced collections on one page aren't
+  `:page` slot (the whole page), a list, and a grid with breakpoint columns. Only
+  the `:page` one is URL-synced, because two URL-synced collections on one page aren't
   supported yet.
   """
   use CinderDevWeb, :live_view
@@ -37,10 +37,8 @@ defmodule CinderDevWeb.NextLayoutsLive do
 
       <h2 class="mt-12 text-lg font-semibold">Custom layout: sidebar, pagination top and bottom</h2>
       <Cinder.Next.collection
-        :let={c}
         id="sidebar"
         resource={Music.Album}
-        layout="custom"
         url_state={@url_state}
         page_size={8}
       >
@@ -48,18 +46,19 @@ defmodule CinderDevWeb.NextLayoutsLive do
         <:col field="genre" />
         <:filter field="genre" type="select" prompt="Any genre" />
         <:filter field="title" type="text" />
-
-        <div class="grid gap-6 md:grid-cols-[16rem_1fr]">
-          <form {c.form_attrs} class="space-y-4">
-            <Cinder.Next.search search={c.search} />
-            <Cinder.Next.filter :for={f <- c.filters} filter={f} />
-          </form>
-          <main class="space-y-4">
-            <Cinder.Next.pagination collection={c} />
-            <Cinder.Next.table collection={c} />
-            <Cinder.Next.pagination collection={c} />
-          </main>
-        </div>
+        <:page :let={c}>
+          <div class="grid gap-6 md:grid-cols-[16rem_1fr]">
+            <form {c.form_attrs} class="space-y-4">
+              <Cinder.Next.search search={c.search} />
+              <Cinder.Next.filter :for={f <- c.filters} filter={f} />
+            </form>
+            <main class="space-y-4">
+              <Cinder.Next.pagination collection={c} />
+              <Cinder.Next.table collection={c} />
+              <Cinder.Next.pagination collection={c} />
+            </main>
+          </div>
+        </:page>
       </Cinder.Next.collection>
 
       <h2 class="mt-12 text-lg font-semibold">List (a one-column grid)</h2>

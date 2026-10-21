@@ -63,7 +63,7 @@ defmodule Cinder.Next.Config do
     columns: [],
     item_slot: [],
     # An inner block replaces the whole layout; `:toolbar` replaces only that region
-    layout_slot: [],
+    page_slot: [],
     toolbar_slot: [],
     search: %{enabled?: false},
     query_opts: [],
@@ -153,11 +153,11 @@ defmodule Cinder.Next.Config do
       search: search(assigns[:search], search_fields),
       layout: layout,
       layouts: layouts,
-      # What a custom layout starts on, too: it renders `c.layout` itself
-      default_layout: if(layout == :custom, do: List.first(layouts), else: layout),
+      # Also what a `<:page>` starts on: it renders `c.layout` itself
+      default_layout: layout,
       grid_columns: grid_columns,
       item_slot: assigns[:item] || [],
-      layout_slot: assigns[:inner_block] || [],
+      page_slot: assigns[:page] || [],
       toolbar_slot: assigns[:toolbar] || [],
       id: assigns[:id],
       form_id: assigns[:id] && "#{assigns[:id]}-filters",
@@ -344,12 +344,6 @@ defmodule Cinder.Next.Config do
   defp layout(layout, columns, true) when layout in [nil, :table, "table"],
     do: {:table, grid_columns(columns)}
 
-  # The inner block is the layout. Phoenix gives the component an `inner_block`
-  # whenever there's whitespace between its slots, so its presence can't decide
-  # this; it has to be asked for. Columns are kept for a `<Cinder.Next.grid>` in it.
-  defp layout(layout, columns, _item?) when layout in [:custom, "custom"],
-    do: {:custom, grid_columns(columns)}
-
   defp layout(layout, _columns, _item?) when layout in [:list, "list"] do
     raise ArgumentError, "a list is one column, so it can't take grid_columns. Use layout={:grid}"
   end
@@ -361,7 +355,8 @@ defmodule Cinder.Next.Config do
 
   defp layout(layout, _columns, _item?) do
     raise ArgumentError,
-          "unknown layout #{inspect(layout)}. Known layouts: :table, :grid, :list, :custom"
+          "unknown layout #{inspect(layout)}. Known layouts: :table, :grid, :list " <>
+            "(for your own page markup, use a <:page> slot)"
   end
 
   # A table needs columns and a grid an item; the declared layout is always one

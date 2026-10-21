@@ -136,11 +136,11 @@ defmodule Cinder.Next.Component do
   def render(assigns) do
     ~H"""
     <div id={@id} {@view.attrs}>
-      <%= if @config.layout == :custom do %>
-        <%!-- A custom layout places `<form {c.form_attrs}>` itself, so component
+      <%= if @config.page_slot != [] do %>
+        <%!-- A `<:page>` places `<form {c.form_attrs}>` itself, so component
              libraries' inputs (which assume they're inside a form) work; inputs
              that can't be nested in it, like a teleported modal's, use `form=` --%>
-        {render_slot(@config.layout_slot, @view)}
+        {render_slot(@config.page_slot, @view)}
       <% else %>
         <%!-- The default layout keeps the toolbar inside the form, so it works with any test tooling --%>
         <form {@view.form_attrs}>

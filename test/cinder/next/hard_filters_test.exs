@@ -287,14 +287,16 @@ defmodule Cinder.Next.HardFiltersTest do
     path =
       Cinder.TestLive.Fixture.register(fn assigns ->
         ~H"""
-        <Cinder.Next.collection :let={c} id="albums" resource={Music.Album} layout="custom">
+        <Cinder.Next.collection id="albums" resource={Music.Album}>
           <:col :let={album} field="title">{album.title}</:col>
           <:filter field="genre" type="select" />
           <:filter field="title" type="text" />
-          <form {c.form_attrs}>
-            <input :for={f <- c.filters} {f.input_attrs} />
-          </form>
-          <p :for={row <- c.rows}>{row.record.title}</p>
+          <:page :let={c}>
+            <form {c.form_attrs}>
+              <input :for={f <- c.filters} {f.input_attrs} />
+            </form>
+            <p :for={row <- c.rows}>{row.record.title}</p>
+          </:page>
         </Cinder.Next.collection>
         """
       end)

@@ -47,7 +47,7 @@ defmodule Cinder.Next.View do
       sort_select: sort_select(config, state),
       # Tables that only show one sorted column want just the first
       primary_sort: primary_sort(state.sort),
-      # The layout showing now. A custom layout renders it itself.
+      # The layout showing now. A `<:page>` renders it itself.
       layout: layout,
       layouts: layouts(config.layouts, layout, myself),
       grid_attrs: grid_attrs(config.grid_columns),

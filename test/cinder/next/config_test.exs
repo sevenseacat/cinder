@@ -229,13 +229,16 @@ defmodule Cinder.Next.ConfigTest do
       config = build(layout: :table, col: [col("title")], item: item, grid_columns: 3)
       assert %{layouts: [:table, :grid], default_layout: :table, grid_columns: 3} = config
 
-      # A custom layout starts on the first it can render
-      assert build(layout: :custom, item: item).default_layout == :grid
+      # A <:page> starts on the declared layout like any other
+      assert build(layout: :grid, item: item, page: [%{__slot__: :page}]).default_layout == :grid
     end
 
-    test "a custom layout is asked for, not inferred from an inner block" do
-      assert build(layout: "custom").layout == :custom
-      assert build(inner_block: [%{__slot__: :inner_block}]).layout == :table
+    test "your own page markup is a <:page> slot, not a layout" do
+      assert_raise ArgumentError, ~r/unknown layout "custom".*use a <:page> slot/, fn ->
+        build(layout: "custom")
+      end
+
+      assert build(page: [%{__slot__: :page}]).page_slot != []
     end
   end
 
