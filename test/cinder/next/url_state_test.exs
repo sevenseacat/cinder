@@ -91,7 +91,7 @@ defmodule Cinder.Next.UrlStateTest do
     assert html =~ ~s(aria-sort="descending")
   end
 
-  test "changes are written to the URL, and the URL coming back doesn't reload", %{
+  test "changes go out through the URL, and load once when it comes back", %{
     conn: conn,
     path: path
   } do

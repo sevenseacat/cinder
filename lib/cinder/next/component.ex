@@ -10,8 +10,8 @@ defmodule Cinder.Next.Component do
   alias Cinder.{FilterManager, QueryBuilder}
 
   # `url_params` is nil unless the collection is URL-synced. When it is, every
-  # URL change arrives here: our own patches (which match the state already, so
-  # nothing reloads) and browser back/forward (which don't).
+  # state change arrives here as a URL change, from our own events (see `commit/2`)
+  # and from browser back/forward alike, and loads only if the query changed.
   @impl true
   def update(%{config: config, url_params: url_params} = assigns, socket) do
     socket = assign(socket, id: assigns.id, config: config, url_params: url_params)
@@ -24,10 +24,11 @@ defmodule Cinder.Next.Component do
             sort: QueryBuilder.extract_query_sorts(config.query, config.engine_columns)
           )
 
-        {:ok, socket |> assign(state: from_url(state, socket), page: nil) |> load()}
+        {:ok,
+         socket |> assign(state: from_url(state, socket), page: nil) |> load() |> assign_view()}
 
       state ->
-        {:ok, apply_state(socket, from_url(state, socket))}
+        {:ok, socket |> apply_state(from_url(state, socket)) |> assign_view()}
     end
   end
 
@@ -64,16 +65,23 @@ defmodule Cinder.Next.Component do
   end
 
   @impl true
-  def handle_async(:load, {:ok, result}, socket), do: {:noreply, loaded(socket, result)}
-  def handle_async(:load, {:exit, _reason}, socket), do: {:noreply, loaded(socket, :error)}
+  def handle_async(:load, {:ok, result}, socket),
+    do: {:noreply, socket |> loaded(result) |> assign_view()}
+
+  def handle_async(:load, {:exit, _reason}, socket),
+    do: {:noreply, socket |> loaded(:error) |> assign_view()}
 
   defp loaded(socket, {:ok, page}), do: assign(socket, page: page, status: :idle)
   defp loaded(socket, _error), do: assign(socket, status: :error)
 
+  # The view-model is a socket assign, rebuilt only when something it depends on
+  # may have changed. `assign/3` only marks it changed when the new one differs, so a
+  # re-render that changes nothing (like our own URL patch coming back) sends nothing.
+  # Built inside `render/1` instead, it was new every time, and everything was resent.
+  defp assign_view(socket), do: assign(socket, :view, View.build(socket.assigns))
+
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :view, View.build(assigns))
-
     ~H"""
     <div id={@id} {@view.attrs}>
       <%= if @config.layout == :custom do %>
@@ -116,19 +124,26 @@ defmodule Cinder.Next.Component do
     if field in config.sort_order, do: [{field, direction}]
   end
 
-  # The one path for every user-driven state change. It loads straight away rather
-  # than waiting for the URL to come back, so it works the same without URL sync.
+  # The one path for every user-driven state change. When URL-synced, the URL is
+  # the source of truth: only the new params go out, and the state is applied (and
+  # loaded) in `update/2` when they come back. Applying it here too would render
+  # twice, because the patch re-renders the parent, and slot closures capture the
+  # parent's assigns, so every cell would be sent again with the same rows.
   defp commit(socket, transition) do
     new = transition.(socket.assigns.state)
-    changed? = State.query_changed?(socket.assigns.state, new)
-    socket = apply_state(socket, new)
 
-    if changed? and socket.assigns.url_params do
-      params = State.to_url_params(new, socket.assigns.config.filter_order)
-      send(self(), {:table_state_change, socket.assigns.id, params})
+    cond do
+      not State.query_changed?(socket.assigns.state, new) ->
+        socket
+
+      socket.assigns.url_params ->
+        params = State.to_url_params(new, socket.assigns.config.filter_order)
+        send(self(), {:table_state_change, socket.assigns.id, params})
+        socket
+
+      true ->
+        socket |> apply_state(new) |> assign_view()
     end
-
-    socket
   end
 
   defp apply_state(socket, new) do
