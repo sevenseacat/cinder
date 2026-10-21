@@ -35,10 +35,30 @@ defmodule Cinder.Next.View do
       sorts: for(name <- config.sort_order, do: sort(config.fields[name], state, myself)),
       sort_select: sort_select(config, state),
       layout: config.layout,
+      grid_attrs: grid_attrs(config.grid_columns),
+      # So `grid/1` can render cards given only the collection
+      item_slot: config.item_slot,
       columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
       rows: rows(page, config.layout),
       pagination: pagination(page, state, myself)
     }
+  end
+
+  # Column counts go in as CSS variables, which the base CSS reads (with media
+  # queries for breakpoints), so no Tailwind classes need generating
+  defp grid_attrs(nil), do: %{"data-part" => "grid"}
+
+  defp grid_attrs(count) when is_integer(count) do
+    %{"data-part" => "grid", "data-columns" => true, "style" => "--cinder-grid-columns: #{count}"}
+  end
+
+  defp grid_attrs(breakpoints) do
+    style =
+      Enum.map_join(breakpoints, "; ", fn {bp, count} ->
+        "--cinder-grid-columns-#{bp}: #{count}"
+      end)
+
+    %{"data-part" => "grid", "data-columns" => true, "style" => style}
   end
 
   # Each declared sort, with the same wiring as a sortable column header, for

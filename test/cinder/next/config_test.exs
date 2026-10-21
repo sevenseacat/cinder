@@ -156,6 +156,35 @@ defmodule Cinder.Next.ConfigTest do
     test "an unknown layout is an error" do
       assert_raise ArgumentError, ~r/unknown layout "cards"/, fn -> build(layout: "cards") end
     end
+
+    test "a list is a one-column grid, and nothing past the config sees :list" do
+      assert %{layout: :grid, grid_columns: 1} = build(layout: :list)
+      assert %{layout: :grid, grid_columns: 1} = build(layout: "list")
+    end
+
+    test "a list with grid_columns contradicts itself" do
+      assert_raise ArgumentError, ~r/a list is one column/, fn ->
+        build(layout: :list, grid_columns: 3)
+      end
+    end
+
+    test "grid_columns takes a number or breakpoints, and only for grids" do
+      assert build(layout: :grid, grid_columns: 3).grid_columns == 3
+      assert build(layout: :grid, grid_columns: [xs: 1, md: 3]).grid_columns == [xs: 1, md: 3]
+
+      assert_raise ArgumentError, ~r/only applies to layout=\{:grid\}/, fn ->
+        build(grid_columns: 3)
+      end
+
+      assert_raise ArgumentError, ~r/breakpoints are/, fn ->
+        build(layout: :grid, grid_columns: [huge: 4])
+      end
+    end
+
+    test "a custom layout is asked for, not inferred from an inner block" do
+      assert build(layout: "custom").layout == :custom
+      assert build(inner_block: [%{__slot__: :inner_block}]).layout == :table
+    end
   end
 
   describe "scope" do

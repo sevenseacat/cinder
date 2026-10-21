@@ -21,7 +21,8 @@ defmodule CinderDevWeb.Layouts do
     {"/controls", "Controls"},
     {"/states", "States"},
     {"/next", "Next (spike)"},
-    {"/next/grid", "Next grid"}
+    {"/next/grid", "Next grid"},
+    {"/next/layouts", "Next layouts"}
   ]
 
   @doc "The demo pages, as `{path, label}`, for the nav and the smoke tests."

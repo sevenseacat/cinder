@@ -110,6 +110,37 @@ defmodule Cinder.Next.ViewTest do
     end
   end
 
+  describe "grid columns" do
+    defp grid_attrs(columns) do
+      %{
+        config:
+          Config.build(%{
+            id: "albums",
+            resource: Music.Album,
+            layout: :grid,
+            grid_columns: columns
+          }),
+        state: State.new(),
+        page: nil,
+        status: :idle,
+        myself: @myself
+      }
+      |> View.build()
+      |> Map.fetch!(:grid_attrs)
+    end
+
+    test "fit as many as there's room for by default, with no inline style" do
+      assert grid_attrs(nil) == %{"data-part" => "grid"}
+    end
+
+    test "go in as CSS variables, so no utility classes need generating" do
+      assert %{"data-columns" => true, "style" => "--cinder-grid-columns: 3"} = grid_attrs(3)
+
+      assert grid_attrs(xs: 1, md: 3)["style"] ==
+               "--cinder-grid-columns-xs: 1; --cinder-grid-columns-md: 3"
+    end
+  end
+
   describe "sorts" do
     defp sort(field), do: %{field: field, inner_block: nil}
 

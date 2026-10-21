@@ -24,6 +24,7 @@ defmodule CinderDevWeb.Router do
       live "/states", StatesLive
       live "/next", NextLive
       live "/next/grid", NextGridLive
+      live "/next/layouts", NextLayoutsLive
     end
   end
 end

@@ -41,13 +41,13 @@ defmodule CinderDevWeb.NextLive do
       <Cinder.Next.collection id="albums-next-custom" resource={Music.Album} page_size={5}>
         <:col :let={album} field="title" sort>{album.title}</:col>
         <:col field="genre" />
-        <:pagination :let={pagination}>
+        <:pagination :let={c}>
           <div class="join self-center">
-            <button class="join-item btn btn-sm" {pagination.prev.attrs}>«</button>
+            <button class="join-item btn btn-sm" {c.pagination.prev.attrs}>«</button>
             <button class="join-item btn btn-sm pointer-events-none">
-              Page {pagination.page} of {pagination.page_count}
+              Page {c.pagination.page} of {c.pagination.page_count}
             </button>
-            <button class="join-item btn btn-sm" {pagination.next.attrs}>»</button>
+            <button class="join-item btn btn-sm" {c.pagination.next.attrs}>»</button>
           </div>
         </:pagination>
       </Cinder.Next.collection>

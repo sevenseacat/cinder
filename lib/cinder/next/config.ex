@@ -54,8 +54,13 @@ defmodule Cinder.Next.Config do
     filter_order: [],
     sort_order: [],
     layout: :table,
+    # nil (fit as many as there's room for), a number, or breakpoints
+    grid_columns: nil,
     columns: [],
     item_slot: [],
+    # An inner block replaces the whole layout; `:toolbar` replaces only that region
+    layout_slot: [],
+    toolbar_slot: [],
     search: %{enabled?: false},
     query_opts: [],
     page_size: 25,
@@ -93,6 +98,7 @@ defmodule Cinder.Next.Config do
 
     filter_order = ordered_fields(filter_decls)
     sort_order = ordered_fields(sort_decls)
+    {layout, grid_columns} = layout(assigns[:layout], assigns[:grid_columns])
 
     fields =
       (Enum.map(cols, & &1.field) ++ filter_order ++ sort_order ++ search_fields)
@@ -118,8 +124,11 @@ defmodule Cinder.Next.Config do
       columns:
         for(col <- cols, do: %Column{field: col.field, label: fields[col.field].label, slot: col}),
       search: search(assigns[:search], search_fields),
-      layout: layout(assigns[:layout]),
+      layout: layout,
+      grid_columns: grid_columns,
       item_slot: assigns[:item] || [],
+      layout_slot: assigns[:inner_block] || [],
+      toolbar_slot: assigns[:toolbar] || [],
       id: assigns[:id],
       form_id: assigns[:id] && "#{assigns[:id]}-filters",
       action: assigns[:action],
@@ -225,11 +234,51 @@ defmodule Cinder.Next.Config do
 
   defp filter_type(type, _name), do: type
 
-  defp layout(layout) when layout in [nil, :table, "table"], do: :table
-  defp layout(layout) when layout in [:grid, "grid"], do: :grid
+  @breakpoints [:xs, :sm, :md, :lg, :xl, :"2xl"]
 
-  defp layout(layout) do
-    raise ArgumentError, "unknown layout #{inspect(layout)}. Known layouts: :table, :grid"
+  # `:list` is a one-column grid, the same way `actor`/`tenant` become a scope:
+  # nothing past here sees it. A list with `grid_columns` contradicts itself.
+  defp layout(layout, nil) when layout in [nil, :table, "table"], do: {:table, nil}
+  defp layout(layout, nil) when layout in [:list, "list"], do: {:grid, 1}
+  defp layout(layout, columns) when layout in [:grid, "grid"], do: {:grid, grid_columns(columns)}
+
+  # The inner block is the layout. Phoenix gives the component an `inner_block`
+  # whenever there's whitespace between its slots, so its presence can't decide
+  # this; it has to be asked for. Columns are kept for a `<Cinder.Next.grid>` in it.
+  defp layout(layout, columns) when layout in [:custom, "custom"],
+    do: {:custom, grid_columns(columns)}
+
+  defp layout(layout, _columns) when layout in [:list, "list"] do
+    raise ArgumentError, "a list is one column, so it can't take grid_columns. Use layout={:grid}"
+  end
+
+  defp layout(layout, _columns) when layout in [nil, :table, "table"] do
+    raise ArgumentError, "grid_columns only applies to layout={:grid}"
+  end
+
+  defp layout(layout, _columns) do
+    raise ArgumentError,
+          "unknown layout #{inspect(layout)}. Known layouts: :table, :grid, :list, :custom"
+  end
+
+  defp grid_columns(nil), do: nil
+  defp grid_columns(count) when is_integer(count) and count > 0, do: count
+
+  defp grid_columns(breakpoints) when is_list(breakpoints) do
+    for {breakpoint, count} <- breakpoints do
+      unless breakpoint in @breakpoints and is_integer(count) and count > 0 do
+        raise ArgumentError,
+              "grid_columns breakpoints are #{inspect(@breakpoints)} with positive counts, " <>
+                "got #{inspect({breakpoint, count})}"
+      end
+
+      {breakpoint, count}
+    end
+  end
+
+  defp grid_columns(other) do
+    raise ArgumentError,
+          "grid_columns takes a positive number or breakpoints, got #{inspect(other)}"
   end
 
   defp to_atom(value) when is_binary(value), do: String.to_existing_atom(value)

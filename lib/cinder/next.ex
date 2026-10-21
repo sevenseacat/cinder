@@ -32,7 +32,15 @@ defmodule Cinder.Next do
   attr :query_opts, :list, default: []
   attr :page_size, :integer, default: 25
   attr :url_state, :any, default: false
-  attr :layout, :any, default: :table, values: [:table, :grid, "table", "grid"]
+
+  attr :layout, :any,
+    default: :table,
+    values: [:table, :grid, :list, :custom, "table", "grid", "list", "custom"],
+    doc: "`:list` is a one-column `:grid`; `:custom` renders the inner block as the layout"
+
+  attr :grid_columns, :any,
+    default: nil,
+    doc: "Grid columns: a number, or breakpoints like `[xs: 1, md: 3]`. Default: as many as fit."
 
   attr :search, :any,
     default: nil,
@@ -71,8 +79,16 @@ defmodule Cinder.Next do
 
   slot :item, doc: "A grid layout's card for each record, via `:let`"
 
-  slot :pagination,
-    doc: "Replaces the default pagination. Receives the pagination view-model via `:let`."
+  # Region slots replace one region of the default layout. Like the inner block,
+  # they receive the whole collection view-model via `:let`.
+  slot :toolbar, doc: "Replaces the region above the results (search, filters, sort)"
+  slot :pagination, doc: "Replaces the pagination below the results"
+
+  slot :inner_block,
+    doc: """
+    With `layout={:custom}`, the whole layout, receiving the collection view-model
+    via `:let`. Compose it from the components in this module and your own markup.
+    """
 
   def collection(assigns) do
     assigns = assign(assigns, :config, Config.build(assigns))
@@ -91,11 +107,42 @@ defmodule Cinder.Next do
   defp url_params(%{filters: params}), do: params
   defp url_params(_url_state), do: nil
 
+  # ===========================================================================
+  # Default components. Region-level ones (`toolbar`, `table`, `grid`,
+  # `pagination`) take the whole `collection` view-model and render nothing when
+  # their region is empty, so layouts need no guards. Element-level ones take
+  # their own piece of it. All of them take `class` and any other attributes,
+  # merged onto their root element.
+  # ===========================================================================
+
+  attr :collection, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
+
+  @doc "Search, filters and (for grids) the sort dropdown"
+  def toolbar(assigns) do
+    ~H"""
+    <div
+      :if={@collection.search || @collection.filters != [] || grid_sort?(@collection)}
+      {merge(%{"data-part" => "toolbar"}, @class, @rest)}
+    >
+      <.search :if={@collection.search} search={@collection.search} />
+      <.filter :for={filter <- @collection.filters} filter={filter} />
+      <.sort_select :if={grid_sort?(@collection)} sort_select={@collection.sort_select} />
+    </div>
+    """
+  end
+
+  # Tables sort from their column headers; grids get the dropdown
+  defp grid_sort?(collection), do: collection.layout == :grid and collection.sort_select != nil
+
   attr :search, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
   def search(assigns) do
     ~H"""
-    <div {@search.attrs}>
+    <div {merge(@search.attrs, @class, @rest)}>
       <label for={@search.input_attrs["id"]}>{@search.label}</label>
       <input {@search.input_attrs} />
       <button {@search.clear_attrs}>×</button>
@@ -104,6 +151,8 @@ defmodule Cinder.Next do
   end
 
   attr :filter, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
   @doc """
   A filter: its `<:filter>` slot's content if it has any, otherwise the default
@@ -117,7 +166,7 @@ defmodule Cinder.Next do
 
   def filter(assigns) do
     ~H"""
-    <div {@filter.attrs}>
+    <div {merge(@filter.attrs, @class, @rest)}>
       <label {@filter.label_attrs}>{@filter.label}</label>
       <input :if={@filter.type == :text} {@filter.input_attrs} />
       <select :if={@filter.type == :select} {@filter.input_attrs}>
@@ -130,11 +179,13 @@ defmodule Cinder.Next do
   end
 
   attr :sort_select, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
   @doc "An exclusive sort as a dropdown: the default for layouts without column headers."
   def sort_select(assigns) do
     ~H"""
-    <div {@sort_select.attrs}>
+    <div {merge(@sort_select.attrs, @class, @rest)}>
       <label for={@sort_select.select_attrs["id"]}>{@sort_select.label}</label>
       <select {@sort_select.select_attrs}>
         <option :for={option <- @sort_select.options} {option.attrs}>{option.label}</option>
@@ -143,31 +194,49 @@ defmodule Cinder.Next do
     """
   end
 
-  attr :view, :map, required: true
-  attr :item, :list, required: true, doc: "The collection's `<:item>` slot"
+  attr :collection, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
-  def grid(assigns) do
+  @doc "The results in the collection's layout: `table/1` or `grid/1`"
+  def results(assigns) do
     ~H"""
-    <div data-part="grid">
-      <div :for={row <- @view.rows} {row.attrs}>{render_slot(@item, row.record)}</div>
-      <p :if={@view.rows == [] and @view.status == :idle} data-part="empty">
-        {dgettext("cinder", "No results found")}
-      </p>
-      <p :if={@view.status == :error} data-part="error">
-        {dgettext("cinder", "An error occurred while loading data")}
-      </p>
-    </div>
+    <.grid :if={@collection.layout == :grid} collection={@collection} class={@class} {@rest} />
+    <.table :if={@collection.layout != :grid} collection={@collection} class={@class} {@rest} />
     """
   end
 
-  attr :view, :map, required: true
+  attr :collection, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
+
+  @doc "Cards from the collection's `<:item>` slot, as a list (a one-column grid is a list)"
+  def grid(assigns) do
+    ~H"""
+    <ul {merge(@collection.grid_attrs, @class, @rest)}>
+      <li :for={row <- @collection.rows} {row.attrs}>
+        {render_slot(@collection.item_slot, row.record)}
+      </li>
+    </ul>
+    <p :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">
+      {dgettext("cinder", "No results found")}
+    </p>
+    <p :if={@collection.status == :error} data-part="error">
+      {dgettext("cinder", "An error occurred while loading data")}
+    </p>
+    """
+  end
+
+  attr :collection, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
   def table(assigns) do
     ~H"""
-    <table data-part="table">
+    <table {merge(%{"data-part" => "table"}, @class, @rest)}>
       <thead>
         <tr>
-          <th :for={column <- @view.columns} {column.attrs}>
+          <th :for={column <- @collection.columns} {column.attrs}>
             <%= if column.sortable? do %>
               <button {column.sort_attrs}>
                 {column.label}<span {column.indicator_attrs}></span>
@@ -179,8 +248,8 @@ defmodule Cinder.Next do
         </tr>
       </thead>
       <tbody>
-        <tr :for={row <- @view.rows} {row.attrs}>
-          <td :for={column <- @view.columns} data-part="cell" data-field={column.field}>
+        <tr :for={row <- @collection.rows} {row.attrs}>
+          <td :for={column <- @collection.columns} data-part="cell" data-field={column.field}>
             <%= if column.slot[:inner_block] do %>
               {render_slot(column.slot, row.record)}
             <% else %>
@@ -188,11 +257,11 @@ defmodule Cinder.Next do
             <% end %>
           </td>
         </tr>
-        <tr :if={@view.rows == [] and @view.status == :idle} data-part="empty">
-          <td colspan={length(@view.columns)}>{dgettext("cinder", "No results found")}</td>
+        <tr :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">
+          <td colspan={length(@collection.columns)}>{dgettext("cinder", "No results found")}</td>
         </tr>
-        <tr :if={@view.status == :error} data-part="error">
-          <td colspan={length(@view.columns)}>
+        <tr :if={@collection.status == :error} data-part="error">
+          <td colspan={length(@collection.columns)}>
             {dgettext("cinder", "An error occurred while loading data")}
           </td>
         </tr>
@@ -201,19 +270,40 @@ defmodule Cinder.Next do
     """
   end
 
-  attr :pagination, :map, required: true
+  attr :collection, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
+  @doc "The whole pagination region: summary, previous/next and page links"
   def pagination(assigns) do
     ~H"""
-    <nav {@pagination.attrs}>
-      <span :if={@pagination.summary} data-part="summary">{@pagination.summary}</span>
-      <button {@pagination.prev.attrs}>{@pagination.prev.label}</button>
-      <%= for page <- @pagination.pages do %>
+    <nav :if={@collection.pagination} {merge(@collection.pagination.attrs, @class, @rest)}>
+      <span :if={@collection.pagination.summary} data-part="summary">
+        {@collection.pagination.summary}
+      </span>
+      <button {@collection.pagination.prev.attrs}>{@collection.pagination.prev.label}</button>
+      <%= for page <- @collection.pagination.pages do %>
         <span :if={page.kind == :gap} {page.attrs}>{page.label}</span>
         <button :if={page.kind != :gap} {page.attrs}>{page.label}</button>
       <% end %>
-      <button {@pagination.next.attrs}>{@pagination.next.label}</button>
+      <button {@collection.pagination.next.attrs}>{@collection.pagination.next.label}</button>
     </nav>
     """
+  end
+
+  # A component's own attrs plus whatever the caller passed: classes are added,
+  # and the caller's attrs win, except where Cinder's own value for one of these
+  # is what its wiring and styling depend on
+  @protected ["data-part", "id", "name", "form", "phx-target"]
+
+  defp merge(ours, class, rest) do
+    theirs = Map.new(rest, fn {key, value} -> {to_string(key), value} end)
+
+    # Cinder's own value wins only where it has one
+    ours
+    |> Map.merge(theirs, fn key, our_value, their_value ->
+      if key in @protected, do: our_value, else: their_value
+    end)
+    |> Map.update("class", class, &[&1, class])
   end
 end

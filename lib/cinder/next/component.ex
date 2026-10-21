@@ -76,31 +76,30 @@ defmodule Cinder.Next.Component do
 
     ~H"""
     <div id={@id} {@view.attrs}>
-      <form {@view.form_attrs}>
-        <div :if={@view.search || @view.filters != [] || grid_sort?(@view)} data-part="toolbar">
-          <Cinder.Next.search :if={@view.search} search={@view.search} />
-          <Cinder.Next.filter :for={filter <- @view.filters} filter={filter} />
-          <Cinder.Next.sort_select :if={grid_sort?(@view)} sort_select={@view.sort_select} />
-        </div>
-      </form>
-      <%= if @view.layout == :grid do %>
-        <Cinder.Next.grid view={@view} item={@config.item_slot} />
+      <%= if @config.layout == :custom do %>
+        <%!-- A custom layout: inputs anywhere in it join this form through `form=` --%>
+        <form {@view.form_attrs}></form>
+        {render_slot(@config.layout_slot, @view)}
       <% else %>
-        <Cinder.Next.table view={@view} />
-      <% end %>
-      <%= if @view.pagination do %>
+        <%!-- The default layout keeps the toolbar inside the form, so it works with any test tooling --%>
+        <form {@view.form_attrs}>
+          <%= if @config.toolbar_slot != [] do %>
+            {render_slot(@config.toolbar_slot, @view)}
+          <% else %>
+            <Cinder.Next.toolbar collection={@view} />
+          <% end %>
+        </form>
+        <Cinder.Next.results collection={@view} />
+        <%!-- A region slot only renders when its region exists, so it never sees a nil pagination --%>
         <%= if @config.pagination_slot != [] do %>
-          {render_slot(@config.pagination_slot, @view.pagination)}
+          {@view.pagination && render_slot(@config.pagination_slot, @view)}
         <% else %>
-          <Cinder.Next.pagination pagination={@view.pagination} />
+          <Cinder.Next.pagination collection={@view} />
         <% end %>
       <% end %>
     </div>
     """
   end
-
-  # Tables sort from their column headers; other layouts get the dropdown
-  defp grid_sort?(view), do: view.layout == :grid and view.sort_select != nil
 
   # The dropdown's value, in the URL's encoding: "" for none, "-field" for descending.
   # Only declared sorts are accepted; anything else leaves the sort alone.

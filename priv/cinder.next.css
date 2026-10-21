@@ -142,10 +142,69 @@
   }
 
   /* Grid layout: cards from the <:item> slot */
+  /* As many columns as there's room for, sized to the grid's own width */
   :where([data-cinder] [data-part="grid"]) {
+    --cinder-grid-min: 220px;
+
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--cinder-grid-min), 100%), 1fr));
     gap: var(--cinder-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* `grid_columns`: a fixed count, or per-breakpoint counts that each fall back to
+     the nearest smaller breakpoint (Tailwind's default widths) */
+  :where([data-cinder] [data-part="grid"][data-columns]) {
+    --cinder-grid-count: var(--cinder-grid-columns, var(--cinder-grid-columns-xs, 1));
+
+    grid-template-columns: repeat(var(--cinder-grid-count), minmax(0, 1fr));
+  }
+
+  @media (width >= 40rem) {
+    :where([data-cinder] [data-part="grid"][data-columns]) {
+      --cinder-grid-count: var(--cinder-grid-columns,
+          var(--cinder-grid-columns-sm, var(--cinder-grid-columns-xs, 1)));
+    }
+  }
+
+  @media (width >= 48rem) {
+    :where([data-cinder] [data-part="grid"][data-columns]) {
+      --cinder-grid-count: var(--cinder-grid-columns,
+          var(--cinder-grid-columns-md,
+            var(--cinder-grid-columns-sm, var(--cinder-grid-columns-xs, 1))));
+    }
+  }
+
+  @media (width >= 64rem) {
+    :where([data-cinder] [data-part="grid"][data-columns]) {
+      --cinder-grid-count: var(--cinder-grid-columns,
+          var(--cinder-grid-columns-lg,
+            var(--cinder-grid-columns-md,
+              var(--cinder-grid-columns-sm, var(--cinder-grid-columns-xs, 1)))));
+    }
+  }
+
+  @media (width >= 80rem) {
+    :where([data-cinder] [data-part="grid"][data-columns]) {
+      --cinder-grid-count: var(--cinder-grid-columns,
+          var(--cinder-grid-columns-xl,
+            var(--cinder-grid-columns-lg,
+              var(--cinder-grid-columns-md,
+                var(--cinder-grid-columns-sm, var(--cinder-grid-columns-xs, 1))))));
+    }
+  }
+
+  @media (width >= 96rem) {
+    :where([data-cinder] [data-part="grid"][data-columns]) {
+      --cinder-grid-count: var(--cinder-grid-columns,
+          var(--cinder-grid-columns-2xl,
+            var(--cinder-grid-columns-xl,
+              var(--cinder-grid-columns-lg,
+                var(--cinder-grid-columns-md,
+                  var(--cinder-grid-columns-sm, var(--cinder-grid-columns-xs, 1)))))));
+    }
   }
 
   :where([data-cinder] [data-part="item"]) {
@@ -155,8 +214,7 @@
     background: var(--cinder-bg);
   }
 
-  :where([data-cinder] [data-part="grid"] > :is([data-part="empty"], [data-part="error"])) {
-    grid-column: 1 / -1;
+  :where([data-cinder] p:is([data-part="empty"], [data-part="error"])) {
     padding: 32px 12px;
     color: var(--cinder-muted);
     text-align: center;

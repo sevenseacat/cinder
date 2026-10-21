@@ -145,9 +145,9 @@ defmodule Cinder.Next.ComponentTest do
         ~H"""
         <Cinder.Next.collection id="albums" resource={Music.Album} page_size={2}>
           <:col :let={album} field="title" sort>{album.title}</:col>
-          <:pagination :let={pagination}>
+          <:pagination :let={c}>
             <ol id="custom-pagination">
-              <li :for={page <- pagination.pages}>
+              <li :for={page <- c.pagination.pages}>
                 <a :if={page.kind == :page} {page.attrs}>Page {page.label}</a>
               </li>
             </ol>
