@@ -102,6 +102,34 @@ defmodule Cinder.Next.ViewTest do
       refute without.input_attrs["aria-describedby"]
     end
 
+    test "select options can also render as radio buttons that join the form" do
+      filters = %{"genre" => %{type: :select, value: "jazz", operator: :equals}}
+      state = State.new(page_size: 10) |> State.set_filters(filters, "")
+
+      [genre] = build(state: state, filter: [filter("genre", type: :select)]).filters
+      jazz = Enum.find(genre.options, &(&1.value == "jazz"))
+
+      assert %{
+               "type" => "radio",
+               "name" => "filters[genre]",
+               "value" => "jazz",
+               "checked" => true,
+               "form" => "albums-filters"
+             } = jazz.input_attrs
+
+      assert jazz.selected?
+      assert length(Enum.uniq_by(genre.options, & &1.input_attrs["id"])) == length(genre.options)
+    end
+
+    test "the collection counts its active filters" do
+      filters = %{"title" => %{type: :text, value: "alp", operator: :contains}}
+      state = State.new(page_size: 10) |> State.set_filters(filters, "")
+      view = build(state: state, filter: [filter("title", type: :text), filter("genre")])
+
+      assert view.active_filter_count == 1
+      assert view.clear_all_attrs["phx-click"] == "clear_all"
+    end
+
     test "follow the declared order, and can be looked up by field" do
       view = build(filter: [filter("genre", type: :select), filter("title", type: :text)])
 

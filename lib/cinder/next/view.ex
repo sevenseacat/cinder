@@ -32,6 +32,13 @@ defmodule Cinder.Next.View do
       search: search(config, state, myself),
       filters: filters,
       filters_by_field: Map.new(filters, &{&1.field, &1}),
+      active_filter_count: Enum.count(filters, & &1.attrs["data-active"]),
+      clear_all_attrs: %{
+        "type" => "button",
+        "data-part" => "clear-all",
+        "phx-click" => "clear_all",
+        "phx-target" => myself
+      },
       sorts: for(name <- config.sort_order, do: sort(config.fields[name], state, myself)),
       sort_select: sort_select(config, state),
       layout: config.layout,
@@ -166,7 +173,7 @@ defmodule Cinder.Next.View do
         value: value,
         help: filter.help,
         render: filter.render,
-        options: filter_options(filter, label, value),
+        options: filter_options(filter, label, value, name, input_id, config.form_id),
         attrs: %{
           "data-part" => "filter",
           "data-field" => name,
@@ -209,21 +216,36 @@ defmodule Cinder.Next.View do
     %{"id" => input_id, "name" => Cinder.Filter.field_name(name), "form" => form_id}
   end
 
-  # A select's options, starting with the prompt that clears it
-  defp filter_options(%{type: :select, options: options}, label, value) do
+  # A select's options, starting with the prompt that clears it. `attrs` are for an
+  # `<option>`; `input_attrs` render the same option as a radio button that joins the
+  # form, for a button group or radio list instead of a dropdown.
+  defp filter_options(%{type: :select, options: options}, label, value, name, input_id, form_id) do
     prompt = options[:prompt] || dgettext("cinder", "All %{label}", label: label)
 
-    for {option_label, option_value} <- [{prompt, ""} | Keyword.get(options, :options, [])] do
+    for {{option_label, option_value}, index} <-
+          Enum.with_index([{prompt, ""} | Keyword.get(options, :options, [])]) do
       option_value = to_string(option_value)
+      selected? = option_value == value
 
       %{
         label: option_label,
-        attrs: %{"value" => option_value, "selected" => option_value == value}
+        value: option_value,
+        selected?: selected?,
+        attrs: %{"value" => option_value, "selected" => selected?},
+        input_attrs: %{
+          "type" => "radio",
+          "id" => "#{input_id}-#{index}",
+          "name" => Cinder.Filter.field_name(name),
+          "value" => option_value,
+          "checked" => selected?,
+          "form" => form_id,
+          "aria-label" => option_label
+        }
       }
     end
   end
 
-  defp filter_options(_filter, _label, _value), do: []
+  defp filter_options(_filter, _label, _value, _name, _input_id, _form_id), do: []
 
   defp column(column, field, state, myself) do
     sortable? = field.sort != nil

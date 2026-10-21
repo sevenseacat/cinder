@@ -5,7 +5,15 @@ defmodule Cinder.Next.ComponentTest do
   import Phoenix.ConnTest, only: [get: 2]
 
   import Phoenix.LiveViewTest,
-    only: [live: 2, render_async: 1, render_change: 2, render_click: 1, element: 2]
+    only: [
+      live: 2,
+      render_async: 1,
+      render_change: 2,
+      render_click: 1,
+      render_hook: 3,
+      with_target: 2,
+      element: 2
+    ]
 
   setup do
     artist = generate(artist(name: "Next Artist"))
@@ -125,6 +133,20 @@ defmodule Cinder.Next.ComponentTest do
     html = click(view, ~s([data-part="search-clear"]))
     assert html =~ "showing 1-2 of 5"
     assert html =~ ~r/<button[^>]*data-part="search-clear"[^>]*hidden/
+  end
+
+  test "clear all resets filters and search together", %{conn: conn, path: path} do
+    {:ok, view, _html} = live(conn, path)
+    render_async(view)
+    html = change(view, %{"filters" => %{"title" => "a", "genre" => "rock"}, "search" => "alpha"})
+    assert titles(html) == ["Alpha"]
+
+    # Clear all isn't in the default layout, so send its event as a custom layout's button would
+    view |> with_target("#albums") |> render_hook("clear_all", %{})
+    html = render_async(view)
+
+    assert html =~ "showing 1-2 of 5"
+    refute html =~ ~s(value="alpha")
   end
 
   test "clearing a filter brings the records back", %{conn: conn, path: path} do

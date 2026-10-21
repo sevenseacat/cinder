@@ -53,6 +53,10 @@ defmodule Cinder.Next.Component do
      end)}
   end
 
+  def handle_event("clear_all", _params, socket) do
+    {:noreply, commit(socket, &State.clear_all/1)}
+  end
+
   def handle_event("clear_filter", %{"field" => field}, socket) do
     {:noreply, commit(socket, &State.clear_filter(&1, field))}
   end
