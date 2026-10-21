@@ -210,6 +210,47 @@ defmodule Cinder.Next.ComponentTest do
     assert titles(click(view, "#by-title")) == ["Echo", "Delta"]
   end
 
+  test "a filter can be placed by field, with the markup from its <:filter>", %{conn: conn} do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection :let={c} id="albums" resource={Music.Album} layout="custom">
+          <:filter :let={f} field="genre">
+            <select id="custom-genre" {f.input_attrs}>
+              <option :for={option <- f.options} {option.attrs}>{option.label}</option>
+            </select>
+          </:filter>
+          <:filter field="title" />
+          <form {c.form_attrs}>
+            <div id="top"><Cinder.Next.filter collection={c} field="genre" /></div>
+            <div id="bottom"><Cinder.Next.filter collection={c} field="title" /></div>
+          </form>
+          <p :for={row <- c.rows}>{row.record.title}</p>
+        </Cinder.Next.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+    html = render_async(view)
+
+    assert html =~ ~r/id="top">\s*<select id="custom-genre"/
+    assert html =~ ~r/id="bottom">.*name="filters\[title\]"/s
+
+    view |> element("#albums-filters") |> render_change(%{"filters" => %{"genre" => "pop"}})
+    assert titles(render_async(view)) == ["Echo"]
+  end
+
+  test "placing a filter for a field that wasn't declared is an error" do
+    collection = %{filters: Cinder.Next.Filters.new([])}
+
+    assert_raise ArgumentError, ~r/no filter is declared for "genre"/, fn ->
+      Phoenix.LiveViewTest.render_component(&Cinder.Next.filter/1,
+        collection: collection,
+        field: "genre"
+      )
+    end
+  end
+
   test "a <:filter> with content replaces that filter's markup, and keeps its wiring",
        %{conn: conn} do
     path =

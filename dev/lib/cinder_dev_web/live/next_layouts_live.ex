@@ -50,10 +50,10 @@ defmodule CinderDevWeb.NextLayoutsLive do
         <:filter field="title" type="text" />
 
         <div class="grid gap-6 md:grid-cols-[16rem_1fr]">
-          <aside class="space-y-4">
+          <form {c.form_attrs} class="space-y-4">
             <Cinder.Next.search search={c.search} />
             <Cinder.Next.filter :for={f <- c.filters} filter={f} />
-          </aside>
+          </form>
           <main class="space-y-4">
             <Cinder.Next.pagination collection={c} />
             <Cinder.Next.table collection={c} />

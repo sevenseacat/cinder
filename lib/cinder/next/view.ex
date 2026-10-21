@@ -8,7 +8,7 @@ defmodule Cinder.Next.View do
   """
   use Cinder.Messages
 
-  alias Cinder.Next.State
+  alias Cinder.Next.{Filters, State}
   alias Cinder.QueryBuilder
 
   @window 2
@@ -21,6 +21,7 @@ defmodule Cinder.Next.View do
       status: status,
       # For components that take an event and target rather than attribute maps
       target: myself,
+      form_id: config.form_id,
       attrs: %{"data-cinder" => "collection", "data-state" => to_string(status)},
       # The default toolbar renders inside this form, so it works with any test
       # tooling. Filter inputs also name it in their `form` attribute, so custom
@@ -33,8 +34,7 @@ defmodule Cinder.Next.View do
         "phx-target" => myself
       },
       search: search(config, state, myself),
-      filters: filters,
-      filters_by_field: Map.new(filters, &{&1.field, &1}),
+      filters: Filters.new(filters),
       active_filter_count: Enum.count(filters, & &1.attrs["data-active"]),
       clear_all_attrs: %{
         "type" => "button",
@@ -200,6 +200,8 @@ defmodule Cinder.Next.View do
         form_id: config.form_id,
         described_by: described_by,
         invalid?: errors != [],
+        errors: errors,
+        used?: used?,
         raw: state.raw
       }
 
@@ -237,6 +239,7 @@ defmodule Cinder.Next.View do
         help_attrs: %{"id" => help_id, "data-part" => "filter-help"},
         error_attrs: %{"id" => error_id, "data-part" => "filter-error", "role" => "alert"},
         input_attrs: input_attrs(filter.type, ctx, value),
+        form_field: form_field(filter.type, ctx, value),
         clear_attrs: %{
           "type" => "button",
           "data-part" => "filter-clear",
@@ -355,6 +358,35 @@ defmodule Cinder.Next.View do
          "aria-describedby" => ctx.described_by
        }}
     end
+  end
+
+  # The filter as `Phoenix.HTML.FormField`s, which component libraries' inputs take
+  # (`<.input field={f.form_field} form={c.form_id} />`). Each gets a form whose
+  # params mark it used or not, so a component's own `used_input?/1` agrees with ours.
+  # An autocomplete's input is its search box, not its value, so it has none.
+  defp form_field(:autocomplete, _ctx, _value), do: nil
+
+  defp form_field(:number_range, ctx, value) do
+    for bound <- [:min, :max], into: %{} do
+      {bound,
+       build_form_field(ctx, "#{ctx.name}_#{bound}", "#{ctx.input_id}-#{bound}", value[bound])}
+    end
+  end
+
+  defp form_field(_type, ctx, value), do: build_form_field(ctx, ctx.name, ctx.input_id, value)
+
+  defp build_form_field(ctx, param, id, value) do
+    params = if ctx.used?, do: %{param => value}, else: %{}
+
+    %Phoenix.HTML.FormField{
+      id: id,
+      name: Cinder.Filter.field_name(param),
+      field: param,
+      value: value,
+      # Already interpolated, in the `{message, opts}` shape components translate
+      errors: Enum.map(ctx.errors, &{&1, []}),
+      form: Phoenix.Component.to_form(params, as: "filters", id: ctx.form_id)
+    }
   end
 
   # A select's options, starting with the prompt that clears it. `attrs` are for an

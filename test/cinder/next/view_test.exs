@@ -73,7 +73,7 @@ defmodule Cinder.Next.ViewTest do
 
   describe "filters" do
     test "inputs join the collection's form, wherever they're rendered" do
-      [filter] = build(filter: [filter("title", type: :text)]).filters
+      filter = build(filter: [filter("title", type: :text)]).filters["title"]
 
       assert filter.input_attrs["form"] == "albums-filters"
       assert filter.input_attrs["name"] == "filters[title]"
@@ -87,7 +87,7 @@ defmodule Cinder.Next.ViewTest do
       filters = %{"title" => %{type: :text, value: "alp", operator: :contains}}
       state = State.new(page_size: 10) |> State.set_filters(filters, "")
 
-      [filter] = build(state: state, filter: [filter("title", type: :text)]).filters
+      filter = build(state: state, filter: [filter("title", type: :text)]).filters["title"]
 
       assert filter.attrs["data-active"] == true
       assert filter.input_attrs["value"] == "alp"
@@ -97,6 +97,7 @@ defmodule Cinder.Next.ViewTest do
     test "help text is linked to the input for assistive tech" do
       [with_help, without] =
         build(filter: [filter("title", type: :text, help: "Exact words"), filter("genre")]).filters
+        |> Enum.to_list()
 
       assert with_help.help == "Exact words"
       assert with_help.input_attrs["aria-describedby"] == with_help.help_attrs["id"]
@@ -107,7 +108,7 @@ defmodule Cinder.Next.ViewTest do
       filters = %{"genre" => %{type: :select, value: "jazz", operator: :equals}}
       state = State.new(page_size: 10) |> State.set_filters(filters, "")
 
-      [genre] = build(state: state, filter: [filter("genre", type: :select)]).filters
+      genre = build(state: state, filter: [filter("genre", type: :select)]).filters["genre"]
       jazz = Enum.find(genre.options, &(&1.value == "jazz"))
 
       assert %{
@@ -120,6 +121,50 @@ defmodule Cinder.Next.ViewTest do
 
       assert jazz.selected?
       assert length(Enum.uniq_by(genre.options, & &1.input_attrs["id"])) == length(genre.options)
+    end
+
+    test "come as FormFields too, for component libraries' inputs" do
+      filters = %{"title" => %{type: :text, value: "alp", operator: :contains}}
+      state = State.new(page_size: 10) |> State.set_filters(filters, "")
+      view = build(state: state, filter: [filter("title", type: :text), filter("genre")])
+      {title, genre} = {view.filters["title"], view.filters["genre"]}
+
+      assert %Phoenix.HTML.FormField{name: "filters[title]", value: "alp"} = title.form_field
+      assert title.form_field.id == title.input_attrs["id"]
+      assert view.form_id == title.input_attrs["form"]
+
+      # Components gate errors with Phoenix's own check, which must agree with ours
+      assert Phoenix.Component.used_input?(title.form_field)
+      refute Phoenix.Component.used_input?(genre.form_field)
+    end
+
+    test "a FormField carries errors in the shape components translate, once used" do
+      config =
+        Config.build(%{
+          id: "albums",
+          resource: Music.Album,
+          action: :with_min_tracks,
+          argument: [%{name: "min_tracks"}]
+        })
+
+      view = fn raw ->
+        state = %{State.new() | raw: raw, errors: %{"min_tracks" => ["is required"]}}
+
+        %{config: config, state: state, page: nil, status: :invalid, myself: @myself}
+        |> View.build()
+        |> get_in([:filters, "min_tracks", :form_field])
+      end
+
+      assert view.(%{"min_tracks" => ""}).errors == [{"is required", []}]
+      assert view.(%{"min_tracks" => "", "_unused_min_tracks" => ""}).errors == []
+    end
+
+    test "a range's FormFields are one per bound" do
+      %{min: min, max: max} =
+        build(filter: [filter("price", type: :number_range)]).filters["price"]
+        |> Map.fetch!(:form_field)
+
+      assert {min.name, max.name} == {"filters[price_min]", "filters[price_max]"}
     end
 
     test "the collection counts its active filters" do
@@ -135,7 +180,7 @@ defmodule Cinder.Next.ViewTest do
       view = build(filter: [filter("genre", type: :select), filter("title", type: :text)])
 
       assert Enum.map(view.filters, & &1.field) == ["genre", "title"]
-      assert view.filters_by_field["title"].type == :text
+      assert view.filters["title"].type == :text
     end
   end
 

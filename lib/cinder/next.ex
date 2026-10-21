@@ -103,6 +103,9 @@ defmodule Cinder.Next do
     doc: """
     With `layout={:custom}`, the whole layout, receiving the collection view-model
     via `:let`. Compose it from the components in this module and your own markup.
+    It places the filter form itself, `<form {c.form_attrs}>`, around its inputs;
+    inputs that can't go inside it (like a teleported modal's) join it with
+    `form={c.form_id}`.
     """
 
   def collection(assigns) do
@@ -147,7 +150,7 @@ defmodule Cinder.Next do
   def toolbar(assigns) do
     ~H"""
     <div
-      :if={@collection.search || @collection.filters != [] || grid_sort?(@collection)}
+      :if={@collection.search || Enum.any?(@collection.filters) || grid_sort?(@collection)}
       {merge(%{"data-part" => "toolbar"}, @class, @rest)}
     >
       <.search :if={@collection.search} search={@collection.search} />
@@ -174,14 +177,34 @@ defmodule Cinder.Next do
     """
   end
 
-  attr :filter, :map, required: true
+  attr :filter, :map,
+    default: nil,
+    doc: "The filter's view-model, e.g. in a loop over `c.filters`"
+
+  attr :collection, :map, default: nil, doc: "With `field`, instead of `filter`"
+  attr :field, :string, default: nil, doc: "Places the collection's filter for this field"
   attr :class, :any, default: nil
   attr :rest, :global
 
   @doc """
   A filter: its `<:filter>` slot's content if it has any, otherwise the default
   markup for its type. Either way it gets the filter's view-model.
+
+  Takes the view-model itself (`filter={f}`), or a collection and the field to
+  place (`collection={c} field="price"`).
   """
+  def filter(%{filter: nil, collection: %{filters: filters}, field: field} = assigns) do
+    case filters[field] do
+      nil ->
+        raise ArgumentError,
+              "no filter is declared for #{inspect(field)}; the declared ones are " <>
+                inspect(Enum.map(filters, & &1.field))
+
+      filter ->
+        filter(assign(assigns, :filter, filter))
+    end
+  end
+
   def filter(%{filter: %{render: render}} = assigns) when render != nil do
     ~H"""
     {render_slot(@filter.render, @filter)}

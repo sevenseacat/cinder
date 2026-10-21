@@ -39,67 +39,116 @@ defmodule CinderDevWeb.NextDaisyLive do
         search={[fields: ["title", "artist.name"]]}
       >
         <:filter field="genre" type="select" prompt="All" />
-        <:filter field="title" type="text" help="Matches anywhere in the title" />
+        <%!-- Each modal filter's daisyUI markup sits with its declaration --%>
+        <:filter :let={f} field="title" type="text" help="Matches anywhere in the title">
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">
+              {f.label}
+              <span class="tooltip" data-tip={f.help}>
+                <.icon name="hero-question-mark-circle" class="size-4 opacity-60" />
+              </span>
+              <.clear filter={f} />
+            </legend>
+            <input class="input w-full" {f.input_attrs} />
+            <p class="label" {f.help_attrs}>{f.help}</p>
+          </fieldset>
+        </:filter>
         <:filter
+          :let={f}
           field="tags"
           type="multi_checkboxes"
           options={Enum.map(CinderDev.Seeds.tags(), &{&1, &1})}
-        />
-        <:filter field="price" type="number_range" label="Price ($)" />
+        >
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">{f.label} <.clear filter={f} /></legend>
+            <div class="flex flex-wrap gap-x-4 gap-y-2">
+              <label :for={option <- f.options} class="label">
+                <input class="checkbox checkbox-sm" {option.input_attrs} /> {option.label}
+              </label>
+            </div>
+          </fieldset>
+        </:filter>
+        <:filter :let={f} field="price" type="number_range" label="Price ($)">
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">{f.label} <.clear filter={f} /></legend>
+            <div class="join">
+              <input class="input join-item" {f.input_attrs.min} />
+              <input class="input join-item" {f.input_attrs.max} />
+            </div>
+          </fieldset>
+        </:filter>
         <:filter
+          :let={f}
           field="artist.name"
           type="autocomplete"
           label="Artist"
           options={@artists}
           max_results={5}
-        />
+        >
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">{f.label} <.clear filter={f} /></legend>
+            <input class="input w-full" {f.input_attrs} />
+            <div class="flex flex-wrap gap-1">
+              <input
+                :for={option <- f.options}
+                class="btn btn-xs"
+                aria-label={option.label}
+                {option.input_attrs}
+              />
+            </div>
+          </fieldset>
+        </:filter>
         <:sort field="title" />
         <:sort field="price" label="Price" />
         <:sort field="release_date" label="Released" />
 
         <div class="space-y-4">
-          <div class="flex flex-wrap items-center gap-3">
-            <label class="input">
-              <.icon name="hero-magnifying-glass" class="size-4 opacity-50" />
-              <input {c.search.input_attrs} class="grow" />
-            </label>
+          <%!-- The search, genre and sort controls sit in the collection's form; the
+               teleported modal can't, so its inputs join it through `form=` --%>
+          <form {c.form_attrs} class="space-y-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="input">
+                <.icon name="hero-magnifying-glass" class="size-4 opacity-50" />
+                <input {c.search.input_attrs} class="grow" />
+              </label>
 
-            <button type="button" class="btn" onclick="daisy_filters.showModal()">
-              Filters
-              <span :if={c.active_filter_count > 0} class="badge badge-primary badge-sm">
-                {c.active_filter_count}
-              </span>
-            </button>
+              <button type="button" class="btn" onclick="daisy_filters.showModal()">
+                Filters
+                <span :if={c.active_filter_count > 0} class="badge badge-primary badge-sm">
+                  {c.active_filter_count}
+                </span>
+              </button>
 
-            <%!-- A select filter as a button group, from each option's radio attrs --%>
-            <div class="join">
-              <input
-                :for={option <- c.filters_by_field["genre"].options}
-                class="join-item btn btn-sm"
-                {option.input_attrs}
-              />
+              <%!-- A select filter as a button group, from each option's radio attrs --%>
+              <div class="join">
+                <input
+                  :for={option <- c.filters["genre"].options}
+                  class="join-item btn btn-sm"
+                  {option.input_attrs}
+                />
+              </div>
+
+              <span :if={c.status == :loading} class="loading loading-spinner loading-sm"></span>
             </div>
 
-            <span :if={c.status == :loading} class="loading loading-spinner loading-sm"></span>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-sm opacity-70">Sort:</span>
-            <%!-- Chips: additive, from each sort's attrs --%>
-            <button
-              :for={sort <- c.sorts}
-              class={["btn btn-xs", sort.direction && "btn-primary"]}
-              {sort.attrs}
-            >
-              {sort.label}
-              <span :if={sort.direction}>{if sort.direction == :asc, do: "↑", else: "↓"}</span>
-            </button>
-            <span class="divider divider-horizontal mx-0"></span>
-            <%!-- The same sorts as an exclusive dropdown --%>
-            <select class="select select-sm w-auto" {c.sort_select.select_attrs}>
-              <option :for={option <- c.sort_select.options} {option.attrs}>{option.label}</option>
-            </select>
-          </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm opacity-70">Sort:</span>
+              <%!-- Chips: additive, from each sort's attrs --%>
+              <button
+                :for={sort <- c.sorts}
+                class={["btn btn-xs", sort.direction && "btn-primary"]}
+                {sort.attrs}
+              >
+                {sort.label}
+                <span :if={sort.direction}>{if sort.direction == :asc, do: "↑", else: "↓"}</span>
+              </button>
+              <span class="divider divider-horizontal mx-0"></span>
+              <%!-- The same sorts as an exclusive dropdown --%>
+              <select class="select select-sm w-auto" {c.sort_select.select_attrs}>
+                <option :for={option <- c.sort_select.options} {option.attrs}>{option.label}</option>
+              </select>
+            </div>
+          </form>
 
           <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
 
@@ -132,50 +181,11 @@ defmodule CinderDevWeb.NextDaisyLive do
           >
             <div class="modal-box space-y-4">
               <h3 class="text-lg font-bold">Filters</h3>
-              <% title = c.filters_by_field["title"] %>
-              <fieldset class="fieldset">
-                <legend class="fieldset-legend">
-                  {title.label}
-                  <span class="tooltip" data-tip={title.help}>
-                    <.icon name="hero-question-mark-circle" class="size-4 opacity-60" />
-                  </span>
-                  <.clear filter={title} />
-                </legend>
-                <input class="input w-full" {title.input_attrs} />
-                <p class="label" {title.help_attrs}>{title.help}</p>
-              </fieldset>
-              <% artist = c.filters_by_field["artist.name"] %>
-              <fieldset class="fieldset">
-                <legend class="fieldset-legend">{artist.label} <.clear filter={artist} /></legend>
-                <input class="input w-full" {artist.input_attrs} />
-                <div class="flex flex-wrap gap-1">
-                  <input
-                    :for={option <- artist.options}
-                    class="btn btn-xs"
-                    aria-label={option.label}
-                    {option.input_attrs}
-                  />
-                </div>
-              </fieldset>
-
-              <% tags = c.filters_by_field["tags"] %>
-              <fieldset class="fieldset">
-                <legend class="fieldset-legend">{tags.label} <.clear filter={tags} /></legend>
-                <div class="flex flex-wrap gap-x-4 gap-y-2">
-                  <label :for={option <- tags.options} class="label">
-                    <input class="checkbox checkbox-sm" {option.input_attrs} /> {option.label}
-                  </label>
-                </div>
-              </fieldset>
-
-              <% price = c.filters_by_field["price"] %>
-              <fieldset class="fieldset">
-                <legend class="fieldset-legend">{price.label} <.clear filter={price} /></legend>
-                <div class="join">
-                  <input class="input join-item" {price.input_attrs.min} />
-                  <input class="input join-item" {price.input_attrs.max} />
-                </div>
-              </fieldset>
+              <Cinder.Next.filter
+                :for={field <- ~w(title artist.name tags price)}
+                collection={c}
+                field={field}
+              />
 
               <div class="modal-action">
                 <button class="btn btn-ghost" {c.clear_all_attrs}>Clear all</button>
@@ -201,13 +211,15 @@ defmodule CinderDevWeb.NextDaisyLive do
         <:argument name="min_tracks" label="At least this many tracks" />
         <:filter field="genre" type="select" prompt="All" />
 
-        <fieldset :for={min <- c.filters} class="fieldset max-w-xs">
-          <legend class="fieldset-legend">{min.label}</legend>
-          <input class={["input", min.errors != [] && "input-error"]} {min.input_attrs} />
-          <p :if={min.errors != []} class="label text-error" {min.error_attrs}>
-            {Enum.join(min.errors, ", ")}
-          </p>
-        </fieldset>
+        <form {c.form_attrs}>
+          <fieldset :for={min <- c.filters} class="fieldset max-w-xs">
+            <legend class="fieldset-legend">{min.label}</legend>
+            <input class={["input", min.errors != [] && "input-error"]} {min.input_attrs} />
+            <p :if={min.errors != []} class="label text-error" {min.error_attrs}>
+              {Enum.join(min.errors, ", ")}
+            </p>
+          </fieldset>
+        </form>
         <table :if={c.status == :idle} class="table">
           <tr :for={row <- c.rows} {row.attrs}>
             <td>{row.record.title}</td>

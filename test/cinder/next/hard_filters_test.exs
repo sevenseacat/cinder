@@ -291,7 +291,9 @@ defmodule Cinder.Next.HardFiltersTest do
           <:col :let={album} field="title">{album.title}</:col>
           <:filter field="genre" type="select" />
           <:filter field="title" type="text" />
-          <input :for={f <- c.filters} {f.input_attrs} />
+          <form {c.form_attrs}>
+            <input :for={f <- c.filters} {f.input_attrs} />
+          </form>
           <p :for={row <- c.rows}>{row.record.title}</p>
         </Cinder.Next.collection>
         """

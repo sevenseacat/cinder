@@ -24,12 +24,14 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/cinder_dev"
 import topbar from "../vendor/topbar"
+// Petal Components' hooks, for its dual range slider on the Next Petal page
+import PetalComponents from "../../deps/petal_components/assets/js/petal_components"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ...PetalComponents},
 })
 
 // Show progress bar on live navigation and form submits

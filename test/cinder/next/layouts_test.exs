@@ -88,10 +88,11 @@ defmodule Cinder.Next.LayoutsTest do
         <:col :let={album} field="title" sort search>{album.title}</:col>
         <:filter field="genre" />
 
-        <aside id="sidebar">
-          <Cinder.Next.search search={c.search} />
+        <form {c.form_attrs} class="sidebar">
           <Cinder.Next.filter :for={f <- c.filters} filter={f} />
-        </aside>
+        </form>
+        <%!-- Outside the form, joining it through `form=` --%>
+        <Cinder.Next.search search={c.search} />
         <main>
           <Cinder.Next.pagination collection={c} id="top-pagination" />
           <Cinder.Next.table collection={c} />
@@ -106,11 +107,11 @@ defmodule Cinder.Next.LayoutsTest do
     view = mount(conn, sidebar_layout(false))
     html = render_async(view)
 
-    # The inputs live outside the (empty) form and join it with `form=`
-    assert html =~ ~r/<form[^>]*id="albums-filters"[^>]*><\/form>/
+    # The layout places the form: filters inside it, search outside it through `form=`
+    assert html =~ ~r/<form[^>]*id="albums-filters"[^>]*>.*name="filters\[genre\]".*<\/form>/s
 
     assert html =~
-             ~r/id="sidebar".*name="filters\[genre\]"[^>]*form="albums-filters"|id="sidebar".*form="albums-filters"[^>]*name="filters\[genre\]"/s
+             ~r/<\/form>.*name="search"[^>]*form="albums-filters"|<\/form>.*form="albums-filters"[^>]*name="search"/s
 
     assert length(Regex.scan(~r/data-part="pagination"/, html)) == 2
 

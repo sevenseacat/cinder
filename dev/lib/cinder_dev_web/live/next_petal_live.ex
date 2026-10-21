@@ -35,46 +35,51 @@ defmodule CinderDevWeb.NextPetalLive do
         page_size={10}
         search={[fields: ["title", "artist.name"]]}
       >
-        <:filter field="genre" type="select" prompt="All genres" />
+        <%!-- Each filter's Petal markup sits with its declaration; the layout places it --%>
+        <:filter :let={f} field="genre" type="select" prompt="All genres">
+          <Field.field field={f.form_field} type="select" label={f.label} options={options(f)} />
+        </:filter>
         <:filter
+          :let={f}
           field="tags"
           type="multi_checkboxes"
           options={Enum.map(CinderDev.Seeds.tags(), &{&1, &1})}
-        />
-        <:filter field="price" type="number_range" label="Price ($)" />
+        >
+          <Field.field
+            field={f.form_field}
+            type="checkbox-group"
+            group_layout="row"
+            label={f.label}
+            options={options(f)}
+          />
+        </:filter>
+        <:filter :let={f} field="price" type="number_range" label="Price ($)">
+          <%!-- Petal's slider only takes FormFields. Its hook posts both bounds. --%>
+          <Field.field
+            type="range-dual"
+            min_field={f.form_field.min}
+            max_field={f.form_field.max}
+            range_min={0}
+            range_max={30}
+            value_prefix="$"
+            label={f.label}
+          />
+        </:filter>
         <%!-- Petal's table builds its own sortable headers, from its own columns --%>
         <:sort field="title" />
         <:sort field="price" />
         <:sort field="release_date" />
 
         <div class="space-y-4">
-          <div class="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Field.field {attrs(c.search.input_attrs)} label={c.search.label} />
-
-            <% genre = c.filters_by_field["genre"] %>
-            <%!-- The prompt is the first of the view-model's options --%>
-            <Field.field
-              {attrs(genre.input_attrs)}
-              type="select"
-              label={genre.label}
-              options={Enum.map(genre.options, &{&1.label, &1.value})}
-            />
-
-            <% price = c.filters_by_field["price"] %>
-            <Field.field {attrs(price.input_attrs.min)} label={"Min #{price.label}"} />
-            <Field.field {attrs(price.input_attrs.max)} label={"Max #{price.label}"} />
-          </div>
-
-          <% tags = c.filters_by_field["tags"] %>
-          <Field.field
-            type="checkbox-group"
-            group_layout="row"
-            name={tags.name}
-            value={tags.value}
-            label={tags.label}
-            options={Enum.map(tags.options, &{&1.label, &1.value})}
-            form={c.form_attrs["id"]}
-          />
+          <%!-- Petal's inputs assume they're inside a form, so they are --%>
+          <form {c.form_attrs} class="space-y-4">
+            <div class="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field.field {attrs(c.search.input_attrs)} label={c.search.label} />
+              <Cinder.Next.filter collection={c} field="genre" />
+              <div class="lg:col-span-2"><Cinder.Next.filter collection={c} field="price" /></div>
+            </div>
+            <Cinder.Next.filter collection={c} field="tags" />
+          </form>
 
           <div class="flex items-center gap-3">
             <Button.button
@@ -118,6 +123,43 @@ defmodule CinderDevWeb.NextPetalLive do
           <.petal_pagination pagination={c.pagination} target={c.target} />
         </div>
       </Cinder.Next.collection>
+
+      <h2 class="mt-12 text-lg font-semibold">
+        Phoenix's generated core_components (not URL-synced)
+      </h2>
+      <Cinder.Next.collection
+        :let={c}
+        id="core"
+        resource={Music.Album}
+        action={:with_min_tracks}
+        layout="custom"
+        page_size={5}
+      >
+        <:col :let={album} field="title">{album.title}</:col>
+        <:argument name="min_tracks" label="At least this many tracks" />
+        <:filter field="genre" type="select" />
+        <:filter field="price" type="number_range" />
+
+        <%!-- Looked up inline instead, with the markup in the layout --%>
+        <form {c.form_attrs} class="grid gap-x-4 sm:grid-cols-4">
+          <.input
+            field={c.filters["min_tracks"].form_field}
+            type="number"
+            label={c.filters["min_tracks"].label}
+          />
+          <.input
+            field={c.filters["genre"].form_field}
+            type="select"
+            label={c.filters["genre"].label}
+            options={options(c.filters["genre"])}
+          />
+          <.input field={c.filters["price"].form_field.min} type="number" label="Min price" />
+          <.input field={c.filters["price"].form_field.max} type="number" label="Max price" />
+        </form>
+        <ul :if={c.status == :idle}>
+          <li :for={row <- c.rows}>{row.record.title} ({row.record.track_count} tracks)</li>
+        </ul>
+      </Cinder.Next.collection>
     </Layouts.app>
     """
   end
@@ -138,6 +180,10 @@ defmodule CinderDevWeb.NextPetalLive do
     </div>
     """
   end
+
+  # Petal and core_components take options as `{label, value}` pairs. A select's
+  # view-model options start with its prompt, so neither needs its own.
+  defp options(filter), do: Enum.map(filter.options, &{&1.label, &1.value})
 
   # Petal's components fill their declared attrs (`name`, `value`, `type`...) only
   # from atom keys; string keys all land in `rest`, so the input renders but the
