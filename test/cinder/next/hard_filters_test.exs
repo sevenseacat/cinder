@@ -135,4 +135,75 @@ defmodule Cinder.Next.HardFiltersTest do
       refute hd(input(html, "filters[price_min]")) =~ ~s(value="25")
     end
   end
+
+  describe "autocomplete" do
+    setup %{conn: conn} do
+      titles = Enum.map(~w(Alpha Bravo Charlie Delta Echo), &{&1, &1})
+
+      path =
+        Cinder.TestLive.Fixture.register(fn assigns ->
+          assigns = assign(assigns, :titles, titles)
+
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:col :let={album} field="genre">{album.genre}</:col>
+            <:filter field="title" type="autocomplete" options={@titles} max_results={2} />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      {:ok, view, _html} = live(conn, path)
+      render_async(view)
+
+      test_pid = self()
+      handler_id = "next-autocomplete-#{System.unique_integer([:positive])}"
+
+      :telemetry.attach(
+        handler_id,
+        [:ash, :music, :read, :start],
+        fn _event, _measurements, _metadata, _config -> send(test_pid, :album_read) end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
+      %{view: view}
+    end
+
+    defp option_values(html) do
+      Regex.scan(~r/<input[^>]*type="radio"[^>]*value="([^"]*)"/, html, capture: :all_but_first)
+      |> List.flatten()
+    end
+
+    defp reads(count \\ 0) do
+      receive do
+        :album_read -> reads(count + 1)
+      after
+        100 -> count
+      end
+    end
+
+    test "typing narrows the options without querying", %{view: view} do
+      html = change(view, %{"title_autocomplete_search" => "a", "title" => ""})
+
+      # Alpha, Bravo, Charlie and Delta all contain "a"; only the first two are shown
+      assert option_values(html) == ["Alpha", "Bravo"]
+      assert reads() == 0
+
+      assert option_values(change(view, %{"title_autocomplete_search" => "ec", "title" => ""})) ==
+               ["Echo"]
+    end
+
+    test "choosing an option filters, and it stays chosen when the search moves on", %{view: view} do
+      html = change(view, %{"title_autocomplete_search" => "ch", "title" => "Charlie"})
+      # The table only shows genre, so count rows rather than titles (the options have titles)
+      assert length(Regex.scan(~r/data-part="row"/, html)) == 1
+      assert reads() == 1
+
+      html = change(view, %{"title_autocomplete_search" => "zz", "title" => "Charlie"})
+      assert option_values(html) == ["Charlie"]
+      assert html =~ ~r/<input(?=[^>]*value="Charlie")[^>]*checked/
+      assert reads() == 0
+    end
+  end
 end

@@ -156,7 +156,7 @@ defmodule Cinder.Next.View do
     }
   end
 
-  @filter_types [:text, :select, :multi_select, :multi_checkboxes, :number_range]
+  @filter_types [:text, :select, :multi_select, :multi_checkboxes, :number_range, :autocomplete]
   @multi_types [:multi_select, :multi_checkboxes]
 
   # The types the spike renders; the rest are left out of the view-model
@@ -176,7 +176,8 @@ defmodule Cinder.Next.View do
         filter: filter,
         input_id: input_id,
         form_id: config.form_id,
-        described_by: described_by
+        described_by: described_by,
+        raw: state.raw
       }
 
       value = current_value(filter.type, name, state)
@@ -266,6 +267,24 @@ defmodule Cinder.Next.View do
     }
   end
 
+  # The search box. What's typed is raw input, so it narrows the options without
+  # a query; choosing an option (a radio, below) is what filters.
+  defp input_attrs(:autocomplete, ctx, _value) do
+    %{
+      "id" => ctx.input_id,
+      "type" => "search",
+      "name" => Cinder.Filter.field_name(ctx.name, "autocomplete_search"),
+      "value" => autocomplete_search(ctx),
+      "placeholder" =>
+        ctx.filter.options[:placeholder] ||
+          dgettext("cinder", "Search %{label}...", label: ctx.label),
+      "autocomplete" => "off",
+      "form" => ctx.form_id,
+      "phx-debounce" => "300",
+      "aria-describedby" => ctx.described_by
+    }
+  end
+
   # Each checkbox is an option's `input_attrs`
   defp input_attrs(type, _ctx, _value) when type in @multi_types, do: nil
 
@@ -341,7 +360,44 @@ defmodule Cinder.Next.View do
     end
   end
 
+  # The options matching what's been typed, up to `max_results`. The chosen one is
+  # always included, even when the search no longer matches it: its radio is what
+  # posts the filter's value, so dropping it would clear the filter on the next change.
+  defp options(:autocomplete, ctx, value) do
+    search = autocomplete_search(ctx) |> String.downcase()
+    all = Keyword.get(ctx.filter.options, :options, [])
+
+    matching =
+      all
+      |> Enum.filter(fn {label, _value} -> String.contains?(String.downcase(label), search) end)
+      |> Enum.take(ctx.filter.options[:max_results] || 10)
+
+    chosen = Enum.filter(all, fn {_label, option_value} -> to_string(option_value) == value end)
+
+    for {{label, option_value}, index} <- Enum.with_index(Enum.uniq(chosen ++ matching)) do
+      option_value = to_string(option_value)
+      selected? = option_value == value
+
+      %{
+        label: label,
+        value: option_value,
+        selected?: selected?,
+        attrs: %{"value" => option_value, "selected" => selected?},
+        input_attrs: %{
+          "type" => "radio",
+          "id" => "#{ctx.input_id}-#{index}",
+          "name" => Cinder.Filter.field_name(ctx.name),
+          "value" => option_value,
+          "checked" => selected?,
+          "form" => ctx.form_id
+        }
+      }
+    end
+  end
+
   defp options(_type, _ctx, _value), do: []
+
+  defp autocomplete_search(ctx), do: ctx.raw[ctx.name <> "_autocomplete_search"] || ""
 
   defp column(column, field, state, myself) do
     sortable? = field.sort != nil

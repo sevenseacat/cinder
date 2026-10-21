@@ -125,6 +125,7 @@ msgid "Min"
 msgstr "Min"
 
 #: lib/cinder/filters/autocomplete.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Search %{label}..."
 msgstr "Søg %{label}..."

@@ -69,6 +69,7 @@ defmodule Cinder.Next do
     attr :operator, :any
     attr :match_mode, :any, values: [:any, :all, "any", "all"]
     attr :case_sensitive, :boolean
+    attr :max_results, :integer, doc: "Autocomplete: how many matching options to show"
   end
 
   slot :sort, doc: "Declares a sortable field" do
@@ -187,6 +188,12 @@ defmodule Cinder.Next do
       <select :if={@filter.type == :select} {@filter.input_attrs}>
         <option :for={option <- @filter.options} {option.attrs}>{option.label}</option>
       </select>
+      <span :if={@filter.type == :autocomplete} data-part="filter-autocomplete">
+        <input {@filter.input_attrs} />
+        <label :for={option <- @filter.options} data-part="filter-option">
+          <input {option.input_attrs} /> {option.label}
+        </label>
+      </span>
       <span :if={@filter.type == :number_range} data-part="filter-range">
         <input {@filter.input_attrs.min} />
         <span>{dgettext("cinder", "to")}</span>

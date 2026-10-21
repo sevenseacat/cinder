@@ -9,6 +9,12 @@ defmodule CinderDevWeb.NextDaisyLive do
   use Cinder.UrlSync
 
   @impl true
+  def mount(_params, _session, socket) do
+    artists = Music.Artist |> Ash.read!() |> Enum.map(&{&1.name, &1.name}) |> Enum.sort()
+    {:ok, assign(socket, :artists, artists)}
+  end
+
+  @impl true
   def handle_params(params, uri, socket) do
     {:noreply, Cinder.UrlSync.handle_params(params, uri, socket)}
   end
@@ -40,6 +46,13 @@ defmodule CinderDevWeb.NextDaisyLive do
           options={Enum.map(CinderDev.Seeds.tags(), &{&1, &1})}
         />
         <:filter field="price" type="number_range" label="Price ($)" />
+        <:filter
+          field="artist.name"
+          type="autocomplete"
+          label="Artist"
+          options={@artists}
+          max_results={5}
+        />
         <:sort field="title" />
         <:sort field="price" label="Price" />
         <:sort field="release_date" label="Released" />
@@ -126,13 +139,28 @@ defmodule CinderDevWeb.NextDaisyLive do
                   <span class="tooltip" data-tip={title.help}>
                     <.icon name="hero-question-mark-circle" class="size-4 opacity-60" />
                   </span>
+                  <.clear filter={title} />
                 </legend>
                 <input class="input w-full" {title.input_attrs} />
                 <p class="label" {title.help_attrs}>{title.help}</p>
               </fieldset>
+              <% artist = c.filters_by_field["artist.name"] %>
+              <fieldset class="fieldset">
+                <legend class="fieldset-legend">{artist.label} <.clear filter={artist} /></legend>
+                <input class="input w-full" {artist.input_attrs} />
+                <div class="flex flex-wrap gap-1">
+                  <input
+                    :for={option <- artist.options}
+                    class="btn btn-xs"
+                    aria-label={option.label}
+                    {option.input_attrs}
+                  />
+                </div>
+              </fieldset>
+
               <% tags = c.filters_by_field["tags"] %>
               <fieldset class="fieldset">
-                <legend class="fieldset-legend">{tags.label}</legend>
+                <legend class="fieldset-legend">{tags.label} <.clear filter={tags} /></legend>
                 <div class="flex flex-wrap gap-x-4 gap-y-2">
                   <label :for={option <- tags.options} class="label">
                     <input class="checkbox checkbox-sm" {option.input_attrs} /> {option.label}
@@ -142,7 +170,7 @@ defmodule CinderDevWeb.NextDaisyLive do
 
               <% price = c.filters_by_field["price"] %>
               <fieldset class="fieldset">
-                <legend class="fieldset-legend">{price.label}</legend>
+                <legend class="fieldset-legend">{price.label} <.clear filter={price} /></legend>
                 <div class="join">
                   <input class="input join-item" {price.input_attrs.min} />
                   <input class="input join-item" {price.input_attrs.max} />
@@ -159,6 +187,15 @@ defmodule CinderDevWeb.NextDaisyLive do
         </.portal>
       </Cinder.Next.collection>
     </Layouts.app>
+    """
+  end
+
+  attr :filter, :map, required: true
+
+  # Every filter's view-model has `clear_attrs`, hidden while the filter isn't active
+  defp clear(assigns) do
+    ~H"""
+    <button class="btn btn-ghost btn-xs" {@filter.clear_attrs}>Clear</button>
     """
   end
 

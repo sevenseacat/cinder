@@ -70,7 +70,15 @@ defmodule Cinder.Next.Config do
   ]
 
   # `<:filter>` attrs that become the filter's options, as the engine expects them
-  @filter_option_attrs [:options, :prompt, :placeholder, :operator, :match_mode, :case_sensitive]
+  @filter_option_attrs [
+    :options,
+    :prompt,
+    :placeholder,
+    :operator,
+    :match_mode,
+    :case_sensitive,
+    :max_results
+  ]
 
   @doc "Builds the config from `Cinder.Next.collection/1`'s assigns."
   def build(assigns) do
