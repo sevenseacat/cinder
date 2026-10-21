@@ -19,6 +19,10 @@
 /* The shell-rewrite spike's opt-in base styles, for the Next page */
 @import "../../../priv/cinder.next.css";
 
+/* Petal Components, for the Next Petal page. Its classes are all `pc-` prefixed. */
+@import "../../deps/petal_components/assets/default.css";
+@source "../../deps/petal_components/**/*.*ex";
+
 @source "../css";
 @source "../js";
 @source "../../lib/cinder_dev_web";

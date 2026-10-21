@@ -77,6 +77,7 @@ defmodule Cinder.Next.ViewTest do
 
       assert filter.input_attrs["form"] == "albums-filters"
       assert filter.input_attrs["name"] == "filters[title]"
+      assert filter.name == "filters[title]"
       assert filter.label_attrs["for"] == filter.input_attrs["id"]
       assert filter.clear_attrs["phx-target"] == @myself
       assert filter.clear_attrs["hidden"] == true
@@ -199,6 +200,13 @@ defmodule Cinder.Next.ViewTest do
 
     test "there's no dropdown without declared sorts" do
       refute build(col: []).sort_select
+    end
+
+    test "the primary sort is the first, for tables that only show one" do
+      state = State.new() |> State.set_sort([{"genre", :desc}, {"title", :asc}])
+
+      assert build(state: state).primary_sort == %{field: "genre", direction: :desc}
+      refute build([]).primary_sort
     end
   end
 

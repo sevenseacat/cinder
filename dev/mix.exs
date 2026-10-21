@@ -38,6 +38,7 @@ defmodule CinderDev.MixProject do
   defp deps do
     [
       {:cinder, path: ".."},
+      {:petal_components, "~> 4.17"},
       {:phoenix, "~> 1.8.15"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},

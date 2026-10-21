@@ -118,6 +118,15 @@ defmodule Cinder.Next do
     """
   end
 
+  @doc """
+  Sorts by `field` (the next step in its cycle), as a JS command. For components
+  that take a command per column rather than attribute maps, like Petal's table:
+  `on_sort={&Cinder.Next.sort_command(c, &1)}`.
+  """
+  def sort_command(collection, field) do
+    Phoenix.LiveView.JS.push("sort", target: collection.target, value: %{field: field})
+  end
+
   # `Cinder.UrlSync.handle_params/3` keeps the raw URL params under `:filters`
   defp url_params(%{filters: params}), do: params
   defp url_params(_url_state), do: nil

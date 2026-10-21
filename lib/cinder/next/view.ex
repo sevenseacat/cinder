@@ -19,6 +19,8 @@ defmodule Cinder.Next.View do
 
     %{
       status: status,
+      # For components that take an event and target rather than attribute maps
+      target: myself,
       attrs: %{"data-cinder" => "collection", "data-state" => to_string(status)},
       # The default toolbar renders inside this form, so it works with any test
       # tooling. Filter inputs also name it in their `form` attribute, so custom
@@ -42,6 +44,8 @@ defmodule Cinder.Next.View do
       },
       sorts: for(name <- config.sort_order, do: sort(config.fields[name], state, myself)),
       sort_select: sort_select(config, state),
+      # Tables that only show one sorted column want just the first
+      primary_sort: primary_sort(state.sort),
       layout: config.layout,
       grid_attrs: grid_attrs(config.grid_columns),
       # So `grid/1` can render cards given only the collection
@@ -93,6 +97,9 @@ defmodule Cinder.Next.View do
       }
     }
   end
+
+  defp primary_sort([{field, direction} | _]), do: %{field: field, direction: direction}
+  defp primary_sort([]), do: nil
 
   # An exclusive sort as one `<select>`, joined to the collection's form: each
   # field in both directions, with values in the URL's encoding (`price`, `-price`).
@@ -203,6 +210,9 @@ defmodule Cinder.Next.View do
 
       %{
         field: name,
+        # The param name, for components that build their own inputs from it (a
+        # checkbox group appends `[]`; a range, `_min` and `_max`)
+        name: Cinder.Filter.field_name(name),
         label: label,
         type: filter.type,
         value: value,

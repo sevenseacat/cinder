@@ -190,6 +190,26 @@ defmodule Cinder.Next.ComponentTest do
     assert titles(html) == ["Echo"]
   end
 
+  # For components like Petal's table, which take a command per column, not attrs
+  test "sort_command/2 sorts like a sortable header", %{conn: conn} do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection :let={c} id="albums" resource={Music.Album} page_size={2} layout="custom">
+          <:sort field="title" />
+          <button id="by-title" phx-click={Cinder.Next.sort_command(c, "title")}>Title</button>
+          <p :for={row <- c.rows}>{row.record.title}</p>
+        </Cinder.Next.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+    render_async(view)
+
+    assert titles(click(view, "#by-title")) == ["Alpha", "Bravo"]
+    assert titles(click(view, "#by-title")) == ["Echo", "Delta"]
+  end
+
   test "a <:filter> with content replaces that filter's markup, and keeps its wiring",
        %{conn: conn} do
     path =
