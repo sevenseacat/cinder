@@ -64,6 +64,8 @@ defmodule Cinder.Next.Config do
     item_slot: [],
     # An inner block replaces the whole layout; `:toolbar` replaces only that region
     page_slot: [],
+    # `nil`, or `%{field, direction, slot}`: rows grouped by a field on each page
+    group: nil,
     # `false`, `true`, or a function of the record
     selectable: false,
     # Declared bulk actions in order, by name
@@ -168,6 +170,7 @@ defmodule Cinder.Next.Config do
       grid_columns: grid_columns,
       item_slot: assigns[:item] || [],
       page_slot: assigns[:page] || [],
+      group: group(assigns[:group] || []),
       selectable: assigns[:selectable] || false,
       bulk_actions: bulk_actions(assigns[:bulk_action] || []),
       toolbar_slot: assigns[:toolbar] || [],
@@ -355,6 +358,19 @@ defmodule Cinder.Next.Config do
       [duplicate | _] ->
         raise ArgumentError, "<:bulk_action> name #{inspect(duplicate.name)} is declared twice"
     end
+  end
+
+  # One group for now (the shape stays open to nesting later)
+  defp group([]), do: nil
+
+  defp group([slot | _]) do
+    direction =
+      case slot[:sort] do
+        sort when sort in [nil, :asc, "asc"] -> :asc
+        sort when sort in [:desc, "desc"] -> :desc
+      end
+
+    %{field: slot.field, direction: direction, slot: slot}
   end
 
   defp explicit_layouts(nil), do: []

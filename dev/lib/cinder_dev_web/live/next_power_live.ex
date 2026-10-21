@@ -2,10 +2,11 @@ defmodule CinderDevWeb.NextPowerLive do
   @moduledoc """
   The shell-rewrite spike's "crazy custom case", on sketch 8b: the collection lives
   in this LiveView, and everything else is the app's own. Users choose which
-  columns show and in what order, the table is this page's own HTML, and rows can
-  be grouped by whatever they're sorted by. Cinder knows nothing about any of it:
-  the columns and grouping are this LiveView's state and events, next to the
-  collection's.
+  columns show and in what order, and the table is this page's own HTML. Cinder
+  knows nothing about the columns: they're this LiveView's state and events, next
+  to the collection's. Rows are grouped by genre (7CC-129): the collection keeps
+  each group together and gives `@albums.groups`, and groups collapse in the
+  browser.
   """
   use CinderDevWeb, :live_view
   use Cinder.Next.LiveView
@@ -31,12 +32,12 @@ defmodule CinderDevWeb.NextPowerLive do
          %{key: key, label: label, visible?: key != "track_count"}
        end)
      )
-     |> assign(:group?, true)
-     |> Collections.assign_collection(:albums, Ash.Query.sort(Music.Album, [:genre, :title]),
+     |> Collections.assign_collection(:albums, Ash.Query.sort(Music.Album, :title),
        url: true,
        load: [:artist],
        page_size: 15,
        layouts: [:table],
+       group: :genre,
        selectable: true,
        search: ["title", "artist.name"],
        filters: [genre: [type: :select, prompt: "Any genre"]],
@@ -67,9 +68,6 @@ defmodule CinderDevWeb.NextPowerLive do
     {column, rest} = List.pop_at(columns, from)
     {:noreply, assign_columns(socket, List.insert_at(rest, to, column))}
   end
-
-  def handle_event("toggle_group", _params, socket),
-    do: {:noreply, update(socket, :group?, &(not &1))}
 
   # The visible columns are kept beside the choice, not worked out in `render/1`,
   # where they'd be new every render and resent
@@ -126,15 +124,6 @@ defmodule CinderDevWeb.NextPowerLive do
               </li>
             </ul>
           </details>
-
-          <label class="label">
-            <input
-              type="checkbox"
-              class="toggle toggle-sm"
-              checked={@group?}
-              phx-click="toggle_group"
-            /> Group by the first sort
-          </label>
         </div>
 
         <Cinder.Next.pagination collection={@albums} />
@@ -153,15 +142,30 @@ defmodule CinderDevWeb.NextPowerLive do
               </th>
             </tr>
           </thead>
-          <tbody :for={{group, rows} <- groups(@albums, @group?)}>
-            <tr :if={group} class="bg-base-200">
-              <th colspan={length(@visible) + 1}>{group}</th>
-            </tr>
-            <tr :for={row <- rows} class={row.selected? && "bg-primary/10"}>
-              <td><input class="checkbox checkbox-sm" {row.select_attrs} /></td>
-              <td :for={column <- @visible}>{cell(row.record, column.key)}</td>
-            </tr>
-          </tbody>
+          <%= for group <- @albums.groups do %>
+            <tbody {group.attrs}>
+              <tr class="bg-base-200">
+                <th class="w-0">
+                  <button class="btn btn-ghost btn-xs group" {group.toggle_attrs}>
+                    <.icon
+                      name="hero-chevron-down"
+                      class="size-4 group-aria-[expanded=false]:-rotate-90"
+                    />
+                  </button>
+                </th>
+                <th colspan={length(@visible)}>
+                  <span id={group.label_id}>{group.value}</span>
+                  <span class="ml-2 font-normal opacity-60">{length(group.items)} on this page</span>
+                </th>
+              </tr>
+            </tbody>
+            <tbody {group.items_attrs}>
+              <tr :for={row <- group.items} class={row.selected? && "bg-primary/10"}>
+                <td><input class="checkbox checkbox-sm" {row.select_attrs} /></td>
+                <td :for={column <- @visible}>{cell(row.record, column.key)}</td>
+              </tr>
+            </tbody>
+          <% end %>
         </table>
 
         <Cinder.Next.bulk_bar collection={@albums} />
@@ -183,19 +187,6 @@ defmodule CinderDevWeb.NextPowerLive do
       <span :if={@sort.direction}>{if @sort.direction == :asc, do: "↑", else: "↓"}</span>
     </button>
     """
-  end
-
-  # Rows grouped by the value of the first sort, in order; one unnamed group when
-  # not grouping, or when nothing is sorted
-  defp groups(collection, group?) do
-    case {group?, collection.primary_sort} do
-      {true, %{field: field}} ->
-        Enum.chunk_by(collection.rows, &cell(&1.record, field))
-        |> Enum.map(&{cell(hd(&1).record, field), &1})
-
-      _ ->
-        [{nil, collection.rows}]
-    end
   end
 
   defp cell(album, "artist.name"), do: album.artist.name

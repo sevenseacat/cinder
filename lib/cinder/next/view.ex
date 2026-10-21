@@ -16,6 +16,7 @@ defmodule Cinder.Next.View do
   @doc "The whole collection's view-model, from the component's assigns."
   def build(%{config: config, state: state, page: page, status: status, myself: myself} = assigns) do
     layout = state.layout || config.default_layout
+    rows = rows(page, layout, config.selectable, state, myself)
     filters = for name <- config.filter_order, f = filter(config, name, state, myself), do: f
 
     %{
@@ -56,7 +57,9 @@ defmodule Cinder.Next.View do
       # So `grid/1` can render cards given only the collection
       item_slot: config.item_slot,
       columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
-      rows: rows(page, layout, config.selectable, state, myself),
+      rows: rows,
+      # `nil` unless grouped: then the page's rows by group (see `groups/2`)
+      groups: groups(config, rows),
       selection: selection(config.selectable, page, state, myself),
       bulk_actions: Enum.map(config.bulk_actions, &bulk_action(&1, state, myself)),
       confirmation: confirmation(config.bulk_actions, state, myself),
@@ -551,6 +554,52 @@ defmodule Cinder.Next.View do
   defp aria_sort(:asc), do: "ascending"
   defp aria_sort(:desc), do: "descending"
   defp aria_sort(_), do: "none"
+
+  # The page's rows by the group field's value, in order of first appearance (the
+  # group sort keeps each group together, and grouping by key rather than by runs
+  # means an out-of-place row can't split a group). Collapsing is in the browser:
+  # each group's ids come from the collection and the value, not its position, so a
+  # collapsed group stays collapsed across page and filter changes, and LiveView
+  # keeps what its JS commands did through patches.
+  defp groups(%{group: nil}, _rows), do: nil
+
+  defp groups(%{group: group, id: id}, rows) do
+    rows
+    |> Enum.group_by(&field_value(&1.record, group.field))
+    |> then(fn by_value ->
+      rows
+      |> Enum.map(&field_value(&1.record, group.field))
+      |> Enum.uniq()
+      |> Enum.map(&{&1, Map.fetch!(by_value, &1)})
+    end)
+    |> Enum.map(fn {value, items} ->
+      group_id = "#{id}-group-#{:erlang.phash2(value)}"
+      items_id = group_id <> "-items"
+      label_id = group_id <> "-label"
+
+      %{
+        value: value,
+        items: items,
+        id: group_id,
+        attrs: %{"id" => group_id, "data-part" => "group", "data-value" => to_string(value)},
+        toggle_attrs: %{
+          "type" => "button",
+          "data-part" => "group-toggle",
+          "aria-expanded" => "true",
+          "aria-controls" => items_id,
+          # Named by the group's label, so it needs no words of its own
+          "aria-labelledby" => label_id,
+          "phx-click" =>
+            Phoenix.LiveView.JS.toggle_attribute({"aria-expanded", "true", "false"})
+            |> Phoenix.LiveView.JS.toggle(to: "#" <> items_id)
+        },
+        items_attrs: %{"id" => items_id, "data-part" => "group-items"},
+        label_id: label_id,
+        # The group's header content, if declared, rendered with `value` and `items`
+        slot: group.slot
+      }
+    end)
+  end
 
   defp rows(nil, _layout, _selectable, _state, _myself), do: []
 

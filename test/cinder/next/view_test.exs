@@ -184,6 +184,35 @@ defmodule Cinder.Next.ViewTest do
     end
   end
 
+  describe "groups" do
+    defp groups(results, group \\ [%{__slot__: :group, field: "genre", inner_block: nil}]) do
+      %{
+        config: Config.build(%{id: "albums", resource: Music.Album, group: group}),
+        state: State.new(),
+        page: %Ash.Page.Offset{results: results, limit: 10, offset: 0, count: 3, more?: false},
+        status: :idle,
+        myself: @myself
+      }
+      |> View.build()
+      |> Map.fetch!(:groups)
+    end
+
+    test "group by value in order of first appearance, so an out-of-place row can't split one" do
+      results = [%{id: 1, genre: :rock}, %{id: 2, genre: :jazz}, %{id: 3, genre: :rock}]
+
+      assert [%{value: :rock, items: [_, _]} = rock, %{value: :jazz, items: [_]}] =
+               groups(results)
+
+      # The toggle collapses the group's items, named by its label
+      assert rock.toggle_attrs["aria-controls"] == rock.items_attrs["id"]
+      assert rock.toggle_attrs["aria-labelledby"] == rock.label_id
+    end
+
+    test "are nil when the collection isn't grouped" do
+      refute groups([%{id: 1, genre: :rock}], [])
+    end
+  end
+
   describe "grid columns" do
     defp grid_attrs(columns) do
       %{

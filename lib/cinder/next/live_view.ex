@@ -52,6 +52,7 @@ defmodule Cinder.Next.LiveView do
     * `sorts:` `[field]` or `[field: [label: ..., cycle: ...]]`
     * `bulk_actions:` `[name: action]` or `[name: [action: ..., confirm: ...]]`
     * `search:` the fields to search
+    * `group:` a field, or `[field: ..., sort: :desc]`, to group each page's rows by
     * `load:` passed on as `query_opts: [load: ...]`
     * `url:` `true` to keep the collection's state in the URL (one per LiveView,
       for the spike)
@@ -80,17 +81,27 @@ defmodule Cinder.Next.LiveView do
     query_opts = Keyword.get(opts, :query_opts, []) ++ if(load, do: [load: load], else: [])
 
     opts
-    |> Keyword.drop([:filters, :sorts, :bulk_actions, :search, :query_opts])
+    |> Keyword.drop([:filters, :sorts, :bulk_actions, :search, :query_opts, :group])
     |> Map.new()
     |> Map.merge(%{
       query_key => query,
       :id => to_string(name),
       :query_opts => query_opts,
       :search => search(opts[:search]),
+      :group => group(opts[:group]),
       :filter => Enum.map(opts[:filters] || [], &slot(:filter, :field, &1, :type)),
       :sort => Enum.map(opts[:sorts] || [], &slot(:sort, :field, &1, nil)),
       :bulk_action => Enum.map(opts[:bulk_actions] || [], &slot(:bulk_action, :name, &1, :action))
     })
+  end
+
+  # `group: :genre` or `group: [field: :genre, sort: :desc]`
+  defp group(nil), do: []
+  defp group(field) when is_atom(field), do: group(field: field)
+
+  defp group(opts) do
+    {field, opts} = Keyword.pop!(opts, :field)
+    [Map.merge(%{__slot__: :group, inner_block: nil, field: to_string(field)}, Map.new(opts))]
   end
 
   defp search(nil), do: nil

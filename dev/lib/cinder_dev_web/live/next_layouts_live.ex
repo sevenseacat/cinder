@@ -61,6 +61,15 @@ defmodule CinderDevWeb.NextLayoutsLive do
         </:page>
       </Cinder.Next.collection>
 
+      <h2 class="mt-12 text-lg font-semibold">Grouped by genre (the default table)</h2>
+      <Cinder.Next.collection id="grouped" resource={Music.Album} page_size={12}>
+        <:col :let={album} field="title" sort>{album.title}</:col>
+        <:col field="release_date" label="Released" sort />
+        <:group :let={group} field="genre">
+          {group.value} <small>({length(group.items)} on this page)</small>
+        </:group>
+      </Cinder.Next.collection>
+
       <h2 class="mt-12 text-lg font-semibold">List (a one-column grid)</h2>
       <Cinder.Next.collection id="list" resource={Music.Album} layout="list" page_size={4}>
         <:sort field="title" />

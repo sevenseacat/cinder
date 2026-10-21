@@ -152,7 +152,24 @@ defmodule Cinder.Next.Collection do
         pagination_mode: config.pagination
       ] ++ State.query_options(state)
 
+    opts = Keyword.update!(opts, :sort_by, &group_sort(config.group, &1))
     fn -> QueryBuilder.build_and_execute(config.query, opts) end
+  end
+
+  # Grouped rows are sorted by the group first, so each group's rows are together
+  # and the user's sorts apply within it. Only here, when loading: the state, the
+  # controls and the URL only ever hold the user's sorts. If the user has sorted by
+  # the group field, their direction wins.
+  defp group_sort(nil, sort), do: sort
+
+  defp group_sort(%{field: field, direction: default}, sort) do
+    direction =
+      Enum.find_value(sort, default, fn
+        {^field, direction} -> direction
+        _other -> nil
+      end)
+
+    [{field, direction} | Enum.reject(sort, &match?({^field, _}, &1))]
   end
 
   def loading(collection), do: %{collection | status: :loading}

@@ -388,4 +388,39 @@
     background: var(--cinder-danger);
     color: #fff;
   }
+
+  /* Groups: a header row (or heading) with a collapse toggle per group */
+  :where([data-cinder] [data-part="group-header"] th) {
+    padding: 8px 12px;
+    background: var(--cinder-hover);
+    text-align: left;
+  }
+
+  :where([data-cinder] section[data-part="group"]) {
+    display: grid;
+    gap: 8px;
+  }
+
+  :where([data-cinder] [data-part="group-label"]) {
+    font-weight: 600;
+  }
+
+  :where([data-cinder] [data-part="group-toggle"]) {
+    margin-right: 8px;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  :where([data-cinder] [data-part="group-toggle"] > span) {
+    display: inline-block;
+    transition: transform 0.15s;
+  }
+
+  :where([data-cinder] [data-part="group-toggle"][aria-expanded="false"] > span) {
+    transform: rotate(-90deg);
+  }
 }

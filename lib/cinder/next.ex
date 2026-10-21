@@ -104,6 +104,19 @@ defmodule Cinder.Next do
     attr :action_opts, :list
   end
 
+  slot :group,
+    doc: """
+    Groups the rows on each page by a field, kept together by sorting on it first
+    (behind the user's sorts, not in the controls or the URL). Its content, if any,
+    is each group's header, via `:let` (`value` and `items`).
+    """ do
+    attr :field, :string, required: true
+
+    attr :sort, :any,
+      values: [:asc, :desc, "asc", "desc"],
+      doc: "The groups' order (default `:asc`)"
+  end
+
   slot :sort, doc: "Declares a sortable field" do
     attr :field, :string, required: true
     attr :label, :string
@@ -330,12 +343,16 @@ defmodule Cinder.Next do
   """
   def grid(assigns) do
     ~H"""
-    <ul {merge(@collection.grid_attrs, @class, @rest)}>
-      <li :for={row <- @collection.rows} {row.attrs}>
-        <input :if={row.select_attrs} {row.select_attrs} />
-        {render_slot(if(@inner_block != [], do: @inner_block, else: @collection.item_slot), row.record)}
-      </li>
+    <ul :if={!@collection.groups} {merge(@collection.grid_attrs, @class, @rest)}>
+      <.grid_item :for={row <- @collection.rows} row={row} item={@inner_block} collection={@collection} />
     </ul>
+    <%!-- Each group starts its own grid, so it starts a fresh row --%>
+    <section :for={group <- @collection.groups || []} {group.attrs}>
+      <.group_header group={group} />
+      <ul {merge(Map.merge(@collection.grid_attrs, group.items_attrs), @class, @rest)}>
+        <.grid_item :for={row <- group.items} row={row} item={@inner_block} collection={@collection} />
+      </ul>
+    </section>
     <p :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">
       {dgettext("cinder", "No results found")}
     </p>
@@ -368,17 +385,24 @@ defmodule Cinder.Next do
           </th>
         </tr>
       </thead>
+      <%!-- Grouped: a header body and an items body per group, since a <tbody>
+           can't hold another container to collapse --%>
+      <%= for group <- @collection.groups || [] do %>
+        <tbody {group.attrs}>
+          <tr data-part="group-header">
+            <th colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)} scope="colgroup">
+              <.group_header group={group} />
+            </th>
+          </tr>
+        </tbody>
+        <tbody {group.items_attrs}>
+          <.table_row :for={row <- group.items} row={row} collection={@collection} />
+        </tbody>
+      <% end %>
       <tbody>
-        <tr :for={row <- @collection.rows} {row.attrs}>
-          <td :if={row.select_attrs} data-part="select-cell"><input {row.select_attrs} /></td>
-          <td :for={column <- @collection.columns} data-part="cell" data-field={column.field}>
-            <%= if column.slot[:inner_block] do %>
-              {render_slot(column.slot, row.record)}
-            <% else %>
-              {View.field_value(row.record, column.field)}
-            <% end %>
-          </td>
-        </tr>
+        <%= if !@collection.groups do %>
+          <.table_row :for={row <- @collection.rows} row={row} collection={@collection} />
+        <% end %>
         <tr :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">
           <td colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)}>{dgettext("cinder", "No results found")}</td>
         </tr>
@@ -416,6 +440,56 @@ defmodule Cinder.Next do
         <button {@collection.confirmation.cancel_attrs}>{dgettext("cinder", "Cancel")}</button>
       </div>
     </div>
+    """
+  end
+
+  attr :row, :map, required: true
+  attr :collection, :map, required: true
+
+  defp table_row(assigns) do
+    ~H"""
+    <tr {@row.attrs}>
+      <td :if={@row.select_attrs} data-part="select-cell"><input {@row.select_attrs} /></td>
+      <td :for={column <- @collection.columns} data-part="cell" data-field={column.field}>
+        <%= if column.slot[:inner_block] do %>
+          {render_slot(column.slot, @row.record)}
+        <% else %>
+          {View.field_value(@row.record, column.field)}
+        <% end %>
+      </td>
+    </tr>
+    """
+  end
+
+  attr :row, :map, required: true
+  attr :item, :list, required: true
+  attr :collection, :map, required: true
+
+  defp grid_item(assigns) do
+    ~H"""
+    <li {@row.attrs}>
+      <input :if={@row.select_attrs} {@row.select_attrs} />
+      {render_slot(if(@item != [], do: @item, else: @collection.item_slot), @row.record)}
+    </li>
+    """
+  end
+
+  attr :group, :map, required: true
+
+  @doc """
+  A group's header: the collapse toggle, and the group's `<:group>` content (with
+  `value` and the group's records as `items`), or its value.
+  """
+  def group_header(assigns) do
+    ~H"""
+    <button {@group.toggle_attrs}><span aria-hidden="true">▾</span></button>
+    <span id={@group.label_id} data-part="group-label">
+      <%= if @group.slot[:inner_block] do %>
+        {render_slot(@group.slot, %{value: @group.value, items: Enum.map(@group.items, & &1.record)})}
+      <% else %>
+        {@group.value}
+      <% end %>
+    </span>
     """
   end
 
