@@ -24,7 +24,8 @@ defmodule CinderDevWeb.Layouts do
     {"/next/grid", "Next grid"},
     {"/next/layouts", "Next layouts"},
     {"/next/daisy", "Next daisyUI"},
-    {"/next/petal", "Next Petal"}
+    {"/next/petal", "Next Petal"},
+    {"/next/live", "Next in a LiveView"}
   ]
 
   @doc "The demo pages, as `{path, label}`, for the nav and the smoke tests."

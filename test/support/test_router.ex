@@ -12,5 +12,6 @@ defmodule Cinder.TestRouter do
   scope "/" do
     pipe_through :browser
     live "/c/:id", Cinder.TestLive.Fixture
+    live "/next-live", Cinder.TestLive.NextLiveView
   end
 end

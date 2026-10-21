@@ -145,7 +145,10 @@ defmodule Cinder.Next do
   `on_sort={&Cinder.Next.sort_command(c, &1)}`.
   """
   def sort_command(collection, field) do
-    Phoenix.LiveView.JS.push("sort", target: collection.target, value: %{field: field})
+    Phoenix.LiveView.JS.push(collection.event_prefix <> "sort",
+      target: collection.target,
+      value: %{field: field}
+    )
   end
 
   # `Cinder.UrlSync.handle_params/3` keeps the raw URL params under `:filters`
@@ -319,13 +322,18 @@ defmodule Cinder.Next do
   attr :class, :any, default: nil
   attr :rest, :global
 
-  @doc "Cards from the collection's `<:item>` slot, as a list (a one-column grid is a list)"
+  slot :inner_block, doc: "Each card, via `:let`, if not the collection's `<:item>`"
+
+  @doc """
+  Cards as a list (a one-column grid is a list): from the inner block, or the
+  collection's `<:item>` slot.
+  """
   def grid(assigns) do
     ~H"""
     <ul {merge(@collection.grid_attrs, @class, @rest)}>
       <li :for={row <- @collection.rows} {row.attrs}>
         <input :if={row.select_attrs} {row.select_attrs} />
-        {render_slot(@collection.item_slot, row.record)}
+        {render_slot(if(@inner_block != [], do: @inner_block, else: @collection.item_slot), row.record)}
       </li>
     </ul>
     <p :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">

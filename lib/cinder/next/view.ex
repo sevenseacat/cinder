@@ -22,6 +22,8 @@ defmodule Cinder.Next.View do
       status: status,
       # For components that take an event and target rather than attribute maps
       target: myself,
+      # Prepended to event names when the collection lives in a LiveView (see `Collection.view/2`)
+      event_prefix: "",
       form_id: config.form_id,
       attrs: %{"data-cinder" => "collection", "data-state" => to_string(status)},
       # The default toolbar renders inside this form, so it works with any test

@@ -183,7 +183,17 @@ defmodule Cinder.Next.Collection do
 
   def loaded(collection, _exit), do: %{collection | status: :error}
 
-  @doc "The view-model, with events sent to `target`."
+  @doc """
+  The view-model, with events sent to `target`: a LiveComponent's `@myself`, or
+  `{:live_view, name}` for a collection kept in a LiveView's assigns. There, each
+  event is named `cinder:<name>:<event>` with no `phx-target`, so the LiveView's
+  hook can tell which collection it's for, and the app's own events don't clash.
+  """
+  def view(collection, {:live_view, name}) do
+    prefix = "cinder:#{name}:"
+    %{rewire(view(collection, nil), prefix) | event_prefix: prefix}
+  end
+
   def view(collection, target) do
     View.build(%{
       config: collection.config,
@@ -194,6 +204,32 @@ defmodule Cinder.Next.Collection do
       myself: target
     })
   end
+
+  # Every attribute map in the view-model, wherever it is: records and other structs
+  # are left alone, apart from the filters, which hold view-models of their own
+  defp rewire(%Cinder.Next.Filters{list: list}, prefix),
+    do: Cinder.Next.Filters.new(Enum.map(list, &rewire(&1, prefix)))
+
+  defp rewire(%_{} = struct, _prefix), do: struct
+  defp rewire(list, prefix) when is_list(list), do: Enum.map(list, &rewire(&1, prefix))
+
+  defp rewire(map, prefix) when is_map(map) do
+    map = Map.new(map, fn {key, value} -> {key, rewire(value, prefix)} end)
+
+    if Map.has_key?(map, "phx-target") do
+      ["phx-click", "phx-change", "phx-submit"]
+      |> Enum.reduce(Map.delete(map, "phx-target"), fn key, map ->
+        case map do
+          %{^key => event} when is_binary(event) -> %{map | key => prefix <> event}
+          _ -> map
+        end
+      end)
+    else
+      map
+    end
+  end
+
+  defp rewire(other, _prefix), do: other
 
   # The one path for every user-driven state change. When URL-synced, the URL is
   # the source of truth: only the new params go out, and the state is applied (and

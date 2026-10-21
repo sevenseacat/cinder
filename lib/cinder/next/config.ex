@@ -120,9 +120,15 @@ defmodule Cinder.Next.Config do
 
     filter_order = ordered_fields(filter_decls)
     sort_order = ordered_fields(sort_decls)
-    item? = (assigns[:item] || []) != []
-    {layout, grid_columns} = layout(assigns[:layout], assigns[:grid_columns], item?)
-    layouts = layouts(layout, cols != [], item?)
+    # Layouts are inferred from the slots that render them, unless they're listed
+    # (as they must be when the markup lives elsewhere, like a LiveView's template)
+    explicit = explicit_layouts(assigns[:layouts])
+    item? = (assigns[:item] || []) != [] or :grid in explicit
+    declared = assigns[:layout] || List.first(explicit)
+    {layout, grid_columns} = layout(declared, assigns[:grid_columns], item?)
+
+    layouts =
+      if explicit != [], do: explicit, else: layouts(layout, cols != [], item?)
 
     fields =
       (Enum.map(cols, & &1.field) ++ filter_order ++ sort_order ++ search_fields)
@@ -348,6 +354,24 @@ defmodule Cinder.Next.Config do
 
       [duplicate | _] ->
         raise ArgumentError, "<:bulk_action> name #{inspect(duplicate.name)} is declared twice"
+    end
+  end
+
+  defp explicit_layouts(nil), do: []
+
+  defp explicit_layouts(layouts) do
+    for layout <- layouts do
+      case to_string(layout) do
+        "table" ->
+          :table
+
+        "grid" ->
+          :grid
+
+        other ->
+          raise ArgumentError,
+                "unknown layout #{inspect(other)} in layouts; they're :table and :grid"
+      end
     end
   end
 
