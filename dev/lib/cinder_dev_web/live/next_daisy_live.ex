@@ -230,7 +230,19 @@ defmodule CinderDevWeb.NextDaisyLive do
             <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
 
             <Cinder.Next.table :if={c.layout == :table} collection={c} class="table" />
-            <Cinder.Next.grid :if={c.layout == :grid} collection={c} />
+            <%!-- Its own grid, spreading each row's attrs (data-part="item", data-selected)
+                 onto its own wrapper: Cinder's CSS styles its `cinder-*` classes, not
+                 `data-part`, so the daisyUI card isn't wrapped in a second card --%>
+            <div :if={c.layout == :grid} class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                :for={row <- c.rows}
+                class={["relative rounded-box", row.selected? && "ring-2 ring-primary"]}
+                {row.attrs}
+              >
+                <input class="checkbox checkbox-sm absolute top-4 right-4" {row.select_attrs} />
+                {render_slot(c.item_slot, row.record)}
+              </div>
+            </div>
 
             <div :if={c.rows == [] and c.status == :idle} class="alert">No albums match.</div>
 

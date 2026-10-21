@@ -4,11 +4,14 @@
  * above the preflight reset (`base`) and below utilities, so utility and
  * daisyUI classes on the same elements win. Unlayered CSS in your app always
  * wins. Every selector is wrapped in :where() so it has no specificity at all.
- * Rules target only `data-part` and state attributes, never classes. Restyle by
- * overriding the --cinder-* variables, or by targeting the same attributes.
+ * Rules target the `cinder-*` classes that Cinder's own components render, plus
+ * state attributes (`data-active`, `aria-sort`...), never `data-part`: that's in
+ * the attribute maps too, and your own markup spreading them shouldn't be styled.
+ * Restyle by overriding the --cinder-* variables, or by targeting the same classes.
  */
 @layer components {
-  :where([data-cinder]) {
+  /* On :root, so components used in your own markup (no `.cinder` root) get them */
+  :where(:root) {
     --cinder-fg: light-dark(#1d222b, #e5e7eb);
     --cinder-muted: light-dark(#5b6474, #9ca3af);
     --cinder-bg: light-dark(#fff, #1f2937);
@@ -20,7 +23,9 @@
     --cinder-radius: 6px;
     --cinder-gap: 12px;
     --cinder-control-height: 32px;
+  }
 
+  :where(.cinder) {
     display: grid;
     gap: var(--cinder-gap);
     color: var(--cinder-fg);
@@ -28,34 +33,34 @@
   }
 
   /* Keep the current rows visible while loading, just dimmed */
-  :where([data-cinder][data-state="loading"] :is([data-part="table"], [data-part="grid"])) {
+  :where(.cinder[data-state="loading"] :is(.cinder-table, .cinder-grid)) {
     opacity: 0.55;
     transition: opacity 0.15s;
   }
 
   /* Toolbar: search and filters */
-  :where([data-cinder] [data-part="toolbar"]) {
+  :where(.cinder-toolbar) {
     display: flex;
     flex-wrap: wrap;
     align-items: end;
     gap: var(--cinder-gap);
   }
 
-  :where([data-cinder] :is([data-part="search"], [data-part="filter"], [data-part="sort-select"])) {
+  :where(:is(.cinder-search, .cinder-filter, .cinder-sort-select)) {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 4px;
   }
 
-  :where([data-cinder] :is([data-part="search"], [data-part="filter"], [data-part="sort-select"]) > label) {
+  :where(:is(.cinder-search, .cinder-filter, .cinder-sort-select) > label) {
     grid-column: 1 / -1;
     font-size: 12px;
     font-weight: 600;
     color: var(--cinder-muted);
   }
 
-  :where([data-cinder] :is([data-part="search"], [data-part="filter"], [data-part="sort-select"]) :is(input, select)) {
+  :where(:is(.cinder-search, .cinder-filter, .cinder-sort-select) :is(input, select)) {
     height: var(--cinder-control-height);
     padding: 0 10px;
     border: 1px solid var(--cinder-border);
@@ -65,16 +70,16 @@
     font: inherit;
   }
 
-  :where([data-cinder] :is(input, select, button):focus-visible) {
+  :where(:is(.cinder-toolbar, .cinder-pagination, .cinder-bulk-bar, .cinder-layout-switch) :is(input, select, button):focus-visible) {
     outline: 2px solid var(--cinder-accent);
     outline-offset: 1px;
   }
 
-  :where([data-cinder] :is([data-part="filter"], [data-part="search"])[data-active] :is(input, select)) {
+  :where(:is(.cinder-filter, .cinder-search)[data-active] :is(input, select)) {
     border-color: var(--cinder-accent);
   }
 
-  :where([data-cinder] :is([data-part="filter-clear"], [data-part="search-clear"])) {
+  :where(:is(.cinder-filter-clear, .cinder-search-clear)) {
     border: 0;
     background: none;
     color: var(--cinder-muted);
@@ -84,13 +89,13 @@
   }
 
   /* Table */
-  :where([data-cinder] [data-part="table"]) {
+  :where(.cinder-table) {
     width: 100%;
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
   }
 
-  :where([data-cinder] [data-part="header-cell"]) {
+  :where(.cinder-header-cell) {
     padding: 8px 12px;
     border-bottom: 1px solid var(--cinder-border);
     color: var(--cinder-muted);
@@ -100,7 +105,7 @@
     white-space: nowrap;
   }
 
-  :where([data-cinder] [data-part="sort"]) {
+  :where(.cinder-sort) {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -112,31 +117,31 @@
     cursor: pointer;
   }
 
-  :where([data-cinder] [data-part="sort-indicator"])::before {
+  :where(.cinder-sort-indicator)::before {
     content: "↕";
     opacity: 0.35;
   }
 
-  :where([data-cinder] [data-part="sort-indicator"][data-direction="asc"])::before {
+  :where(.cinder-sort-indicator[data-direction="asc"])::before {
     content: "↑";
     opacity: 1;
   }
 
-  :where([data-cinder] [data-part="sort-indicator"][data-direction="desc"])::before {
+  :where(.cinder-sort-indicator[data-direction="desc"])::before {
     content: "↓";
     opacity: 1;
   }
 
-  :where([data-cinder] [data-part="cell"]) {
+  :where(.cinder-cell) {
     padding: 10px 12px;
     border-bottom: 1px solid var(--cinder-border);
   }
 
-  :where([data-cinder] [data-part="row"]:hover) {
+  :where(.cinder-row:hover) {
     background: var(--cinder-hover);
   }
 
-  :where([data-cinder] :is([data-part="empty"], [data-part="error"]) td) {
+  :where(:is(.cinder-empty, .cinder-error) td) {
     padding: 32px 12px;
     color: var(--cinder-muted);
     text-align: center;
@@ -144,7 +149,7 @@
 
   /* Grid layout: cards from the <:item> slot */
   /* As many columns as there's room for, sized to the grid's own width */
-  :where([data-cinder] [data-part="grid"]) {
+  :where(.cinder-grid) {
     --cinder-grid-min: 220px;
 
     display: grid;
@@ -157,21 +162,21 @@
 
   /* `grid_columns`: a fixed count, or per-breakpoint counts that each fall back to
      the nearest smaller breakpoint (Tailwind's default widths) */
-  :where([data-cinder] [data-part="grid"][data-columns]) {
+  :where(.cinder-grid[data-columns]) {
     --cinder-grid-count: var(--cinder-grid-columns, var(--cinder-grid-columns-xs, 1));
 
     grid-template-columns: repeat(var(--cinder-grid-count), minmax(0, 1fr));
   }
 
   @media (width >= 40rem) {
-    :where([data-cinder] [data-part="grid"][data-columns]) {
+    :where(.cinder-grid[data-columns]) {
       --cinder-grid-count: var(--cinder-grid-columns,
           var(--cinder-grid-columns-sm, var(--cinder-grid-columns-xs, 1)));
     }
   }
 
   @media (width >= 48rem) {
-    :where([data-cinder] [data-part="grid"][data-columns]) {
+    :where(.cinder-grid[data-columns]) {
       --cinder-grid-count: var(--cinder-grid-columns,
           var(--cinder-grid-columns-md,
             var(--cinder-grid-columns-sm, var(--cinder-grid-columns-xs, 1))));
@@ -179,7 +184,7 @@
   }
 
   @media (width >= 64rem) {
-    :where([data-cinder] [data-part="grid"][data-columns]) {
+    :where(.cinder-grid[data-columns]) {
       --cinder-grid-count: var(--cinder-grid-columns,
           var(--cinder-grid-columns-lg,
             var(--cinder-grid-columns-md,
@@ -188,7 +193,7 @@
   }
 
   @media (width >= 80rem) {
-    :where([data-cinder] [data-part="grid"][data-columns]) {
+    :where(.cinder-grid[data-columns]) {
       --cinder-grid-count: var(--cinder-grid-columns,
           var(--cinder-grid-columns-xl,
             var(--cinder-grid-columns-lg,
@@ -198,7 +203,7 @@
   }
 
   @media (width >= 96rem) {
-    :where([data-cinder] [data-part="grid"][data-columns]) {
+    :where(.cinder-grid[data-columns]) {
       --cinder-grid-count: var(--cinder-grid-columns,
           var(--cinder-grid-columns-2xl,
             var(--cinder-grid-columns-xl,
@@ -208,21 +213,21 @@
     }
   }
 
-  :where([data-cinder] [data-part="item"]) {
+  :where(.cinder-item) {
     padding: 12px;
     border: 1px solid var(--cinder-border);
     border-radius: var(--cinder-radius);
     background: var(--cinder-bg);
   }
 
-  :where([data-cinder] p:is([data-part="empty"], [data-part="error"])) {
+  :where(p:is(.cinder-empty, .cinder-error)) {
     padding: 32px 12px;
     color: var(--cinder-muted);
     text-align: center;
   }
 
   /* Pagination */
-  :where([data-cinder] [data-part="pagination"]) {
+  :where(.cinder-pagination) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -230,12 +235,12 @@
     gap: 4px;
   }
 
-  :where([data-cinder] [data-part="summary"]) {
+  :where(.cinder-summary) {
     margin-right: auto;
     color: var(--cinder-muted);
   }
 
-  :where([data-cinder] button[data-part="page"]) {
+  :where(button.cinder-page) {
     min-width: var(--cinder-control-height);
     height: var(--cinder-control-height);
     padding: 0 8px;
@@ -247,33 +252,33 @@
     cursor: pointer;
   }
 
-  :where([data-cinder] button[data-part="page"]:hover:not(:disabled)) {
+  :where(button.cinder-page:hover:not(:disabled)) {
     background: var(--cinder-hover);
   }
 
-  :where([data-cinder] [data-part="page"][data-active]) {
+  :where(.cinder-page[data-active]) {
     border-color: var(--cinder-accent);
     background: var(--cinder-active-bg);
     font-weight: 600;
   }
 
-  :where([data-cinder] [data-part="page"]:disabled) {
+  :where(.cinder-page:disabled) {
     opacity: 0.4;
     cursor: default;
   }
 
-  :where([data-cinder] [data-part="page"][data-kind="gap"]) {
+  :where(.cinder-page[data-kind="gap"]) {
     padding: 0 4px;
     color: var(--cinder-muted);
   }
 
   /* Buttons outside the pagination: the layout switch and the bulk bar's */
-  :where([data-cinder] :is(
-      [data-part="layout"],
-      [data-part="bulk-action"],
-      [data-part="clear-selection"],
-      [data-part="confirm"],
-      [data-part="cancel"]
+  :where(:is(
+      .cinder-layout,
+      .cinder-bulk-action,
+      .cinder-clear-selection,
+      .cinder-confirm,
+      .cinder-cancel
     )) {
     height: var(--cinder-control-height);
     padding: 0 12px;
@@ -285,33 +290,33 @@
     cursor: pointer;
   }
 
-  :where([data-cinder] :is([data-part="layout"], [data-part="bulk-action"], [data-part="clear-selection"], [data-part="cancel"]):hover:not(:disabled)) {
+  :where(:is(.cinder-layout, .cinder-bulk-action, .cinder-clear-selection, .cinder-cancel):hover:not(:disabled)) {
     background: var(--cinder-hover);
   }
 
-  :where([data-cinder] :is([data-part="layout"], [data-part="bulk-action"]):disabled) {
+  :where(:is(.cinder-layout, .cinder-bulk-action):disabled) {
     opacity: 0.4;
     cursor: default;
   }
 
   /* The layout switch: one segmented control */
-  :where([data-cinder] [data-part="layout-switch"]) {
+  :where(.cinder-layout-switch) {
     display: inline-flex;
     margin-left: auto;
   }
 
-  :where([data-cinder] [data-part="layout-switch"] [data-part="layout"]:not(:first-child)) {
+  :where(.cinder-layout-switch .cinder-layout:not(:first-child)) {
     margin-left: -1px;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
 
-  :where([data-cinder] [data-part="layout-switch"] [data-part="layout"]:not(:last-child)) {
+  :where(.cinder-layout-switch .cinder-layout:not(:last-child)) {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
   }
 
-  :where([data-cinder] [data-part="layout"][data-active]) {
+  :where(.cinder-layout[data-active]) {
     position: relative;
     border-color: var(--cinder-accent);
     background: var(--cinder-active-bg);
@@ -319,7 +324,7 @@
   }
 
   /* Selection: native checkboxes in the accent colour */
-  :where([data-cinder] :is([data-part="select"], [data-part="select-page"])) {
+  :where(:is(.cinder-select, .cinder-select-page)) {
     width: 16px;
     height: 16px;
     margin: 0;
@@ -327,33 +332,33 @@
     cursor: pointer;
   }
 
-  :where([data-cinder] [data-part="select-cell"]) {
+  :where(.cinder-select-cell) {
     width: 1%;
     padding-right: 0;
   }
 
-  :where([data-cinder] :is([data-part="row"], [data-part="item"])[data-selected]) {
+  :where(:is(.cinder-row, .cinder-item)[data-selected]) {
     background: var(--cinder-active-bg);
   }
 
-  :where([data-cinder] [data-part="item"][data-selected]) {
+  :where(.cinder-item[data-selected]) {
     border-color: var(--cinder-accent);
   }
 
   /* A card's checkbox sits in its corner, out of the content's way */
-  :where([data-cinder] [data-part="item"]:has(> [data-part="select"])) {
+  :where(.cinder-item:has(> .cinder-select)) {
     position: relative;
     padding-right: 36px;
   }
 
-  :where([data-cinder] [data-part="item"] > [data-part="select"]) {
+  :where(.cinder-item > .cinder-select) {
     position: absolute;
     top: 12px;
     right: 12px;
   }
 
   /* The bulk bar: the count, the actions, and any pending question */
-  :where([data-cinder] [data-part="bulk-bar"]) {
+  :where(.cinder-bulk-bar) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -364,12 +369,12 @@
     background: var(--cinder-active-bg);
   }
 
-  :where([data-cinder] [data-part="selection-count"]) {
+  :where(.cinder-selection-count) {
     margin-right: auto;
     font-weight: 600;
   }
 
-  :where([data-cinder] [data-part="confirmation"]) {
+  :where(.cinder-confirmation) {
     display: flex;
     flex-basis: 100%;
     flex-wrap: wrap;
@@ -379,33 +384,33 @@
     border-top: 1px solid var(--cinder-border);
   }
 
-  :where([data-cinder] [data-part="confirmation"] p) {
+  :where(.cinder-confirmation p) {
     margin: 0 auto 0 0;
   }
 
-  :where([data-cinder] [data-part="confirm"]) {
+  :where(.cinder-confirm) {
     border-color: var(--cinder-danger);
     background: var(--cinder-danger);
     color: #fff;
   }
 
   /* Groups: a header row (or heading) with a collapse toggle per group */
-  :where([data-cinder] [data-part="group-header"] th) {
+  :where(.cinder-group-header th) {
     padding: 8px 12px;
     background: var(--cinder-hover);
     text-align: left;
   }
 
-  :where([data-cinder] section[data-part="group"]) {
+  :where(section.cinder-group) {
     display: grid;
     gap: 8px;
   }
 
-  :where([data-cinder] [data-part="group-label"]) {
+  :where(.cinder-group-label) {
     font-weight: 600;
   }
 
-  :where([data-cinder] [data-part="group-toggle"]) {
+  :where(.cinder-group-toggle) {
     margin-right: 8px;
     padding: 0 4px;
     border: 0;
@@ -415,12 +420,12 @@
     cursor: pointer;
   }
 
-  :where([data-cinder] [data-part="group-toggle"] > span) {
+  :where(.cinder-group-toggle > span) {
     display: inline-block;
     transition: transform 0.15s;
   }
 
-  :where([data-cinder] [data-part="group-toggle"][aria-expanded="false"] > span) {
+  :where(.cinder-group-toggle[aria-expanded="false"] > span) {
     transform: rotate(-90deg);
   }
 }

@@ -76,7 +76,7 @@ defmodule Cinder.Next.Component do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id} {@view.attrs}>
+    <div id={@id} class="cinder" {@view.attrs}>
       <%= if @config.page_slot != [] do %>
         <%!-- A `<:page>` places `<form {c.form_attrs}>` itself, so component
              libraries' inputs (which assume they're inside a form) work; inputs

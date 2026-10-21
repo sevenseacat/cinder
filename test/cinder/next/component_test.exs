@@ -68,6 +68,18 @@ defmodule Cinder.Next.ComponentTest do
            ]
   end
 
+  test "the default components mark what they render with cinder-* classes", %{
+    conn: conn,
+    path: path
+  } do
+    {:ok, view, _html} = live(conn, path)
+    html = render_async(view)
+
+    for part <- ~w(table row cell pagination toolbar) do
+      assert html =~ ~r/class="cinder-#{part}[" ]/, "no cinder-#{part}"
+    end
+  end
+
   test "paging moves through the sorted records", %{conn: conn, path: path} do
     {:ok, view, _html} = live(conn, path)
     render_async(view)

@@ -209,7 +209,7 @@ defmodule Cinder.Next do
   def layout_switch(assigns) do
     ~H"""
     <div :if={@layouts != []} {merge(%{"data-part" => "layout-switch", "role" => "group"}, @class, @rest)}>
-      <button :for={layout <- @layouts} {layout.attrs}>{layout.label}</button>
+      <button :for={layout <- @layouts} {styled(layout.attrs)}>{layout.label}</button>
     </div>
     """
   end
@@ -222,8 +222,8 @@ defmodule Cinder.Next do
     ~H"""
     <div {merge(@search.attrs, @class, @rest)}>
       <label for={@search.input_attrs["id"]}>{@search.label}</label>
-      <input {@search.input_attrs} />
-      <button {@search.clear_attrs}>×</button>
+      <input {styled(@search.input_attrs)} />
+      <button {styled(@search.clear_attrs)}>×</button>
     </div>
     """
   end
@@ -268,11 +268,11 @@ defmodule Cinder.Next do
     ~H"""
     <fieldset {merge(@filter.attrs, @class, @rest)}>
       <legend>{@filter.label}</legend>
-      <label :for={option <- @filter.options} data-part="filter-option">
-        <input {option.input_attrs} /> {option.label}
+      <label :for={option <- @filter.options} data-part="filter-option" class="cinder-filter-option">
+        <input {styled(option.input_attrs)} /> {option.label}
       </label>
-      <button {@filter.clear_attrs}>×</button>
-      <p :if={@filter.help} {@filter.help_attrs}>{@filter.help}</p>
+      <button {styled(@filter.clear_attrs)}>×</button>
+      <p :if={@filter.help} {styled(@filter.help_attrs)}>{@filter.help}</p>
     </fieldset>
     """
   end
@@ -280,25 +280,25 @@ defmodule Cinder.Next do
   def filter(assigns) do
     ~H"""
     <div {merge(@filter.attrs, @class, @rest)}>
-      <label {@filter.label_attrs}>{@filter.label}<span :if={@filter.required?} aria-hidden="true"> *</span></label>
-      <input :if={@filter.type == :text} {@filter.input_attrs} />
-      <select :if={@filter.type == :select} {@filter.input_attrs}>
-        <option :for={option <- @filter.options} {option.attrs}>{option.label}</option>
+      <label {styled(@filter.label_attrs)}>{@filter.label}<span :if={@filter.required?} aria-hidden="true"> *</span></label>
+      <input :if={@filter.type == :text} {styled(@filter.input_attrs)} />
+      <select :if={@filter.type == :select} {styled(@filter.input_attrs)}>
+        <option :for={option <- @filter.options} {styled(option.attrs)}>{option.label}</option>
       </select>
-      <span :if={@filter.type == :autocomplete} data-part="filter-autocomplete">
-        <input {@filter.input_attrs} />
-        <label :for={option <- @filter.options} data-part="filter-option">
-          <input {option.input_attrs} /> {option.label}
+      <span :if={@filter.type == :autocomplete} data-part="filter-autocomplete" class="cinder-filter-autocomplete">
+        <input {styled(@filter.input_attrs)} />
+        <label :for={option <- @filter.options} data-part="filter-option" class="cinder-filter-option">
+          <input {styled(option.input_attrs)} /> {option.label}
         </label>
       </span>
-      <span :if={@filter.type == :number_range} data-part="filter-range">
-        <input {@filter.input_attrs.min} />
+      <span :if={@filter.type == :number_range} data-part="filter-range" class="cinder-filter-range">
+        <input {styled(@filter.input_attrs.min)} />
         <span>{dgettext("cinder", "to")}</span>
-        <input {@filter.input_attrs.max} />
+        <input {styled(@filter.input_attrs.max)} />
       </span>
-      <button {@filter.clear_attrs}>×</button>
-      <p :if={@filter.help} {@filter.help_attrs}>{@filter.help}</p>
-      <p :if={@filter.errors != []} {@filter.error_attrs}>{Enum.join(@filter.errors, ", ")}</p>
+      <button {styled(@filter.clear_attrs)}>×</button>
+      <p :if={@filter.help} {styled(@filter.help_attrs)}>{@filter.help}</p>
+      <p :if={@filter.errors != []} {styled(@filter.error_attrs)}>{Enum.join(@filter.errors, ", ")}</p>
     </div>
     """
   end
@@ -312,8 +312,8 @@ defmodule Cinder.Next do
     ~H"""
     <div {merge(@sort_select.attrs, @class, @rest)}>
       <label for={@sort_select.select_attrs["id"]}>{@sort_select.label}</label>
-      <select {@sort_select.select_attrs}>
-        <option :for={option <- @sort_select.options} {option.attrs}>{option.label}</option>
+      <select {styled(@sort_select.select_attrs)}>
+        <option :for={option <- @sort_select.options} {styled(option.attrs)}>{option.label}</option>
       </select>
     </div>
     """
@@ -347,16 +347,16 @@ defmodule Cinder.Next do
       <.grid_item :for={row <- @collection.rows} row={row} item={@inner_block} collection={@collection} />
     </ul>
     <%!-- Each group starts its own grid, so it starts a fresh row --%>
-    <section :for={group <- @collection.groups || []} {group.attrs}>
+    <section :for={group <- @collection.groups || []} {styled(group.attrs)}>
       <.group_header group={group} />
       <ul {merge(Map.merge(@collection.grid_attrs, group.items_attrs), @class, @rest)}>
         <.grid_item :for={row <- group.items} row={row} item={@inner_block} collection={@collection} />
       </ul>
     </section>
-    <p :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">
+    <p :if={@collection.rows == [] and @collection.status == :idle} data-part="empty" class="cinder-empty">
       {dgettext("cinder", "No results found")}
     </p>
-    <p :if={@collection.status == :error} data-part="error">
+    <p :if={@collection.status == :error} data-part="error" class="cinder-error">
       {dgettext("cinder", "An error occurred while loading data")}
     </p>
     """
@@ -371,13 +371,13 @@ defmodule Cinder.Next do
     <table {merge(%{"data-part" => "table"}, @class, @rest)}>
       <thead>
         <tr>
-          <th :if={@collection.selection} data-part="select-cell">
-            <input {@collection.selection.page_attrs} />
+          <th :if={@collection.selection} data-part="select-cell" class="cinder-select-cell">
+            <input {styled(@collection.selection.page_attrs)} />
           </th>
-          <th :for={column <- @collection.columns} {column.attrs}>
+          <th :for={column <- @collection.columns} {styled(column.attrs)}>
             <%= if column.sortable? do %>
-              <button {column.sort_attrs}>
-                {column.label}<span {column.indicator_attrs}></span>
+              <button {styled(column.sort_attrs)}>
+                {column.label}<span {styled(column.indicator_attrs)}></span>
               </button>
             <% else %>
               {column.label}
@@ -388,14 +388,14 @@ defmodule Cinder.Next do
       <%!-- Grouped: a header body and an items body per group, since a <tbody>
            can't hold another container to collapse --%>
       <%= for group <- @collection.groups || [] do %>
-        <tbody {group.attrs}>
-          <tr data-part="group-header">
+        <tbody {styled(group.attrs)}>
+          <tr data-part="group-header" class="cinder-group-header">
             <th colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)} scope="colgroup">
               <.group_header group={group} />
             </th>
           </tr>
         </tbody>
-        <tbody {group.items_attrs}>
+        <tbody {styled(group.items_attrs)}>
           <.table_row :for={row <- group.items} row={row} collection={@collection} />
         </tbody>
       <% end %>
@@ -403,10 +403,10 @@ defmodule Cinder.Next do
         <%= if !@collection.groups do %>
           <.table_row :for={row <- @collection.rows} row={row} collection={@collection} />
         <% end %>
-        <tr :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">
+        <tr :if={@collection.rows == [] and @collection.status == :idle} data-part="empty" class="cinder-empty">
           <td colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)}>{dgettext("cinder", "No results found")}</td>
         </tr>
-        <tr :if={@collection.status == :error} data-part="error">
+        <tr :if={@collection.status == :error} data-part="error" class="cinder-error">
           <td colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)}>
             {dgettext("cinder", "An error occurred while loading data")}
           </td>
@@ -431,13 +431,13 @@ defmodule Cinder.Next do
       :if={@collection.selection && (@collection.selection.count > 0 || @collection.confirmation)}
       {merge(%{"data-part" => "bulk-bar"}, @class, @rest)}
     >
-      <span data-part="selection-count">{@collection.selection.summary}</span>
-      <button :for={action <- @collection.bulk_actions} {action.attrs}>{action.label}</button>
-      <button {@collection.selection.clear_attrs}>{dgettext("cinder", "Clear all")}</button>
-      <div :if={@collection.confirmation} {@collection.confirmation.attrs}>
+      <span data-part="selection-count" class="cinder-selection-count">{@collection.selection.summary}</span>
+      <button :for={action <- @collection.bulk_actions} {styled(action.attrs)}>{action.label}</button>
+      <button {styled(@collection.selection.clear_attrs)}>{dgettext("cinder", "Clear all")}</button>
+      <div :if={@collection.confirmation} {styled(@collection.confirmation.attrs)}>
         <p>{@collection.confirmation.message}</p>
-        <button {@collection.confirmation.confirm_attrs}>{@collection.confirmation.action}</button>
-        <button {@collection.confirmation.cancel_attrs}>{dgettext("cinder", "Cancel")}</button>
+        <button {styled(@collection.confirmation.confirm_attrs)}>{@collection.confirmation.action}</button>
+        <button {styled(@collection.confirmation.cancel_attrs)}>{dgettext("cinder", "Cancel")}</button>
       </div>
     </div>
     """
@@ -448,9 +448,9 @@ defmodule Cinder.Next do
 
   defp table_row(assigns) do
     ~H"""
-    <tr {@row.attrs}>
-      <td :if={@row.select_attrs} data-part="select-cell"><input {@row.select_attrs} /></td>
-      <td :for={column <- @collection.columns} data-part="cell" data-field={column.field}>
+    <tr {styled(@row.attrs)}>
+      <td :if={styled(@row.select_attrs)} data-part="select-cell" class="cinder-select-cell"><input {styled(@row.select_attrs)} /></td>
+      <td :for={column <- @collection.columns} data-part="cell" class="cinder-cell" data-field={column.field}>
         <%= if column.slot[:inner_block] do %>
           {render_slot(column.slot, @row.record)}
         <% else %>
@@ -467,8 +467,8 @@ defmodule Cinder.Next do
 
   defp grid_item(assigns) do
     ~H"""
-    <li {@row.attrs}>
-      <input :if={@row.select_attrs} {@row.select_attrs} />
+    <li {styled(@row.attrs)}>
+      <input :if={styled(@row.select_attrs)} {styled(@row.select_attrs)} />
       {render_slot(if(@item != [], do: @item, else: @collection.item_slot), @row.record)}
     </li>
     """
@@ -482,8 +482,8 @@ defmodule Cinder.Next do
   """
   def group_header(assigns) do
     ~H"""
-    <button {@group.toggle_attrs}><span aria-hidden="true">▾</span></button>
-    <span id={@group.label_id} data-part="group-label">
+    <button {styled(@group.toggle_attrs)}><span aria-hidden="true">▾</span></button>
+    <span id={@group.label_id} data-part="group-label" class="cinder-group-label">
       <%= if @group.slot[:inner_block] do %>
         {render_slot(@group.slot, %{value: @group.value, items: Enum.map(@group.items, & &1.record)})}
       <% else %>
@@ -501,15 +501,15 @@ defmodule Cinder.Next do
   def pagination(assigns) do
     ~H"""
     <nav :if={@collection.pagination} {merge(@collection.pagination.attrs, @class, @rest)}>
-      <span :if={@collection.pagination.summary} data-part="summary">
+      <span :if={@collection.pagination.summary} data-part="summary" class="cinder-summary">
         {@collection.pagination.summary}
       </span>
-      <button {@collection.pagination.prev.attrs}>{@collection.pagination.prev.label}</button>
+      <button {styled(@collection.pagination.prev.attrs)}>{@collection.pagination.prev.label}</button>
       <%= for page <- @collection.pagination.pages do %>
-        <span :if={page.kind == :gap} {page.attrs}>{page.label}</span>
-        <button :if={page.kind != :gap} {page.attrs}>{page.label}</button>
+        <span :if={page.kind == :gap} {styled(page.attrs)}>{page.label}</span>
+        <button :if={page.kind != :gap} {styled(page.attrs)}>{page.label}</button>
       <% end %>
-      <button {@collection.pagination.next.attrs}>{@collection.pagination.next.label}</button>
+      <button {styled(@collection.pagination.next.attrs)}>{@collection.pagination.next.label}</button>
     </nav>
     """
   end
@@ -524,9 +524,19 @@ defmodule Cinder.Next do
 
     # Cinder's own value wins only where it has one
     ours
+    |> styled()
     |> Map.merge(theirs, fn key, our_value, their_value ->
       if key in @protected, do: our_value, else: their_value
     end)
     |> Map.update("class", class, &[&1, class])
   end
+
+  # What these components render gets a `cinder-<part>` class, which is what
+  # Cinder's CSS styles. The attribute maps themselves only carry `data-part` (a
+  # name, for tests, JS and your own CSS), so your own markup spreading them isn't
+  # styled by Cinder.
+  defp styled(%{"data-part" => part} = attrs),
+    do: Map.update(attrs, "class", "cinder-" <> part, &["cinder-" <> part, &1])
+
+  defp styled(attrs), do: attrs
 end

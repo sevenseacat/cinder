@@ -184,6 +184,21 @@ defmodule Cinder.Next.ViewTest do
     end
   end
 
+  # Cinder's CSS styles `cinder-*` classes, which only its own components render.
+  # Attribute maps name parts with `data-part` but carry no class, so markup that
+  # spreads them isn't styled by Cinder.
+  test "attribute maps carry no classes" do
+    view = build(filter: [filter("title", type: :text)])
+
+    maps =
+      [view.attrs, view.form_attrs, view.clear_all_attrs, view.grid_attrs, view.pagination.attrs] ++
+        Enum.flat_map(view.rows, &[&1.attrs]) ++
+        Enum.flat_map(view.columns, &[&1.attrs, &1.sort_attrs]) ++
+        Enum.flat_map(view.filters, &[&1.attrs, &1.input_attrs, &1.clear_attrs])
+
+    assert Enum.all?(maps, &(not Map.has_key?(&1, "class")))
+  end
+
   describe "groups" do
     defp groups(results, group \\ [%{__slot__: :group, field: "genre", inner_block: nil}]) do
       %{

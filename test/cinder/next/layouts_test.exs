@@ -159,7 +159,8 @@ defmodule Cinder.Next.LayoutsTest do
 
     [table] = Regex.run(~r/<table[^>]*>/, render_async(view))
 
-    assert table =~ ~s(class="striped")
+    # Cinder's class first (what its CSS styles), then the caller's
+    assert table =~ ~s(class="cinder-table striped")
     assert table =~ ~s(data-density="compact")
     assert table =~ ~s(data-part="table")
   end
