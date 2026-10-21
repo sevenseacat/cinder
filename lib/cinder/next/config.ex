@@ -26,8 +26,9 @@ defmodule Cinder.Next.Config do
   defmodule Filter do
     @moduledoc false
     @enforce_keys [:type]
-    # `render` is the `<:filter>` slot entry when it has an inner block to render instead
-    defstruct [:type, :help, :render, options: []]
+    # `render` is the `<:filter>` slot entry when it has an inner block to render instead.
+    # `source` is :field for a filter, or :argument for a read action argument.
+    defstruct [:type, :help, :render, source: :field, required?: false, options: []]
   end
 
   defmodule Sort do
@@ -66,7 +67,9 @@ defmodule Cinder.Next.Config do
     page_size: 25,
     pagination_slot: [],
     # The registry as the engine's column maps, built once
-    engine_columns: []
+    engine_columns: [],
+    # `<:argument>`s, which go to the read action rather than filtering a field
+    argument_fields: []
   ]
 
   # `<:filter>` attrs that become the filter's options, as the engine expects them
@@ -91,9 +94,11 @@ defmodule Cinder.Next.Config do
     cols = Map.get(assigns, :col, [])
     filter_slots = Map.get(assigns, :filter, [])
     sort_slots = Map.get(assigns, :sort, [])
+    argument_slots = Map.get(assigns, :argument, [])
 
     reject_duplicates!(filter_slots, "<:filter>")
     reject_duplicates!(sort_slots, "<:sort>")
+    reject_duplicates!(Enum.map(argument_slots, &Map.put(&1, :field, &1.name)), "<:argument>")
 
     labels = declared_labels(cols ++ filter_slots ++ sort_slots)
     filter_decls = declarations(cols, :filter, filter_slots)
@@ -123,11 +128,18 @@ defmodule Cinder.Next.Config do
         {name, field}
       end)
 
+    arguments = arguments(argument_slots, read_action(query, resource, assigns[:action]))
+
+    for name <- Map.keys(arguments), Map.has_key?(fields, name) do
+      raise ArgumentError, "#{inspect(name)} is declared as both an <:argument> and a field"
+    end
+
     config = %__MODULE__{
       query: query,
       resource: resource,
-      fields: fields,
-      filter_order: filter_order,
+      fields: Map.merge(fields, arguments),
+      # Arguments come first: they're often required, and inputs to the whole query
+      filter_order: Enum.map(argument_slots, & &1.name) ++ filter_order,
       sort_order: sort_order,
       columns:
         for(col <- cols, do: %Column{field: col.field, label: fields[col.field].label, slot: col}),
@@ -146,7 +158,11 @@ defmodule Cinder.Next.Config do
       pagination_slot: assigns[:pagination] || []
     }
 
-    %{config | engine_columns: engine_columns(config)}
+    %{
+      config
+      | engine_columns: engine_columns(config),
+        argument_fields: Enum.map(argument_slots, & &1.name)
+    }
   end
 
   # Either a scope, or an actor and/or tenant made into one (Ash implements
@@ -170,10 +186,13 @@ defmodule Cinder.Next.Config do
   """
   def engine_columns(%__MODULE__{fields: fields}) do
     for {name, field} <- fields do
+      # Arguments go to the read action, so the engine mustn't filter on them
+      filterable? = field.filter != nil and field.filter.source == :field
+
       %{
         field: name,
         label: field.label,
-        filterable: field.filter != nil,
+        filterable: filterable?,
         filter_type: field.filter && field.filter.type,
         filter_options: (field.filter && field.filter.options) || [],
         filter_fn: nil,
@@ -211,16 +230,11 @@ defmodule Cinder.Next.Config do
   defp filter(:shorthand, name, resource), do: filter(%{}, name, resource)
 
   defp filter(slot, name, resource) do
-    options =
-      for attr <- @filter_option_attrs, Map.has_key?(slot, attr) do
-        {attr, if(attr in [:operator, :match_mode], do: to_atom(slot[attr]), else: slot[attr])}
-      end
-
     inferred =
       FilterManager.infer_filter_config(name, resource, %{
         filterable: true,
         filter_type: filter_type(slot[:type], name),
-        filter_options: options
+        filter_options: slot_options(slot)
       })
 
     %Filter{
@@ -229,6 +243,61 @@ defmodule Cinder.Next.Config do
       help: slot[:help],
       render: if(slot[:inner_block], do: slot)
     }
+  end
+
+  defp slot_options(slot) do
+    for attr <- @filter_option_attrs, Map.has_key?(slot, attr) do
+      {attr, if(attr in [:operator, :match_mode], do: to_atom(slot[attr]), else: slot[attr])}
+    end
+  end
+
+  # `<:argument>`s as fields, inferring what they can from the action's own
+  # declaration of the argument, the way filters infer from attributes
+  defp arguments(slots, action) do
+    Map.new(slots, fn slot ->
+      argument =
+        Enum.find(action.arguments, &(to_string(&1.name) == slot.name)) ||
+          raise ArgumentError,
+                "the #{inspect(action.name)} action has no argument #{inspect(slot.name)}"
+
+      {type, options} = argument_input(argument)
+
+      filter = %Filter{
+        type: filter_type(slot[:type], slot.name) || type,
+        options: Keyword.merge(options, slot_options(slot)),
+        help: slot[:help],
+        source: :argument,
+        required?: not argument.allow_nil? and is_nil(argument.default)
+      }
+
+      label = slot[:label] || Helpers.humanize_embedded_field(slot.name)
+      {slot.name, %Field{name: slot.name, label: label, filter: filter}}
+    end)
+  end
+
+  # A choice of values is a select; numbers get a number input; anything else, text
+  defp argument_input(%{constraints: constraints, type: type}) do
+    cond do
+      one_of = constraints[:one_of] ->
+        {:select, options: Enum.map(one_of, &{to_string(&1), &1})}
+
+      type in [Ash.Type.Integer, Ash.Type.Float, Ash.Type.Decimal] ->
+        {:text, input_type: "number"}
+
+      true ->
+        {:text, []}
+    end
+  end
+
+  # The read action the collection runs: the one asked for, the one a prepared
+  # query already has, or the resource's primary read
+  defp read_action(query, resource, action_name) do
+    name =
+      action_name ||
+        (match?(%Ash.Query{action: %{}}, query) && query.action.name) ||
+        Ash.Resource.Info.primary_action!(resource, :read).name
+
+    Ash.Resource.Info.action(resource, name)
   end
 
   # The string form of a type (`type="select"`) is matched against the known types,

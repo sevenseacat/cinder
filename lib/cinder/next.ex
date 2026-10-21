@@ -72,6 +72,20 @@ defmodule Cinder.Next do
     attr :max_results, :integer, doc: "Autocomplete: how many matching options to show"
   end
 
+  slot :argument,
+    doc: """
+    An input for one of the read action's arguments, rendered and cleared like a
+    filter. Its type, options and whether it's required come from the action.
+    """ do
+    attr :name, :string, required: true
+    attr :label, :string
+    attr :help, :string
+    attr :type, :any, doc: "Overrides the type inferred from the argument"
+    attr :options, :list
+    attr :prompt, :string
+    attr :placeholder, :string
+  end
+
   slot :sort, doc: "Declares a sortable field" do
     attr :field, :string, required: true
     attr :label, :string
@@ -183,7 +197,7 @@ defmodule Cinder.Next do
   def filter(assigns) do
     ~H"""
     <div {merge(@filter.attrs, @class, @rest)}>
-      <label {@filter.label_attrs}>{@filter.label}</label>
+      <label {@filter.label_attrs}>{@filter.label}<span :if={@filter.required?} aria-hidden="true"> *</span></label>
       <input :if={@filter.type == :text} {@filter.input_attrs} />
       <select :if={@filter.type == :select} {@filter.input_attrs}>
         <option :for={option <- @filter.options} {option.attrs}>{option.label}</option>
@@ -201,6 +215,7 @@ defmodule Cinder.Next do
       </span>
       <button {@filter.clear_attrs}>×</button>
       <p :if={@filter.help} {@filter.help_attrs}>{@filter.help}</p>
+      <p :if={@filter.errors != []} {@filter.error_attrs}>{Enum.join(@filter.errors, ", ")}</p>
     </div>
     """
   end

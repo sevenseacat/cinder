@@ -24,11 +24,17 @@ defmodule Cinder.Next.State do
           page_size: pos_integer(),
           default_sort: sort(),
           default_page_size: pos_integer(),
-          raw: %{String.t() => term()}
+          raw: %{String.t() => term()},
+          arguments: %{String.t() => String.t()},
+          errors: %{String.t() => [String.t()]}
         }
 
   defstruct filters: %{},
             raw: %{},
+            # Values for the read action's arguments: part of the query, like filters
+            arguments: %{},
+            # Per-filter messages from the last load (e.g. a required argument); not query
+            errors: %{},
             search: "",
             sort: [],
             page: 1,
@@ -62,10 +68,19 @@ defmodule Cinder.Next.State do
 
   def clear_filter(state, field) do
     raw = Map.reject(state.raw, fn {key, _value} -> param_field?(key, field) end)
-    set_filters(state, Map.delete(state.filters, field), state.search, raw)
+
+    state
+    |> set_filters(Map.delete(state.filters, field), state.search, raw)
+    |> set_arguments(Map.delete(state.arguments, field))
   end
 
-  def clear_all(state), do: %{set_filters(state, %{}, "") | raw: %{}}
+  def clear_all(state), do: %{set_arguments(set_filters(state, %{}, ""), %{}) | raw: %{}}
+
+  @doc "Sets the read action's argument values. Blank ones are left out."
+  def set_arguments(state, arguments) do
+    arguments = Map.reject(arguments, fn {_name, value} -> value in [nil, ""] end)
+    reset_if_changed(state, %{state | arguments: arguments})
+  end
 
   @doc "Whether a form param (`price_min`, `tags`) belongs to a field (`price`, `tags`)."
   def param_field?(param, field), do: param == field or String.starts_with?(param, field <> "_")
@@ -93,6 +108,7 @@ defmodule Cinder.Next.State do
   def query_options(state) do
     [
       filters: state.filters,
+      arguments: state.arguments,
       search_term: state.search,
       sort_by: state.sort,
       current_page: state.page,
@@ -102,7 +118,10 @@ defmodule Cinder.Next.State do
 
   @doc "URL params for this state, in the format `Cinder.UrlSync` expects."
   def to_url_params(state, filter_fields) do
-    UrlManager.encode_state(%{
+    # Argument values go in under their own names, like a text filter's would
+    arguments = Map.new(state.arguments, fn {name, value} -> {String.to_atom(name), value} end)
+
+    %{
       filters: state.filters,
       search_term: state.search,
       sort_by: state.sort,
@@ -110,19 +129,25 @@ defmodule Cinder.Next.State do
       page_size: state.page_size,
       default_page_size: state.default_page_size,
       filter_field_names: filter_fields
-    })
+    }
+    |> UrlManager.encode_state()
+    |> Map.merge(arguments)
   end
 
   @doc """
   Replaces the state's query with the one in the URL. Params the URL doesn't
   have fall back to the defaults, so removing them from the URL clears them.
   """
-  def from_url_params(state, params, columns) do
+  def from_url_params(state, params, columns, argument_fields \\ []) do
     decoded = UrlManager.decode_state(params, columns)
 
     %{
       state
       | filters: decoded.filters,
+        arguments:
+          Map.new(
+            for name <- argument_fields, params[name] not in [nil, ""], do: {name, params[name]}
+          ),
         raw: current_raw(state.raw, decoded.filters, columns),
         search: decoded.search_term,
         sort: if(Map.has_key?(params, "sort"), do: decoded.sort_by, else: state.default_sort),
@@ -153,5 +178,5 @@ defmodule Cinder.Next.State do
   end
 
   defp query_key(state),
-    do: {state.filters, state.search, state.sort, state.page, state.page_size}
+    do: {state.filters, state.arguments, state.search, state.sort, state.page, state.page_size}
 end

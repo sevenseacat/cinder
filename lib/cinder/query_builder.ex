@@ -250,7 +250,8 @@ defmodule Cinder.QueryBuilder do
         Keyword.get(options, :action) ||
           Ash.Resource.Info.primary_action!(query.resource, :read).name
 
-      Ash.Query.for_read(query, action_name, %{}, build_for_read_opts(options))
+      arguments = Keyword.get(options, :arguments, %{})
+      Ash.Query.for_read(query, action_name, arguments, build_for_read_opts(options))
     end
   end
 

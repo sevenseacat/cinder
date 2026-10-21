@@ -98,6 +98,13 @@ defmodule Music.Album do
       pagination(offset?: true, keyset?: true, countable: true, required?: false)
     end
 
+    # A read action argument a filter can supply, with a required value
+    read :with_min_tracks do
+      argument(:min_tracks, :integer, allow_nil?: false)
+      filter(expr(track_count >= ^arg(:min_tracks)))
+      pagination(offset?: true, countable: true, required?: false)
+    end
+
     # For showing the loading and error states in the dev app
     read :slow do
       prepare(fn query, _context ->

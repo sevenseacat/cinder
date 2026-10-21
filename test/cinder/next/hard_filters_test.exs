@@ -206,4 +206,105 @@ defmodule Cinder.Next.HardFiltersTest do
       assert reads() == 0
     end
   end
+
+  describe "read action argument" do
+    setup %{conn: conn} do
+      # Give the albums different track counts for the argument to filter on
+      for {album, tracks} <- Enum.zip(Ash.read!(Music.Album, load: []), [8, 10, 12, 14, 16]) do
+        Ash.Seed.update!(album, %{track_count: tracks})
+      end
+
+      path =
+        Cinder.TestLive.Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album} action={:with_min_tracks}>
+            <:col :let={album} field="title">{album.title}</:col>
+            <:argument name="min_tracks" label="Min. tracks" />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      {:ok, view, _html} = live(conn, path)
+      %{view: view}
+    end
+
+    defp min_tracks_input(html),
+      do: Regex.run(~r/<input[^>]*name="filters\[min_tracks\]"[^>]*>/, html)
+
+    @tag :capture_log
+    test "on first load it's marked required, with no error until it's been used", %{
+      view: view
+    } do
+      html = render_async(view)
+      [input] = min_tracks_input(html)
+
+      # Required and a number input, both from the action's declaration of the argument
+      assert input =~ ~s(required)
+      assert input =~ ~s(type="number")
+      refute input =~ ~s(aria-invalid)
+      refute html =~ ~s(data-part="filter-error")
+
+      # The collection is waiting on input, not broken
+      assert html =~ ~s(data-state="invalid")
+      refute html =~ ~s(data-part="error")
+    end
+
+    @tag :capture_log
+    test "an untouched input stays quiet; a used, empty one shows why", %{view: view} do
+      # LiveView marks inputs nobody has interacted with yet as `_unused_`
+      html = change(view, %{"min_tracks" => "", "_unused_min_tracks" => ""})
+      refute html =~ ~s(data-part="filter-error")
+
+      html = change(view, %{"min_tracks" => ""})
+      assert html =~ ~r/data-part="filter-error"[^>]*>is required</
+      assert hd(min_tracks_input(html)) =~ ~s(aria-invalid)
+    end
+
+    test "a value goes to the action, and clears the error", %{view: view} do
+      html = change(view, %{"min_tracks" => "12"})
+
+      assert length(titles(html)) == 3
+      refute html =~ ~s(data-part="filter-error")
+      refute hd(min_tracks_input(html)) =~ ~s(aria-invalid)
+    end
+
+    @tag :capture_log
+    test "an invalid value shows Ash's message, and stays in the input", %{view: view} do
+      html = change(view, %{"min_tracks" => "abc"})
+
+      assert html =~ ~r/data-part="filter-error"[^>]*>is invalid</
+      assert hd(min_tracks_input(html)) =~ ~s(value="abc")
+    end
+  end
+
+  # Regression: a custom layout rendering every filter as a plain `<input>` lost a
+  # select filter's value on the next change, because its `input_attrs` carried no
+  # `value` (a select's value lives in its options). Attribute maps carry state as
+  # well as wiring, so spreading them onto any control must keep it.
+  test "a select filter's input_attrs keep its value, whatever control they're spread on", %{
+    conn: conn
+  } do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection :let={c} id="albums" resource={Music.Album} layout="custom">
+          <:col :let={album} field="title">{album.title}</:col>
+          <:filter field="genre" type="select" />
+          <:filter field="title" type="text" />
+          <input :for={f <- c.filters} {f.input_attrs} />
+          <p :for={row <- c.rows}>{row.record.title}</p>
+        </Cinder.Next.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+    render_async(view)
+
+    html = change(view, %{"genre" => "jazz", "title" => ""})
+    assert html =~ ~r/<input[^>]*name="filters\[genre\]"[^>]*value="jazz"/
+
+    # Another filter changes; the form posts the genre input's value again
+    html = change(view, %{"title" => "a"})
+    assert html =~ ~r/<input[^>]*name="filters\[genre\]"[^>]*value="jazz"/
+  end
 end

@@ -8,6 +8,7 @@ defmodule Cinder.Next.View do
   """
   use Cinder.Messages
 
+  alias Cinder.Next.State
   alias Cinder.QueryBuilder
 
   @window 2
@@ -166,8 +167,22 @@ defmodule Cinder.Next.View do
     if filter.type in @filter_types do
       input_id = Cinder.Filter.filter_id(config.form_id, name)
       help_id = "#{input_id}-help"
-      described_by = filter.help && help_id
-      active? = Map.has_key?(state.filters, name)
+      error_id = "#{input_id}-error"
+      argument? = filter.source == :argument
+
+      # An argument's value goes to the read action, not into the filters
+      active? = Map.has_key?(if(argument?, do: state.arguments, else: state.filters), name)
+
+      # Like Phoenix's `used_input?/1`: errors show only once the input has been
+      # used (or has a value), so nothing is flagged before anyone has typed
+      used? = active? or used_input?(state.raw, name)
+      errors = if used?, do: Map.get(state.errors, name, []), else: []
+
+      described_by =
+        [filter.help && help_id, errors != [] && error_id]
+        |> Enum.filter(& &1)
+        |> Enum.join(" ")
+        |> then(&if(&1 == "", do: nil, else: &1))
 
       # What the details of each type's inputs need
       ctx = %{
@@ -177,10 +192,14 @@ defmodule Cinder.Next.View do
         input_id: input_id,
         form_id: config.form_id,
         described_by: described_by,
+        invalid?: errors != [],
         raw: state.raw
       }
 
-      value = current_value(filter.type, name, state)
+      value =
+        if argument?,
+          do: state.raw[name] || state.arguments[name] || "",
+          else: current_value(filter.type, name, state)
 
       %{
         field: name,
@@ -188,20 +207,25 @@ defmodule Cinder.Next.View do
         type: filter.type,
         value: value,
         active?: active?,
+        required?: filter.required?,
+        used?: used?,
         help: filter.help,
+        errors: errors,
         render: filter.render,
         options: options(filter.type, ctx, value),
         attrs: %{
           "data-part" => "filter",
           "data-field" => name,
           "data-filter-type" => filter.type,
-          "data-active" => active?
+          "data-active" => active?,
+          "data-invalid" => errors != []
         },
         # Multi filters label a group of checkboxes, so there's no single input to point at
         label_attrs: %{
           "for" => if(filter.type not in @multi_types, do: label_target(filter.type, input_id))
         },
         help_attrs: %{"id" => help_id, "data-part" => "filter-help"},
+        error_attrs: %{"id" => error_id, "data-part" => "filter-error", "role" => "alert"},
         input_attrs: input_attrs(filter.type, ctx, value),
         clear_attrs: %{
           "type" => "button",
@@ -218,6 +242,14 @@ defmodule Cinder.Next.View do
 
   defp label_target(:number_range, input_id), do: input_id <> "-min"
   defp label_target(_type, input_id), do: input_id
+
+  # Any of the field's params arrived without LiveView's `_unused_` marker, which it
+  # sends for inputs nobody has interacted with yet
+  defp used_input?(raw, name) do
+    Enum.any?(raw, fn {param, _value} ->
+      State.param_field?(param, name) and not Map.has_key?(raw, "_unused_" <> param)
+    end)
+  end
 
   # What the inputs show: the raw form input while there is any, else the filter's value
   defp current_value(:number_range, name, state) do
@@ -246,7 +278,8 @@ defmodule Cinder.Next.View do
   defp input_attrs(:text, ctx, value) do
     %{
       "id" => ctx.input_id,
-      "type" => "text",
+      "type" => ctx.filter.options[:input_type] || "text",
+      "required" => ctx.filter.required?,
       "name" => Cinder.Filter.field_name(ctx.name),
       "value" => value,
       "placeholder" =>
@@ -254,16 +287,22 @@ defmodule Cinder.Next.View do
           dgettext("cinder", "Filter %{label}...", label: ctx.label),
       "form" => ctx.form_id,
       "phx-debounce" => "300",
-      "aria-describedby" => ctx.described_by
+      "aria-describedby" => ctx.described_by,
+      "aria-invalid" => ctx.invalid?
     }
   end
 
-  defp input_attrs(:select, ctx, _value) do
+  # `value` is ignored on a real `<select>` (its options' `selected` decides), but it
+  # means these attrs keep the filter's state whatever control they're spread on
+  defp input_attrs(:select, ctx, value) do
     %{
       "id" => ctx.input_id,
       "name" => Cinder.Filter.field_name(ctx.name),
+      "value" => value,
       "form" => ctx.form_id,
-      "aria-describedby" => ctx.described_by
+      "required" => ctx.filter.required?,
+      "aria-describedby" => ctx.described_by,
+      "aria-invalid" => ctx.invalid?
     }
   end
 
@@ -281,7 +320,8 @@ defmodule Cinder.Next.View do
       "autocomplete" => "off",
       "form" => ctx.form_id,
       "phx-debounce" => "300",
-      "aria-describedby" => ctx.described_by
+      "aria-describedby" => ctx.described_by,
+      "aria-invalid" => ctx.invalid?
     }
   end
 

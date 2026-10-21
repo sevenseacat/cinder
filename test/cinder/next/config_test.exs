@@ -147,6 +147,44 @@ defmodule Cinder.Next.ConfigTest do
            } = Enum.find(Config.engine_columns(config), &(&1.field == "title"))
   end
 
+  describe "arguments" do
+    defp argument(name, attrs \\ []), do: Map.merge(%{name: name}, Map.new(attrs))
+
+    defp with_arguments(arguments, extra \\ []) do
+      build([action: :with_min_tracks, argument: arguments] ++ extra)
+    end
+
+    test "infer their input and whether they're required from the action" do
+      config = with_arguments([argument("min_tracks")])
+      field = config.fields["min_tracks"]
+
+      assert %{source: :argument, required?: true, type: :text} = field.filter
+      assert field.filter.options[:input_type] == "number"
+      assert field.label == "Min Tracks"
+    end
+
+    test "come before filters, and the engine never filters on them" do
+      config =
+        with_arguments([argument("min_tracks", label: "At least")], filter: [filter("genre")])
+
+      assert config.filter_order == ["min_tracks", "genre"]
+      assert config.argument_fields == ["min_tracks"]
+      refute Enum.find(config.engine_columns, &(&1.field == "min_tracks")).filterable
+    end
+
+    test "must be declared on the action" do
+      assert_raise ArgumentError, ~r/:with_min_tracks action has no argument "max_tracks"/, fn ->
+        with_arguments([argument("max_tracks")])
+      end
+    end
+
+    test "can't share a name with a field" do
+      assert_raise ArgumentError, ~r/both an <:argument> and a field/, fn ->
+        with_arguments([argument("min_tracks")], col: [col("min_tracks")])
+      end
+    end
+  end
+
   describe "layout" do
     test "defaults to a table, and takes the string form" do
       assert build([]).layout == :table

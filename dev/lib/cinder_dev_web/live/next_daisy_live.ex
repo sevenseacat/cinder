@@ -186,6 +186,35 @@ defmodule CinderDevWeb.NextDaisyLive do
           </dialog>
         </.portal>
       </Cinder.Next.collection>
+
+      <h2 class="mt-12 text-lg font-semibold">A read action argument (not URL-synced)</h2>
+      <Cinder.Next.collection
+        :let={c}
+        id="daisy-tracks"
+        resource={Music.Album}
+        action={:with_min_tracks}
+        layout="custom"
+        page_size={6}
+      >
+        <:col :let={album} field="title">{album.title}</:col>
+        <:col field="track_count" label="Tracks" />
+        <:argument name="min_tracks" label="At least this many tracks" />
+        <:filter field="genre" type="select" prompt="All" />
+
+        <fieldset :for={min <- c.filters} class="fieldset max-w-xs">
+          <legend class="fieldset-legend">{min.label}</legend>
+          <input class={["input", min.errors != [] && "input-error"]} {min.input_attrs} />
+          <p :if={min.errors != []} class="label text-error" {min.error_attrs}>
+            {Enum.join(min.errors, ", ")}
+          </p>
+        </fieldset>
+        <table :if={c.status == :idle} class="table">
+          <tr :for={row <- c.rows} {row.attrs}>
+            <td>{row.record.title}</td>
+            <td>{row.record.track_count}</td>
+          </tr>
+        </table>
+      </Cinder.Next.collection>
     </Layouts.app>
     """
   end

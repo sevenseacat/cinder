@@ -49,7 +49,11 @@ defmodule Cinder.Next.Component do
 
     {:noreply,
      commit(socket, fn state ->
-       state = State.set_filters(state, filters, search, raw)
+       state =
+         state
+         |> State.set_filters(filters, search, raw)
+         |> State.set_arguments(Map.new(socket.assigns.config.argument_fields, &{&1, raw[&1]}))
+
        if sort, do: State.set_sort(state, sort), else: state
      end)}
   end
@@ -76,8 +80,40 @@ defmodule Cinder.Next.Component do
   def handle_async(:load, {:exit, _reason}, socket),
     do: {:noreply, socket |> loaded(:error) |> assign_view()}
 
-  defp loaded(socket, {:ok, page}), do: assign(socket, page: page, status: :idle)
-  defp loaded(socket, _error), do: assign(socket, status: :error)
+  defp loaded(socket, {:ok, page}) do
+    assign(socket, page: page, status: :idle, state: %{socket.assigns.state | errors: %{}})
+  end
+
+  # Errors about an argument filter belong on that filter, not the whole collection.
+  # When every error does, the collection is `:invalid` (waiting on better input)
+  # rather than `:error`.
+  defp loaded(socket, {:error, error}) do
+    arguments = socket.assigns.config.argument_fields
+
+    {field_errors, other} =
+      error
+      |> List.wrap()
+      |> Enum.flat_map(&Map.get(&1, :errors, [&1]))
+      |> Enum.split_with(&(to_string(Map.get(&1, :field)) in arguments))
+
+    errors =
+      field_errors
+      |> Enum.map(&AshPhoenix.FormData.Error.to_form_error/1)
+      |> Enum.group_by(&to_string(elem(&1, 0)), &interpolate/1)
+
+    status = if field_errors != [] and other == [], do: :invalid, else: :error
+
+    assign(socket, page: nil, status: status, state: %{socket.assigns.state | errors: errors})
+  end
+
+  defp loaded(socket, _exit), do: assign(socket, status: :error)
+
+  # A real version would hand these to the app's error translation, as forms do
+  defp interpolate({_field, message, vars}) do
+    Enum.reduce(vars, message, fn {key, value}, message ->
+      String.replace(message, "%{#{key}}", to_string(value))
+    end)
+  end
 
   # The view-model is a socket assign, rebuilt only when something it depends on
   # may have changed. `assign/3` only marks it changed when the new one differs, so a
@@ -165,7 +201,7 @@ defmodule Cinder.Next.Component do
   defp from_url(state, %{assigns: %{url_params: nil}}), do: state
 
   defp from_url(state, %{assigns: %{url_params: params, config: config}}) do
-    State.from_url_params(state, params, config.engine_columns)
+    State.from_url_params(state, params, config.engine_columns, config.argument_fields)
   end
 
   defp load(socket) do
