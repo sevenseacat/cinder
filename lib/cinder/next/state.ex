@@ -48,7 +48,14 @@ defmodule Cinder.Next.State do
             # part of the query: switching never reloads.
             layout: nil,
             default_layout: nil,
-            layouts: []
+            layouts: [],
+            # Ids of selected records, as strings. Not query and not in the URL: it
+            # survives paging, sorting and filtering, so rows can be gathered across
+            # searches.
+            selected: MapSet.new(),
+            # A bulk action waiting on its confirm, by name. Running one with a
+            # `confirm` needs this set first, so a crafted event can't skip it.
+            pending_action: nil
 
   @doc """
   A fresh state. `:page_size`, `:sort` and `:layout` are also what an empty URL goes
@@ -77,6 +84,36 @@ defmodule Cinder.Next.State do
       layout -> %{state | layout: layout}
     end
   end
+
+  @doc """
+  Selects or deselects a record by id. Only ids in `selectable_ids` (those served
+  on the current page, and selectable) can be added, so a client can't select a
+  record it was never shown; anything can be deselected.
+  """
+  def toggle_selected(state, id, selectable_ids) do
+    cond do
+      MapSet.member?(state.selected, id) -> %{state | selected: MapSet.delete(state.selected, id)}
+      id in selectable_ids -> %{state | selected: MapSet.put(state.selected, id)}
+      true -> state
+    end
+  end
+
+  @doc "Selects the whole page, or deselects it if it's all selected already."
+  def toggle_page_selected(state, page_ids) do
+    page = MapSet.new(page_ids)
+
+    selected =
+      if MapSet.size(page) > 0 and MapSet.subset?(page, state.selected),
+        do: MapSet.difference(state.selected, page),
+        else: MapSet.union(state.selected, page)
+
+    %{state | selected: selected}
+  end
+
+  def clear_selected(state), do: %{state | selected: MapSet.new(), pending_action: nil}
+
+  def request_action(state, name), do: %{state | pending_action: name}
+  def cancel_action(state), do: %{state | pending_action: nil}
 
   # Matched against the known layouts, so a URL never creates an atom
   defp find_layout(state, layout),

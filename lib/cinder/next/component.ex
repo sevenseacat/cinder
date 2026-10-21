@@ -84,6 +84,39 @@ defmodule Cinder.Next.Component do
   def handle_event("go_to_cursor", %{"before" => cursor}, socket),
     do: {:noreply, commit(socket, &State.go_to_cursor(&1, :before, cursor))}
 
+  def handle_event("toggle_select", %{"id" => id}, socket) do
+    ids = selectable_ids(socket)
+    {:noreply, commit(socket, &State.toggle_selected(&1, id, ids))}
+  end
+
+  def handle_event("toggle_select_page", _params, socket) do
+    ids = selectable_ids(socket)
+    {:noreply, commit(socket, &State.toggle_page_selected(&1, ids))}
+  end
+
+  def handle_event("clear_selection", _params, socket),
+    do: {:noreply, commit(socket, &State.clear_selected/1)}
+
+  # Found by name, so an unknown one does nothing. One with a `confirm` only asks;
+  # it runs from "confirm_action", which only runs the action that's pending.
+  def handle_event("bulk_action", %{"name" => name}, socket) do
+    case bulk_action(socket, name) do
+      nil -> {:noreply, socket}
+      %{confirm: nil} = action -> {:noreply, run_bulk_action(socket, action)}
+      _confirm -> {:noreply, commit(socket, &State.request_action(&1, name))}
+    end
+  end
+
+  def handle_event("confirm_action", _params, socket) do
+    case bulk_action(socket, socket.assigns.state.pending_action) do
+      nil -> {:noreply, socket}
+      action -> {:noreply, run_bulk_action(socket, action)}
+    end
+  end
+
+  def handle_event("cancel_action", _params, socket),
+    do: {:noreply, commit(socket, &State.cancel_action/1)}
+
   @impl true
   def handle_async(:load, {:ok, result}, socket),
     do: {:noreply, socket |> loaded(result) |> assign_view()}
@@ -119,6 +152,55 @@ defmodule Cinder.Next.Component do
 
   defp loaded(socket, _exit), do: assign(socket, status: :error)
 
+  # The ids of the records served on this page that can be selected: the only ones a
+  # client may add to the selection
+  defp selectable_ids(%{assigns: %{config: config, page: %{results: results}}}) do
+    for record <- results, View.selectable?(config.selectable, record), do: to_string(record.id)
+  end
+
+  defp selectable_ids(_socket), do: []
+
+  defp bulk_action(socket, name),
+    do: Enum.find(socket.assigns.config.bulk_actions, &(&1.name == name))
+
+  # Spike: through the existing executor, on the selected ids. Scoping to the base
+  # query, and "all matching", are engine work with their own tickets.
+  defp run_bulk_action(socket, action) do
+    %{config: config, state: state} = socket.assigns
+    ids = MapSet.to_list(state.selected)
+
+    result =
+      Cinder.BulkActionExecutor.execute(action.action,
+        resource: config.resource || config.query.resource,
+        ids: ids,
+        scope: config.scope,
+        action_opts: action.action_opts
+      )
+
+    case result do
+      # Some records failed: keep the selection, so they can be retried
+      {:ok, %Ash.BulkResult{status: :partial_success, errors: errors}} ->
+        socket
+        |> assign(:bulk_result, %{status: :partial, action: action.label, errors: errors})
+        |> assign(:state, State.cancel_action(state))
+        |> load()
+        |> assign_view()
+
+      {:ok, _result} ->
+        socket
+        |> assign(:bulk_result, %{status: :ok, action: action.label, count: length(ids)})
+        |> assign(:state, State.clear_selected(state))
+        |> load()
+        |> assign_view()
+
+      {:error, reason} ->
+        socket
+        |> assign(:bulk_result, %{status: :error, action: action.label, errors: List.wrap(reason)})
+        |> assign(:state, State.cancel_action(state))
+        |> assign_view()
+    end
+  end
+
   # A real version would hand these to the app's error translation, as forms do
   defp interpolate({_field, message, vars}) do
     Enum.reduce(vars, message, fn {key, value}, message ->
@@ -150,6 +232,7 @@ defmodule Cinder.Next.Component do
             <Cinder.Next.toolbar collection={@view} />
           <% end %>
         </form>
+        <Cinder.Next.bulk_bar collection={@view} />
         <Cinder.Next.results collection={@view} />
         <%!-- A region slot only renders when its region exists, so it never sees a nil pagination --%>
         <%= if @config.pagination_slot != [] do %>

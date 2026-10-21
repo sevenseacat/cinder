@@ -64,6 +64,10 @@ defmodule Cinder.Next.Config do
     item_slot: [],
     # An inner block replaces the whole layout; `:toolbar` replaces only that region
     page_slot: [],
+    # `false`, `true`, or a function of the record
+    selectable: false,
+    # Declared bulk actions in order, by name
+    bulk_actions: [],
     toolbar_slot: [],
     search: %{enabled?: false},
     query_opts: [],
@@ -158,6 +162,8 @@ defmodule Cinder.Next.Config do
       grid_columns: grid_columns,
       item_slot: assigns[:item] || [],
       page_slot: assigns[:page] || [],
+      selectable: assigns[:selectable] || false,
+      bulk_actions: bulk_actions(assigns[:bulk_action] || []),
       toolbar_slot: assigns[:toolbar] || [],
       id: assigns[:id],
       form_id: assigns[:id] && "#{assigns[:id]}-filters",
@@ -323,6 +329,27 @@ defmodule Cinder.Next.Config do
   defp filter_type(type, _name), do: type
 
   @breakpoints [:xs, :sm, :md, :lg, :xl, :"2xl"]
+
+  defp bulk_actions(slots) do
+    actions =
+      for slot <- slots do
+        %{
+          name: slot.name,
+          action: slot.action,
+          label: slot[:label] || Helpers.humanize_embedded_field(slot.name),
+          confirm: slot[:confirm],
+          action_opts: slot[:action_opts] || []
+        }
+      end
+
+    case actions -- Enum.uniq_by(actions, & &1.name) do
+      [] ->
+        actions
+
+      [duplicate | _] ->
+        raise ArgumentError, "<:bulk_action> name #{inspect(duplicate.name)} is declared twice"
+    end
+  end
 
   defp pagination_mode(mode) when mode in [nil, :offset, "offset"], do: :offset
   defp pagination_mode(mode) when mode in [:keyset, "keyset"], do: :keyset

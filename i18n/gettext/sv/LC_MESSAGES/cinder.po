@@ -12,6 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: lib/cinder/controls.ex
+#: lib/cinder/next.ex
 #, elixir-autogen
 msgid "Clear all"
 msgstr "Rensa alla"
@@ -191,6 +192,7 @@ msgid "No results found"
 msgstr "Inga resultat hittades"
 
 #: lib/cinder/filters/multi_select.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "%{count} selected"
 msgstr "%{count} valda"
@@ -230,3 +232,18 @@ msgstr "Rutnät"
 #, elixir-autogen, elixir-format
 msgid "Table"
 msgstr "Tabell"
+
+#: lib/cinder/next.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Avbryt"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Select"
+msgstr "Välj"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Select page"
+msgstr "Välj sida"

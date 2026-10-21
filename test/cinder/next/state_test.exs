@@ -155,6 +155,33 @@ defmodule Cinder.Next.StateTest do
     end
   end
 
+  describe "selection" do
+    test "only adds selectable ids, and isn't part of the query" do
+      state = State.new() |> State.toggle_selected("a", ["a", "b"])
+
+      assert state.selected == MapSet.new(["a"])
+      assert State.toggle_selected(state, "z", ["a", "b"]) == state
+      assert State.toggle_selected(state, "a", []).selected == MapSet.new()
+      refute State.query_changed?(State.new(), state)
+    end
+
+    test "the page toggles all on, then all off, keeping other pages' ids" do
+      state = State.new() |> State.toggle_selected("x", ["x"])
+
+      state = State.toggle_page_selected(state, ["a", "b"])
+      assert state.selected == MapSet.new(["x", "a", "b"])
+      assert State.toggle_page_selected(state, ["a", "b"]).selected == MapSet.new(["x"])
+    end
+
+    test "survives query changes, and clearing drops a pending action" do
+      state = State.new() |> State.toggle_selected("a", ["a"]) |> State.request_action("delete")
+
+      assert State.set_filters(state, @title_filter, "x").selected == MapSet.new(["a"])
+      assert %{selected: selected, pending_action: nil} = State.clear_selected(state)
+      assert selected == MapSet.new()
+    end
+  end
+
   describe "go_to_cursor/3" do
     test "moves after or before a cursor, and a query change drops it" do
       state = State.new() |> State.go_to_cursor(:after, "abc")

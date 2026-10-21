@@ -16,6 +16,7 @@
     --cinder-hover: light-dark(rgb(20 30 50 / 0.05), rgb(255 255 255 / 0.06));
     --cinder-accent: light-dark(#138a6a, #34d399);
     --cinder-active-bg: light-dark(#e6f6f1, rgb(52 211 153 / 0.15));
+    --cinder-danger: light-dark(#c2410c, #f97316);
     --cinder-radius: 6px;
     --cinder-gap: 12px;
     --cinder-control-height: 32px;
@@ -264,5 +265,127 @@
   :where([data-cinder] [data-part="page"][data-kind="gap"]) {
     padding: 0 4px;
     color: var(--cinder-muted);
+  }
+
+  /* Buttons outside the pagination: the layout switch and the bulk bar's */
+  :where([data-cinder] :is(
+      [data-part="layout"],
+      [data-part="bulk-action"],
+      [data-part="clear-selection"],
+      [data-part="confirm"],
+      [data-part="cancel"]
+    )) {
+    height: var(--cinder-control-height);
+    padding: 0 12px;
+    border: 1px solid var(--cinder-border);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-bg);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  :where([data-cinder] :is([data-part="layout"], [data-part="bulk-action"], [data-part="clear-selection"], [data-part="cancel"]):hover:not(:disabled)) {
+    background: var(--cinder-hover);
+  }
+
+  :where([data-cinder] :is([data-part="layout"], [data-part="bulk-action"]):disabled) {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  /* The layout switch: one segmented control */
+  :where([data-cinder] [data-part="layout-switch"]) {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  :where([data-cinder] [data-part="layout-switch"] [data-part="layout"]:not(:first-child)) {
+    margin-left: -1px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  :where([data-cinder] [data-part="layout-switch"] [data-part="layout"]:not(:last-child)) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  :where([data-cinder] [data-part="layout"][data-active]) {
+    position: relative;
+    border-color: var(--cinder-accent);
+    background: var(--cinder-active-bg);
+    font-weight: 600;
+  }
+
+  /* Selection: native checkboxes in the accent colour */
+  :where([data-cinder] :is([data-part="select"], [data-part="select-page"])) {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--cinder-accent);
+    cursor: pointer;
+  }
+
+  :where([data-cinder] [data-part="select-cell"]) {
+    width: 1%;
+    padding-right: 0;
+  }
+
+  :where([data-cinder] :is([data-part="row"], [data-part="item"])[data-selected]) {
+    background: var(--cinder-active-bg);
+  }
+
+  :where([data-cinder] [data-part="item"][data-selected]) {
+    border-color: var(--cinder-accent);
+  }
+
+  /* A card's checkbox sits in its corner, out of the content's way */
+  :where([data-cinder] [data-part="item"]:has(> [data-part="select"])) {
+    position: relative;
+    padding-right: 36px;
+  }
+
+  :where([data-cinder] [data-part="item"] > [data-part="select"]) {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  /* The bulk bar: the count, the actions, and any pending question */
+  :where([data-cinder] [data-part="bulk-bar"]) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--cinder-accent);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-active-bg);
+  }
+
+  :where([data-cinder] [data-part="selection-count"]) {
+    margin-right: auto;
+    font-weight: 600;
+  }
+
+  :where([data-cinder] [data-part="confirmation"]) {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--cinder-border);
+  }
+
+  :where([data-cinder] [data-part="confirmation"] p) {
+    margin: 0 auto 0 0;
+  }
+
+  :where([data-cinder] [data-part="confirm"]) {
+    border-color: var(--cinder-danger);
+    background: var(--cinder-danger);
+    color: #fff;
   }
 }

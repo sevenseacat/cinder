@@ -12,6 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: lib/cinder/controls.ex
+#: lib/cinder/next.ex
 #, elixir-autogen
 msgid "Clear all"
 msgstr "Alles wissen"
@@ -191,6 +192,7 @@ msgid "No results found"
 msgstr "Geen resultaten gevonden"
 
 #: lib/cinder/filters/multi_select.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "%{count} selected"
 msgstr "%{count} geselecteerd"
@@ -230,3 +232,18 @@ msgstr "Raster"
 #, elixir-autogen, elixir-format
 msgid "Table"
 msgstr "Tabel"
+
+#: lib/cinder/next.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Select"
+msgstr "Selecteren"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Select page"
+msgstr "Pagina selecteren"

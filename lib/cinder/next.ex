@@ -92,6 +92,18 @@ defmodule Cinder.Next do
     attr :placeholder, :string
   end
 
+  attr :selectable, :any,
+    default: false,
+    doc: "Rows can be selected: `true`, or a function of the record saying whether it can be"
+
+  slot :bulk_action, doc: "An action on the selected records, found by its `name`" do
+    attr :name, :string, required: true
+    attr :action, :any, required: true, doc: "An Ash action name, or a function of (query, opts)"
+    attr :label, :string
+    attr :confirm, :string, doc: "Asks first, with `{count}` for the number selected"
+    attr :action_opts, :list
+  end
+
   slot :sort, doc: "Declares a sortable field" do
     attr :field, :string, required: true
     attr :label, :string
@@ -312,6 +324,7 @@ defmodule Cinder.Next do
     ~H"""
     <ul {merge(@collection.grid_attrs, @class, @rest)}>
       <li :for={row <- @collection.rows} {row.attrs}>
+        <input :if={row.select_attrs} {row.select_attrs} />
         {render_slot(@collection.item_slot, row.record)}
       </li>
     </ul>
@@ -333,6 +346,9 @@ defmodule Cinder.Next do
     <table {merge(%{"data-part" => "table"}, @class, @rest)}>
       <thead>
         <tr>
+          <th :if={@collection.selection} data-part="select-cell">
+            <input {@collection.selection.page_attrs} />
+          </th>
           <th :for={column <- @collection.columns} {column.attrs}>
             <%= if column.sortable? do %>
               <button {column.sort_attrs}>
@@ -346,6 +362,7 @@ defmodule Cinder.Next do
       </thead>
       <tbody>
         <tr :for={row <- @collection.rows} {row.attrs}>
+          <td :if={row.select_attrs} data-part="select-cell"><input {row.select_attrs} /></td>
           <td :for={column <- @collection.columns} data-part="cell" data-field={column.field}>
             <%= if column.slot[:inner_block] do %>
               {render_slot(column.slot, row.record)}
@@ -355,15 +372,42 @@ defmodule Cinder.Next do
           </td>
         </tr>
         <tr :if={@collection.rows == [] and @collection.status == :idle} data-part="empty">
-          <td colspan={length(@collection.columns)}>{dgettext("cinder", "No results found")}</td>
+          <td colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)}>{dgettext("cinder", "No results found")}</td>
         </tr>
         <tr :if={@collection.status == :error} data-part="error">
-          <td colspan={length(@collection.columns)}>
+          <td colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)}>
             {dgettext("cinder", "An error occurred while loading data")}
           </td>
         </tr>
       </tbody>
     </table>
+    """
+  end
+
+  attr :collection, :map, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
+
+  @doc """
+  The selection and its bulk actions: a count, the actions, clear, a pending
+  action's confirmation, and what the last action did. Renders nothing while
+  nothing's selected and nothing's pending.
+  """
+  def bulk_bar(assigns) do
+    ~H"""
+    <div
+      :if={@collection.selection && (@collection.selection.count > 0 || @collection.confirmation)}
+      {merge(%{"data-part" => "bulk-bar"}, @class, @rest)}
+    >
+      <span data-part="selection-count">{@collection.selection.summary}</span>
+      <button :for={action <- @collection.bulk_actions} {action.attrs}>{action.label}</button>
+      <button {@collection.selection.clear_attrs}>{dgettext("cinder", "Clear all")}</button>
+      <div :if={@collection.confirmation} {@collection.confirmation.attrs}>
+        <p>{@collection.confirmation.message}</p>
+        <button {@collection.confirmation.confirm_attrs}>{@collection.confirmation.action}</button>
+        <button {@collection.confirmation.cancel_attrs}>{dgettext("cinder", "Cancel")}</button>
+      </div>
+    </div>
     """
   end
 

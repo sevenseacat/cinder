@@ -32,6 +32,7 @@ defmodule CinderDevWeb.NextDaisyLive do
         id="daisy"
         resource={Music.Album}
         layout="grid"
+        selectable
         url_state={@url_state}
         query_opts={[load: [:artist]]}
         page_size={12}
@@ -101,6 +102,12 @@ defmodule CinderDevWeb.NextDaisyLive do
         <:sort field="title" />
         <:sort field="price" label="Price" />
         <:sort field="release_date" label="Released" />
+        <:bulk_action name="remaster" action={:remaster} />
+        <:bulk_action
+          name="delete"
+          action={:destroy}
+          confirm="Delete {count} albums? This can't be undone."
+        />
         <%!-- Columns and a card: either layout, and `c.layout` says which is showing --%>
         <:col :let={album} field="title">{album.title}</:col>
         <:col :let={album} field="artist.name" label="Artist">{album.artist.name}</:col>
@@ -178,6 +185,47 @@ defmodule CinderDevWeb.NextDaisyLive do
                 </select>
               </div>
             </form>
+
+            <%!-- The selection and its actions, from `c.selection` and `c.bulk_actions` --%>
+            <div
+              :if={c.selection.count > 0}
+              class="flex items-center gap-3 rounded-box bg-base-200 px-4 py-2"
+            >
+              <input {c.selection.page_attrs} class="checkbox checkbox-sm" />
+              <span class="text-sm font-medium">{c.selection.summary}</span>
+              <button :for={action <- c.bulk_actions} class="btn btn-sm" {action.attrs}>
+                {action.label}
+              </button>
+              <button class="btn btn-sm btn-ghost" {c.selection.clear_attrs}>Clear</button>
+            </div>
+
+            <div
+              :if={c.bulk_result}
+              role="status"
+              class={[
+                "alert",
+                c.bulk_result.status == :ok && "alert-success",
+                c.bulk_result.status != :ok && "alert-error"
+              ]}
+            >
+              {c.bulk_result.action}: {if c.bulk_result.status == :ok, do: "done", else: "failed"}
+            </div>
+
+            <%!-- The server holds the pending action; this only shows its question.
+                 Rendered while pending, so no JS: confirming runs what the server has
+                 pending, not anything this markup names. --%>
+            <div :if={c.confirmation} class="modal modal-open" {c.confirmation.attrs}>
+              <div class="modal-box">
+                <h3 class="text-lg font-bold">{c.confirmation.action}</h3>
+                <p class="py-4">{c.confirmation.message}</p>
+                <div class="modal-action">
+                  <button class="btn btn-ghost" {c.confirmation.cancel_attrs}>Cancel</button>
+                  <button class="btn btn-error" {c.confirmation.confirm_attrs}>
+                    {c.confirmation.action}
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
 

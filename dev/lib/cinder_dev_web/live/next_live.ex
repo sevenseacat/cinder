@@ -30,6 +30,7 @@ defmodule CinderDevWeb.NextLive do
         url_state={@url_state}
         query_opts={[load: [:artist]]}
         grid_columns={[xs: 1, sm: 2, lg: 3]}
+        selectable={&(not &1.is_remastered)}
       >
         <:col :let={album} field="title" filter search sort>{album.title}</:col>
         <:col :let={album} field="artist.name" label="Artist" filter sort>
@@ -40,6 +41,9 @@ defmodule CinderDevWeb.NextLive do
         <:col :let={album} field="price" sort>{Decimal.to_string(album.price)}</:col>
         <:col field="release_date" sort />
         <:col field="is_remastered" label="Remastered" />
+        <%!-- Remastered albums can't be selected, so they can't be remastered again --%>
+        <:bulk_action name="remaster" action={:remaster} />
+        <:bulk_action name="delete" action={:destroy} confirm="Delete {count} albums?" />
         <%!-- Columns and an item: the toolbar offers a table/grid switch --%>
         <:item :let={album}>
           <strong>{album.title}</strong>

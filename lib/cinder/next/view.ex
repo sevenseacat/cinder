@@ -14,7 +14,7 @@ defmodule Cinder.Next.View do
   @window 2
 
   @doc "The whole collection's view-model, from the component's assigns."
-  def build(%{config: config, state: state, page: page, status: status, myself: myself}) do
+  def build(%{config: config, state: state, page: page, status: status, myself: myself} = assigns) do
     layout = state.layout || config.default_layout
     filters = for name <- config.filter_order, f = filter(config, name, state, myself), do: f
 
@@ -54,7 +54,12 @@ defmodule Cinder.Next.View do
       # So `grid/1` can render cards given only the collection
       item_slot: config.item_slot,
       columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
-      rows: rows(page, layout),
+      rows: rows(page, layout, config.selectable, state, myself),
+      selection: selection(config.selectable, page, state, myself),
+      bulk_actions: Enum.map(config.bulk_actions, &bulk_action(&1, state, myself)),
+      confirmation: confirmation(config.bulk_actions, state, myself),
+      # What the last bulk action did: `%{status: :ok | :partial | :error, ...}`
+      bulk_result: assigns[:bulk_result],
       pagination: pagination(page, state, myself, config.pagination)
     }
   end
@@ -545,18 +550,129 @@ defmodule Cinder.Next.View do
   defp aria_sort(:desc), do: "descending"
   defp aria_sort(_), do: "none"
 
-  defp rows(nil, _layout), do: []
+  defp rows(nil, _layout, _selectable, _state, _myself), do: []
 
-  defp rows(%{results: results}, layout) do
+  defp rows(%{results: results}, layout, selectable, state, myself) do
     part = if layout == :grid, do: "item", else: "row"
 
     for record <- results do
+      id = to_string(Map.get(record, :id))
+      selected? = MapSet.member?(state.selected, id)
+
       %{
         record: record,
-        attrs: %{"data-part" => part, "data-row-id" => to_string(Map.get(record, :id))}
+        selected?: selected?,
+        attrs: %{"data-part" => part, "data-row-id" => id, "data-selected" => selected?},
+        # A checkbox, though not a form input: it toggles by click
+        select_attrs:
+          selectable != false &&
+            %{
+              "type" => "checkbox",
+              "data-part" => "select",
+              "checked" => selected?,
+              "disabled" => not selectable?(selectable, record),
+              "aria-label" => dgettext("cinder", "Select"),
+              "phx-click" => "toggle_select",
+              "phx-value-id" => id,
+              "phx-target" => myself
+            }
       }
     end
   end
+
+  @doc "Whether a record can be selected, given the collection's `selectable`."
+  def selectable?(false, _record), do: false
+  def selectable?(true, _record), do: true
+  def selectable?(fun, record) when is_function(fun, 1), do: !!fun.(record)
+
+  # The page checkbox reads all, some or none of the page's selectable rows
+  defp selection(false, _page, _state, _myself), do: nil
+
+  defp selection(selectable, page, state, myself) do
+    page_ids =
+      for record <- (page && page.results) || [],
+          selectable?(selectable, record),
+          do: to_string(record.id)
+
+    on_page = Enum.count(page_ids, &MapSet.member?(state.selected, &1))
+
+    page_state =
+      cond do
+        page_ids == [] or on_page == 0 -> :none
+        on_page == length(page_ids) -> :all
+        true -> :some
+      end
+
+    count = MapSet.size(state.selected)
+
+    %{
+      count: count,
+      summary: dgettext("cinder", "%{count} selected", count: count),
+      page_state: page_state,
+      # `data-state="some"` is for styling the in-between state, which HTML can only
+      # set from JS (`indeterminate`)
+      page_attrs: %{
+        "type" => "checkbox",
+        "data-part" => "select-page",
+        "data-state" => page_state,
+        "checked" => page_state == :all,
+        "disabled" => page_ids == [],
+        "aria-label" => dgettext("cinder", "Select page"),
+        "phx-click" => "toggle_select_page",
+        "phx-target" => myself
+      },
+      clear_attrs: %{
+        "type" => "button",
+        "data-part" => "clear-selection",
+        "hidden" => count == 0,
+        "phx-click" => "clear_selection",
+        "phx-target" => myself
+      }
+    }
+  end
+
+  defp bulk_action(action, state, myself) do
+    %{
+      name: action.name,
+      label: action.label,
+      attrs: %{
+        "type" => "button",
+        "data-part" => "bulk-action",
+        "data-action" => action.name,
+        "disabled" => MapSet.size(state.selected) == 0,
+        "phx-click" => "bulk_action",
+        "phx-value-name" => action.name,
+        "phx-target" => myself
+      }
+    }
+  end
+
+  # A pending action's question, for the layout to show however it likes (a modal,
+  # an inline bar). Confirming runs whatever the server has pending, not anything
+  # the client names.
+  defp confirmation(actions, %{pending_action: name} = state, myself) when name != nil do
+    action = Enum.find(actions, &(&1.name == name))
+
+    %{
+      action: action.label,
+      message: String.replace(action.confirm, "{count}", to_string(MapSet.size(state.selected))),
+      attrs: %{"data-part" => "confirmation", "role" => "alertdialog"},
+      confirm_attrs: %{
+        "type" => "button",
+        "data-part" => "confirm",
+        "phx-click" => "confirm_action",
+        "phx-target" => myself
+      },
+      cancel_attrs: %{
+        "type" => "button",
+        "data-part" => "cancel",
+        "phx-click" => "cancel_action",
+        "phx-target" => myself
+      }
+    }
+  end
+
+  defp confirmation(_actions, _state, _myself), do: nil
 
   # Offset pages only, for the spike. A page without a count (`count: false`)
   # gets previous/next but no numbers or total.

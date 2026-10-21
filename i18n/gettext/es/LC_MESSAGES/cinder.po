@@ -12,6 +12,7 @@ msgid ""
 msgstr ""
 
 #: lib/cinder/controls.ex
+#: lib/cinder/next.ex
 #, elixir-autogen
 msgid "Clear all"
 msgstr "Limpiar todo"
@@ -191,6 +192,7 @@ msgid "No results found"
 msgstr "Sin resultados"
 
 #: lib/cinder/filters/multi_select.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "%{count} selected"
 msgstr "%{count} seleccionados"
@@ -230,3 +232,18 @@ msgstr "Cuadrícula"
 #, elixir-autogen, elixir-format
 msgid "Table"
 msgstr "Tabla"
+
+#: lib/cinder/next.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Select"
+msgstr "Seleccionar"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Select page"
+msgstr "Seleccionar página"
