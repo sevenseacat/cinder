@@ -52,7 +52,7 @@ defmodule Cinder.Next.View do
       item_slot: config.item_slot,
       columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
       rows: rows(page, config.layout),
-      pagination: pagination(page, state, myself)
+      pagination: pagination(page, state, myself, config.pagination)
     }
   end
 
@@ -531,7 +531,7 @@ defmodule Cinder.Next.View do
 
   # Offset pages only, for the spike. A page without a count (`count: false`)
   # gets previous/next but no numbers or total.
-  defp pagination(%Ash.Page.Offset{} = page, state, myself) do
+  defp pagination(%Ash.Page.Offset{} = page, state, myself, :offset) do
     current = state.page
     page_count = page.count && max(div(page.count + page.limit - 1, page.limit), 1)
     from = page.offset + 1
@@ -556,7 +556,53 @@ defmodule Cinder.Next.View do
     }
   end
 
-  defp pagination(_page, _state, _myself), do: nil
+  # Keyset pages have no numbers: previous and next carry the first and last records'
+  # cursors. Matched on the mode, not the page struct, because a keyset action's first
+  # page can arrive as an `Ash.Page.Offset` (its records still carry keyset metadata).
+  # `more?` says whether there are more records in the direction just paged.
+  defp pagination(%{results: results, more?: more?}, state, myself, :keyset) do
+    {prev?, next?} =
+      case state.cursor do
+        nil -> {false, more?}
+        {:after, _} -> {true, more?}
+        {:before, _} -> {more?, true}
+      end
+
+    %{
+      page: nil,
+      page_count: nil,
+      total: nil,
+      summary: nil,
+      attrs: %{"data-part" => "pagination"},
+      prev: cursor_link(:prev, :before, List.first(results), not prev?, myself),
+      next: cursor_link(:next, :after, List.last(results), not next?, myself),
+      pages: []
+    }
+  end
+
+  defp pagination(_page, _state, _myself, _mode), do: nil
+
+  defp cursor_link(kind, direction, record, disabled?, myself) do
+    cursor = record && record.__metadata__[:keyset]
+    disabled? = disabled? or is_nil(cursor)
+
+    %{
+      kind: kind,
+      label: page_label(kind, nil),
+      current?: false,
+      disabled?: disabled?,
+      attrs: %{
+        "type" => "button",
+        "data-part" => "page",
+        "data-kind" => kind,
+        "aria-label" => page_aria_label(kind, nil),
+        "disabled" => disabled?,
+        "phx-click" => "go_to_cursor",
+        "phx-value-#{direction}" => cursor,
+        "phx-target" => myself
+      }
+    }
+  end
 
   defp numbered_pages(_current, nil, _myself), do: []
 

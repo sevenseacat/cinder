@@ -73,6 +73,12 @@ defmodule Cinder.Next.Component do
     end
   end
 
+  def handle_event("go_to_cursor", %{"after" => cursor}, socket),
+    do: {:noreply, commit(socket, &State.go_to_cursor(&1, :after, cursor))}
+
+  def handle_event("go_to_cursor", %{"before" => cursor}, socket),
+    do: {:noreply, commit(socket, &State.go_to_cursor(&1, :before, cursor))}
+
   @impl true
   def handle_async(:load, {:ok, result}, socket),
     do: {:noreply, socket |> loaded(result) |> assign_view()}
@@ -214,7 +220,8 @@ defmodule Cinder.Next.Component do
         action: config.action,
         query_opts: config.query_opts,
         columns: config.engine_columns,
-        search_fn: config.search[:fn]
+        search_fn: config.search[:fn],
+        pagination_mode: config.pagination
       ] ++ State.query_options(state)
 
     run = fn -> QueryBuilder.build_and_execute(config.query, opts) end

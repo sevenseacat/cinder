@@ -33,6 +33,12 @@ defmodule Cinder.Next do
   attr :page_size, :integer, default: 25
   attr :url_state, :any, default: false
 
+  # Spike: `pagination` is taken by the region slot
+  attr :pagination_mode, :any,
+    default: :offset,
+    values: [:offset, :keyset, "offset", "keyset"],
+    doc: "`:keyset` pages by cursor (previous and next only), for actions that support it"
+
   attr :layout, :any,
     default: :table,
     values: [:table, :grid, :list, :custom, "table", "grid", "list", "custom"],

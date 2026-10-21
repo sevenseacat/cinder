@@ -132,6 +132,27 @@ defmodule Cinder.Next.StateTest do
     end
   end
 
+  describe "go_to_cursor/3" do
+    test "moves after or before a cursor, and a query change drops it" do
+      state = State.new() |> State.go_to_cursor(:after, "abc")
+
+      assert state.cursor == {:after, "abc"}
+      assert State.query_changed?(State.new(), state)
+      assert State.go_to_cursor(state, :after, "").cursor == {:after, "abc"}
+      assert State.set_filters(state, @title_filter, "").cursor == nil
+    end
+
+    test "round-trips through the URL" do
+      state = State.new(page_size: 10) |> State.go_to_cursor(:before, "abc")
+      params = State.to_url_params(state, ["title"])
+
+      assert params.before == "abc"
+
+      assert State.from_url_params(State.new(page_size: 10), %{"before" => "abc"}, @columns) ==
+               state
+    end
+  end
+
   describe "query_changed?/2" do
     test "is true when anything that affects the query differs" do
       state = State.new()

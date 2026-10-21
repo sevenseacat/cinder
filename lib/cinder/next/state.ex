@@ -21,6 +21,7 @@ defmodule Cinder.Next.State do
           search: String.t(),
           sort: sort(),
           page: pos_integer(),
+          cursor: nil | {:after | :before, String.t()},
           page_size: pos_integer(),
           default_sort: sort(),
           default_page_size: pos_integer(),
@@ -38,6 +39,8 @@ defmodule Cinder.Next.State do
             search: "",
             sort: [],
             page: 1,
+            # Keyset pagination's position instead of `page`: after or before a record
+            cursor: nil,
             page_size: 25,
             default_sort: [],
             default_page_size: 25
@@ -97,6 +100,13 @@ defmodule Cinder.Next.State do
   def go_to_page(state, page) when is_integer(page) and page > 0, do: %{state | page: page}
   def go_to_page(state, _page), do: state
 
+  @doc "Moves to the keyset page after or before a record's cursor."
+  def go_to_cursor(state, direction, cursor)
+      when direction in [:after, :before] and is_binary(cursor) and cursor != "",
+      do: %{state | cursor: {direction, cursor}}
+
+  def go_to_cursor(state, _direction, _cursor), do: state
+
   def set_page_size(state, size) when is_integer(size) and size > 0 do
     reset_if_changed(state, %{state | page_size: size})
   end
@@ -112,7 +122,9 @@ defmodule Cinder.Next.State do
       search_term: state.search,
       sort_by: state.sort,
       current_page: state.page,
-      page_size: state.page_size
+      page_size: state.page_size,
+      after_keyset: cursor(state, :after),
+      before_keyset: cursor(state, :before)
     ]
   end
 
@@ -126,6 +138,8 @@ defmodule Cinder.Next.State do
       search_term: state.search,
       sort_by: state.sort,
       current_page: state.page,
+      after: cursor(state, :after),
+      before: cursor(state, :before),
       page_size: state.page_size,
       default_page_size: state.default_page_size,
       filter_field_names: filter_fields
@@ -152,6 +166,12 @@ defmodule Cinder.Next.State do
         search: decoded.search_term,
         sort: if(Map.has_key?(params, "sort"), do: decoded.sort_by, else: state.default_sort),
         page: decoded.current_page,
+        cursor:
+          cond do
+            decoded.after -> {:after, decoded.after}
+            decoded.before -> {:before, decoded.before}
+            true -> nil
+          end,
         page_size:
           if(Map.has_key?(params, "page_size"),
             do: decoded.page_size,
@@ -173,10 +193,16 @@ defmodule Cinder.Next.State do
     end)
   end
 
+  defp cursor(%{cursor: {direction, cursor}}, direction), do: cursor
+  defp cursor(_state, _direction), do: nil
+
   defp reset_if_changed(old, new) do
-    if query_changed?(%{old | page: 1}, %{new | page: 1}), do: %{new | page: 1}, else: new
+    first = &%{&1 | page: 1, cursor: nil}
+    if query_changed?(first.(old), first.(new)), do: first.(new), else: new
   end
 
-  defp query_key(state),
-    do: {state.filters, state.arguments, state.search, state.sort, state.page, state.page_size}
+  defp query_key(state) do
+    {state.filters, state.arguments, state.search, state.sort, state.page, state.cursor,
+     state.page_size}
+  end
 end

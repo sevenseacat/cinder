@@ -65,6 +65,8 @@ defmodule Cinder.Next.Config do
     search: %{enabled?: false},
     query_opts: [],
     page_size: 25,
+    # :offset (numbered pages) or :keyset (cursors: previous and next only)
+    pagination: :offset,
     pagination_slot: [],
     # The registry as the engine's column maps, built once
     engine_columns: [],
@@ -155,6 +157,7 @@ defmodule Cinder.Next.Config do
       scope: scope(assigns),
       query_opts: assigns[:query_opts] || [],
       page_size: assigns[:page_size] || 25,
+      pagination: pagination_mode(assigns[:pagination_mode]),
       pagination_slot: assigns[:pagination] || []
     }
 
@@ -312,6 +315,14 @@ defmodule Cinder.Next.Config do
   defp filter_type(type, _name), do: type
 
   @breakpoints [:xs, :sm, :md, :lg, :xl, :"2xl"]
+
+  defp pagination_mode(mode) when mode in [nil, :offset, "offset"], do: :offset
+  defp pagination_mode(mode) when mode in [:keyset, "keyset"], do: :keyset
+
+  defp pagination_mode(mode) do
+    raise ArgumentError,
+          "unknown pagination_mode #{inspect(mode)}; it's :offset or :keyset (or their strings)"
+  end
 
   # `:list` is a one-column grid, the same way `actor`/`tenant` become a scope:
   # nothing past here sees it. A list with `grid_columns` contradicts itself.

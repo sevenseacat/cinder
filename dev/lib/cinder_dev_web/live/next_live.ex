@@ -1,7 +1,8 @@
 defmodule CinderDevWeb.NextLive do
   @moduledoc """
   The shell-rewrite spike (`Cinder.Next.collection`), with the same collection as
-  the Table page, for comparing the two side by side.
+  the Table page, for comparing the two side by side. It pages by keyset, through
+  the `:paginated` action, where the Table page uses offset pages.
   """
   use CinderDevWeb, :live_view
   use Cinder.UrlSync
@@ -23,6 +24,8 @@ defmodule CinderDevWeb.NextLive do
       <Cinder.Next.collection
         id="albums-next"
         resource={Music.Album}
+        action={:paginated}
+        pagination_mode="keyset"
         url_state={@url_state}
         query_opts={[load: [:artist]]}
       >
