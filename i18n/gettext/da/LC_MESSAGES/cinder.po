@@ -220,3 +220,13 @@ msgstr "Der opstod en fejl under indlæsning af data"
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Side %{current}"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Grid"
+msgstr "Gitter"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Table"
+msgstr "Tabel"

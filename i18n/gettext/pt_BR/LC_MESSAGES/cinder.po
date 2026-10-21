@@ -217,3 +217,13 @@ msgstr "Um erro ocorreu ao carregar os dados"
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Página %{current}"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Grid"
+msgstr "Grade"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Table"
+msgstr "Tabela"

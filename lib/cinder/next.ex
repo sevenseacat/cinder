@@ -152,22 +152,39 @@ defmodule Cinder.Next do
   attr :class, :any, default: nil
   attr :rest, :global
 
-  @doc "Search, filters and (for grids) the sort dropdown"
+  @doc "Search, filters, (for grids) the sort dropdown, and a layout switcher if there's a choice"
   def toolbar(assigns) do
     ~H"""
     <div
-      :if={@collection.search || Enum.any?(@collection.filters) || grid_sort?(@collection)}
+      :if={
+        @collection.search || Enum.any?(@collection.filters) || grid_sort?(@collection) ||
+          @collection.layouts != []
+      }
       {merge(%{"data-part" => "toolbar"}, @class, @rest)}
     >
       <.search :if={@collection.search} search={@collection.search} />
       <.filter :for={filter <- @collection.filters} filter={filter} />
       <.sort_select :if={grid_sort?(@collection)} sort_select={@collection.sort_select} />
+      <.layout_switch layouts={@collection.layouts} />
     </div>
     """
   end
 
   # Tables sort from their column headers; grids get the dropdown
   defp grid_sort?(collection), do: collection.layout == :grid and collection.sort_select != nil
+
+  attr :layouts, :list, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
+
+  @doc "Buttons to switch between the collection's layouts. Renders nothing without a choice."
+  def layout_switch(assigns) do
+    ~H"""
+    <div :if={@layouts != []} {merge(%{"data-part" => "layout-switch", "role" => "group"}, @class, @rest)}>
+      <button :for={layout <- @layouts} {layout.attrs}>{layout.label}</button>
+    </div>
+    """
+  end
 
   attr :search, :map, required: true
   attr :class, :any, default: nil

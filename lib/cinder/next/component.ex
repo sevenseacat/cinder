@@ -21,6 +21,8 @@ defmodule Cinder.Next.Component do
         state =
           State.new(
             page_size: config.page_size,
+            layout: config.default_layout,
+            layouts: config.layouts,
             sort: QueryBuilder.extract_query_sorts(config.query, config.engine_columns)
           )
 
@@ -72,6 +74,9 @@ defmodule Cinder.Next.Component do
       _ -> {:noreply, socket}
     end
   end
+
+  def handle_event("set_layout", %{"layout" => layout}, socket),
+    do: {:noreply, commit(socket, &State.set_layout(&1, layout))}
 
   def handle_event("go_to_cursor", %{"after" => cursor}, socket),
     do: {:noreply, commit(socket, &State.go_to_cursor(&1, :after, cursor))}
@@ -183,17 +188,20 @@ defmodule Cinder.Next.Component do
     old = socket.assigns.state
     new = transition.(old)
 
-    cond do
-      not State.query_changed?(old, new) ->
-        socket |> assign(:state, new) |> assign_view()
+    filter_order = socket.assigns.config.filter_order
+    params = State.to_url_params(new, filter_order)
 
-      socket.assigns.url_params ->
-        params = State.to_url_params(new, socket.assigns.config.filter_order)
+    cond do
+      # Anything the URL holds (the query, the layout) goes through it
+      socket.assigns.url_params && params != State.to_url_params(old, filter_order) ->
         send(self(), {:table_state_change, socket.assigns.id, params})
         socket |> assign(:state, %{old | raw: new.raw}) |> assign_view()
 
-      true ->
+      State.query_changed?(old, new) ->
         socket |> apply_state(new) |> assign_view()
+
+      true ->
+        socket |> assign(:state, new) |> assign_view()
     end
   end
 
@@ -201,7 +209,9 @@ defmodule Cinder.Next.Component do
     if State.query_changed?(socket.assigns.state, new) do
       socket |> assign(:state, new) |> load()
     else
-      socket
+      # The rest of the state stays as it is (raw input in particular), but the
+      # layout comes from the URL too
+      assign(socket, :state, %{socket.assigns.state | layout: new.layout})
     end
   end
 

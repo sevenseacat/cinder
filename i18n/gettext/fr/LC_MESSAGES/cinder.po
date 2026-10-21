@@ -217,3 +217,13 @@ msgstr "Une erreur s'est produite lors du chargement des données"
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Page %{current}"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Grid"
+msgstr "Grille"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Table"
+msgstr "Tableau"

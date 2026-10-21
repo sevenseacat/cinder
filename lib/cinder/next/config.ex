@@ -55,6 +55,9 @@ defmodule Cinder.Next.Config do
     filter_order: [],
     sort_order: [],
     layout: :table,
+    # The layouts it can switch between (`:table` with columns, `:grid` with an item)
+    layouts: [],
+    default_layout: :table,
     # nil (fit as many as there's room for), a number, or breakpoints
     grid_columns: nil,
     columns: [],
@@ -113,7 +116,9 @@ defmodule Cinder.Next.Config do
 
     filter_order = ordered_fields(filter_decls)
     sort_order = ordered_fields(sort_decls)
-    {layout, grid_columns} = layout(assigns[:layout], assigns[:grid_columns])
+    item? = (assigns[:item] || []) != []
+    {layout, grid_columns} = layout(assigns[:layout], assigns[:grid_columns], item?)
+    layouts = layouts(layout, cols != [], item?)
 
     fields =
       (Enum.map(cols, & &1.field) ++ filter_order ++ sort_order ++ search_fields)
@@ -147,6 +152,9 @@ defmodule Cinder.Next.Config do
         for(col <- cols, do: %Column{field: col.field, label: fields[col.field].label, slot: col}),
       search: search(assigns[:search], search_fields),
       layout: layout,
+      layouts: layouts,
+      # What a custom layout starts on, too: it renders `c.layout` itself
+      default_layout: if(layout == :custom, do: List.first(layouts), else: layout),
       grid_columns: grid_columns,
       item_slot: assigns[:item] || [],
       layout_slot: assigns[:inner_block] || [],
@@ -326,27 +334,41 @@ defmodule Cinder.Next.Config do
 
   # `:list` is a one-column grid, the same way `actor`/`tenant` become a scope:
   # nothing past here sees it. A list with `grid_columns` contradicts itself.
-  defp layout(layout, nil) when layout in [nil, :table, "table"], do: {:table, nil}
-  defp layout(layout, nil) when layout in [:list, "list"], do: {:grid, 1}
-  defp layout(layout, columns) when layout in [:grid, "grid"], do: {:grid, grid_columns(columns)}
+  defp layout(layout, nil, _item?) when layout in [nil, :table, "table"], do: {:table, nil}
+  defp layout(layout, nil, _item?) when layout in [:list, "list"], do: {:grid, 1}
+
+  defp layout(layout, columns, _item?) when layout in [:grid, "grid"],
+    do: {:grid, grid_columns(columns)}
+
+  # A table with an `<:item>` can switch to a grid, which takes the columns
+  defp layout(layout, columns, true) when layout in [nil, :table, "table"],
+    do: {:table, grid_columns(columns)}
 
   # The inner block is the layout. Phoenix gives the component an `inner_block`
   # whenever there's whitespace between its slots, so its presence can't decide
   # this; it has to be asked for. Columns are kept for a `<Cinder.Next.grid>` in it.
-  defp layout(layout, columns) when layout in [:custom, "custom"],
+  defp layout(layout, columns, _item?) when layout in [:custom, "custom"],
     do: {:custom, grid_columns(columns)}
 
-  defp layout(layout, _columns) when layout in [:list, "list"] do
+  defp layout(layout, _columns, _item?) when layout in [:list, "list"] do
     raise ArgumentError, "a list is one column, so it can't take grid_columns. Use layout={:grid}"
   end
 
-  defp layout(layout, _columns) when layout in [nil, :table, "table"] do
-    raise ArgumentError, "grid_columns only applies to layout={:grid}"
+  defp layout(layout, _columns, _item?) when layout in [nil, :table, "table"] do
+    raise ArgumentError,
+          "grid_columns only applies to grids: use layout={:grid}, or declare an <:item> to switch to one"
   end
 
-  defp layout(layout, _columns) do
+  defp layout(layout, _columns, _item?) do
     raise ArgumentError,
           "unknown layout #{inspect(layout)}. Known layouts: :table, :grid, :list, :custom"
+  end
+
+  # A table needs columns and a grid an item; the declared layout is always one
+  defp layouts(layout, cols?, item?) do
+    for candidate <- [:table, :grid],
+        candidate == layout or (candidate == :table and cols?) or (candidate == :grid and item?),
+        do: candidate
   end
 
   defp grid_columns(nil), do: nil

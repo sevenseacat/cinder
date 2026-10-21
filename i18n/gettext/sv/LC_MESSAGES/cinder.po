@@ -220,3 +220,13 @@ msgstr "Ett fel uppstod vid laddning av data"
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Sida %{current}"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Grid"
+msgstr "Rutnät"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Table"
+msgstr "Tabell"

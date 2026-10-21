@@ -220,3 +220,13 @@ msgstr "Er is een fout opgetreden bij het laden van gegevens"
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Pagina %{current}"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Grid"
+msgstr "Raster"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Table"
+msgstr "Tabel"

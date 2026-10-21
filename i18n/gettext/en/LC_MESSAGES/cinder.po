@@ -220,3 +220,13 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Page %{current}"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Grid"
+msgstr "Grid"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Table"
+msgstr "Table"

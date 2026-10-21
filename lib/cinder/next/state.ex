@@ -43,20 +43,44 @@ defmodule Cinder.Next.State do
             cursor: nil,
             page_size: 25,
             default_sort: [],
-            default_page_size: 25
+            default_page_size: 25,
+            # How the records are shown, from the layouts the collection can render. Not
+            # part of the query: switching never reloads.
+            layout: nil,
+            default_layout: nil,
+            layouts: []
 
-  @doc "A fresh state. `:page_size` and `:sort` are also what an empty URL goes back to."
+  @doc """
+  A fresh state. `:page_size`, `:sort` and `:layout` are also what an empty URL goes
+  back to; `:layouts` are the ones it can switch between.
+  """
   def new(opts \\ []) do
     page_size = Keyword.get(opts, :page_size, 25)
     sort = Keyword.get(opts, :sort, [])
+    layout = Keyword.get(opts, :layout)
 
     %__MODULE__{
       page_size: page_size,
       default_page_size: page_size,
       sort: sort,
-      default_sort: sort
+      default_sort: sort,
+      layout: layout,
+      default_layout: layout,
+      layouts: Keyword.get(opts, :layouts, [])
     }
   end
+
+  @doc "Switches layout, to one of the collection's layouts (atom or string)."
+  def set_layout(state, layout) do
+    case find_layout(state, layout) do
+      nil -> state
+      layout -> %{state | layout: layout}
+    end
+  end
+
+  # Matched against the known layouts, so a URL never creates an atom
+  defp find_layout(state, layout),
+    do: Enum.find(state.layouts, &(&1 == layout or to_string(&1) == layout))
 
   @doc """
   Sets filters and search together, as one form submission carries both, along
@@ -133,6 +157,12 @@ defmodule Cinder.Next.State do
     # Argument values go in under their own names, like a text filter's would
     arguments = Map.new(state.arguments, fn {name, value} -> {String.to_atom(name), value} end)
 
+    # `Cinder.UrlSync` keeps any param it isn't told the collection manages, so a
+    # switchable collection names `layout`, or going back to the default (which
+    # leaves it out) would keep the old one. Only when switchable, so an app's own
+    # `layout` param survives otherwise.
+    managed = if length(state.layouts) > 1, do: filter_fields ++ ["layout"], else: filter_fields
+
     %{
       filters: state.filters,
       search_term: state.search,
@@ -142,10 +172,13 @@ defmodule Cinder.Next.State do
       before: cursor(state, :before),
       page_size: state.page_size,
       default_page_size: state.default_page_size,
-      filter_field_names: filter_fields
+      filter_field_names: managed
     }
     |> UrlManager.encode_state()
     |> Map.merge(arguments)
+    |> then(
+      &if(state.layout == state.default_layout, do: &1, else: Map.put(&1, :layout, state.layout))
+    )
   end
 
   @doc """
@@ -176,7 +209,8 @@ defmodule Cinder.Next.State do
           if(Map.has_key?(params, "page_size"),
             do: decoded.page_size,
             else: state.default_page_size
-          )
+          ),
+        layout: find_layout(state, params["layout"]) || state.default_layout
     }
   end
 

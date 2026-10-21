@@ -36,6 +36,7 @@ defmodule CinderDevWeb.NextDaisyLive do
         url_state={@url_state}
         query_opts={[load: [:artist]]}
         page_size={12}
+        grid_columns={[xs: 1, sm: 2, lg: 3]}
         search={[fields: ["title", "artist.name"]]}
       >
         <:filter field="genre" type="select" prompt="All" />
@@ -101,6 +102,23 @@ defmodule CinderDevWeb.NextDaisyLive do
         <:sort field="title" />
         <:sort field="price" label="Price" />
         <:sort field="release_date" label="Released" />
+        <%!-- Columns and a card: either layout, and `c.layout` says which is showing --%>
+        <:col :let={album} field="title">{album.title}</:col>
+        <:col :let={album} field="artist.name" label="Artist">{album.artist.name}</:col>
+        <:col field="genre" />
+        <:col :let={album} field="price">${Decimal.to_string(album.price)}</:col>
+        <:item :let={album}>
+          <div class="card bg-base-100 card-border h-full">
+            <div class="card-body">
+              <h3 class="card-title">{album.title}</h3>
+              <p class="opacity-70">{album.artist.name}</p>
+              <div class="card-actions justify-end">
+                <span class="badge badge-outline">{album.genre}</span>
+                <span class="badge">${Decimal.to_string(album.price)}</span>
+              </div>
+            </div>
+          </div>
+        </:item>
 
         <div class="space-y-4">
           <%!-- The search, genre and sort controls sit in the collection's form; the
@@ -128,6 +146,16 @@ defmodule CinderDevWeb.NextDaisyLive do
                 />
               </div>
 
+              <div class="join">
+                <button
+                  :for={layout <- c.layouts}
+                  class={["join-item btn btn-sm", layout.active? && "btn-active"]}
+                  {layout.attrs}
+                >
+                  {layout.label}
+                </button>
+              </div>
+
               <span :if={c.status == :loading} class="loading loading-spinner loading-sm"></span>
             </div>
 
@@ -152,18 +180,8 @@ defmodule CinderDevWeb.NextDaisyLive do
 
           <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
 
-          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div :for={row <- c.rows} class="card bg-base-100 card-border" {row.attrs}>
-              <div class="card-body">
-                <h3 class="card-title">{row.record.title}</h3>
-                <p class="opacity-70">{row.record.artist.name}</p>
-                <div class="card-actions justify-end">
-                  <span class="badge badge-outline">{row.record.genre}</span>
-                  <span class="badge">${Decimal.to_string(row.record.price)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Cinder.Next.table :if={c.layout == :table} collection={c} class="table" />
+          <Cinder.Next.grid :if={c.layout == :grid} collection={c} />
 
           <div :if={c.rows == [] and c.status == :idle} class="alert">No albums match.</div>
 

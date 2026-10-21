@@ -132,6 +132,29 @@ defmodule Cinder.Next.StateTest do
     end
   end
 
+  describe "set_layout/2" do
+    test "switches to a known layout, from an atom or a string, without changing the query" do
+      state = State.new(layout: :table, layouts: [:table, :grid])
+
+      assert State.set_layout(state, "grid").layout == :grid
+      assert State.set_layout(state, :grid).layout == :grid
+      assert State.set_layout(state, "cards").layout == :table
+      refute State.query_changed?(state, State.set_layout(state, :grid))
+    end
+
+    test "goes in the URL only when it isn't the default, and an unknown one falls back" do
+      state = State.new(page_size: 10, layout: :table, layouts: [:table, :grid])
+
+      assert State.to_url_params(state, []) |> Map.has_key?(:layout) == false
+      assert State.to_url_params(State.set_layout(state, :grid), []).layout == :grid
+
+      restore = &State.from_url_params(state, &1, @columns).layout
+      assert restore.(%{"layout" => "grid"}) == :grid
+      assert restore.(%{"layout" => "cards"}) == :table
+      assert restore.(%{}) == :table
+    end
+  end
+
   describe "go_to_cursor/3" do
     test "moves after or before a cursor, and a query change drops it" do
       state = State.new() |> State.go_to_cursor(:after, "abc")

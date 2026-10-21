@@ -210,13 +210,27 @@ defmodule Cinder.Next.ConfigTest do
       assert build(layout: :grid, grid_columns: 3).grid_columns == 3
       assert build(layout: :grid, grid_columns: [xs: 1, md: 3]).grid_columns == [xs: 1, md: 3]
 
-      assert_raise ArgumentError, ~r/only applies to layout=\{:grid\}/, fn ->
+      assert_raise ArgumentError, ~r/only applies to grids/, fn ->
         build(grid_columns: 3)
       end
 
       assert_raise ArgumentError, ~r/breakpoints are/, fn ->
         build(layout: :grid, grid_columns: [huge: 4])
       end
+    end
+
+    test "the layouts to switch between come from what's declared" do
+      item = [%{__slot__: :item, inner_block: nil}]
+
+      assert build(col: [col("title")]).layouts == [:table]
+      assert build(layout: :grid, item: item).layouts == [:grid]
+
+      # Columns and an item: either, starting on the declared one, which takes grid_columns
+      config = build(layout: :table, col: [col("title")], item: item, grid_columns: 3)
+      assert %{layouts: [:table, :grid], default_layout: :table, grid_columns: 3} = config
+
+      # A custom layout starts on the first it can render
+      assert build(layout: :custom, item: item).default_layout == :grid
     end
 
     test "a custom layout is asked for, not inferred from an inner block" do

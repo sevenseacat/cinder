@@ -15,6 +15,7 @@ defmodule Cinder.Next.View do
 
   @doc "The whole collection's view-model, from the component's assigns."
   def build(%{config: config, state: state, page: page, status: status, myself: myself}) do
+    layout = state.layout || config.default_layout
     filters = for name <- config.filter_order, f = filter(config, name, state, myself), do: f
 
     %{
@@ -46,15 +47,43 @@ defmodule Cinder.Next.View do
       sort_select: sort_select(config, state),
       # Tables that only show one sorted column want just the first
       primary_sort: primary_sort(state.sort),
-      layout: config.layout,
+      # The layout showing now. A custom layout renders it itself.
+      layout: layout,
+      layouts: layouts(config.layouts, layout, myself),
       grid_attrs: grid_attrs(config.grid_columns),
       # So `grid/1` can render cards given only the collection
       item_slot: config.item_slot,
       columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
-      rows: rows(page, config.layout),
+      rows: rows(page, layout),
       pagination: pagination(page, state, myself, config.pagination)
     }
   end
+
+  # A switcher's buttons, only when there's a choice
+  defp layouts([_one], _layout, _myself), do: []
+
+  defp layouts(layouts, current, myself) do
+    for layout <- layouts do
+      %{
+        layout: layout,
+        label: layout_label(layout),
+        active?: layout == current,
+        attrs: %{
+          "type" => "button",
+          "data-part" => "layout",
+          "data-layout" => layout,
+          "data-active" => layout == current,
+          "aria-pressed" => to_string(layout == current),
+          "phx-click" => "set_layout",
+          "phx-value-layout" => layout,
+          "phx-target" => myself
+        }
+      }
+    end
+  end
+
+  defp layout_label(:table), do: dgettext("cinder", "Table")
+  defp layout_label(:grid), do: dgettext("cinder", "Grid")
 
   # Column counts go in as CSS variables, which the base CSS reads (with media
   # queries for breakpoints), so no Tailwind classes need generating

@@ -2,7 +2,8 @@ defmodule CinderDevWeb.NextLive do
   @moduledoc """
   The shell-rewrite spike (`Cinder.Next.collection`), with the same collection as
   the Table page, for comparing the two side by side. It pages by keyset, through
-  the `:paginated` action, where the Table page uses offset pages.
+  the `:paginated` action, where the Table page uses offset pages, and switches
+  between the table and a grid of cards.
   """
   use CinderDevWeb, :live_view
   use Cinder.UrlSync
@@ -28,6 +29,7 @@ defmodule CinderDevWeb.NextLive do
         pagination_mode="keyset"
         url_state={@url_state}
         query_opts={[load: [:artist]]}
+        grid_columns={[xs: 1, sm: 2, lg: 3]}
       >
         <:col :let={album} field="title" filter search sort>{album.title}</:col>
         <:col :let={album} field="artist.name" label="Artist" filter sort>
@@ -38,6 +40,11 @@ defmodule CinderDevWeb.NextLive do
         <:col :let={album} field="price" sort>{Decimal.to_string(album.price)}</:col>
         <:col field="release_date" sort />
         <:col field="is_remastered" label="Remastered" />
+        <%!-- Columns and an item: the toolbar offers a table/grid switch --%>
+        <:item :let={album}>
+          <strong>{album.title}</strong>
+          <p>{album.artist.name} · {album.genre} · ${Decimal.to_string(album.price)}</p>
+        </:item>
       </Cinder.Next.collection>
 
       <h2 class="mt-10 text-lg font-semibold">Custom pagination slot (not URL-synced)</h2>
