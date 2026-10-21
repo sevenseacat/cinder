@@ -4,9 +4,9 @@
  * above the preflight reset (`base`) and below utilities, so utility and
  * daisyUI classes on the same elements win. Unlayered CSS in your app always
  * wins. Every selector is wrapped in :where() so it has no specificity at all.
- * Rules target the `cinder-*` classes that Cinder's own components render, plus
- * state attributes (`data-active`, `aria-sort`...), never `data-part`: that's in
- * the attribute maps too, and your own markup spreading them shouldn't be styled.
+ * Rules target the `cinder-*` classes that only Cinder's own components render,
+ * plus state attributes (`data-active`, `aria-sort`...). Attribute maps carry no
+ * classes, so your own markup spreading them is never styled by this file.
  * Restyle by overriding the --cinder-* variables, or by targeting the same classes.
  */
 @layer components {

@@ -57,7 +57,7 @@ defmodule Cinder.Next.GroupsTest do
 
   # [{"jazz (2)", ["Bravo", "Delta"]}, ...], from the rendered groups
   defp groups(html) do
-    ~r/data-part="group-label"[^>]*>\s*(\w+ \(\d+\))\s*<\/span>(.*?)(?=data-part="group-label"|<\/table>)/s
+    ~r/class="cinder-group-label"[^>]*>\s*(\w+ \(\d+\))\s*<\/span>(.*?)(?=class="cinder-group-label"|<\/table>)/s
     |> Regex.scan(html, capture: :all_but_first)
     |> Enum.map(fn [label, rest] ->
       {label, Regex.scan(~r/Alpha|Bravo|Charlie|Delta|Echo/, rest) |> List.flatten()}
@@ -79,7 +79,7 @@ defmodule Cinder.Next.GroupsTest do
   } do
     {view, _path} = mount(conn, url: true)
 
-    view |> element(~s([data-part="sort"][phx-value-field="title"])) |> render_click()
+    view |> element(~s(.cinder-sort[phx-value-field="title"])) |> render_click()
     patched = assert_patch(view)
 
     assert patched =~ "sort=title"
@@ -106,7 +106,7 @@ defmodule Cinder.Next.GroupsTest do
     {view, _path} = mount(conn, page_size: 4)
     page_1 = render_async(view)
 
-    view |> element(~s([data-part="page"][data-kind="next"])) |> render_click()
+    view |> element(~s(.cinder-page[data-kind="next"])) |> render_click()
     page_2 = render_async(view)
 
     # rock spans both pages: its header repeats, with the same ids

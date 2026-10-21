@@ -76,7 +76,7 @@ defmodule Cinder.Next.LiveViewTest do
   end
 
   test "selection and a bulk action work the same as in the component", %{view: view} do
-    view |> element(~s(li:first-child [data-part="select"])) |> render_click()
+    view |> element(~s(li:first-child .cinder-select)) |> render_click()
     view |> element(~s([data-action="remaster"])) |> render_click()
     render_async(view)
 

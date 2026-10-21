@@ -197,7 +197,7 @@ defmodule Cinder.Next.HardFiltersTest do
     test "choosing an option filters, and it stays chosen when the search moves on", %{view: view} do
       html = change(view, %{"title_autocomplete_search" => "ch", "title" => "Charlie"})
       # The table only shows genre, so count rows rather than titles (the options have titles)
-      assert length(Regex.scan(~r/data-part="row"/, html)) == 1
+      assert length(Regex.scan(~r/class="cinder-row"/, html)) == 1
       assert reads() == 1
 
       html = change(view, %{"title_autocomplete_search" => "zz", "title" => "Charlie"})
@@ -242,21 +242,21 @@ defmodule Cinder.Next.HardFiltersTest do
       assert input =~ ~s(required)
       assert input =~ ~s(type="number")
       refute input =~ ~s(aria-invalid)
-      refute html =~ ~s(data-part="filter-error")
+      refute html =~ ~s(class="cinder-filter-error")
 
       # The collection is waiting on input, not broken
       assert html =~ ~s(data-state="invalid")
-      refute html =~ ~s(data-part="error")
+      refute html =~ ~s(class="cinder-error")
     end
 
     @tag :capture_log
     test "an untouched input stays quiet; a used, empty one shows why", %{view: view} do
       # LiveView marks inputs nobody has interacted with yet as `_unused_`
       html = change(view, %{"min_tracks" => "", "_unused_min_tracks" => ""})
-      refute html =~ ~s(data-part="filter-error")
+      refute html =~ ~s(class="cinder-filter-error")
 
       html = change(view, %{"min_tracks" => ""})
-      assert html =~ ~r/data-part="filter-error"[^>]*>is required</
+      assert html =~ ~r/class="cinder-filter-error"[^>]*>is required</
       assert hd(min_tracks_input(html)) =~ ~s(aria-invalid)
     end
 
@@ -264,7 +264,7 @@ defmodule Cinder.Next.HardFiltersTest do
       html = change(view, %{"min_tracks" => "12"})
 
       assert length(titles(html)) == 3
-      refute html =~ ~s(data-part="filter-error")
+      refute html =~ ~s(class="cinder-filter-error")
       refute hd(min_tracks_input(html)) =~ ~s(aria-invalid)
     end
 
@@ -272,7 +272,7 @@ defmodule Cinder.Next.HardFiltersTest do
     test "an invalid value shows Ash's message, and stays in the input", %{view: view} do
       html = change(view, %{"min_tracks" => "abc"})
 
-      assert html =~ ~r/data-part="filter-error"[^>]*>is invalid</
+      assert html =~ ~r/class="cinder-filter-error"[^>]*>is invalid</
       assert hd(min_tracks_input(html)) =~ ~s(value="abc")
     end
   end

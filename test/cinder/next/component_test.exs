@@ -57,12 +57,12 @@ defmodule Cinder.Next.ComponentTest do
     {:ok, view, _html} = live(conn, path)
     render_async(view)
 
-    assert titles(click(view, ~s([data-part="sort"][phx-value-field="title"]))) == [
+    assert titles(click(view, ~s(.cinder-sort[phx-value-field="title"]))) == [
              "Alpha",
              "Bravo"
            ]
 
-    assert titles(click(view, ~s([data-part="sort"][phx-value-field="title"]))) == [
+    assert titles(click(view, ~s(.cinder-sort[phx-value-field="title"]))) == [
              "Echo",
              "Delta"
            ]
@@ -83,14 +83,14 @@ defmodule Cinder.Next.ComponentTest do
   test "paging moves through the sorted records", %{conn: conn, path: path} do
     {:ok, view, _html} = live(conn, path)
     render_async(view)
-    click(view, ~s([data-part="sort"][phx-value-field="title"]))
+    click(view, ~s(.cinder-sort[phx-value-field="title"]))
 
-    assert titles(click(view, ~s([data-part="page"][data-kind="page"][phx-value-page="2"]))) ==
+    assert titles(click(view, ~s(.cinder-page[data-kind="page"][phx-value-page="2"]))) ==
              ["Charlie", "Delta"]
 
-    assert titles(click(view, ~s([data-part="page"][data-kind="next"]))) == ["Echo"]
+    assert titles(click(view, ~s(.cinder-page[data-kind="next"]))) == ["Echo"]
 
-    html = click(view, ~s([data-part="page"][data-kind="prev"]))
+    html = click(view, ~s(.cinder-page[data-kind="prev"]))
     assert titles(html) == ["Charlie", "Delta"]
     assert html =~ "showing 3-4 of 5"
   end
@@ -98,10 +98,10 @@ defmodule Cinder.Next.ComponentTest do
   test "sorting goes back to the first page", %{conn: conn, path: path} do
     {:ok, view, _html} = live(conn, path)
     render_async(view)
-    click(view, ~s([data-part="sort"][phx-value-field="title"]))
-    click(view, ~s([data-part="page"][data-kind="next"]))
+    click(view, ~s(.cinder-sort[phx-value-field="title"]))
+    click(view, ~s(.cinder-page[data-kind="next"]))
 
-    html = click(view, ~s([data-part="sort"][phx-value-field="title"]))
+    html = click(view, ~s(.cinder-sort[phx-value-field="title"]))
 
     assert titles(html) == ["Echo", "Delta"]
     assert html =~ "showing 1-2 of 5"
@@ -142,9 +142,9 @@ defmodule Cinder.Next.ComponentTest do
 
     assert titles(change(view, %{"search" => "echo"})) == ["Echo"]
 
-    html = click(view, ~s([data-part="search-clear"]))
+    html = click(view, ~s(.cinder-search-clear))
     assert html =~ "showing 1-2 of 5"
-    assert html =~ ~r/<button[^>]*data-part="search-clear"[^>]*hidden/
+    assert html =~ ~r/<button[^>]*class="cinder-search-clear"[^>]*hidden/
   end
 
   test "clear all resets filters and search together", %{conn: conn, path: path} do
@@ -166,7 +166,7 @@ defmodule Cinder.Next.ComponentTest do
     render_async(view)
     change(view, %{"filters" => %{"title" => "", "genre" => "pop"}})
 
-    html = click(view, ~s([data-part="filter-clear"][phx-value-field="genre"]))
+    html = click(view, ~s(.cinder-filter-clear[phx-value-field="genre"]))
 
     assert length(titles(html)) == 2
     assert html =~ "showing 1-2 of 5"
@@ -194,9 +194,9 @@ defmodule Cinder.Next.ComponentTest do
     html = render_async(view)
 
     assert html =~ ~s(id="custom-pagination")
-    refute html =~ ~s(data-part="summary")
+    refute html =~ ~s(class="cinder-summary")
 
-    click(view, ~s([data-part="sort"][phx-value-field="title"]))
+    click(view, ~s(.cinder-sort[phx-value-field="title"]))
     html = click(view, ~s(#custom-pagination [phx-value-page="3"]))
 
     assert titles(html) == ["Echo"]
@@ -291,7 +291,7 @@ defmodule Cinder.Next.ComponentTest do
 
     assert html =~ ~s(id="custom-genre")
     assert html =~ ~s(title="One genre at a time")
-    refute html =~ ~s(data-part="filter-help")
+    refute html =~ ~s(class="cinder-filter-help")
 
     view |> element("#albums-filters") |> render_change(%{"filters" => %{"genre" => "pop"}})
 
@@ -318,7 +318,7 @@ defmodule Cinder.Next.ComponentTest do
       {:ok, view, _html} = live(conn, path)
       html = render_async(view)
 
-      assert length(Regex.scan(~r/data-part="item"/, html)) == 5
+      assert length(Regex.scan(~r/class="cinder-item"/, html)) == 5
       refute html =~ "<table"
     end
 

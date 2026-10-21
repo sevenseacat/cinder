@@ -21,8 +21,8 @@ defmodule Cinder.Next.PayloadTest do
       page_2: ~s(button[phx-click=goto_page][phx-value-page="2"][title="Go to page 2"])
     },
     next: %{
-      sort: ~s([data-part="sort"][phx-value-field="title"]),
-      page_2: ~s(button[data-part="page"][data-kind="page"][phx-value-page="2"])
+      sort: ~s(.cinder-sort[phx-value-field="title"]),
+      page_2: ~s(button.cinder-page[data-kind="page"][phx-value-page="2"])
     }
   }
 

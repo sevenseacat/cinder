@@ -67,7 +67,7 @@ defmodule Cinder.Next.LayoutsTest do
     html = render_async(view)
     assert html =~ ~r/id="section-header".*<h2>Albums<\/h2>.*name="search"/s
     # The rest of the default layout is still there
-    assert html =~ ~s(data-part="table")
+    assert html =~ ~s(class="cinder-table")
 
     assert titles(change(view, %{"search" => "echo"})) == ["Echo"]
   end
@@ -112,7 +112,7 @@ defmodule Cinder.Next.LayoutsTest do
     assert html =~
              ~r/<\/form>.*name="search"[^>]*form="albums-filters"|<\/form>.*form="albums-filters"[^>]*name="search"/s
 
-    assert length(Regex.scan(~r/data-part="pagination"/, html)) == 2
+    assert length(Regex.scan(~r/class="cinder-pagination"/, html)) == 2
 
     view |> element(~s(#top-pagination [data-kind="next"])) |> render_click()
     html = render_async(view)
@@ -130,7 +130,7 @@ defmodule Cinder.Next.LayoutsTest do
     change(view, %{"filters" => %{"genre" => "rock"}})
     assert assert_patch(view) =~ "genre=rock"
 
-    view |> element(~s(th [data-part="sort"])) |> render_click()
+    view |> element(~s(th .cinder-sort)) |> render_click()
     assert assert_patch(view) =~ "sort=title"
 
     change(view, %{"filters" => %{"genre" => ""}})
@@ -142,7 +142,7 @@ defmodule Cinder.Next.LayoutsTest do
     assert titles(render_async(view)) == ["Charlie", "Delta"]
   end
 
-  test "components take a class and attributes, but keep the ones Cinder depends on", %{
+  test "components take a class and other attributes", %{
     conn: conn
   } do
     view =
@@ -151,7 +151,7 @@ defmodule Cinder.Next.LayoutsTest do
         <Cinder.Next.collection id="albums" resource={Music.Album}>
           <:col :let={album} field="title">{album.title}</:col>
           <:page :let={c}>
-            <Cinder.Next.table collection={c} class="striped" data-density="compact" data-part="nope" />
+            <Cinder.Next.table collection={c} class="striped" data-density="compact" />
           </:page>
         </Cinder.Next.collection>
         """
@@ -162,7 +162,6 @@ defmodule Cinder.Next.LayoutsTest do
     # Cinder's class first (what its CSS styles), then the caller's
     assert table =~ ~s(class="cinder-table striped")
     assert table =~ ~s(data-density="compact")
-    assert table =~ ~s(data-part="table")
   end
 
   # Regression: a :pagination slot rendered while there was no page yet (still
@@ -183,7 +182,7 @@ defmodule Cinder.Next.LayoutsTest do
 
     html = render_async(view)
 
-    assert html =~ ~s(data-part="error")
+    assert html =~ ~s(class="cinder-error")
     refute html =~ "custom-pagination"
   end
 end

@@ -64,7 +64,7 @@ defmodule Cinder.Next.KeysetTest do
   defp titles(html), do: Regex.scan(~r/Alpha|Bravo|Charlie|Delta|Echo/, html) |> List.flatten()
 
   defp page(view, kind) do
-    view |> element(~s([data-part="page"][data-kind="#{kind}"])) |> render_click()
+    view |> element(~s(.cinder-page[data-kind="#{kind}"])) |> render_click()
     render_async(view)
   end
 
@@ -104,7 +104,7 @@ defmodule Cinder.Next.KeysetTest do
   test "the cursor goes in the URL, and an older URL goes back to it", %{conn: conn} do
     {view, path} = mount(conn, true)
 
-    view |> element(~s([data-part="page"][data-kind="next"])) |> render_click()
+    view |> element(~s(.cinder-page[data-kind="next"])) |> render_click()
     assert assert_patch(view) =~ "after="
     assert titles(render_async(view)) == ["Charlie", "Delta"]
 

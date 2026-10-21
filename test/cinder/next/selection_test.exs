@@ -62,7 +62,7 @@ defmodule Cinder.Next.SelectionTest do
 
   defp pick(view, albums, title) do
     view
-    |> element(~s([data-part="select"][phx-value-id="#{albums[title].id}"]))
+    |> element(~s(.cinder-select[phx-value-id="#{albums[title].id}"]))
     |> render_click()
   end
 
@@ -76,29 +76,29 @@ defmodule Cinder.Next.SelectionTest do
   test "rows and the page checkbox select, and the count follows", %{view: view, albums: albums} do
     # Bravo isn't selectable, so Alpha alone completes the first page
     pick(view, albums, "Alpha")
-    assert has_element?(view, ~s([data-part="select-page"][data-state="all"]))
+    assert has_element?(view, ~s(.cinder-select-page[data-state="all"]))
 
     assert has_element?(
              view,
-             ~s([data-part="select"][phx-value-id="#{albums["Bravo"].id}"][disabled])
+             ~s(.cinder-select[phx-value-id="#{albums["Bravo"].id}"][disabled])
            )
 
-    view |> element(~s([data-part="page"][data-kind="next"])) |> render_click()
+    view |> element(~s(.cinder-page[data-kind="next"])) |> render_click()
     render_async(view)
     pick(view, albums, "Charlie")
-    assert has_element?(view, ~s([data-part="select-page"][data-state="some"]))
+    assert has_element?(view, ~s(.cinder-select-page[data-state="some"]))
 
-    html = view |> element(~s([data-part="select-page"])) |> render_click()
+    html = view |> element(~s(.cinder-select-page)) |> render_click()
     assert html =~ ~s(data-state="all")
     assert render(view) =~ "3 selected"
 
-    view |> element(~s([data-part="clear-selection"])) |> render_click()
-    assert has_element?(view, ~s([data-part="select-page"][data-state="none"]))
+    view |> element(~s(.cinder-clear-selection)) |> render_click()
+    assert has_element?(view, ~s(.cinder-select-page[data-state="none"]))
   end
 
   test "the selection survives paging and filtering", %{view: view, albums: albums} do
     pick(view, albums, "Alpha")
-    view |> element(~s([data-part="page"][data-kind="next"])) |> render_click()
+    view |> element(~s(.cinder-page[data-kind="next"])) |> render_click()
     render_async(view)
     pick(view, albums, "Charlie")
 
@@ -111,7 +111,7 @@ defmodule Cinder.Next.SelectionTest do
     event(view, "toggle_select", %{"id" => to_string(albums["Echo"].id)})
     event(view, "toggle_select", %{"id" => to_string(albums["Bravo"].id)})
 
-    refute has_element?(view, ~s([data-part="bulk-bar"]))
+    refute has_element?(view, ~s(.cinder-bulk-bar))
   end
 
   test "an action without a confirm runs on the selection, then clears it", %{
@@ -119,7 +119,7 @@ defmodule Cinder.Next.SelectionTest do
     albums: albums
   } do
     pick(view, albums, "Alpha")
-    view |> element(~s([data-part="page"][data-kind="next"])) |> render_click()
+    view |> element(~s(.cinder-page[data-kind="next"])) |> render_click()
     render_async(view)
     pick(view, albums, "Charlie")
 
@@ -127,7 +127,7 @@ defmodule Cinder.Next.SelectionTest do
     render_async(view)
 
     assert Enum.sort(remastered()) == ["Alpha", "Charlie"]
-    refute has_element?(view, ~s([data-part="bulk-bar"]))
+    refute has_element?(view, ~s(.cinder-bulk-bar))
   end
 
   test "an action with a confirm only asks, and runs once confirmed", %{
@@ -137,15 +137,15 @@ defmodule Cinder.Next.SelectionTest do
     pick(view, albums, "Alpha")
 
     html = view |> element(~s([data-action="delete"])) |> render_click()
-    assert html =~ ~r/data-part="confirmation".*Delete 1 albums\?/s
+    assert html =~ ~r/class="cinder-confirmation".*Delete 1 albums\?/s
     assert length(Ash.read!(Music.Album)) == 5
 
-    view |> element(~s([data-part="cancel"])) |> render_click()
-    refute has_element?(view, ~s([data-part="confirmation"]))
+    view |> element(~s(.cinder-cancel)) |> render_click()
+    refute has_element?(view, ~s(.cinder-confirmation))
     assert length(Ash.read!(Music.Album)) == 5
 
     view |> element(~s([data-action="delete"])) |> render_click()
-    view |> element(~s([data-part="confirm"])) |> render_click()
+    view |> element(~s(.cinder-confirm)) |> render_click()
     render_async(view)
 
     assert Music.Album |> Ash.read!() |> Enum.map(& &1.title) |> Enum.sort() ==

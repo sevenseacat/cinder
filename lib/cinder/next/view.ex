@@ -16,7 +16,7 @@ defmodule Cinder.Next.View do
   @doc "The whole collection's view-model, from the component's assigns."
   def build(%{config: config, state: state, page: page, status: status, myself: myself} = assigns) do
     layout = state.layout || config.default_layout
-    rows = rows(page, layout, config.selectable, state, myself)
+    rows = rows(page, config.selectable, state, myself)
     filters = for name <- config.filter_order, f = filter(config, name, state, myself), do: f
 
     %{
@@ -32,7 +32,6 @@ defmodule Cinder.Next.View do
       # layouts can put them anywhere and they still arrive in one `phx-change`.
       form_attrs: %{
         "id" => config.form_id,
-        "data-part" => "filter-form",
         "phx-change" => "filter",
         "phx-submit" => "filter",
         "phx-target" => myself
@@ -42,7 +41,6 @@ defmodule Cinder.Next.View do
       active_filter_count: Enum.count(filters, & &1.attrs["data-active"]),
       clear_all_attrs: %{
         "type" => "button",
-        "data-part" => "clear-all",
         "phx-click" => "clear_all",
         "phx-target" => myself
       },
@@ -80,7 +78,6 @@ defmodule Cinder.Next.View do
         active?: layout == current,
         attrs: %{
           "type" => "button",
-          "data-part" => "layout",
           "data-layout" => layout,
           "data-active" => layout == current,
           "aria-pressed" => to_string(layout == current),
@@ -97,10 +94,10 @@ defmodule Cinder.Next.View do
 
   # Column counts go in as CSS variables, which the base CSS reads (with media
   # queries for breakpoints), so no Tailwind classes need generating
-  defp grid_attrs(nil), do: %{"data-part" => "grid"}
+  defp grid_attrs(nil), do: %{}
 
   defp grid_attrs(count) when is_integer(count) do
-    %{"data-part" => "grid", "data-columns" => true, "style" => "--cinder-grid-columns: #{count}"}
+    %{"data-columns" => true, "style" => "--cinder-grid-columns: #{count}"}
   end
 
   defp grid_attrs(breakpoints) do
@@ -109,7 +106,7 @@ defmodule Cinder.Next.View do
         "--cinder-grid-columns-#{bp}: #{count}"
       end)
 
-    %{"data-part" => "grid", "data-columns" => true, "style" => style}
+    %{"data-columns" => true, "style" => style}
   end
 
   # Each declared sort, with the same wiring as a sortable column header, for
@@ -123,14 +120,12 @@ defmodule Cinder.Next.View do
       direction: direction,
       attrs: %{
         "type" => "button",
-        "data-part" => "sort",
         "data-active" => direction != nil,
         "phx-click" => "sort",
         "phx-value-field" => field.name,
         "phx-target" => myself
       },
       indicator_attrs: %{
-        "data-part" => "sort-indicator",
         "data-direction" => direction,
         "aria-hidden" => "true"
       }
@@ -162,7 +157,7 @@ defmodule Cinder.Next.View do
 
     %{
       label: dgettext("cinder", "Sort by:"),
-      attrs: %{"data-part" => "sort-select"},
+      attrs: %{},
       select_attrs: %{
         "id" => "#{config.form_id}-sort",
         "name" => "sort_by",
@@ -181,7 +176,7 @@ defmodule Cinder.Next.View do
     %{
       label: search.label,
       value: state.search,
-      attrs: %{"data-part" => "search", "data-active" => state.search != ""},
+      attrs: %{"data-active" => state.search != ""},
       input_attrs: %{
         "id" => "#{form_id}-search",
         "type" => "search",
@@ -193,7 +188,6 @@ defmodule Cinder.Next.View do
       },
       clear_attrs: %{
         "type" => "button",
-        "data-part" => "search-clear",
         "aria-label" => dgettext("cinder", "Clear search"),
         "hidden" => state.search == "",
         "phx-click" => "clear_filter",
@@ -265,7 +259,6 @@ defmodule Cinder.Next.View do
         render: filter.render,
         options: options(filter.type, ctx, value),
         attrs: %{
-          "data-part" => "filter",
           "data-field" => name,
           "data-filter-type" => filter.type,
           "data-active" => active?,
@@ -275,13 +268,12 @@ defmodule Cinder.Next.View do
         label_attrs: %{
           "for" => if(filter.type not in @multi_types, do: label_target(filter.type, input_id))
         },
-        help_attrs: %{"id" => help_id, "data-part" => "filter-help"},
-        error_attrs: %{"id" => error_id, "data-part" => "filter-error", "role" => "alert"},
+        help_attrs: %{"id" => help_id},
+        error_attrs: %{"id" => error_id, "role" => "alert"},
         input_attrs: input_attrs(filter.type, ctx, value),
         form_field: form_field(filter.type, ctx, value),
         clear_attrs: %{
           "type" => "button",
-          "data-part" => "filter-clear",
           "aria-label" => dgettext("cinder", "Clear filter"),
           "hidden" => not active?,
           "phx-click" => "clear_filter",
@@ -531,20 +523,17 @@ defmodule Cinder.Next.View do
       sortable?: sortable?,
       direction: direction,
       attrs: %{
-        "data-part" => "header-cell",
         "data-field" => column.field,
         "data-sortable" => sortable?,
         "aria-sort" => sortable? && aria_sort(direction)
       },
       sort_attrs: %{
         "type" => "button",
-        "data-part" => "sort",
         "phx-click" => "sort",
         "phx-value-field" => column.field,
         "phx-target" => myself
       },
       indicator_attrs: %{
-        "data-part" => "sort-indicator",
         "data-direction" => direction,
         "aria-hidden" => "true"
       }
@@ -581,10 +570,9 @@ defmodule Cinder.Next.View do
         value: value,
         items: items,
         id: group_id,
-        attrs: %{"id" => group_id, "data-part" => "group", "data-value" => to_string(value)},
+        attrs: %{"id" => group_id, "data-value" => to_string(value)},
         toggle_attrs: %{
           "type" => "button",
-          "data-part" => "group-toggle",
           "aria-expanded" => "true",
           "aria-controls" => items_id,
           # Named by the group's label, so it needs no words of its own
@@ -593,7 +581,7 @@ defmodule Cinder.Next.View do
             Phoenix.LiveView.JS.toggle_attribute({"aria-expanded", "true", "false"})
             |> Phoenix.LiveView.JS.toggle(to: "#" <> items_id)
         },
-        items_attrs: %{"id" => items_id, "data-part" => "group-items"},
+        items_attrs: %{"id" => items_id},
         label_id: label_id,
         # The group's header content, if declared, rendered with `value` and `items`
         slot: group.slot
@@ -601,11 +589,9 @@ defmodule Cinder.Next.View do
     end)
   end
 
-  defp rows(nil, _layout, _selectable, _state, _myself), do: []
+  defp rows(nil, _selectable, _state, _myself), do: []
 
-  defp rows(%{results: results}, layout, selectable, state, myself) do
-    part = if layout == :grid, do: "item", else: "row"
-
+  defp rows(%{results: results}, selectable, state, myself) do
     for record <- results do
       id = to_string(Map.get(record, :id))
       selected? = MapSet.member?(state.selected, id)
@@ -613,13 +599,12 @@ defmodule Cinder.Next.View do
       %{
         record: record,
         selected?: selected?,
-        attrs: %{"data-part" => part, "data-row-id" => id, "data-selected" => selected?},
+        attrs: %{"data-row-id" => id, "data-selected" => selected?},
         # A checkbox, though not a form input: it toggles by click
         select_attrs:
           selectable != false &&
             %{
               "type" => "checkbox",
-              "data-part" => "select",
               "checked" => selected?,
               "disabled" => not selectable?(selectable, record),
               "aria-label" => dgettext("cinder", "Select"),
@@ -664,7 +649,6 @@ defmodule Cinder.Next.View do
       # set from JS (`indeterminate`)
       page_attrs: %{
         "type" => "checkbox",
-        "data-part" => "select-page",
         "data-state" => page_state,
         "checked" => page_state == :all,
         "disabled" => page_ids == [],
@@ -674,7 +658,6 @@ defmodule Cinder.Next.View do
       },
       clear_attrs: %{
         "type" => "button",
-        "data-part" => "clear-selection",
         "hidden" => count == 0,
         "phx-click" => "clear_selection",
         "phx-target" => myself
@@ -688,7 +671,6 @@ defmodule Cinder.Next.View do
       label: action.label,
       attrs: %{
         "type" => "button",
-        "data-part" => "bulk-action",
         "data-action" => action.name,
         "disabled" => MapSet.size(state.selected) == 0,
         "phx-click" => "bulk_action",
@@ -707,16 +689,14 @@ defmodule Cinder.Next.View do
     %{
       action: action.label,
       message: String.replace(action.confirm, "{count}", to_string(MapSet.size(state.selected))),
-      attrs: %{"data-part" => "confirmation", "role" => "alertdialog"},
+      attrs: %{"role" => "alertdialog"},
       confirm_attrs: %{
         "type" => "button",
-        "data-part" => "confirm",
         "phx-click" => "confirm_action",
         "phx-target" => myself
       },
       cancel_attrs: %{
         "type" => "button",
-        "data-part" => "cancel",
         "phx-click" => "cancel_action",
         "phx-target" => myself
       }
@@ -745,7 +725,7 @@ defmodule Cinder.Next.View do
             total: page.count
           ),
       # No aria-label yet: it would be a new string to translate into every locale
-      attrs: %{"data-part" => "pagination"},
+      attrs: %{},
       prev: page_link(:prev, current - 1, current <= 1, myself),
       next: page_link(:next, current + 1, not page.more?, myself),
       pages: numbered_pages(current, page_count, myself)
@@ -769,7 +749,7 @@ defmodule Cinder.Next.View do
       page_count: nil,
       total: nil,
       summary: nil,
-      attrs: %{"data-part" => "pagination"},
+      attrs: %{},
       prev: cursor_link(:prev, :before, List.first(results), not prev?, myself),
       next: cursor_link(:next, :after, List.last(results), not next?, myself),
       pages: []
@@ -789,7 +769,6 @@ defmodule Cinder.Next.View do
       disabled?: disabled?,
       attrs: %{
         "type" => "button",
-        "data-part" => "page",
         "data-kind" => kind,
         "aria-label" => page_aria_label(kind, nil),
         "disabled" => disabled?,
@@ -826,7 +805,6 @@ defmodule Cinder.Next.View do
       disabled?: disabled?,
       attrs: %{
         "type" => "button",
-        "data-part" => "page",
         "data-kind" => kind,
         "data-active" => current?,
         "aria-current" => current? && "page",
@@ -840,7 +818,7 @@ defmodule Cinder.Next.View do
   end
 
   defp gap do
-    %{kind: :gap, label: "…", attrs: %{"data-part" => "page", "data-kind" => "gap"}}
+    %{kind: :gap, label: "…", attrs: %{"data-kind" => "gap"}}
   end
 
   defp page_label(:prev, _), do: "‹"

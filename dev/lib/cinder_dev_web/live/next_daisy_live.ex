@@ -230,9 +230,9 @@ defmodule CinderDevWeb.NextDaisyLive do
             <.daisy_pagination :if={c.pagination} pagination={c.pagination} />
 
             <Cinder.Next.table :if={c.layout == :table} collection={c} class="table" />
-            <%!-- Its own grid, spreading each row's attrs (data-part="item", data-selected)
-                 onto its own wrapper: Cinder's CSS styles its `cinder-*` classes, not
-                 `data-part`, so the daisyUI card isn't wrapped in a second card --%>
+            <%!-- Its own grid, spreading each row's attrs (data-row-id, data-selected) onto
+                 its own wrapper: Cinder's CSS only styles the `cinder-*` classes its own
+                 components render, so the daisyUI card isn't wrapped in a second card --%>
             <div :if={c.layout == :grid} class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div
                 :for={row <- c.rows}

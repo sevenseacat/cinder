@@ -82,22 +82,22 @@ defmodule Cinder.Next.LayoutSwitchTest do
   end
 
   defp switch(view, layout) do
-    view |> element(~s([data-part="layout"][data-layout="#{layout}"])) |> render_click()
+    view |> element(~s(.cinder-layout[data-layout="#{layout}"])) |> render_click()
   end
 
   test "switches between a table and a grid without reloading", %{conn: conn} do
     {view, _path} = mount(conn, false)
-    assert has_element?(view, ~s(table[data-part="table"]))
+    assert has_element?(view, ~s(table.cinder-table))
     assert has_element?(view, ~s([data-layout="table"][aria-pressed="true"]))
 
     html = switch(view, "grid")
     refute read?()
 
-    assert html =~ ~r/<ul[^>]*data-part="grid"/
+    assert html =~ ~r/<ul[^>]*class="cinder-grid"/
     assert length(Regex.scan(~r/<h3>/, html)) == 3
     assert has_element?(view, ~s([data-layout="grid"][aria-pressed="true"]))
     # Grids sort from the dropdown instead of headers
-    assert has_element?(view, ~s([data-part="sort-select"]))
+    assert has_element?(view, ~s(.cinder-sort-select))
   end
 
   test "the layout goes in the URL without a reload, and browser back returns", %{conn: conn} do
@@ -105,11 +105,11 @@ defmodule Cinder.Next.LayoutSwitchTest do
 
     switch(view, "grid")
     assert assert_patch(view) =~ "layout=grid"
-    assert render_async(view) =~ ~r/<ul[^>]*data-part="grid"/
+    assert render_async(view) =~ ~r/<ul[^>]*class="cinder-grid"/
     refute read?()
 
     render_patch(view, path)
-    assert has_element?(view, ~s(table[data-part="table"]))
+    assert has_element?(view, ~s(table.cinder-table))
     refute read?()
   end
 
@@ -123,13 +123,13 @@ defmodule Cinder.Next.LayoutSwitchTest do
 
     refute patched =~ "layout="
     assert patched =~ "keep=me"
-    assert has_element?(view, ~s(table[data-part="table"]))
+    assert has_element?(view, ~s(table.cinder-table))
   end
 
   test "an unknown layout in the URL falls back to the default", %{conn: conn} do
     {view, _path} = mount(conn, true, "?layout=cards")
 
-    assert has_element?(view, ~s(table[data-part="table"]))
+    assert has_element?(view, ~s(table.cinder-table))
   end
 
   test "there's no switcher without a choice", %{conn: conn} do
@@ -145,6 +145,6 @@ defmodule Cinder.Next.LayoutSwitchTest do
     {:ok, view, _html} = live(conn, path)
     render_async(view)
 
-    refute has_element?(view, ~s([data-part="layout-switch"]))
+    refute has_element?(view, ~s(.cinder-layout-switch))
   end
 end

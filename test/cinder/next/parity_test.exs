@@ -14,9 +14,9 @@ defmodule Cinder.Next.ParityTest do
       page_2: ~s(button[phx-click=goto_page][phx-value-page="2"][title="Go to page 2"])
     },
     next: %{
-      sort_title: ~s([data-part="sort"][phx-value-field="title"]),
-      first_cell: ~s(tr[data-part="row"]:first-child td:first-child),
-      page_2: ~s(button[data-part="page"][data-kind="page"][phx-value-page="2"])
+      sort_title: ~s(.cinder-sort[phx-value-field="title"]),
+      first_cell: ~s(tr.cinder-row:first-child td:first-child),
+      page_2: ~s(button.cinder-page[data-kind="page"][phx-value-page="2"])
     }
   }
 

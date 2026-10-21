@@ -185,9 +185,9 @@ defmodule Cinder.Next.ViewTest do
   end
 
   # Cinder's CSS styles `cinder-*` classes, which only its own components render.
-  # Attribute maps name parts with `data-part` but carry no class, so markup that
+  # Attribute maps carry no name or class for parts, so markup that
   # spreads them isn't styled by Cinder.
-  test "attribute maps carry no classes" do
+  test "attribute maps carry no part names or classes" do
     view = build(filter: [filter("title", type: :text)])
 
     maps =
@@ -196,7 +196,7 @@ defmodule Cinder.Next.ViewTest do
         Enum.flat_map(view.columns, &[&1.attrs, &1.sort_attrs]) ++
         Enum.flat_map(view.filters, &[&1.attrs, &1.input_attrs, &1.clear_attrs])
 
-    assert Enum.all?(maps, &(not Map.has_key?(&1, "class")))
+    assert Enum.all?(maps, &(not Map.has_key?(&1, "class") and not Map.has_key?(&1, "data-part")))
   end
 
   describe "groups" do
@@ -248,7 +248,7 @@ defmodule Cinder.Next.ViewTest do
     end
 
     test "fit as many as there's room for by default, with no inline style" do
-      assert grid_attrs(nil) == %{"data-part" => "grid"}
+      assert grid_attrs(nil) == %{}
     end
 
     test "go in as CSS variables, so no utility classes need generating" do

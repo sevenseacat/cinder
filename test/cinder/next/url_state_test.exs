@@ -112,10 +112,10 @@ defmodule Cinder.Next.UrlStateTest do
     {:ok, view, _html} = live(conn, path)
     render_async(view)
 
-    view |> element(~s([data-part="sort"][phx-value-field="title"])) |> render_click()
+    view |> element(~s(.cinder-sort[phx-value-field="title"])) |> render_click()
     assert assert_patch(view) =~ "sort=title"
 
-    view |> element(~s([data-part="page"][data-kind="next"])) |> render_click()
+    view |> element(~s(.cinder-page[data-kind="next"])) |> render_click()
     patched = assert_patch(view)
     assert patched =~ "page=2"
     assert titles(render_async(view)) == ["Charlie", "Delta"]
