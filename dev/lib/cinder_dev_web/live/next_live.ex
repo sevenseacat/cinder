@@ -44,6 +44,12 @@ defmodule CinderDevWeb.NextLive do
           options={Enum.map(CinderDev.Seeds.tags(), &{&1, &1})}
         />
         <:col :let={album} field="price" sort>{Decimal.to_string(album.price)}</:col>
+        <%!-- Rich header content: an icon and a tooltip, inside the sort button --%>
+        <:header :let={column} field="price">
+          <.icon name="hero-currency-dollar" class="size-4 align-text-bottom" />
+          {column.label}
+          <span class="tooltip tooltip-bottom font-normal" data-tip="Excluding tax">(?)</span>
+        </:header>
         <:col field="release_date" sort />
         <:col field="is_remastered" label="Remastered" />
         <%!-- Remastered albums can't be selected, so they can't be remastered again --%>

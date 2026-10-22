@@ -547,6 +547,8 @@ defmodule Cinder.Next.View do
       field: column.field,
       label: column.label,
       slot: column.slot,
+      # The `<:header>` slot entry, rendered with this map, or nil for the label
+      header: column.header,
       sort: sort,
       attrs: %{
         "data-field" => column.field,

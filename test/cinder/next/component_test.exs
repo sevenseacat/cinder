@@ -298,6 +298,32 @@ defmodule Cinder.Next.ComponentTest do
     end
   end
 
+  test "a <:header> replaces a column's label, inside its sort button, and gets the column",
+       %{conn: conn} do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album} page_size={2}>
+          <:col :let={album} field="title" sort>{album.title}</:col>
+          <:header :let={column} field="title">
+            <svg id="title-icon"></svg>
+            <span title="The album's name">{column.label} (sorted: {inspect(column.sort.direction)})</span>
+          </:header>
+        </Cinder.Next.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+    html = render_async(view)
+
+    assert html =~ ~r/<button[^>]*class="cinder-sort"[^>]*>\s*<svg id="title-icon"/
+    assert html =~ "Title (sorted: nil)"
+
+    html = click(view, ~s(.cinder-sort[phx-value-field="title"]))
+    assert titles(html) == ["Alpha", "Bravo"]
+    assert html =~ "Title (sorted: :asc)"
+  end
+
   test "a <:filter> with content replaces that filter's markup, and keeps its wiring",
        %{conn: conn} do
     path =

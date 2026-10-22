@@ -248,6 +248,27 @@ defmodule Cinder.Next.ConfigTest do
     end
   end
 
+  describe "headers" do
+    defp header(field), do: %{__slot__: :header, field: field, inner_block: :rendered}
+
+    test "belong to the column of their field" do
+      config = build(col: [col("title"), col("genre")], header: [header("genre")])
+
+      assert [%{field: "title", header: nil}, %{field: "genre", header: %{field: "genre"}}] =
+               config.columns
+    end
+
+    test "for a field with no column, or twice for one, are errors" do
+      assert_raise ArgumentError, ~r/<:header> for "price" has no <:col>/, fn ->
+        build(col: [col("title")], header: [header("price")])
+      end
+
+      assert_raise ArgumentError, ~r/<:header> is declared 2 times for the field "title"/, fn ->
+        build(col: [col("title")], header: [header("title"), header("title")])
+      end
+    end
+  end
+
   describe "validation" do
     # A socket isn't needed: the options are checked before it's touched
     defp assign_collection(opts),

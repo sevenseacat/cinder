@@ -112,6 +112,9 @@ defmodule Cinder.Next.Schema do
       label: [type: :string],
       cycle: [type: {:list, :any}]
     ],
+    header: [
+      field: [type: :string, required: true]
+    ],
     bulk_action: [
       name: [type: :string, required: true],
       action: [type: {:or, [:atom, {:fun, 2}]}, required: true],

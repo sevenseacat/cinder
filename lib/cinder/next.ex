@@ -120,6 +120,16 @@ defmodule Cinder.Next do
       doc: "The groups' order (default `:asc`)"
   end
 
+  slot :header,
+    doc: """
+    A column's header content, instead of its label: icons, tooltips, any markup,
+    via `:let` (the column's view-model). Declared by field, like `<:filter>`. On
+    a sortable column it goes inside the sort button, so it shouldn't hold links
+    or buttons of its own.
+    """ do
+    attr :field, :string, required: true
+  end
+
   slot :sort, doc: "Declares a sortable field" do
     attr :field, :string, required: true
     attr :label, :string
@@ -418,10 +428,10 @@ defmodule Cinder.Next do
           <th :for={column <- @collection.columns} {styled(column.attrs, "header-cell")}>
             <%= if column.sort do %>
               <button {styled(column.sort.attrs, "sort")}>
-                {column.label}<span {styled(column.sort.indicator_attrs, "sort-indicator")}></span>
+                <.header_content column={column} /><span {styled(column.sort.indicator_attrs, "sort-indicator")}></span>
               </button>
             <% else %>
-              {column.label}
+              <.header_content column={column} />
             <% end %>
           </th>
         </tr>
@@ -487,6 +497,12 @@ defmodule Cinder.Next do
   # Columns plus the selection column, for cells that span the whole table
   defp column_count(collection),
     do: length(collection.columns) + if(collection.selection, do: 1, else: 0)
+
+  attr :column, :map, required: true
+
+  # A column's `<:header>` content if it has one, else its label
+  defp header_content(%{column: %{header: nil}} = assigns), do: ~H"{@column.label}"
+  defp header_content(assigns), do: ~H"{render_slot(@column.header, @column)}"
 
   attr :row, :map, required: true
   attr :collection, :map, required: true

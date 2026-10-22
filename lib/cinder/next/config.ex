@@ -38,7 +38,8 @@ defmodule Cinder.Next.Config do
   defmodule Column do
     @moduledoc false
     @enforce_keys [:field, :label, :slot]
-    defstruct [:field, :label, :slot]
+    # `header` is the field's `<:header>` slot entry, if it has one
+    defstruct [:field, :label, :slot, :header]
   end
 
   @enforce_keys [:query, :resource, :fields]
@@ -109,6 +110,7 @@ defmodule Cinder.Next.Config do
 
     reject_duplicates!(filter_slots, "<:filter>")
     reject_duplicates!(sort_slots, "<:sort>")
+    headers = headers(Map.get(assigns, :header, []), cols)
     reject_duplicates!(Enum.map(argument_slots, &Map.put(&1, :field, &1.name)), "<:argument>")
 
     labels = declared_labels(cols ++ filter_slots ++ sort_slots)
@@ -161,7 +163,14 @@ defmodule Cinder.Next.Config do
       filter_order: Enum.map(argument_slots, & &1.name) ++ filter_order,
       sort_order: sort_order,
       columns:
-        for(col <- cols, do: %Column{field: col.field, label: fields[col.field].label, slot: col}),
+        for col <- cols do
+          %Column{
+            field: col.field,
+            label: fields[col.field].label,
+            slot: col,
+            header: headers[col.field]
+          }
+        end,
       search: search(assigns[:search], search_fields),
       layouts: layouts,
       # Also what a `<:page>` starts on: it renders `c.layout` itself
@@ -388,6 +397,20 @@ defmodule Cinder.Next.Config do
     Enum.reduce(slots, %{}, fn slot, labels ->
       if slot[:label], do: Map.put_new(labels, slot.field, slot.label), else: labels
     end)
+  end
+
+  # `<:header>`s by field. One for a field with no column would never show.
+  defp headers(slots, cols) do
+    reject_duplicates!(slots, "<:header>")
+    columns = MapSet.new(cols, & &1.field)
+
+    for slot <- slots, into: %{} do
+      unless MapSet.member?(columns, slot.field) do
+        raise ArgumentError, "<:header> for #{inspect(slot.field)} has no <:col> to head"
+      end
+
+      {slot.field, slot}
+    end
   end
 
   defp reject_duplicates!(slots, name) do
