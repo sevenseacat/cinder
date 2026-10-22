@@ -25,7 +25,7 @@ defmodule Cinder.Integration.ClearFilterTest do
 
   defp album_collection(assigns) do
     ~H"""
-    <Cinder.collection resource={Cinder.Integration.Album} initial_load={:sync}>
+    <Cinder.collection resource={Music.Album} initial_load={:sync}>
       <:col :let={album} field="title" filter>{album.title}</:col>
       <:col :let={album} field="release_date" filter>{album.release_date}</:col>
     </Cinder.collection>
@@ -37,8 +37,8 @@ defmodule Cinder.Integration.ClearFilterTest do
     generate(album(title: "Clear Album", release_date: ~D[2020-05-01], artist_id: artist.id))
 
     on_exit(fn ->
-      Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
-      Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
+      Ash.bulk_destroy!(Music.Album, :destroy, %{})
+      Ash.bulk_destroy!(Music.Artist, :destroy, %{})
     end)
 
     %{path: Cinder.TestLive.Fixture.register(&album_collection/1)}
