@@ -1,0 +1,306 @@
+/* Spike (7CC-158): the "default" theme for `Cinder.Next`, opt-in like every theme.
+ * Styles the `cinder-*` classes Cinder's own components render, and their state
+ * attributes; restyle through the --cinder-* variables, or override the rules.
+ * In the `cinder` layer, so your classes and utilities always win (see
+ * `cinder.next.css` for the layer order line).
+ */
+@layer cinder {
+  /* On :root, so components used in your own markup (no `.cinder` root) get them */
+  :root {
+    --cinder-fg: light-dark(#1d222b, #e5e7eb);
+    --cinder-muted: light-dark(#5b6474, #9ca3af);
+    --cinder-bg: light-dark(#fff, #1f2937);
+    --cinder-border: light-dark(#dde1e7, #374151);
+    --cinder-hover: light-dark(rgb(20 30 50 / 0.05), rgb(255 255 255 / 0.06));
+    --cinder-accent: light-dark(#138a6a, #34d399);
+    --cinder-active-bg: light-dark(#e6f6f1, rgb(52 211 153 / 0.15));
+    --cinder-danger: light-dark(#c2410c, #f97316);
+    --cinder-radius: 6px;
+    --cinder-gap: 12px;
+    --cinder-control-height: 32px;
+  }
+
+  .cinder {
+    display: grid;
+    gap: var(--cinder-gap);
+    color: var(--cinder-fg);
+    font-size: 14px;
+  }
+
+  /* Buttons share one look */
+  /* Only buttons: a pagination gap is a `.cinder-page` span */
+  button:is(.cinder-page, .cinder-layout, .cinder-bulk-action, .cinder-clear-selection,
+    .cinder-confirm, .cinder-cancel) {
+    height: var(--cinder-control-height);
+    padding: 0 12px;
+    border: 1px solid var(--cinder-border);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-bg);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--cinder-hover);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    &[data-active] {
+      border-color: var(--cinder-accent);
+      background: var(--cinder-active-bg);
+      font-weight: 600;
+    }
+  }
+
+  :is(.cinder-toolbar, .cinder-pagination, .cinder-bulk-bar, .cinder-layout-switch)
+    :is(input, select, button):focus-visible {
+    outline: 2px solid var(--cinder-accent);
+    outline-offset: 1px;
+  }
+
+  /* Toolbar: search and filters */
+  .cinder-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--cinder-gap);
+  }
+
+  :is(.cinder-search, .cinder-filter, .cinder-sort-select) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 4px;
+
+    & > label {
+      grid-column: 1 / -1;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--cinder-muted);
+    }
+
+    & :is(input, select) {
+      height: var(--cinder-control-height);
+      padding: 0 10px;
+      border: 1px solid var(--cinder-border);
+      border-radius: var(--cinder-radius);
+      background: var(--cinder-bg);
+      color: inherit;
+      font: inherit;
+    }
+
+    &[data-active] :is(input, select) {
+      border-color: var(--cinder-accent);
+    }
+  }
+
+  :is(.cinder-filter-clear, .cinder-search-clear) {
+    border: 0;
+    background: none;
+    color: var(--cinder-muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  /* Table */
+  .cinder-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cinder-header-cell {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--cinder-border);
+    color: var(--cinder-muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .cinder-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .cinder-cell {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--cinder-border);
+  }
+
+  .cinder-row {
+    &:hover {
+      background: var(--cinder-hover);
+    }
+
+    &[data-selected] {
+      background: var(--cinder-active-bg);
+    }
+  }
+
+  .cinder-select-cell {
+    width: 1%;
+    padding-right: 0;
+  }
+
+  :is(.cinder-empty, .cinder-error) {
+    padding: 32px 12px;
+    color: var(--cinder-muted);
+    text-align: center;
+
+    & td {
+      padding: 32px 12px;
+    }
+  }
+
+  /* Grid */
+  .cinder-grid {
+    gap: var(--cinder-gap);
+  }
+
+  .cinder-item {
+    padding: 12px;
+    border: 1px solid var(--cinder-border);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-bg);
+
+    &:has(> .cinder-select) {
+      padding-right: 36px;
+    }
+
+    &[data-selected] {
+      border-color: var(--cinder-accent);
+      background: var(--cinder-active-bg);
+    }
+  }
+
+  /* Selection: native checkboxes in the accent colour */
+  :is(.cinder-select, .cinder-select-page) {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--cinder-accent);
+    cursor: pointer;
+  }
+
+  /* Pagination */
+  .cinder-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: end;
+    gap: 4px;
+  }
+
+  .cinder-summary {
+    margin-right: auto;
+    color: var(--cinder-muted);
+  }
+
+  button.cinder-page {
+    min-width: var(--cinder-control-height);
+    padding: 0 8px;
+  }
+
+  .cinder-page[data-kind="gap"] {
+    padding: 0 4px;
+    color: var(--cinder-muted);
+  }
+
+  /* The layout switch: one segmented control */
+  .cinder-layout-switch {
+    display: inline-flex;
+    margin-left: auto;
+
+    & .cinder-layout:not(:first-child) {
+      margin-left: -1px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    & .cinder-layout:not(:last-child) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    & .cinder-layout[data-active] {
+      position: relative;
+    }
+  }
+
+  /* The bulk bar: the count, the actions, and any pending question */
+  .cinder-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--cinder-accent);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-active-bg);
+  }
+
+  .cinder-selection-count {
+    margin-right: auto;
+    font-weight: 600;
+  }
+
+  .cinder-confirmation {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--cinder-border);
+
+    & p {
+      margin: 0 auto 0 0;
+    }
+  }
+
+  .cinder-confirm {
+    border-color: var(--cinder-danger);
+    background: var(--cinder-danger);
+    color: #fff;
+  }
+
+  /* Groups */
+  .cinder-group-header th {
+    padding: 8px 12px;
+    background: var(--cinder-hover);
+    text-align: left;
+  }
+
+  section.cinder-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  .cinder-group-label {
+    font-weight: 600;
+  }
+
+  .cinder-group-toggle {
+    margin-right: 8px;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+}

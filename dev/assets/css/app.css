@@ -1,6 +1,10 @@
 /* See the Tailwind configuration guide for advanced usage
    https://tailwindcss.com/docs/configuration */
 
+/* Cinder's layer goes below Tailwind's components, so classes and utilities
+   always beat it. This has to come first: layer order is set by first mention. */
+@layer theme, base, cinder, components, utilities;
+
 @import "tailwindcss" source(none);
 @import "phoenix-colocated/cinder_dev/colocated.css";
 
@@ -16,8 +20,9 @@
 @import "../../../priv/themes/modern.css";
 @import "../../../priv/themes/retro.css";
 
-/* The shell-rewrite spike's opt-in base styles, for the Next page */
+/* The shell-rewrite spike: its structural CSS, and the "default" theme */
 @import "../../../priv/cinder.next.css";
+@import "../../../priv/next_themes/default.css";
 
 /* Petal Components, for the Next Petal page. Its classes are all `pc-` prefixed. */
 @import "../../deps/petal_components/assets/default.css";

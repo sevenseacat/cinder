@@ -577,9 +577,11 @@ defmodule Cinder.Next.View do
           "aria-controls" => items_id,
           # Named by the group's label, so it needs no words of its own
           "aria-labelledby" => label_id,
+          # `hidden`, not `JS.toggle`: showing again restores the element's own
+          # display (a `<tbody>`, a grid), where `JS.toggle` would set `block`
           "phx-click" =>
             Phoenix.LiveView.JS.toggle_attribute({"aria-expanded", "true", "false"})
-            |> Phoenix.LiveView.JS.toggle(to: "#" <> items_id)
+            |> Phoenix.LiveView.JS.toggle_attribute({"hidden", ""}, to: "#" <> items_id)
         },
         items_attrs: %{"id" => items_id},
         label_id: label_id,

@@ -221,6 +221,12 @@ defmodule Cinder.Next.ViewTest do
       # The toggle collapses the group's items, named by its label
       assert rock.toggle_attrs["aria-controls"] == rock.items_attrs["id"]
       assert rock.toggle_attrs["aria-labelledby"] == rock.label_id
+
+      # Regression: `JS.toggle` showed a collapsed <tbody> again as `display: block`.
+      # Toggling `hidden` leaves the element's own display alone.
+      ops = rock.toggle_attrs["phx-click"].ops
+      assert ["toggle_attr", %{attr: ["hidden", ""]}] = List.last(ops)
+      refute Enum.any?(ops, &match?(["toggle", _], &1))
     end
 
     test "are nil when the collection isn't grouped" do
