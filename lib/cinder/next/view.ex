@@ -22,9 +22,9 @@ defmodule Cinder.Next.View do
     %{
       status: status,
       # For components that take an event and target rather than attribute maps
-      target: myself,
-      # Prepended to event names when the collection lives in a LiveView (see `Collection.view/2`)
-      event_prefix: "",
+      target: target(myself),
+      # Prepended to event names when the collection lives in a LiveView
+      event_prefix: event(myself, ""),
       form_id: config.form_id,
       attrs: %{"data-cinder" => "collection", "data-state" => to_string(status)},
       # The default toolbar renders inside this form, so it works with any test
@@ -32,17 +32,17 @@ defmodule Cinder.Next.View do
       # layouts can put them anywhere and they still arrive in one `phx-change`.
       form_attrs: %{
         "id" => config.form_id,
-        "phx-change" => "filter",
-        "phx-submit" => "filter",
-        "phx-target" => myself
+        "phx-change" => event(myself, "filter"),
+        "phx-submit" => event(myself, "filter"),
+        "phx-target" => target(myself)
       },
       search: search(config, state, myself),
       filters: Filters.new(filters),
       active_filter_count: Enum.count(filters, & &1.attrs["data-active"]),
       clear_all_attrs: %{
         "type" => "button",
-        "phx-click" => "clear_all",
-        "phx-target" => myself
+        "phx-click" => event(myself, "clear_all"),
+        "phx-target" => target(myself)
       },
       sorts: for(name <- config.sort_order, do: sort(config.fields[name], state, myself)),
       sort_select: sort_select(config, state),
@@ -81,9 +81,9 @@ defmodule Cinder.Next.View do
           "data-layout" => layout,
           "data-active" => layout == current,
           "aria-pressed" => to_string(layout == current),
-          "phx-click" => "set_layout",
+          "phx-click" => event(myself, "set_layout"),
           "phx-value-layout" => layout,
-          "phx-target" => myself
+          "phx-target" => target(myself)
         }
       }
     end
@@ -91,6 +91,16 @@ defmodule Cinder.Next.View do
 
   defp layout_label(:table), do: dgettext("cinder", "Table")
   defp layout_label(:grid), do: dgettext("cinder", "Grid")
+
+  # Events go to the LiveComponent (`myself`), or, for a collection kept in a
+  # LiveView's assigns (`{:live_view, name}`), to the LiveView, named
+  # `cinder:<name>:<event>` so its hook can tell which collection they're for, with
+  # no target (`nil` attributes aren't rendered)
+  defp event({:live_view, name}, event), do: "cinder:#{name}:" <> event
+  defp event(_myself, event), do: event
+
+  defp target({:live_view, _name}), do: nil
+  defp target(myself), do: myself
 
   # Column counts go in as CSS variables, which the base CSS reads (with media
   # queries for breakpoints), so no Tailwind classes need generating
@@ -121,9 +131,9 @@ defmodule Cinder.Next.View do
       attrs: %{
         "type" => "button",
         "data-active" => direction != nil,
-        "phx-click" => "sort",
+        "phx-click" => event(myself, "sort"),
         "phx-value-field" => field.name,
-        "phx-target" => myself
+        "phx-target" => target(myself)
       },
       indicator_attrs: %{
         "data-direction" => direction,
@@ -190,9 +200,9 @@ defmodule Cinder.Next.View do
         "type" => "button",
         "aria-label" => dgettext("cinder", "Clear search"),
         "hidden" => state.search == "",
-        "phx-click" => "clear_filter",
+        "phx-click" => event(myself, "clear_filter"),
         "phx-value-field" => "search",
-        "phx-target" => myself
+        "phx-target" => target(myself)
       }
     }
   end
@@ -278,9 +288,9 @@ defmodule Cinder.Next.View do
           "type" => "button",
           "aria-label" => dgettext("cinder", "Clear filter"),
           "hidden" => not active?,
-          "phx-click" => "clear_filter",
+          "phx-click" => event(myself, "clear_filter"),
           "phx-value-field" => name,
-          "phx-target" => myself
+          "phx-target" => target(myself)
         }
       }
     end
@@ -575,9 +585,9 @@ defmodule Cinder.Next.View do
       },
       sort_attrs: %{
         "type" => "button",
-        "phx-click" => "sort",
+        "phx-click" => event(myself, "sort"),
         "phx-value-field" => column.field,
-        "phx-target" => myself
+        "phx-target" => target(myself)
       },
       indicator_attrs: %{
         "data-direction" => direction,
@@ -656,9 +666,9 @@ defmodule Cinder.Next.View do
               "checked" => selected?,
               "disabled" => not selectable?(selectable, record),
               "aria-label" => dgettext("cinder", "Select"),
-              "phx-click" => "toggle_select",
+              "phx-click" => event(myself, "toggle_select"),
               "phx-value-id" => id,
-              "phx-target" => myself
+              "phx-target" => target(myself)
             }
       }
     end
@@ -701,14 +711,14 @@ defmodule Cinder.Next.View do
         "checked" => page_state == :all,
         "disabled" => page_ids == [],
         "aria-label" => dgettext("cinder", "Select page"),
-        "phx-click" => "toggle_select_page",
-        "phx-target" => myself
+        "phx-click" => event(myself, "toggle_select_page"),
+        "phx-target" => target(myself)
       },
       clear_attrs: %{
         "type" => "button",
         "hidden" => count == 0,
-        "phx-click" => "clear_selection",
-        "phx-target" => myself
+        "phx-click" => event(myself, "clear_selection"),
+        "phx-target" => target(myself)
       }
     }
   end
@@ -721,9 +731,9 @@ defmodule Cinder.Next.View do
         "type" => "button",
         "data-action" => action.name,
         "disabled" => MapSet.size(state.selected) == 0,
-        "phx-click" => "bulk_action",
+        "phx-click" => event(myself, "bulk_action"),
         "phx-value-name" => action.name,
-        "phx-target" => myself
+        "phx-target" => target(myself)
       }
     }
   end
@@ -740,13 +750,13 @@ defmodule Cinder.Next.View do
       attrs: %{"role" => "alertdialog"},
       confirm_attrs: %{
         "type" => "button",
-        "phx-click" => "confirm_action",
-        "phx-target" => myself
+        "phx-click" => event(myself, "confirm_action"),
+        "phx-target" => target(myself)
       },
       cancel_attrs: %{
         "type" => "button",
-        "phx-click" => "cancel_action",
-        "phx-target" => myself
+        "phx-click" => event(myself, "cancel_action"),
+        "phx-target" => target(myself)
       }
     }
   end
@@ -820,9 +830,9 @@ defmodule Cinder.Next.View do
         "data-kind" => kind,
         "aria-label" => page_aria_label(kind, nil),
         "disabled" => disabled?,
-        "phx-click" => "go_to_cursor",
+        "phx-click" => event(myself, "go_to_cursor"),
         "phx-value-#{direction}" => cursor,
-        "phx-target" => myself
+        "phx-target" => target(myself)
       }
     }
   end
@@ -858,9 +868,9 @@ defmodule Cinder.Next.View do
         "aria-current" => current? && "page",
         "aria-label" => page_aria_label(kind, number),
         "disabled" => disabled?,
-        "phx-click" => "go_to_page",
+        "phx-click" => event(myself, "go_to_page"),
         "phx-value-page" => number,
-        "phx-target" => myself
+        "phx-target" => target(myself)
       }
     }
   end
