@@ -46,22 +46,13 @@ defmodule Cinder.Next.LiveView do
   Declares a collection and assigns its view-model as `name`. `query` is a resource
   or an `Ash.Query`.
 
-  The options are the collection's attrs, with the slots as keyword lists:
+  The options are the collection's attrs, with the slots as keyword lists, checked
+  against the same schemas (`Cinder.Next.Schema`). Generated from them:
 
-    * `filters:` `[field: type]`, or `[field: [type: ..., options: ..., label: ...]]`
-    * `sorts:` `[field]` or `[field: [label: ..., cycle: ...]]`
-    * `bulk_actions:` `[name: action]` or `[name: [action: ..., confirm: ...]]`
-    * `search:` the fields to search
-    * `group:` a field, or `[field: ..., sort: :desc]`, to group each page's rows by
-    * `load:` passed on as `query_opts: [load: ...]`
-    * `url:` `true` to keep the collection's state in the URL (one per LiveView,
-      for the spike)
-
-  plus `layout`, `layouts`, `selectable`, `page_size`, `pagination_mode`,
-  `grid_columns`, `action`, `scope`, `actor` and `tenant`, as on
-  `Cinder.Next.collection/1`.
+  #{Cinder.Next.Schema.live_view_docs()}
   """
   def assign_collection(socket, name, query, opts \\ []) do
+    opts = Cinder.Next.Schema.validate_live_view!(opts)
     {url?, opts} = Keyword.pop(opts, :url, false)
     config = Config.build(to_assigns(name, query, opts))
 
@@ -87,7 +78,7 @@ defmodule Cinder.Next.LiveView do
       query_key => query,
       :id => to_string(name),
       :query_opts => query_opts,
-      :search => search(opts[:search]),
+      :search => opts[:search],
       :group => group(opts[:group]),
       :filter => Enum.map(opts[:filters] || [], &slot(:filter, :field, &1, :type)),
       :sort => Enum.map(opts[:sorts] || [], &slot(:sort, :field, &1, nil)),
@@ -103,9 +94,6 @@ defmodule Cinder.Next.LiveView do
     {field, opts} = Keyword.pop!(opts, :field)
     [Map.merge(%{__slot__: :group, inner_block: nil, field: to_string(field)}, Map.new(opts))]
   end
-
-  defp search(nil), do: nil
-  defp search(fields) when is_list(fields), do: [fields: Enum.map(fields, &to_string/1)]
 
   # `title`, `{:genre, :select}` or `{:price, [type: :number_range, label: ...]}`
   defp slot(slot, key, entry, shorthand) do

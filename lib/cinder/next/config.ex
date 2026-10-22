@@ -15,7 +15,6 @@ defmodule Cinder.Next.Config do
 
   alias Cinder.FilterManager
   alias Cinder.Filter.Helpers
-  alias Cinder.Filters.Registry
 
   defmodule Field do
     @moduledoc false
@@ -95,6 +94,8 @@ defmodule Cinder.Next.Config do
 
   @doc "Builds the config from `Cinder.Next.collection/1`'s assigns."
   def build(assigns) do
+    assigns = Cinder.Next.Schema.validate!(assigns)
+
     query =
       assigns[:query] || assigns[:resource] ||
         raise ArgumentError, "a :resource or :query is required"
@@ -123,7 +124,7 @@ defmodule Cinder.Next.Config do
     sort_order = ordered_fields(sort_decls)
     # Layouts are inferred from the slots that render them, unless they're listed
     # (as they must be when the markup lives elsewhere, like a LiveView's template)
-    explicit = explicit_layouts(assigns[:layouts])
+    explicit = assigns[:layouts] || []
     item? = (assigns[:item] || []) != [] or :grid in explicit
     declared = assigns[:layout] || List.first(explicit)
     {layout, grid_columns} = layout(declared, assigns[:grid_columns], item?)
@@ -178,7 +179,7 @@ defmodule Cinder.Next.Config do
       scope: scope(assigns),
       query_opts: assigns[:query_opts] || [],
       page_size: assigns[:page_size] || 25,
-      pagination: pagination_mode(assigns[:pagination_mode]),
+      pagination: assigns[:pagination_mode] || :offset,
       pagination_slot: assigns[:pagination] || []
     }
 
@@ -257,7 +258,7 @@ defmodule Cinder.Next.Config do
     inferred =
       FilterManager.infer_filter_config(name, resource, %{
         filterable: true,
-        filter_type: filter_type(slot[:type], name),
+        filter_type: slot[:type],
         filter_options: slot_options(slot)
       })
 
@@ -271,7 +272,7 @@ defmodule Cinder.Next.Config do
 
   defp slot_options(slot) do
     for attr <- @filter_option_attrs, Map.has_key?(slot, attr) do
-      {attr, if(attr in [:operator, :match_mode], do: to_atom(slot[attr]), else: slot[attr])}
+      {attr, if(attr == :operator, do: to_atom(slot[attr]), else: slot[attr])}
     end
   end
 
@@ -287,7 +288,7 @@ defmodule Cinder.Next.Config do
       {type, options} = argument_input(argument)
 
       filter = %Filter{
-        type: filter_type(slot[:type], slot.name) || type,
+        type: slot[:type] || type,
         options: Keyword.merge(options, slot_options(slot)),
         help: slot[:help],
         source: :argument,
@@ -324,19 +325,6 @@ defmodule Cinder.Next.Config do
     Ash.Resource.Info.action(resource, name)
   end
 
-  # The string form of a type (`type="select"`) is matched against the known types,
-  # rather than made into a new atom
-  defp filter_type(type, name) when is_binary(type) do
-    Enum.find(Registry.filter_types(), &(Atom.to_string(&1) == type)) ||
-      raise ArgumentError,
-            "unknown filter type #{inspect(type)} for the field #{inspect(name)}. " <>
-              "Known types: #{Enum.map_join(Registry.filter_types(), ", ", &inspect/1)}"
-  end
-
-  defp filter_type(type, _name), do: type
-
-  @breakpoints [:xs, :sm, :md, :lg, :xl, :"2xl"]
-
   defp bulk_actions(slots) do
     actions =
       for slot <- slots do
@@ -361,67 +349,25 @@ defmodule Cinder.Next.Config do
   # One group for now (the shape stays open to nesting later)
   defp group([]), do: nil
 
-  defp group([slot | _]) do
-    direction =
-      case slot[:sort] do
-        sort when sort in [nil, :asc, "asc"] -> :asc
-        sort when sort in [:desc, "desc"] -> :desc
-      end
-
-    %{field: slot.field, direction: direction, slot: slot}
-  end
-
-  defp explicit_layouts(nil), do: []
-
-  defp explicit_layouts(layouts) do
-    for layout <- layouts do
-      case to_string(layout) do
-        "table" ->
-          :table
-
-        "grid" ->
-          :grid
-
-        other ->
-          raise ArgumentError,
-                "unknown layout #{inspect(other)} in layouts; they're :table and :grid"
-      end
-    end
-  end
-
-  defp pagination_mode(mode) when mode in [nil, :offset, "offset"], do: :offset
-  defp pagination_mode(mode) when mode in [:keyset, "keyset"], do: :keyset
-
-  defp pagination_mode(mode) do
-    raise ArgumentError,
-          "unknown pagination_mode #{inspect(mode)}; it's :offset or :keyset (or their strings)"
-  end
+  defp group([slot | _]), do: %{field: slot.field, direction: slot[:sort] || :asc, slot: slot}
 
   # `:list` is a one-column grid, the same way `actor`/`tenant` become a scope:
-  # nothing past here sees it. A list with `grid_columns` contradicts itself.
-  defp layout(layout, nil, _item?) when layout in [nil, :table, "table"], do: {:table, nil}
-  defp layout(layout, nil, _item?) when layout in [:list, "list"], do: {:grid, 1}
-
-  defp layout(layout, columns, _item?) when layout in [:grid, "grid"],
-    do: {:grid, grid_columns(columns)}
+  # nothing past here sees it. Layouts and `grid_columns` are already checked
+  # (`Cinder.Next.Schema`); these are the rules between them.
+  defp layout(layout, nil, _item?) when layout in [nil, :table], do: {:table, nil}
+  defp layout(:list, nil, _item?), do: {:grid, 1}
+  defp layout(:grid, columns, _item?), do: {:grid, columns}
 
   # A table with an `<:item>` can switch to a grid, which takes the columns
-  defp layout(layout, columns, true) when layout in [nil, :table, "table"],
-    do: {:table, grid_columns(columns)}
+  defp layout(layout, columns, true) when layout in [nil, :table], do: {:table, columns}
 
-  defp layout(layout, _columns, _item?) when layout in [:list, "list"] do
+  defp layout(:list, _columns, _item?) do
     raise ArgumentError, "a list is one column, so it can't take grid_columns. Use layout={:grid}"
   end
 
-  defp layout(layout, _columns, _item?) when layout in [nil, :table, "table"] do
+  defp layout(_table, _columns, _item?) do
     raise ArgumentError,
           "grid_columns only applies to grids: use layout={:grid}, or declare an <:item> to switch to one"
-  end
-
-  defp layout(layout, _columns, _item?) do
-    raise ArgumentError,
-          "unknown layout #{inspect(layout)}. Known layouts: :table, :grid, :list " <>
-            "(for your own page markup, use a <:page> slot)"
   end
 
   # A table needs columns and a grid an item; the declared layout is always one
@@ -429,26 +375,6 @@ defmodule Cinder.Next.Config do
     for candidate <- [:table, :grid],
         candidate == layout or (candidate == :table and cols?) or (candidate == :grid and item?),
         do: candidate
-  end
-
-  defp grid_columns(nil), do: nil
-  defp grid_columns(count) when is_integer(count) and count > 0, do: count
-
-  defp grid_columns(breakpoints) when is_list(breakpoints) do
-    for {breakpoint, count} <- breakpoints do
-      unless breakpoint in @breakpoints and is_integer(count) and count > 0 do
-        raise ArgumentError,
-              "grid_columns breakpoints are #{inspect(@breakpoints)} with positive counts, " <>
-                "got #{inspect({breakpoint, count})}"
-      end
-
-      {breakpoint, count}
-    end
-  end
-
-  defp grid_columns(other) do
-    raise ArgumentError,
-          "grid_columns takes a positive number or breakpoints, got #{inspect(other)}"
   end
 
   defp to_atom(value) when is_binary(value), do: String.to_existing_atom(value)

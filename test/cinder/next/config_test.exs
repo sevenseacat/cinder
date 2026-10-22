@@ -192,7 +192,11 @@ defmodule Cinder.Next.ConfigTest do
     end
 
     test "an unknown layout is an error" do
-      assert_raise ArgumentError, ~r/unknown layout "cards"/, fn -> build(layout: "cards") end
+      assert_raise ArgumentError,
+                   ~r/:layout option: expected one of \[:table, :grid, :list\].*"cards"/,
+                   fn ->
+                     build(layout: "cards")
+                   end
     end
 
     test "a list is a one-column grid, and nothing past the config sees :list" do
@@ -214,9 +218,11 @@ defmodule Cinder.Next.ConfigTest do
         build(grid_columns: 3)
       end
 
-      assert_raise ArgumentError, ~r/breakpoints are/, fn ->
-        build(layout: :grid, grid_columns: [huge: 4])
-      end
+      assert_raise ArgumentError,
+                   ~r/:grid_columns option: expected a positive count, or breakpoints/,
+                   fn ->
+                     build(layout: :grid, grid_columns: [huge: 4])
+                   end
     end
 
     test "the layouts to switch between come from what's declared" do
@@ -234,11 +240,67 @@ defmodule Cinder.Next.ConfigTest do
     end
 
     test "your own page markup is a <:page> slot, not a layout" do
-      assert_raise ArgumentError, ~r/unknown layout "custom".*use a <:page> slot/, fn ->
+      assert_raise ArgumentError, ~r/no custom layout.*use a <:page> slot/, fn ->
         build(layout: "custom")
       end
 
       assert build(page: [%{__slot__: :page}]).page_slot != []
+    end
+  end
+
+  describe "validation" do
+    # A socket isn't needed: the options are checked before it's touched
+    defp assign_collection(opts),
+      do:
+        Cinder.Next.LiveView.assign_collection(
+          %Phoenix.LiveView.Socket{},
+          :albums,
+          Music.Album,
+          opts
+        )
+
+    test "an unknown option is an error, rather than ignored" do
+      assert_raise ArgumentError, ~r/assign_collection: unknown options \[:sortz\]/, fn ->
+        assign_collection(sortz: [:title])
+      end
+    end
+
+    test "a value of the wrong type names the declaration it's in" do
+      assert_raise ArgumentError, ~r/<:col> for "title": invalid value for :sort option/, fn ->
+        build(col: [col("title", sort: "yes")])
+      end
+
+      assert_raise ArgumentError,
+                   ~r/<Cinder.Next.collection>: invalid value for :page_size/,
+                   fn ->
+                     build(page_size: 0)
+                   end
+    end
+
+    test "string forms come out as atoms" do
+      config =
+        build(
+          pagination_mode: "keyset",
+          filter: [filter("genre", type: "multi_select", match_mode: "all")],
+          group: [%{__slot__: :group, field: "genre", sort: "desc", inner_block: nil}]
+        )
+
+      assert config.pagination == :keyset
+      assert config.fields["genre"].filter.options[:match_mode] == :all
+      assert config.group.direction == :desc
+    end
+
+    test "slots and keyword lists give the same error for the same mistake" do
+      message =
+        ~r/<:filter> for "genre": invalid value for :type option: unknown filter type "selectt"/
+
+      assert_raise ArgumentError, message, fn ->
+        build(filter: [filter("genre", type: "selectt")])
+      end
+
+      assert_raise ArgumentError, message, fn ->
+        assign_collection(filters: [genre: "selectt"])
+      end
     end
   end
 
