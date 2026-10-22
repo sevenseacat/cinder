@@ -13,7 +13,8 @@
  */
 @layer cinder {
   /* Keep the current rows visible while loading, just dimmed */
-  .cinder[data-state="loading"] :is(.cinder-table, .cinder-grid) {
+  /* On the root's attrs, so it works on a LiveView's own root too */
+  [data-cinder][data-state="loading"] :is(.cinder-table, .cinder-grid) {
     opacity: 0.55;
     transition: opacity 0.15s;
   }

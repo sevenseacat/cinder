@@ -187,8 +187,8 @@ defmodule Cinder.Next.ConfigTest do
 
   describe "layout" do
     test "defaults to a table, and takes the string form" do
-      assert build([]).layout == :table
-      assert build(layout: "grid").layout == :grid
+      assert build([]).default_layout == :table
+      assert build(layout: "grid").default_layout == :grid
     end
 
     test "an unknown layout is an error" do
@@ -196,8 +196,8 @@ defmodule Cinder.Next.ConfigTest do
     end
 
     test "a list is a one-column grid, and nothing past the config sees :list" do
-      assert %{layout: :grid, grid_columns: 1} = build(layout: :list)
-      assert %{layout: :grid, grid_columns: 1} = build(layout: "list")
+      assert %{default_layout: :grid, grid_columns: 1} = build(layout: :list)
+      assert %{default_layout: :grid, grid_columns: 1} = build(layout: "list")
     end
 
     test "a list with grid_columns contradicts itself" do

@@ -26,6 +26,7 @@ defmodule Cinder.Next.View do
       # Prepended to event names when the collection lives in a LiveView
       event_prefix: event(myself, ""),
       form_id: config.form_id,
+      # `data-state` drives the structural CSS's loading dim, wherever these attrs go
       attrs: %{"data-cinder" => "collection", "data-state" => to_string(status)},
       # The default toolbar renders inside this form, so it works with any test
       # tooling. Filter inputs also name it in their `form` attribute, so custom
@@ -38,7 +39,7 @@ defmodule Cinder.Next.View do
       },
       search: search(config, state, myself),
       filters: Filters.new(filters),
-      active_filter_count: Enum.count(filters, & &1.attrs["data-active"]),
+      active_filter_count: Enum.count(filters, & &1.active?),
       clear_all_attrs: %{
         "type" => "button",
         "phx-click" => event(myself, "clear_all"),
@@ -609,15 +610,14 @@ defmodule Cinder.Next.View do
   defp groups(%{group: nil}, _rows), do: nil
 
   defp groups(%{group: group, id: id}, rows) do
+    value = &field_value(&1.record, group.field)
+    by_value = Enum.group_by(rows, value)
+
     rows
-    |> Enum.group_by(&field_value(&1.record, group.field))
-    |> then(fn by_value ->
-      rows
-      |> Enum.map(&field_value(&1.record, group.field))
-      |> Enum.uniq()
-      |> Enum.map(&{&1, Map.fetch!(by_value, &1)})
-    end)
-    |> Enum.map(fn {value, items} ->
+    |> Enum.map(value)
+    |> Enum.uniq()
+    |> Enum.map(fn value ->
+      items = Map.fetch!(by_value, value)
       group_id = "#{id}-group-#{:erlang.phash2(value)}"
       items_id = group_id <> "-items"
       label_id = group_id <> "-label"

@@ -54,7 +54,6 @@ defmodule Cinder.Next.Config do
     :scope,
     filter_order: [],
     sort_order: [],
-    layout: :table,
     # The layouts it can switch between (`:table` with columns, `:grid` with an item)
     layouts: [],
     default_layout: :table,
@@ -62,7 +61,7 @@ defmodule Cinder.Next.Config do
     grid_columns: nil,
     columns: [],
     item_slot: [],
-    # An inner block replaces the whole layout; `:toolbar` replaces only that region
+    # `<:page>` replaces the whole default page; `:toolbar` replaces only that region
     page_slot: [],
     # `nil`, or `%{field, direction, slot}`: rows grouped by a field on each page
     group: nil,
@@ -163,7 +162,6 @@ defmodule Cinder.Next.Config do
       columns:
         for(col <- cols, do: %Column{field: col.field, label: fields[col.field].label, slot: col}),
       search: search(assigns[:search], search_fields),
-      layout: layout,
       layouts: layouts,
       # Also what a `<:page>` starts on: it renders `c.layout` itself
       default_layout: layout,

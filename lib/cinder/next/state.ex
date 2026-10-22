@@ -1,7 +1,9 @@
 defmodule Cinder.Next.State do
   @moduledoc """
-  The query state of a collection: filters, search, sort and page. Pure data, so
-  every transition is testable without a socket.
+  The state of a collection: its query (filters, read action arguments, search,
+  sort, page or cursor, page size), and what isn't query (the layout, the
+  selection and a pending bulk action, raw form input, filter errors). Pure data,
+  so every transition is testable without a socket.
 
   Any transition that changes which records match (filters, search, sort, page
   size) also goes back to the first page, so callers can't forget to.
@@ -27,7 +29,12 @@ defmodule Cinder.Next.State do
           default_page_size: pos_integer(),
           raw: %{String.t() => term()},
           arguments: %{String.t() => String.t()},
-          errors: %{String.t() => [String.t()]}
+          errors: %{String.t() => [String.t()]},
+          layout: atom() | nil,
+          default_layout: atom() | nil,
+          layouts: [atom()],
+          selected: MapSet.t(String.t()),
+          pending_action: String.t() | nil
         }
 
   defstruct filters: %{},

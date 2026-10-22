@@ -229,13 +229,10 @@ defmodule Cinder.Next.Collection do
     old = collection.state
     new = transition.(old)
 
-    filter_order = collection.config.filter_order
-    params = State.to_url_params(new, filter_order)
-
     cond do
       # Anything the URL holds (the query, the layout) goes through it
-      collection.url_synced? and params != State.to_url_params(old, filter_order) ->
-        {%{collection | state: %{old | raw: new.raw}}, [{:url, params}]}
+      url_params = collection.url_synced? && changed_url_params(collection, old, new) ->
+        {%{collection | state: %{old | raw: new.raw}}, [{:url, url_params}]}
 
       State.query_changed?(old, new) ->
         {%{collection | state: new}, [:load]}
@@ -243,6 +240,12 @@ defmodule Cinder.Next.Collection do
       true ->
         {%{collection | state: new}, []}
     end
+  end
+
+  # The new state's URL params, if they differ from the old state's
+  defp changed_url_params(%{config: config}, old, new) do
+    params = State.to_url_params(new, config.filter_order)
+    if params != State.to_url_params(old, config.filter_order), do: params
   end
 
   # The form's params, as the client sent them: kept as raw input, stored and
@@ -292,7 +295,7 @@ defmodule Cinder.Next.Collection do
 
     result =
       Cinder.BulkActionExecutor.execute(action.action,
-        resource: config.resource || config.query.resource,
+        resource: config.resource,
         ids: ids,
         scope: config.scope,
         action_opts: action.action_opts

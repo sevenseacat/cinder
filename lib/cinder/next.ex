@@ -14,8 +14,11 @@ defmodule Cinder.Next do
   never passed to the LiveComponent as top-level assigns, which crashes after a
   `push_patch`.
 
-  The other components here (`search/1`, `filter/1`, `table/1`,
-  `pagination/1`) are the default renderings of each region, from its view-model.
+  The other components here are the default renderings, each from its part of the
+  view-model: whole regions (`toolbar/1`, `results/1` with `table/1` or `grid/1`,
+  `bulk_bar/1`, `pagination/1`) and single parts (`search/1`, `filter/1`,
+  `sort_select/1`, `layout_switch/1`, `group_header/1`). `sort_command/2` is for
+  components that take a JS command per column.
   """
   use Phoenix.Component
   use Cinder.Messages
@@ -262,7 +265,6 @@ defmodule Cinder.Next do
     """
   end
 
-  # A group of checkboxes is labelled by a legend, not a label pointing at one input
   # A dropdown: a button, and a popover panel of checkboxes (see `View.dropdown/3`)
   def filter(%{filter: %{type: :multi_select}} = assigns) do
     ~H"""
@@ -302,6 +304,7 @@ defmodule Cinder.Next do
     """
   end
 
+  # A group of checkboxes is labelled by a legend, not a label pointing at one input
   def filter(%{filter: %{type: :multi_checkboxes}} = assigns) do
     ~H"""
     <fieldset {merge(@filter.attrs, "filter", @class, @rest)}>
@@ -428,7 +431,7 @@ defmodule Cinder.Next do
       <%= for group <- @collection.groups || [] do %>
         <tbody {styled(group.attrs, "group")}>
           <tr class="cinder-group-header">
-            <th colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)} scope="colgroup">
+            <th colspan={column_count(@collection)} scope="colgroup">
               <.group_header group={group} />
             </th>
           </tr>
@@ -442,10 +445,10 @@ defmodule Cinder.Next do
           <.table_row :for={row <- @collection.rows} row={row} collection={@collection} />
         <% end %>
         <tr :if={@collection.rows == [] and @collection.status == :idle} class="cinder-empty">
-          <td colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)}>{dgettext("cinder", "No results found")}</td>
+          <td colspan={column_count(@collection)}>{dgettext("cinder", "No results found")}</td>
         </tr>
         <tr :if={@collection.status == :error} class="cinder-error">
-          <td colspan={length(@collection.columns) + if(@collection.selection, do: 1, else: 0)}>
+          <td colspan={column_count(@collection)}>
             {dgettext("cinder", "An error occurred while loading data")}
           </td>
         </tr>
@@ -480,6 +483,10 @@ defmodule Cinder.Next do
     </div>
     """
   end
+
+  # Columns plus the selection column, for cells that span the whole table
+  defp column_count(collection),
+    do: length(collection.columns) + if(collection.selection, do: 1, else: 0)
 
   attr :row, :map, required: true
   attr :collection, :map, required: true
