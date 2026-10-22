@@ -258,6 +258,8 @@ defmodule Cinder.Next.View do
         errors: errors,
         render: filter.render,
         options: options(filter.type, ctx, value),
+        # A multi-select's button and popover panel (see `dropdown/3`)
+        dropdown: dropdown(filter.type, ctx, value),
         attrs: %{
           "data-field" => name,
           "data-filter-type" => filter.type,
@@ -283,6 +285,50 @@ defmodule Cinder.Next.View do
       }
     end
   end
+
+  # A multi-select is a button that opens a panel of checkboxes. The panel is a
+  # `popover`: the browser puts it in the top layer (never clipped by an
+  # `overflow` container or covered by later content) and closes it on Escape or
+  # a click outside, with no JS. Where anchor positioning is supported, the
+  # structural CSS places it under its button by these anchor names; elsewhere a
+  # small hook does.
+  defp dropdown(:multi_select, ctx, values) do
+    panel_id = ctx.input_id <> "-panel"
+    anchor = "--" <> ctx.input_id
+
+    labels =
+      for {label, value} <- Keyword.get(ctx.filter.options, :options, []),
+          to_string(value) in values,
+          do: label
+
+    summary =
+      case labels do
+        [] -> dgettext("cinder", "Select options...")
+        [_ | _] when length(labels) <= 2 -> Enum.join(labels, ", ")
+        _ -> dgettext("cinder", "%{count} selected", count: length(labels))
+      end
+
+    %{
+      summary: summary,
+      trigger_attrs: %{
+        "type" => "button",
+        "id" => ctx.input_id,
+        "popovertarget" => panel_id,
+        "aria-haspopup" => "true",
+        "style" => "anchor-name: #{anchor}"
+      },
+      panel_attrs: %{
+        "id" => panel_id,
+        "popover" => "auto",
+        "aria-labelledby" => ctx.input_id,
+        # Places the panel where the browser can't anchor it (see `Cinder.Next`)
+        "phx-hook" => "Cinder.Next.Dropdown",
+        "style" => "position-anchor: #{anchor}"
+      }
+    }
+  end
+
+  defp dropdown(_type, _ctx, _value), do: nil
 
   defp label_target(:number_range, input_id), do: input_id <> "-min"
   defp label_target(_type, input_id), do: input_id

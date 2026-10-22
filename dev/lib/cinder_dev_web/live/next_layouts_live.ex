@@ -70,6 +70,21 @@ defmodule CinderDevWeb.NextLayoutsLive do
         </:group>
       </Cinder.Next.collection>
 
+      <h2 class="mt-12 text-lg font-semibold">
+        A multi-select inside a short <code>overflow: hidden</code> box
+      </h2>
+      <%!-- An absolutely positioned dropdown would be clipped here; a popover isn't --%>
+      <div class="h-40 overflow-hidden rounded-box border border-base-300 p-4">
+        <Cinder.Next.collection id="clipped" resource={Music.Album} page_size={3}>
+          <:col :let={album} field="title">{album.title}</:col>
+          <:filter
+            field="tags"
+            type="multi_select"
+            options={Enum.map(CinderDev.Seeds.tags(), &{&1, &1})}
+          />
+        </Cinder.Next.collection>
+      </div>
+
       <h2 class="mt-12 text-lg font-semibold">List (a one-column grid)</h2>
       <Cinder.Next.collection id="list" resource={Music.Album} layout="list" page_size={4}>
         <:sort field="title" />

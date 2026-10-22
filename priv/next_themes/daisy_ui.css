@@ -28,12 +28,28 @@
       @apply label text-xs;
     }
 
-    :is(.cinder-search, .cinder-filter) input {
+    :is(.cinder-search, .cinder-filter) input:not([type="checkbox"], [type="radio"]) {
       @apply input input-sm;
     }
 
     :is(.cinder-filter, .cinder-sort-select) select {
       @apply select select-sm;
+    }
+
+    .cinder-dropdown-trigger {
+      @apply select select-sm;
+    }
+
+    .cinder-dropdown-panel:popover-open {
+      @apply menu w-52 rounded-box bg-base-100 p-2 shadow-sm;
+    }
+
+    .cinder-dropdown-panel .cinder-filter-option {
+      @apply label cursor-pointer gap-2 py-1;
+
+      & input {
+        @apply checkbox checkbox-sm;
+      }
     }
 
     :is(.cinder-filter-clear, .cinder-search-clear) {

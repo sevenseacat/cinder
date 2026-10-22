@@ -94,6 +94,24 @@
     display: none;
   }
 
+  /* A dropdown's panel opens under its button where anchor positioning is
+     supported (the anchor names are on the elements). `inset: auto` undoes the
+     popover default (`inset: 0`), which would stretch it to fill the space below.
+     Elsewhere, the `Cinder.Next.Dropdown` hook places it when it opens. */
+  @supports (position-area: block-end) {
+    .cinder-dropdown-panel {
+      inset: auto;
+      margin: 4px 0 0;
+      position-area: block-end span-inline-end;
+      position-try-fallbacks: flip-block;
+      /* Natural size at the start of the area: `normal` alignment can stretch to
+         fill it (Safari does) */
+      align-self: start;
+      justify-self: start;
+      height: fit-content;
+    }
+  }
+
   /* A card's checkbox sits in its corner, out of the content's way */
   .cinder-item:has(> .cinder-select) {
     position: relative;

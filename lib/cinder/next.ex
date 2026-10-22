@@ -263,8 +263,46 @@ defmodule Cinder.Next do
   end
 
   # A group of checkboxes is labelled by a legend, not a label pointing at one input
-  def filter(%{filter: %{type: type}} = assigns)
-      when type in [:multi_select, :multi_checkboxes] do
+  # A dropdown: a button, and a popover panel of checkboxes (see `View.dropdown/3`)
+  def filter(%{filter: %{type: :multi_select}} = assigns) do
+    ~H"""
+    <div {merge(@filter.attrs, "filter", @class, @rest)}>
+      <label for={@filter.dropdown.trigger_attrs["id"]}>{@filter.label}</label>
+      <button {styled(@filter.dropdown.trigger_attrs, "dropdown-trigger")}>
+        {@filter.dropdown.summary}
+      </button>
+      <%!-- Where the browser can't anchor the panel (no `position-area`), it would
+           open as a fixed, centred popover that doesn't scroll with the page. This
+           places it under its button in page coordinates instead, each time it
+           opens, through `this.js()` so re-renders keep it. A bundled colocated
+           hook: apps import `phoenix-colocated/cinder` (as decided on PR #209). --%>
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".Dropdown">
+        export default {
+          mounted() {
+            if (CSS.supports("position-area: block-end")) return
+            this.el.addEventListener("toggle", (event) => {
+              if (event.newState !== "open") return
+              const trigger = document.querySelector(`[popovertarget="${this.el.id}"]`)
+              const rect = trigger.getBoundingClientRect()
+              const style = `position: absolute; inset: auto; margin: 0; ` +
+                `top: ${rect.bottom + window.scrollY + 4}px; left: ${rect.left + window.scrollX}px`
+              this.js().setAttribute(this.el, "style", style)
+            })
+          }
+        }
+      </script>
+      <div {styled(@filter.dropdown.panel_attrs, "dropdown-panel")}>
+        <label :for={option <- @filter.options} class="cinder-filter-option">
+          <input {option.input_attrs} /> {option.label}
+        </label>
+      </div>
+      <button {styled(@filter.clear_attrs, "filter-clear")}>×</button>
+      <p :if={@filter.help} {styled(@filter.help_attrs, "filter-help")}>{@filter.help}</p>
+    </div>
+    """
+  end
+
+  def filter(%{filter: %{type: :multi_checkboxes}} = assigns) do
     ~H"""
     <fieldset {merge(@filter.attrs, "filter", @class, @rest)}>
       <legend>{@filter.label}</legend>

@@ -38,6 +38,11 @@ defmodule CinderDevWeb.NextLive do
         </:col>
         <:col field="genre" sort />
         <:filter field="genre" type="select" prompt="Any genre" help="Only one genre at a time" />
+        <:filter
+          field="tags"
+          type="multi_select"
+          options={Enum.map(CinderDev.Seeds.tags(), &{&1, &1})}
+        />
         <:col :let={album} field="price" sort>{Decimal.to_string(album.price)}</:col>
         <:col field="release_date" sort />
         <:col field="is_remastered" label="Remastered" />

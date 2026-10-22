@@ -160,6 +160,7 @@ msgid "Search..."
 msgstr "Pesquisar..."
 
 #: lib/cinder/filters/multi_select.ex
+#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Select options..."
 msgstr "Selecionar opções..."

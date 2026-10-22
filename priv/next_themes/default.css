@@ -83,7 +83,8 @@
       color: var(--cinder-muted);
     }
 
-    & :is(input, select) {
+    /* Text-like inputs and selects, not the checkboxes in a dropdown panel */
+    & :is(input:not([type="checkbox"], [type="radio"]), select) {
       height: var(--cinder-control-height);
       padding: 0 10px;
       border: 1px solid var(--cinder-border);
@@ -93,8 +94,56 @@
       font: inherit;
     }
 
-    &[data-active] :is(input, select) {
+    &[data-active] :is(input:not([type="checkbox"], [type="radio"]), select) {
       border-color: var(--cinder-accent);
+    }
+  }
+
+  /* A multi-select's button looks like the other inputs; its panel is a card */
+  .cinder-dropdown-trigger {
+    min-width: 160px;
+    height: var(--cinder-control-height);
+    padding: 0 10px;
+    border: 1px solid var(--cinder-border);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-bg);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .cinder-filter[data-active] .cinder-dropdown-trigger {
+    border-color: var(--cinder-accent);
+  }
+
+  .cinder-dropdown-panel {
+    display: none;
+    min-width: 200px;
+    padding: 6px;
+    border: 1px solid var(--cinder-border);
+    border-radius: var(--cinder-radius);
+    background: var(--cinder-bg);
+    color: var(--cinder-fg);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+
+    &:popover-open {
+      display: grid;
+      align-content: start;
+      gap: 2px;
+    }
+
+    & .cinder-filter-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: calc(var(--cinder-radius) - 2px);
+      cursor: pointer;
+
+      &:hover {
+        background: var(--cinder-hover);
+      }
     }
   }
 

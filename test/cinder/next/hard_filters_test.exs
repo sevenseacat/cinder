@@ -94,6 +94,46 @@ defmodule Cinder.Next.HardFiltersTest do
     end
   end
 
+  describe "multi-select" do
+    test "is a button opening a popover of checkboxes, summarising what's chosen", %{conn: conn} do
+      tags = Enum.map(@tags, &{&1, &1})
+
+      path =
+        Cinder.TestLive.Fixture.register(fn assigns ->
+          assigns = assign(assigns, :tags, tags)
+
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:col :let={album} field="title">{album.title}</:col>
+            <:filter field="tags" type="multi_select" options={@tags} />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      {:ok, view, _html} = live(conn, path)
+      html = render_async(view)
+
+      # The button opens the panel by id: the browser does the rest, no JS
+      [panel_id] =
+        Regex.run(~r/<button[^>]*popovertarget="([^"]+)"/, html, capture: :all_but_first)
+
+      assert html =~ ~r/<div(?=[^>]*id="#{panel_id}")(?=[^>]*popover="auto")[^>]*>/
+
+      # Where the browser can't anchor it, the hook places it (a bundled colocated hook)
+      assert html =~
+               ~r/<div(?=[^>]*id="#{panel_id}")(?=[^>]*phx-hook="Cinder.Next.Dropdown")[^>]*>/
+
+      assert html =~ "Select options..."
+
+      html = change(view, %{"tags" => ["live", "deluxe"]})
+      assert Enum.sort(titles(html)) == ["Alpha", "Charlie", "Echo"]
+      assert html =~ ~r/class="cinder-dropdown-trigger"[^>]*>\s*live, deluxe\s*</
+
+      html = change(view, %{"tags" => ["live", "debut", "deluxe"]})
+      assert html =~ "3 selected"
+    end
+  end
+
   describe "number range" do
     test "renders two inputs, and filters between them", %{conn: conn} do
       {view, _path} = mount(conn, false)

@@ -11,6 +11,9 @@ defmodule Cinder.MixProject do
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
+      # Writes the `phoenix-colocated/cinder` package apps import Cinder's
+      # colocated hooks from (when compiled as a dependency too)
+      compilers: [:phoenix_live_view] ++ Mix.compilers(),
       consolidate_protocols: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
