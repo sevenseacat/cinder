@@ -37,7 +37,8 @@ if Code.ensure_loaded?(Igniter) do
         %{
           "0.9.0" => [&flatten_theme_component_blocks/2],
           "0.10.0" => [&rename_boolean_theme_keys/2],
-          "0.14.0" => [&migrate_tailwind_sources/2]
+          "0.14.0" => [&migrate_tailwind_sources/2],
+          "0.18.0" => [&import_colocated_hooks/2]
         }
 
       Igniter.Upgrades.run(igniter, positional.from, positional.to, upgrades,
@@ -300,6 +301,59 @@ if Code.ensure_loaded?(Igniter) do
         @import "../../deps/cinder/priv/themes/<name>.css";
 
       Available built-in themes: #{themes}.
+      """)
+    end
+
+    # --- 0.18.0: Import Cinder's colocated hooks into app.js ---
+
+    @app_js_path "assets/js/app.js"
+    @hooks_import ~s(import {hooks as cinderHooks} from "phoenix-colocated/cinder")
+
+    @doc false
+    def import_colocated_hooks(igniter, _opts) do
+      igniter = Igniter.include_existing_file(igniter, @app_js_path)
+
+      with {:ok, source} <- Rewrite.source(igniter.rewrite, @app_js_path),
+           content = Rewrite.Source.get(source, :content),
+           {:registered, false} <- {:registered, String.contains?(content, "...cinderHooks")},
+           false <- String.contains?(content, "phoenix-colocated/cinder"),
+           [colocated_import] <- Regex.run(~r/^import .*["']phoenix-colocated\/.+$/m, content),
+           [_] <- Regex.scan(~r/hooks:\s*\{/, content) do
+        semicolon = if String.ends_with?(colocated_import, ";"), do: ";", else: ""
+
+        new_content =
+          content
+          |> String.replace(
+            colocated_import,
+            colocated_import <> "\n" <> @hooks_import <> semicolon,
+            global: false
+          )
+          |> then(&Regex.replace(~r/hooks:\s*\{/, &1, "\\0...cinderHooks, ", global: false))
+
+        source = Rewrite.Source.update(source, :content, new_content)
+        %{igniter | rewrite: Rewrite.update!(igniter.rewrite, source)}
+      else
+        {:registered, true} -> igniter
+        _ -> explain_colocated_hooks(igniter)
+      end
+    end
+
+    defp explain_colocated_hooks(igniter) do
+      Igniter.add_notice(igniter, """
+      Cinder ships LiveView hooks that your app.js needs to register.
+      Import them and add them to your LiveSocket hooks:
+
+      ```javascript
+      #{@hooks_import}
+
+      const liveSocket = new LiveSocket("/live", Socket, {
+        hooks: {...cinderHooks, ...colocatedHooks},
+        // ...
+      })
+      ```
+
+      Your bundler has to resolve `phoenix-colocated`, see
+      https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedJS.html#module-internals
       """)
     end
   end
