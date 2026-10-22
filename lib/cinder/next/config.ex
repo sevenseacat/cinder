@@ -61,8 +61,6 @@ defmodule Cinder.Next.Config do
     grid_columns: nil,
     columns: [],
     item_slot: [],
-    # `<:page>` replaces the whole default page; `:toolbar` replaces only that region
-    page_slot: [],
     # `nil`, or `%{field, direction, slot}`: rows grouped by a field on each page
     group: nil,
     # `false`, `true`, or a function of the record
@@ -173,11 +171,9 @@ defmodule Cinder.Next.Config do
         end,
       search: search(assigns[:search], search_fields),
       layouts: layouts,
-      # Also what a `<:page>` starts on: it renders `c.layout` itself
       default_layout: layout,
       grid_columns: grid_columns,
       item_slot: assigns[:item] || [],
-      page_slot: assigns[:page] || [],
       group: group(assigns[:group] || []),
       selectable: assigns[:selectable] || false,
       bulk_actions: bulk_actions(assigns[:bulk_action] || []),

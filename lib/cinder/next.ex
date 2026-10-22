@@ -138,19 +138,11 @@ defmodule Cinder.Next do
 
   slot :item, doc: "A grid layout's card for each record, via `:let`"
 
-  # Region slots replace one region of the default page. Like `:page`, they receive the whole collection view-model via `:let`.
+  # Region slots replace one region of the default page, receiving the whole
+  # collection view-model via `:let`. For a page arranged freely, keep the collection
+  # in the LiveView instead (`Cinder.Next.LiveView`).
   slot :toolbar, doc: "Replaces the region above the results (search, filters, sort)"
   slot :pagination, doc: "Replaces the pagination below the results"
-
-  slot :page,
-    doc: """
-    Replaces the whole default page (toolbar, results, pagination), receiving the
-    collection view-model via `:let`. Compose it from the components in this module
-    and your own markup, rendering the records as `c.layout` says (`:table`/`:grid`).
-    It places the filter form itself, `<form {c.form_attrs}>`, around its inputs;
-    inputs that can't go inside it (like a teleported modal's) join it with
-    `form={c.form_id}`.
-    """
 
   def collection(assigns) do
     assigns = assign(assigns, :config, Config.build(assigns))

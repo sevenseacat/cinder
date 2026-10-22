@@ -300,6 +300,7 @@ defmodule Cinder.Next.HardFiltersTest do
       assert hd(min_tracks_input(html)) =~ ~s(aria-invalid)
     end
 
+    @tag :capture_log
     test "a value goes to the action, and clears the error", %{view: view} do
       html = change(view, %{"min_tracks" => "12"})
 

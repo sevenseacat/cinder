@@ -70,13 +70,7 @@ defmodule Cinder.Next.Component do
   def render(assigns) do
     ~H"""
     <div id={@id} class="cinder" {@view.attrs}>
-      <%= if @config.page_slot != [] do %>
-        <%!-- A `<:page>` places `<form {c.form_attrs}>` itself, so component
-             libraries' inputs (which assume they're inside a form) work; inputs
-             that can't be nested in it, like a teleported modal's, use `form=` --%>
-        {render_slot(@config.page_slot, @view)}
-      <% else %>
-        <%!-- The default layout keeps the toolbar inside the form, so it works with any test tooling --%>
+      <%!-- The default layout keeps the toolbar inside the form, so it works with any test tooling --%>
         <form {@view.form_attrs}>
           <%= if @config.toolbar_slot != [] do %>
             {render_slot(@config.toolbar_slot, @view)}
@@ -92,7 +86,6 @@ defmodule Cinder.Next.Component do
         <% else %>
           <Cinder.Next.pagination collection={@view} />
         <% end %>
-      <% end %>
     </div>
     """
   end

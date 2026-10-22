@@ -88,6 +88,8 @@ defmodule Cinder.Next.LiveViewTest do
     assert titles(render_async(view)) == ["Charlie", "Delta"]
   end
 
+  # The first load, without the required argument, logs Ash's error
+  @tag :capture_log
   test "takes a read action's arguments as a keyword list, like `<:argument>`", %{conn: conn} do
     for {album, tracks} <-
           Enum.zip(Enum.sort_by(Ash.read!(Music.Album), & &1.title), [8, 10, 12, 14, 16]) do

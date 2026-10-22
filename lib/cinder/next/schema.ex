@@ -196,9 +196,11 @@ defmodule Cinder.Next.Schema do
     do: {:error, "expected one of #{inspect(values)} (or their strings), got: #{inspect(value)}"}
 
   @doc false
-  # A layout, pointing a would-be custom layout at `<:page>`
+  # A layout, pointing a would-be custom layout at keeping the collection in a LiveView
   def layout(layout) when layout in [:custom, "custom"],
-    do: {:error, "there's no custom layout: for your own page markup, use a <:page> slot"}
+    do:
+      {:error,
+       "there's no custom layout: for your own page markup, keep the collection in your LiveView (Cinder.Next.LiveView)"}
 
   def layout(layout), do: one_of(layout, @layouts)
 

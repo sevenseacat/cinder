@@ -234,17 +234,12 @@ defmodule Cinder.Next.ConfigTest do
       # Columns and an item: either, starting on the declared one, which takes grid_columns
       config = build(layout: :table, col: [col("title")], item: item, grid_columns: 3)
       assert %{layouts: [:table, :grid], default_layout: :table, grid_columns: 3} = config
-
-      # A <:page> starts on the declared layout like any other
-      assert build(layout: :grid, item: item, page: [%{__slot__: :page}]).default_layout == :grid
     end
 
-    test "your own page markup is a <:page> slot, not a layout" do
-      assert_raise ArgumentError, ~r/no custom layout.*use a <:page> slot/, fn ->
+    test "your own page markup is a LiveView-kept collection, not a layout" do
+      assert_raise ArgumentError, ~r/no custom layout.*Cinder.Next.LiveView/, fn ->
         build(layout: "custom")
       end
-
-      assert build(page: [%{__slot__: :page}]).page_slot != []
     end
   end
 
