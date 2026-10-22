@@ -137,7 +137,7 @@ defmodule Cinder.Themes.Retro do
   set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
   set :filter_multicheckboxes_checkbox_class,
-      "h-5 w-5 bg-gray-800 border-cyan-400 border-2 rounded checked:bg-fuchsia-500 checked:border-fuchsia-500 focus:ring-fuchsia-400 focus:ring-2 cursor-pointer"
+      "h-5 w-5 bg-gray-800 border-cyan-400 border-2 rounded checked:bg-fuchsia-500 checked:border-fuchsia-500 focus:ring-fuchsia-400 focus:ring-2 cursor-pointer mr-2"
 
   set :filter_multicheckboxes_label_class,
       "text-sm font-bold text-cyan-100 cursor-pointer uppercase tracking-wide"

@@ -136,7 +136,7 @@ defmodule Cinder.Themes.Futuristic do
   set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
   set :filter_multicheckboxes_checkbox_class,
-      "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer"
+      "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer mr-2"
 
   set :filter_multicheckboxes_label_class,
       "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
