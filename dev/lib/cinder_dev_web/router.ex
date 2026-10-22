@@ -29,6 +29,7 @@ defmodule CinderDevWeb.Router do
       live "/next/petal", NextPetalLive
       live "/next/live", NextLiveViewLive
       live "/next/power", NextPowerLive
+      live "/next/themes", NextThemesLive
     end
   end
 end

@@ -1,0 +1,213 @@
+/* Spike (7CC-158): the Elixir `modern` theme, ported to plain CSS for `Cinder.Next`
+ * (7CC-108: custom properties and plain rules, no `@apply`, so it doesn't depend
+ * on the app's Tailwind setup). Tailwind's colours are written as hex.
+ *
+ * Scoped to `[data-cinder-theme="modern"]` so the dev app can show it beside the
+ * default theme; a real theme would be imported on its own, unscoped.
+ */
+@layer cinder {
+  [data-cinder-theme="modern"] {
+    --cinder-fg: #111827;
+    --cinder-muted: #6b7280;
+    --cinder-bg: #fff;
+    --cinder-border: #d1d5db;
+    --cinder-hover: rgb(239 246 255 / 0.3);
+    --cinder-accent: #2563eb;
+    --cinder-active-bg: #eff6ff;
+    --cinder-danger: #dc2626;
+    --cinder-radius: 8px;
+    --cinder-gap: 24px;
+    --cinder-control-height: 44px;
+    --cinder-focus-ring: 0 0 0 2px #3b82f6;
+
+    color-scheme: light;
+
+    /* container_class: a white card */
+    & .cinder {
+      gap: 0;
+      overflow: clip;
+      border: 1px solid #f3f4f6;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    /* controls_class, filter_label_class, filter_*_input_class */
+    & .cinder-toolbar {
+      padding: 24px;
+      background: linear-gradient(to right, #f9fafb, #fff);
+    }
+
+    & :is(.cinder-search, .cinder-filter, .cinder-sort-select) {
+      gap: 8px;
+
+      & > label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+      }
+
+      & :is(input, select) {
+        padding: 12px 16px;
+        font-size: 14px;
+        transition: all 0.15s;
+
+        &:focus {
+          border-color: #3b82f6;
+          outline: none;
+          box-shadow: var(--cinder-focus-ring);
+        }
+      }
+    }
+
+    & :is(.cinder-filter-clear, .cinder-search-clear) {
+      color: #9ca3af;
+
+      &:hover {
+        color: #ef4444;
+      }
+    }
+
+    /* thead_class, th_class, td_class, row_class, tbody_class */
+    & .cinder-table thead {
+      background: linear-gradient(to right, #eff6ff, #eef2ff);
+    }
+
+    & .cinder-header-cell {
+      padding: 16px 24px;
+      border-bottom: 0;
+      color: #111827;
+      font-size: 14px;
+      letter-spacing: 0.025em;
+    }
+
+    & .cinder-cell {
+      padding: 16px 24px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #374151;
+      font-size: 14px;
+    }
+
+    & .cinder-row {
+      transition: background-color 0.15s;
+
+      &[data-selected] {
+        background: rgb(239 246 255 / 0.5);
+      }
+    }
+
+    /* sort_*_icon_class */
+    & .cinder-sort-indicator {
+      color: #6b7280;
+
+      &[data-direction] {
+        color: #2563eb;
+      }
+    }
+
+    /* empty_class */
+    & .cinder-empty {
+      padding: 48px 0;
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    /* grid_container_class, grid_item_class, selected_item_class */
+    & .cinder-grid {
+      gap: 16px;
+      padding: 0 24px 24px;
+      background: linear-gradient(to bottom right, #f9fafb, #fff);
+    }
+
+    & .cinder-item {
+      padding: 16px;
+      border-color: #e5e7eb;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+      &[data-selected] {
+        border-color: #e5e7eb;
+        background: #fff;
+        box-shadow: 0 0 0 2px #3b82f6;
+      }
+    }
+
+    /* pagination_*_class */
+    & .cinder-pagination {
+      justify-content: space-between;
+      padding: 24px;
+      gap: 4px;
+    }
+
+    & .cinder-summary {
+      color: #4b5563;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    & button.cinder-page {
+      height: auto;
+      padding: 4px 12px;
+      border-radius: 4px;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 500;
+
+      &:hover:not(:disabled) {
+        border-color: #9ca3af;
+        background: #f9fafb;
+      }
+
+      &[data-active] {
+        border-color: #2563eb;
+        background: #2563eb;
+        color: #fff;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    /* button_class, button_secondary_class, button_danger_class */
+    & button:is(.cinder-layout, .cinder-bulk-action, .cinder-clear-selection, .cinder-cancel) {
+      height: auto;
+      padding: 8px 16px;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.15s;
+
+      &:hover:not(:disabled) {
+        background: #f9fafb;
+      }
+    }
+
+    & button.cinder-confirm {
+      height: auto;
+      padding: 8px 16px;
+      border-color: #dc2626;
+      background: #dc2626;
+
+      &:hover {
+        background: #b91c1c;
+      }
+    }
+
+    /* bulk_actions_container_class */
+    & .cinder-bulk-bar {
+      justify-content: end;
+      padding: 16px 24px;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(to right, #f9fafb, #fff);
+    }
+
+    /* Groups have no key in the Elixir theme; a lighter version of the header */
+    & .cinder-group-header th {
+      padding: 12px 24px;
+      background: #f9fafb;
+      color: #111827;
+    }
+  }
+}

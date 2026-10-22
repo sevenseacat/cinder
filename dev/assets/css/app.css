@@ -23,6 +23,8 @@
 /* The shell-rewrite spike: its structural CSS, and the "default" theme */
 @import "../../../priv/cinder.next.css";
 @import "../../../priv/next_themes/default.css";
+@import "../../../priv/next_themes/modern.css";
+@import "../../../priv/next_themes/modern_converted.css";
 
 /* Petal Components, for the Next Petal page. Its classes are all `pc-` prefixed. */
 @import "../../deps/petal_components/assets/default.css";
