@@ -19,6 +19,9 @@
 * Global search no longer repeats the query's existing filters inside every search branch, and a searchable column with an invalid field no longer stops search from narrowing a filtered query. Thanks @Alt-iOS! ([#244](https://github.com/sevenseacat/cinder/pull/244))
 * Typing in an autocomplete filter's search box no longer reloads the collection on every keystroke. Thanks @Alt-iOS! ([#246](https://github.com/sevenseacat/cinder/pull/246))
 * Clearing a date or number filter now also clears a partially typed value, and the filter's × and "Clear all" show while one is typed.
+* Radio group and autocomplete filters on enum fields now list the enum's values when no `options` are given, like select filters already did.
+* Radio group filters with non-string option values (like enum atoms) now show the chosen option as selected, instead of losing it on the first click.
+* Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
 
 ## v0.17.0 (2026-08-08)
 

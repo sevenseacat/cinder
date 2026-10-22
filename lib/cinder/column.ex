@@ -48,22 +48,6 @@ defmodule Cinder.Column do
   ]
 
   @doc """
-  Parses and normalizes column definitions from slots and resource information.
-
-  ## Parameters
-  - `slots` - List of column slot definitions
-  - `resource` - Ash resource module for type inference
-
-  ## Returns
-  List of normalized Column structs
-  """
-  def parse_columns(slots, resource) when is_list(slots) do
-    Enum.map(slots, fn slot ->
-      parse_column(slot, resource)
-    end)
-  end
-
-  @doc """
   Parses a single column definition with automatic type inference.
   """
   def parse_column(slot, resource) do
@@ -188,40 +172,6 @@ defmodule Cinder.Column do
         default_column_config()
     catch
       _ -> default_column_config()
-    end
-  end
-
-  @doc """
-  Validates a column configuration.
-  """
-  def validate(%__MODULE__{} = column) do
-    errors = []
-
-    errors = if column.field in [nil, ""], do: ["Field cannot be empty" | errors], else: errors
-    errors = if column.label in [nil, ""], do: ["Label cannot be empty" | errors], else: errors
-
-    # Validate filter type
-    valid_filter_types = [
-      :text,
-      :select,
-      :multi_select,
-      :multi_checkboxes,
-      :boolean,
-      :checkbox,
-      :date_range,
-      :number_range
-    ]
-
-    errors =
-      if column.filter_type in valid_filter_types do
-        errors
-      else
-        ["Invalid filter type: #{column.filter_type}" | errors]
-      end
-
-    case errors do
-      [] -> {:ok, column}
-      _ -> {:error, Enum.reverse(errors)}
     end
   end
 

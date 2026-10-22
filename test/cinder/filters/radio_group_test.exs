@@ -145,18 +145,26 @@ defmodule Cinder.Filters.RadioGroupTest do
       assert html =~ ~s(name="filters[status]")
     end
 
-    test "marks the current value as checked" do
+    test "checks only the option matching the current value" do
       column = %{
         field: "status",
         filter_options: [options: [{"Active", "active"}, {"Archived", "archived"}]]
       }
 
-      theme = Cinder.Theme.default()
-      rendered = RadioGroup.render(column, "active", theme, %{})
-      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
+      assert checked_values(column, "archived") == ["archived"]
+    end
 
-      # The active radio should be checked
-      assert html =~ "checked"
+    test "checks the matching option when option values are atoms, as enum options are" do
+      column = %{field: "genre", filter_options: [options: [{"Rock", :rock}, {"Jazz", :jazz}]]}
+
+      # The current value comes back from the form as a string
+      assert checked_values(column, "jazz") == ["jazz"]
+    end
+
+    test "checks nothing without a current value" do
+      column = %{field: "genre", filter_options: [options: [{"Rock", :rock}, {"Jazz", :jazz}]]}
+
+      assert checked_values(column, nil) == []
     end
 
     test "renders with no options" do
@@ -179,5 +187,18 @@ defmodule Cinder.Filters.RadioGroupTest do
       # Should render without error
       assert html =~ "filter_radio_group_container_class"
     end
+  end
+
+  defp checked_values(column, current_value) do
+    html =
+      column
+      |> RadioGroup.render(current_value, Cinder.Theme.default(), %{})
+      |> Phoenix.HTML.Safe.to_iodata()
+      |> IO.iodata_to_binary()
+
+    for [input] <- Regex.scan(~r/<input[^>]*>/, html),
+        input =~ ~r/\schecked/,
+        [_, value] <- [Regex.run(~r/value="([^"]*)"/, input)],
+        do: value
   end
 end

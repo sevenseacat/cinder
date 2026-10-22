@@ -25,7 +25,7 @@ defmodule Cinder.Integration.ReloadAfterErrorTest do
   defp album_collection(assigns) do
     ~H"""
     <Cinder.collection
-      resource={Cinder.Integration.Album}
+      resource={Music.Album}
       action={Agent.get(assigns.action_agent, & &1)}
       url_state={@url_state}
     >
@@ -41,8 +41,8 @@ defmodule Cinder.Integration.ReloadAfterErrorTest do
     generate(album(title: "Retry Album", genre: :rock, artist_id: artist.id))
 
     on_exit(fn ->
-      Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
-      Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
+      Ash.bulk_destroy!(Music.Album, :destroy, %{})
+      Ash.bulk_destroy!(Music.Artist, :destroy, %{})
     end)
 
     {:ok, agent} = Agent.start_link(fn -> :missing_read_action end)

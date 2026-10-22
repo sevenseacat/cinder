@@ -97,6 +97,18 @@ For list or grid layouts:
 - Ash Framework 3.0+
 - Elixir 1.17+
 
+## Contributing
+
+`dev/` holds a Phoenix app for trying out Cinder's features by hand: each layout, every filter type, pagination, selection and bulk actions, and the custom slots, with a switcher for the built-in themes. It uses Cinder from this repo, so changes to `lib/` reload in the browser without a restart.
+
+```bash
+cd dev
+mix setup
+iex -S mix phx.server
+```
+
+Then visit [localhost:4000](http://localhost:4000). `mix check`, run from the repo root, also runs the dev app's tests.
+
 ## License
 
 MIT License - see LICENSE file for details.

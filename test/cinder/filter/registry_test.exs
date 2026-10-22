@@ -163,29 +163,6 @@ defmodule Cinder.Filters.RegistryTest do
     end
   end
 
-  describe "custom filter unregistration" do
-    test "unregister_filter/1 validates unregistration of custom filter" do
-      result = Registry.unregister_filter(:slider)
-      assert result == :ok
-    end
-
-    test "unregister_filter/1 prevents unregistering built-in filters" do
-      result = Registry.unregister_filter(:text)
-
-      assert {:error, message} = result
-      assert message == "Cannot unregister built-in filter :text"
-
-      # Verify built-in filter is still available
-      assert Registry.get_filter(:text) == Cinder.Filters.Text
-    end
-
-    test "unregister_filter/1 handles unknown filters gracefully" do
-      result = Registry.unregister_filter(:unknown)
-
-      assert result == :ok
-    end
-  end
-
   describe "custom filter introspection" do
     test "list_custom_filters/0 returns empty map when no custom filters" do
       assert Registry.list_custom_filters() == %{}

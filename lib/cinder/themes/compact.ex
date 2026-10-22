@@ -104,7 +104,7 @@ defmodule Cinder.Themes.Compact do
   set :filter_checkbox_container_class, "flex items-center h-[34px]"
 
   set :filter_checkbox_input_class,
-      "h-3 w-3 bg-white border-gray-300 checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer mr-1"
+      "h-3 w-3 bg-white border-gray-300 rounded checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer mr-1"
 
   set :filter_checkbox_label_class, "text-xs font-medium text-gray-700 cursor-pointer"
   # Multi-select filter (tag-based interface)
@@ -207,7 +207,9 @@ defmodule Cinder.Themes.Compact do
       "cursor-pointer hover:shadow transition-shadow duration-100"
 
   # Selection
-  set :selection_checkbox_class, "w-3 h-3 text-blue-600 border-gray-300 focus:ring-blue-500"
+  set :selection_checkbox_class,
+      "h-3 w-3 bg-white border-gray-300 rounded checked:bg-blue-600 checked:border-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer"
+
   set :selected_row_class, "bg-blue-50"
   set :grid_selection_overlay_class, "mb-1"
   set :selected_item_class, "ring-1 ring-blue-500"

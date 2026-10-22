@@ -15,7 +15,7 @@ defmodule Cinder.Integration.RemoveItemsTest do
     ~H"""
     <Cinder.collection
       id="albums"
-      resource={Cinder.Integration.Album}
+      resource={Music.Album}
       url_state={@url_state}
       page_size={2}
       selectable
@@ -29,7 +29,7 @@ defmodule Cinder.Integration.RemoveItemsTest do
     ~H"""
     <Cinder.collection
       id="albums"
-      resource={Cinder.Integration.Album}
+      resource={Music.Album}
       url_state={@url_state}
       page_size={2}
       pagination={:keyset}
@@ -49,8 +49,8 @@ defmodule Cinder.Integration.RemoveItemsTest do
       end
 
     on_exit(fn ->
-      Ash.bulk_destroy!(Cinder.Integration.Album, :destroy, %{})
-      Ash.bulk_destroy!(Cinder.Integration.Artist, :destroy, %{})
+      Ash.bulk_destroy!(Music.Album, :destroy, %{})
+      Ash.bulk_destroy!(Music.Artist, :destroy, %{})
     end)
 
     %{

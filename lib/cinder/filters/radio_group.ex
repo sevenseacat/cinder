@@ -40,8 +40,8 @@ defmodule Cinder.Filters.RadioGroup do
         :for={{label, value} <- @options}
         name={field_name(@column.field)}
         label={label}
-        value={value}
-        checked={@current_radio_value == value}
+        value={to_string(value)}
+        checked={@current_radio_value == to_string(value)}
         theme={@theme}
       />
     </div>

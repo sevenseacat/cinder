@@ -119,95 +119,6 @@ defmodule Cinder.ColumnTest do
     end
   end
 
-  describe "parse_columns/2" do
-    test "parses multiple columns" do
-      slots = [
-        %{field: "id", label: "ID"},
-        %{field: "name", label: "Name"},
-        %{field: "email", label: "Email"}
-      ]
-
-      resource = nil
-
-      columns = Column.parse_columns(slots, resource)
-
-      assert length(columns) == 3
-      assert Enum.map(columns, & &1.field) == ["id", "name", "email"]
-      assert Enum.map(columns, & &1.label) == ["ID", "Name", "Email"]
-    end
-  end
-
-  describe "validate/1" do
-    test "validates valid column" do
-      column = %Column{
-        field: "name",
-        label: "Name",
-        sortable: true,
-        filterable: true,
-        filter_type: :text,
-        filter_options: []
-      }
-
-      assert {:ok, ^column} = Column.validate(column)
-    end
-
-    test "rejects column with empty field" do
-      column = %Column{
-        field: "",
-        label: "Name",
-        filter_type: :text
-      }
-
-      assert {:error, errors} = Column.validate(column)
-      assert "Field cannot be empty" in errors
-    end
-
-    test "rejects column with empty label" do
-      column = %Column{
-        field: "name",
-        label: "",
-        filter_type: :text
-      }
-
-      assert {:error, errors} = Column.validate(column)
-      assert "Label cannot be empty" in errors
-    end
-
-    test "rejects column with invalid filter type" do
-      column = %Column{
-        field: "name",
-        label: "Name",
-        filter_type: :invalid_type
-      }
-
-      assert {:error, errors} = Column.validate(column)
-      assert "Invalid filter type: invalid_type" in errors
-    end
-
-    test "accepts checkbox filter type" do
-      column = %Column{
-        field: "published",
-        label: "Published",
-        filter_type: :checkbox
-      }
-
-      assert {:ok, _} = Column.validate(column)
-    end
-
-    test "returns multiple errors" do
-      column = %Column{
-        field: "",
-        label: "",
-        filter_type: :invalid
-      }
-
-      assert {:error, errors} = Column.validate(column)
-      assert "Field cannot be empty" in errors
-      assert "Label cannot be empty" in errors
-      assert "Invalid filter type: invalid" in errors
-    end
-  end
-
   describe "merge_config/2" do
     test "merges slot config with inferred config" do
       slot = %{
@@ -420,7 +331,7 @@ defmodule Cinder.ColumnTest do
 
       resource = nil
 
-      columns = Column.parse_columns(slots, resource)
+      columns = Enum.map(slots, &Column.parse_column(&1, resource))
 
       # Only the email column should be filterable
       [id_col, name_col, email_col] = columns
@@ -438,7 +349,7 @@ defmodule Cinder.ColumnTest do
 
       resource = nil
 
-      columns = Column.parse_columns(slots, resource)
+      columns = Enum.map(slots, &Column.parse_column(&1, resource))
 
       [id_col, secret_col] = columns
 
@@ -464,7 +375,7 @@ defmodule Cinder.ColumnTest do
 
       resource = nil
 
-      columns = Column.parse_columns(slots, resource)
+      columns = Enum.map(slots, &Column.parse_column(&1, resource))
 
       filterable_columns = Enum.filter(columns, & &1.filterable)
       non_filterable_columns = Enum.reject(columns, & &1.filterable)

@@ -59,7 +59,7 @@ defmodule Cinder.Filters.MultiCheckboxes do
     ~H"""
     <div class={@theme.filter_multicheckboxes_container_class} data-key="filter_multicheckboxes_container_class">
       <div :for={{label, value} <- @options} class={@theme.filter_multicheckboxes_option_class} data-key="filter_multicheckboxes_option_class">
-        <label>
+        <label class="flex items-center cursor-pointer">
           <input
             type="checkbox"
             name={field_name(@column.field) <> "[]"}

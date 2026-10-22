@@ -37,6 +37,9 @@
     {:sobelow, "mix sobelow --exit --threshold high -i Config.HTTPS"},
     {:ex_unit, true},
     {:gettext, "mix gettext.extract --check-up-to-date"},
+    {:dev_app,
+     "mix do deps.get + compile --warnings-as-errors + format --check-formatted + test",
+     cd: "dev", env: %{"MIX_ENV" => "test"}},
     {:dialyzer, false},
     {:doctor, false},
     {:ex_doc, false}

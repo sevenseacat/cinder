@@ -108,7 +108,7 @@ defmodule Cinder.Themes.Futuristic do
   set :filter_checkbox_container_class, "flex items-center h-[48px]"
 
   set :filter_checkbox_input_class,
-      "h-4 w-4 bg-slate-900 border-blue-500/40 checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer mr-2"
+      "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer mr-2"
 
   set :filter_checkbox_label_class,
       "text-sm font-light text-blue-100 cursor-pointer tracking-wide"
@@ -239,7 +239,7 @@ defmodule Cinder.Themes.Futuristic do
 
   # Selection
   set :selection_checkbox_class,
-      "h-4 w-4 bg-slate-900 border-blue-500/40 checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer"
+      "h-4 w-4 bg-slate-900 border-blue-500/40 rounded checked:bg-green-500 checked:border-green-500 focus:ring-green-400 focus:ring-2 cursor-pointer"
 
   set :selected_row_class, "bg-green-500/10 border-green-500"
   set :grid_selection_overlay_class, "mb-2"

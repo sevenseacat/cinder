@@ -85,8 +85,8 @@ defmodule Cinder.Themes.DaisyUI do
   # Multi-checkboxes filter
   set :filter_multicheckboxes_container_class, "space-y-2"
   set :filter_multicheckboxes_option_class, "flex items-center gap-2"
-  set :filter_multicheckboxes_checkbox_class, "checkbox checkbox-primary"
-  set :filter_multicheckboxes_label_class, "label-text cursor-pointer"
+  set :filter_multicheckboxes_checkbox_class, "checkbox checkbox-sm mr-2"
+  set :filter_multicheckboxes_label_class, "text-sm cursor-pointer"
   # Range filters
   set :filter_range_container_class, "flex items-center gap-2"
   set :filter_range_input_group_class, ""

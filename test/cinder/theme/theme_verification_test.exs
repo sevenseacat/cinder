@@ -53,6 +53,33 @@ defmodule Cinder.ThemeVerificationTest do
     end
   end
 
+  describe "checkbox consistency" do
+    @checkbox_properties [
+      :filter_checkbox_input_class,
+      :filter_multicheckboxes_checkbox_class,
+      :filter_multiselect_checkbox_class,
+      :selection_checkbox_class
+    ]
+
+    @checkbox_label_properties [
+      :filter_checkbox_label_class,
+      :filter_multicheckboxes_label_class
+    ]
+
+    for theme_module <- @themes do
+      test "#{theme_module} styles every checkbox the same way" do
+        theme = unquote(theme_module).resolve_theme()
+
+        for properties <- [@checkbox_properties, @checkbox_label_properties] do
+          styles = Map.new(properties, &{&1, without_spacing(theme[&1])})
+
+          assert styles |> Map.values() |> Enum.uniq() |> length() == 1,
+                 "#{unquote(theme_module)} checkbox styles differ: #{inspect(styles, pretty: true)}"
+        end
+      end
+    end
+  end
+
   describe "theme radio group filter properties" do
     for theme_module <- @themes do
       test "#{theme_module} has all required radio group filter properties" do
@@ -186,5 +213,13 @@ defmodule Cinder.ThemeVerificationTest do
                """
       end
     end
+  end
+
+  # Spacing depends on how each checkbox's label is laid out, so it may differ
+  defp without_spacing(classes) do
+    classes
+    |> String.split()
+    |> Enum.reject(&String.match?(&1, ~r/^-?[mp][trblxy]?-/))
+    |> Enum.sort()
   end
 end
