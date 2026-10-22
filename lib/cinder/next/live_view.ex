@@ -66,7 +66,7 @@ defmodule Cinder.Next.LiveView do
     config = Config.build(to_assigns(name, query, opts))
 
     # A URL-synced collection waits for the URL, which `handle_params` brings next
-    {collection, effects} = Collection.new(to_string(name), config, url? && %{})
+    {collection, effects} = Collection.new(to_string(name), config, if(url?, do: %{}))
     effects = if url?, do: [], else: effects
 
     socket
@@ -120,8 +120,8 @@ defmodule Cinder.Next.LiveView do
   end
 
   defp handle_event("cinder:" <> rest, params, socket) do
-    with [name, event] <- String.split(rest, ":", parts: 2),
-         %{collection: collection} <- socket.assigns.__cinder__[name] do
+    with [event_name, event] <- String.split(rest, ":", parts: 2),
+         {name, %{collection: collection}} <- entry(socket, event_name) do
       {collection, effects} = Collection.handle_event(collection, event, params)
       {:halt, socket |> update_collection(name, collection) |> run(name, effects)}
     else
@@ -154,18 +154,20 @@ defmodule Cinder.Next.LiveView do
 
       entry ->
         {:halt,
-         update_collection(socket, name, Collection.loaded(entry.collection, unwrap(result)))}
+         update_collection(socket, name, Collection.async_loaded(entry.collection, result))}
     end
   end
 
   defp handle_async(_name, _result, socket), do: {:cont, socket}
 
-  defp unwrap({:ok, result}), do: result
-  defp unwrap({:exit, reason}), do: {:exit, reason}
+  # Collections are kept by their declared name (an atom); events name them as text
+  defp entry(socket, event_name),
+    do:
+      Enum.find(socket.assigns.__cinder__, fn {name, _entry} ->
+        Atom.to_string(name) == event_name
+      end)
 
   defp run(socket, name, effects) do
-    name = to_string(name)
-
     Enum.reduce(effects, socket, fn
       :load, socket ->
         load(socket, name)
@@ -176,26 +178,20 @@ defmodule Cinder.Next.LiveView do
   end
 
   defp load(socket, name) do
-    collection = Collection.loading(socket.assigns.__cinder__[name].collection)
-    run = Collection.load_fun(collection)
-    socket = socket |> update_collection(name, collection) |> mark_loaded(name)
+    socket = mark_loaded(socket, name)
 
-    # Ash's test helpers set this to make reads synchronous, as the current shell honours
-    if Application.get_env(:ash, :disable_async?) do
-      update_collection(socket, name, Collection.loaded(collection, run.()))
-    else
-      start_async(socket, {:cinder, name}, run)
+    case Collection.start_load(socket.assigns.__cinder__[name].collection) do
+      {:done, collection} ->
+        update_collection(socket, name, collection)
+
+      {:async, collection, run} ->
+        socket |> update_collection(name, collection) |> start_async({:cinder, name}, run)
     end
   end
 
   defp put_entry(socket, name, entry) do
-    name = to_string(name)
-
     socket
-    |> assign(
-      :__cinder__,
-      Map.put(socket.assigns.__cinder__, name, Map.put(entry, :assign, assign_name(name)))
-    )
+    |> assign(:__cinder__, Map.put(socket.assigns.__cinder__, name, entry))
     |> update_collection(name, entry.collection)
   end
 
@@ -205,12 +201,9 @@ defmodule Cinder.Next.LiveView do
 
     socket
     |> assign(:__cinder__, Map.put(socket.assigns.__cinder__, name, entry))
-    |> assign(entry.assign, Collection.view(collection, {:live_view, name}))
+    |> assign(name, Collection.view(collection, {:live_view, name}))
   end
 
   defp mark_loaded(socket, name),
     do: assign(socket, :__cinder__, put_in(socket.assigns.__cinder__, [name, :loaded?], true))
-
-  # The declared name comes back as an atom: it was one when declared
-  defp assign_name(name), do: String.to_existing_atom(name)
 end

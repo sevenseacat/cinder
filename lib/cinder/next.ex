@@ -416,9 +416,9 @@ defmodule Cinder.Next do
             <input {styled(@collection.selection.page_attrs, "select-page")} />
           </th>
           <th :for={column <- @collection.columns} {styled(column.attrs, "header-cell")}>
-            <%= if column.sortable? do %>
-              <button {styled(column.sort_attrs, "sort")}>
-                {column.label}<span {styled(column.indicator_attrs, "sort-indicator")}></span>
+            <%= if column.sort do %>
+              <button {styled(column.sort.attrs, "sort")}>
+                {column.label}<span {styled(column.sort.indicator_attrs, "sort-indicator")}></span>
               </button>
             <% else %>
               {column.label}

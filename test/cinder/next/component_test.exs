@@ -99,6 +99,18 @@ defmodule Cinder.Next.ComponentTest do
     assert length(titles(render_async(view))) == 2
   end
 
+  # The suite loads synchronously (`disable_async?`), so this is the one place the
+  # component's `start_async`/`handle_async` path runs
+  test "loads asynchronously when reads aren't synchronous", %{conn: conn, path: path} do
+    Application.put_env(:ash, :disable_async?, false)
+    on_exit(fn -> Application.put_env(:ash, :disable_async?, true) end)
+
+    {:ok, view, _html} = live(conn, path)
+    assert length(titles(render_async(view))) == 2
+
+    assert titles(click(view, ~s(.cinder-sort[phx-value-field="title"]))) == ["Alpha", "Bravo"]
+  end
+
   test "paging moves through the sorted records", %{conn: conn, path: path} do
     {:ok, view, _html} = live(conn, path)
     render_async(view)
@@ -276,7 +288,7 @@ defmodule Cinder.Next.ComponentTest do
   end
 
   test "placing a filter for a field that wasn't declared is an error" do
-    collection = %{filters: Cinder.Next.Filters.new([])}
+    collection = %{filters: Cinder.Next.Ordered.new([])}
 
     assert_raise ArgumentError, ~r/no filter is declared for "genre"/, fn ->
       Phoenix.LiveViewTest.render_component(&Cinder.Next.filter/1,

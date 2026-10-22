@@ -172,7 +172,23 @@ defmodule Cinder.Next.Collection do
     [{field, direction} | Enum.reject(sort, &match?({^field, _}, &1))]
   end
 
-  def loading(collection), do: %{collection | status: :loading}
+  @doc """
+  Starts a load: `{:done, collection}` when reads are synchronous (as Ash's test
+  helpers make them), or `{:async, collection, fun}` for the caller to hand `fun`
+  to `start_async`, and its result to `async_loaded/2`.
+  """
+  def start_load(collection) do
+    collection = %{collection | status: :loading}
+    run = load_fun(collection)
+
+    if Application.get_env(:ash, :disable_async?),
+      do: {:done, loaded(collection, run.())},
+      else: {:async, collection, run}
+  end
+
+  @doc "A `start_async` result from `start_load/1`'s function."
+  def async_loaded(collection, {:ok, result}), do: loaded(collection, result)
+  def async_loaded(collection, {:exit, reason}), do: loaded(collection, {:exit, reason})
 
   def loaded(collection, {:ok, page}),
     do: %{collection | page: page, status: :idle, state: %{collection.state | errors: %{}}}
@@ -278,7 +294,9 @@ defmodule Cinder.Next.Collection do
   # The ids of the records served on this page that can be selected: the only ones a
   # client may add to the selection
   defp selectable_ids(%{config: config, page: %{results: results}}) do
-    for record <- results, View.selectable?(config.selectable, record), do: to_string(record.id)
+    for record <- results,
+        Cinder.Selection.item_selectable?(config.selectable, record),
+        do: to_string(record.id)
   end
 
   defp selectable_ids(_collection), do: []

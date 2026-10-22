@@ -1,7 +1,8 @@
-defmodule Cinder.Next.Filters do
+defmodule Cinder.Next.Ordered do
   @moduledoc """
-  Spike: a collection's filter view-models, in declaration order for loops
-  (`:for={f <- c.filters}`) and by field for placing one (`c.filters["price"]`).
+  Spike: a collection's filter or sort view-models, in declaration order for loops
+  (`:for={f <- c.filters}`) and by field for picking one (`c.filters["price"]`,
+  `c.sorts["title"]`).
   """
   defstruct list: [], by_field: %{}
 
@@ -14,10 +15,11 @@ defmodule Cinder.Next.Filters do
 
   # View-models are built, not edited, so there's nothing to update
   @impl Access
-  def get_and_update(_filters, _field, _fun), do: raise(ArgumentError, "filters are read-only")
+  def get_and_update(_filters, _field, _fun),
+    do: raise(ArgumentError, "view-models are read-only")
 
   @impl Access
-  def pop(_filters, _field), do: raise(ArgumentError, "filters are read-only")
+  def pop(_filters, _field), do: raise(ArgumentError, "view-models are read-only")
 
   defimpl Enumerable do
     def count(filters), do: {:ok, length(filters.list)}

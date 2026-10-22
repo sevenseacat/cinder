@@ -14,7 +14,8 @@ defmodule Cinder.Next.LiveViewTest do
       render_click: 3,
       render_patch: 2,
       element: 2,
-      assert_patch: 1
+      assert_patch: 1,
+      refute_patched: 1
     ]
 
   setup %{conn: conn} do
@@ -63,6 +64,28 @@ defmodule Cinder.Next.LiveViewTest do
 
     render_patch(view, "/next-live")
     assert titles(render_async(view)) == ["Alpha", "Bravo"]
+  end
+
+  test "without the URL, events load straight away and the URL stays put", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/next-live/plain")
+    assert titles(render_async(view)) == ["Alpha", "Bravo"]
+
+    view |> element(~s(#top [data-kind="next"])) |> render_click()
+    assert titles(render_async(view)) == ["Charlie", "Delta"]
+    refute_patched(view)
+  end
+
+  # The suite loads synchronously (`disable_async?`), so this is the one place the
+  # hook's `start_async`/`handle_async` path runs
+  test "loads asynchronously when reads aren't synchronous", %{conn: conn} do
+    Application.put_env(:ash, :disable_async?, false)
+    on_exit(fn -> Application.put_env(:ash, :disable_async?, true) end)
+
+    {:ok, view, _html} = live(conn, "/next-live/plain")
+    assert titles(render_async(view)) == ["Alpha", "Bravo"]
+
+    view |> element(~s(#top [data-kind="next"])) |> render_click()
+    assert titles(render_async(view)) == ["Charlie", "Delta"]
   end
 
   test "the LiveView's own events still arrive, and unknown collection events do nothing", %{

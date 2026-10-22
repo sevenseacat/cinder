@@ -128,5 +128,14 @@ defmodule Cinder.Next.PayloadTest do
           Enum.map_join([sort, page, filter], "", &String.pad_trailing("#{&1}", 8))
       )
     end
+
+    # Guards step 10's result: the new shell never sends meaningfully more than the
+    # current one for the same change (they're about even unsynced at 100 rows)
+    by_case = Enum.group_by(results, fn {url?, rows, _impl, _, _, _} -> {url?, rows} end)
+
+    for {_case, [{_, _, :current, c1, c2, c3}, {_, _, :next, n1, n2, n3}]} <- by_case,
+        {current, next} <- [{c1, n1}, {c2, n2}, {c3, n3}] do
+      assert next <= current * 1.1
+    end
   end
 end

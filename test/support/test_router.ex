@@ -13,5 +13,6 @@ defmodule Cinder.TestRouter do
     pipe_through :browser
     live "/c/:id", Cinder.TestLive.Fixture
     live "/next-live", Cinder.TestLive.NextLiveView
+    live "/next-live/plain", Cinder.TestLive.NextLiveView, :plain
   end
 end

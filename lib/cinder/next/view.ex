@@ -8,7 +8,7 @@ defmodule Cinder.Next.View do
   """
   use Cinder.Messages
 
-  alias Cinder.Next.{Filters, State}
+  alias Cinder.Next.{Ordered, State}
   alias Cinder.QueryBuilder
 
   @window 2
@@ -17,6 +17,10 @@ defmodule Cinder.Next.View do
   def build(%{config: config, state: state, page: page, status: status, myself: myself} = assigns) do
     layout = state.layout || config.default_layout
     rows = rows(page, config.selectable, state, myself)
+
+    sorts =
+      Ordered.new(for name <- config.sort_order, do: sort(config.fields[name], state, myself))
+
     filters = for name <- config.filter_order, f = filter(config, name, state, myself), do: f
 
     %{
@@ -38,14 +42,14 @@ defmodule Cinder.Next.View do
         "phx-target" => target(myself)
       },
       search: search(config, state, myself),
-      filters: Filters.new(filters),
+      filters: Ordered.new(filters),
       active_filter_count: Enum.count(filters, & &1.active?),
       clear_all_attrs: %{
         "type" => "button",
         "phx-click" => event(myself, "clear_all"),
         "phx-target" => target(myself)
       },
-      sorts: for(name <- config.sort_order, do: sort(config.fields[name], state, myself)),
+      sorts: sorts,
       sort_select: sort_select(config, state),
       # Tables that only show one sorted column want just the first
       primary_sort: primary_sort(state.sort),
@@ -55,11 +59,11 @@ defmodule Cinder.Next.View do
       grid_attrs: grid_attrs(config.grid_columns),
       # So `grid/1` can render cards given only the collection
       item_slot: config.item_slot,
-      columns: Enum.map(config.columns, &column(&1, config.fields[&1.field], state, myself)),
+      columns: Enum.map(config.columns, &column(&1, sorts[&1.field])),
       rows: rows,
       # `nil` unless grouped: then the page's rows by group (see `groups/2`)
       groups: groups(config, rows),
-      selection: selection(config.selectable, page, state, myself),
+      selection: selection(config.selectable, rows, state, myself),
       bulk_actions: Enum.map(config.bulk_actions, &bulk_action(&1, state, myself)),
       confirmation: confirmation(config.bulk_actions, state, myself),
       # What the last bulk action did: `%{status: :ok | :partial | :error, ...}`
@@ -254,6 +258,8 @@ defmodule Cinder.Next.View do
           do: state.raw[name] || state.arguments[name] || "",
           else: current_value(filter.type, name, state)
 
+      options = options(filter.type, ctx, value)
+
       %{
         field: name,
         # The param name, for components that build their own inputs from it (a
@@ -268,9 +274,9 @@ defmodule Cinder.Next.View do
         help: filter.help,
         errors: errors,
         render: filter.render,
-        options: options(filter.type, ctx, value),
+        options: options,
         # A multi-select's button and popover panel (see `dropdown/3`)
-        dropdown: dropdown(filter.type, ctx, value),
+        dropdown: dropdown(filter.type, ctx, options),
         attrs: %{
           "data-field" => name,
           "data-filter-type" => filter.type,
@@ -303,14 +309,10 @@ defmodule Cinder.Next.View do
   # a click outside, with no JS. Where anchor positioning is supported, the
   # structural CSS places it under its button by these anchor names; elsewhere a
   # small hook does.
-  defp dropdown(:multi_select, ctx, values) do
+  defp dropdown(:multi_select, ctx, options) do
     panel_id = ctx.input_id <> "-panel"
     anchor = "--" <> ctx.input_id
-
-    labels =
-      for {label, value} <- Keyword.get(ctx.filter.options, :options, []),
-          to_string(value) in values,
-          do: label
+    labels = for %{selected?: true, label: label} <- options, do: label
 
     summary =
       case labels do
@@ -482,11 +484,41 @@ defmodule Cinder.Next.View do
   # form, for a button group or radio list instead of a dropdown.
   defp options(:select, ctx, value) do
     prompt = ctx.filter.options[:prompt] || dgettext("cinder", "All %{label}", label: ctx.label)
-    choices = [{prompt, ""} | Keyword.get(ctx.filter.options, :options, [])]
+    choices(ctx, [{prompt, ""} | declared_options(ctx)], "radio", &(&1 == value))
+  end
+
+  # Checkboxes posting a list (`filters[tags][]`), so several can be chosen
+  defp options(type, ctx, values) when type in @multi_types,
+    do: choices(ctx, declared_options(ctx), "checkbox", &(&1 in values))
+
+  # The options matching what's been typed, up to `max_results`. The chosen one is
+  # always included, even when the search no longer matches it: its radio is what
+  # posts the filter's value, so dropping it would clear the filter on the next change.
+  defp options(:autocomplete, ctx, value) do
+    search = autocomplete_search(ctx) |> String.downcase()
+    all = declared_options(ctx)
+
+    matching =
+      all
+      |> Enum.filter(fn {label, _value} -> String.contains?(String.downcase(label), search) end)
+      |> Enum.take(ctx.filter.options[:max_results] || 10)
+
+    chosen = Enum.filter(all, fn {_label, option_value} -> to_string(option_value) == value end)
+    choices(ctx, Enum.uniq(chosen ++ matching), "radio", &(&1 == value))
+  end
+
+  defp options(_type, _ctx, _value), do: []
+
+  defp declared_options(ctx), do: Keyword.get(ctx.filter.options, :options, [])
+
+  # Each option as an `<option>` (`attrs`) and as a radio or checkbox that joins the
+  # form (`input_attrs`); checkboxes post a list
+  defp choices(ctx, choices, input_type, selected?) do
+    name = Cinder.Filter.field_name(ctx.name) <> if(input_type == "checkbox", do: "[]", else: "")
 
     for {{label, option_value}, index} <- Enum.with_index(choices) do
       option_value = to_string(option_value)
-      selected? = option_value == value
+      selected? = selected?.(option_value)
 
       %{
         label: label,
@@ -494,9 +526,9 @@ defmodule Cinder.Next.View do
         selected?: selected?,
         attrs: %{"value" => option_value, "selected" => selected?},
         input_attrs: %{
-          "type" => "radio",
+          "type" => input_type,
           "id" => "#{ctx.input_id}-#{index}",
-          "name" => Cinder.Filter.field_name(ctx.name),
+          "name" => name,
           "value" => option_value,
           "checked" => selected?,
           "form" => ctx.form_id,
@@ -506,93 +538,20 @@ defmodule Cinder.Next.View do
     end
   end
 
-  # Checkboxes posting a list (`filters[tags][]`), so several can be chosen
-  defp options(type, ctx, values) when type in @multi_types do
-    for {{label, option_value}, index} <-
-          Enum.with_index(Keyword.get(ctx.filter.options, :options, [])) do
-      option_value = to_string(option_value)
-      selected? = option_value in values
-
-      %{
-        label: label,
-        value: option_value,
-        selected?: selected?,
-        attrs: %{"value" => option_value, "selected" => selected?},
-        input_attrs: %{
-          "type" => "checkbox",
-          "id" => "#{ctx.input_id}-#{index}",
-          "name" => Cinder.Filter.field_name(ctx.name) <> "[]",
-          "value" => option_value,
-          "checked" => selected?,
-          "form" => ctx.form_id
-        }
-      }
-    end
-  end
-
-  # The options matching what's been typed, up to `max_results`. The chosen one is
-  # always included, even when the search no longer matches it: its radio is what
-  # posts the filter's value, so dropping it would clear the filter on the next change.
-  defp options(:autocomplete, ctx, value) do
-    search = autocomplete_search(ctx) |> String.downcase()
-    all = Keyword.get(ctx.filter.options, :options, [])
-
-    matching =
-      all
-      |> Enum.filter(fn {label, _value} -> String.contains?(String.downcase(label), search) end)
-      |> Enum.take(ctx.filter.options[:max_results] || 10)
-
-    chosen = Enum.filter(all, fn {_label, option_value} -> to_string(option_value) == value end)
-
-    for {{label, option_value}, index} <- Enum.with_index(Enum.uniq(chosen ++ matching)) do
-      option_value = to_string(option_value)
-      selected? = option_value == value
-
-      %{
-        label: label,
-        value: option_value,
-        selected?: selected?,
-        attrs: %{"value" => option_value, "selected" => selected?},
-        input_attrs: %{
-          "type" => "radio",
-          "id" => "#{ctx.input_id}-#{index}",
-          "name" => Cinder.Filter.field_name(ctx.name),
-          "value" => option_value,
-          "checked" => selected?,
-          "form" => ctx.form_id
-        }
-      }
-    end
-  end
-
-  defp options(_type, _ctx, _value), do: []
-
   defp autocomplete_search(ctx), do: ctx.raw[ctx.name <> "_autocomplete_search"] || ""
 
-  defp column(column, field, state, myself) do
-    sortable? = field.sort != nil
-    direction = sortable? && QueryBuilder.get_sort_direction(state.sort, column.field)
-
+  # A column's header; a sortable one shares its field's sort view-model, so the
+  # header's button is the same as a sort chip's
+  defp column(column, sort) do
     %{
       field: column.field,
       label: column.label,
       slot: column.slot,
-      sortable?: sortable?,
-      direction: direction,
+      sort: sort,
       attrs: %{
         "data-field" => column.field,
-        "data-sortable" => sortable?,
-        "aria-sort" => sortable? && aria_sort(direction)
-      },
-      sort_attrs: %{
-        "type" => "button",
-        "phx-click" => event(myself, "sort"),
-        "phx-value-field" => column.field,
-        "phx-target" => target(myself)
-      },
-      indicator_attrs: %{
-        "data-direction" => direction,
-        "aria-hidden" => "true"
+        "data-sortable" => sort != nil,
+        "aria-sort" => sort && aria_sort(sort.direction)
       }
     }
   end
@@ -653,10 +612,13 @@ defmodule Cinder.Next.View do
     for record <- results do
       id = to_string(Map.get(record, :id))
       selected? = MapSet.member?(state.selected, id)
+      selectable? = Cinder.Selection.item_selectable?(selectable, record)
 
       %{
         record: record,
+        id: id,
         selected?: selected?,
+        selectable?: selectable?,
         attrs: %{"data-row-id" => id, "data-selected" => selected?},
         # A checkbox, though not a form input: it toggles by click
         select_attrs:
@@ -664,7 +626,7 @@ defmodule Cinder.Next.View do
             %{
               "type" => "checkbox",
               "checked" => selected?,
-              "disabled" => not selectable?(selectable, record),
+              "disabled" => not selectable?,
               "aria-label" => dgettext("cinder", "Select"),
               "phx-click" => event(myself, "toggle_select"),
               "phx-value-id" => id,
@@ -674,19 +636,11 @@ defmodule Cinder.Next.View do
     end
   end
 
-  @doc "Whether a record can be selected, given the collection's `selectable`."
-  def selectable?(false, _record), do: false
-  def selectable?(true, _record), do: true
-  def selectable?(fun, record) when is_function(fun, 1), do: !!fun.(record)
-
   # The page checkbox reads all, some or none of the page's selectable rows
-  defp selection(false, _page, _state, _myself), do: nil
+  defp selection(false, _rows, _state, _myself), do: nil
 
-  defp selection(selectable, page, state, myself) do
-    page_ids =
-      for record <- (page && page.results) || [],
-          selectable?(selectable, record),
-          do: to_string(record.id)
+  defp selection(_selectable, rows, state, myself) do
+    page_ids = for %{selectable?: true, id: id} <- rows, do: id
 
     on_page = Enum.count(page_ids, &MapSet.member?(state.selected, &1))
 

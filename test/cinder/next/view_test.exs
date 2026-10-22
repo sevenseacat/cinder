@@ -50,9 +50,9 @@ defmodule Cinder.Next.ViewTest do
     test "sortable columns get sort wiring that targets the component" do
       [title] = build([]).columns
 
-      assert title.sort_attrs["phx-click"] == "sort"
-      assert title.sort_attrs["phx-value-field"] == "title"
-      assert title.sort_attrs["phx-target"] == @myself
+      assert title.sort.attrs["phx-click"] == "sort"
+      assert title.sort.attrs["phx-value-field"] == "title"
+      assert title.sort.attrs["phx-target"] == @myself
     end
 
     test "state is expressed through attributes" do
@@ -63,7 +63,7 @@ defmodule Cinder.Next.ViewTest do
 
       assert title.attrs["aria-sort"] == "ascending"
       assert title.attrs["data-sortable"] == true
-      assert title.indicator_attrs["data-direction"] == :asc
+      assert title.sort.indicator_attrs["data-direction"] == :asc
 
       # Unsortable columns don't claim a sort state at all
       refute genre.attrs["aria-sort"]
@@ -193,7 +193,7 @@ defmodule Cinder.Next.ViewTest do
     maps =
       [view.attrs, view.form_attrs, view.clear_all_attrs, view.grid_attrs, view.pagination.attrs] ++
         Enum.flat_map(view.rows, &[&1.attrs]) ++
-        Enum.flat_map(view.columns, &[&1.attrs, &1.sort_attrs]) ++
+        Enum.flat_map(view.columns, &[&1.attrs, &1.sort.attrs]) ++
         Enum.flat_map(view.filters, &[&1.attrs, &1.input_attrs, &1.clear_attrs])
 
     assert Enum.all?(maps, &(not Map.has_key?(&1, "class") and not Map.has_key?(&1, "data-part")))
@@ -272,9 +272,12 @@ defmodule Cinder.Next.ViewTest do
       state = State.new() |> State.toggle_sort("title")
       view = build(state: state, col: [], sort: [sort("title"), sort("genre")])
 
-      assert [%{field: "title", direction: :asc}, %{field: "genre", direction: nil}] = view.sorts
-      assert hd(view.sorts).attrs["data-active"] == true
-      assert hd(view.sorts).attrs["phx-target"] == @myself
+      assert [%{field: "title", direction: :asc}, %{field: "genre", direction: nil}] =
+               Enum.to_list(view.sorts)
+
+      # And by field, like filters
+      assert view.sorts["title"].attrs["data-active"] == true
+      assert view.sorts["title"].attrs["phx-target"] == @myself
     end
 
     test "the dropdown offers each field both ways, in the URL's encoding, and marks the current one" do

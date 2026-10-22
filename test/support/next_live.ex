@@ -8,13 +8,14 @@ defmodule Cinder.TestLive.NextLiveView do
 
   alias Cinder.Next.LiveView, as: Collections
 
+  # `:plain` (its own route) keeps the collection out of the URL
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
      |> assign(:pings, 0)
      |> Collections.assign_collection(:albums, Ash.Query.sort(Music.Album, :title),
-       url: true,
+       url: socket.assigns.live_action != :plain,
        page_size: 2,
        layouts: [:grid],
        selectable: true,

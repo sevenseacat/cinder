@@ -28,14 +28,10 @@ defmodule Cinder.Next.Component do
   end
 
   @impl true
-  def handle_async(:load, {:ok, result}, socket),
-    do:
-      {:noreply, assign_collection(socket, Collection.loaded(socket.assigns.collection, result))}
-
-  def handle_async(:load, {:exit, reason}, socket),
+  def handle_async(:load, result, socket),
     do:
       {:noreply,
-       assign_collection(socket, Collection.loaded(socket.assigns.collection, {:exit, reason}))}
+       assign_collection(socket, Collection.async_loaded(socket.assigns.collection, result))}
 
   defp run(socket, collection, effects) do
     Enum.reduce(effects, assign_collection(socket, collection), fn
@@ -50,15 +46,12 @@ defmodule Cinder.Next.Component do
   end
 
   defp load(socket) do
-    collection = Collection.loading(socket.assigns.collection)
-    run = Collection.load_fun(collection)
-    socket = assign_collection(socket, collection)
+    case Collection.start_load(socket.assigns.collection) do
+      {:done, collection} ->
+        assign_collection(socket, collection)
 
-    # Ash's test helpers set this to make reads synchronous, as the current shell honours
-    if Application.get_env(:ash, :disable_async?) do
-      assign_collection(socket, Collection.loaded(collection, run.()))
-    else
-      start_async(socket, :load, run)
+      {:async, collection, run} ->
+        socket |> assign_collection(collection) |> start_async(:load, run)
     end
   end
 

@@ -136,7 +136,7 @@ defmodule CinderDevWeb.NextPowerLive do
               </th>
               <th :for={column <- @visible}>
                 <.sort_header
-                  sort={Enum.find(@albums.sorts, &(&1.field == column.key))}
+                  sort={@albums.sorts[column.key]}
                   label={column.label}
                 />
               </th>
