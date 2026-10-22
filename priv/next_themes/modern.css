@@ -188,6 +188,7 @@
       padding: 8px 16px;
       border-color: #dc2626;
       background: #dc2626;
+      color: #fff;
 
       &:hover {
         background: #b91c1c;

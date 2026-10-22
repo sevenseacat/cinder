@@ -54,6 +54,15 @@ defmodule Cinder.Next.CollectionTest do
              Collection.handle_event(synced, "set_layout", %{"layout" => "grid"})
   end
 
+  # Regression: the engine also fails with plain strings ("Cannot sort by..."),
+  # which crashed the error handling
+  test "a load failing with a string reason is an error, not a crash" do
+    {collection, _} = new()
+
+    assert %{status: :error, page: nil} =
+             Collection.loaded(collection, {:error, "Cannot sort by computed field"})
+  end
+
   test "an event it doesn't know, or for a field that isn't sortable, does nothing" do
     {collection, _} = new()
 

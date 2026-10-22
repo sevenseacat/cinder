@@ -10,6 +10,7 @@ defmodule Cinder.Next.ComponentTest do
       render_async: 1,
       render_change: 2,
       render_click: 1,
+      render_click: 3,
       render_hook: 3,
       with_target: 2,
       element: 2
@@ -78,6 +79,24 @@ defmodule Cinder.Next.ComponentTest do
     for part <- ~w(table row cell pagination toolbar) do
       assert html =~ ~r/class="cinder-#{part}[" ]/, "no cinder-#{part}"
     end
+  end
+
+  # Regression: raw filter params are stored and rendered back, so a map or list
+  # where a string belongs crashed the render, as did a non-string page or field
+  test "odd client params are ignored rather than crashing the view", %{conn: conn, path: path} do
+    {:ok, view, _html} = live(conn, path)
+    render_async(view)
+    target = with_target(view, "#albums")
+
+    render_click(target, "filter", %{
+      "filters" => %{"title" => %{"nested" => "map"}, "genre" => [1, 2], "nope" => "x"},
+      "search" => %{"not" => "a string"}
+    })
+
+    render_click(target, "go_to_page", %{"page" => 3})
+    render_click(target, "clear_filter", %{"field" => %{"x" => 1}})
+
+    assert length(titles(render_async(view))) == 2
   end
 
   test "paging moves through the sorted records", %{conn: conn, path: path} do

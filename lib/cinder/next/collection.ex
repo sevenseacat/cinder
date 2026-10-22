@@ -68,9 +68,9 @@ defmodule Cinder.Next.Collection do
   end
 
   def handle_event(%{config: config} = collection, "filter", params) do
-    raw = Map.get(params, "filters", %{})
+    raw = clean_raw(params["filters"], config)
     filters = FilterManager.params_to_filters(raw, config.engine_columns)
-    search = Map.get(params, "search", collection.state.search)
+    search = if is_binary(params["search"]), do: params["search"], else: collection.state.search
     sort = parse_sort(params["sort_by"], config)
 
     commit(collection, fn state ->
@@ -86,10 +86,10 @@ defmodule Cinder.Next.Collection do
   def handle_event(collection, "clear_all", _params),
     do: commit(collection, &State.clear_all/1)
 
-  def handle_event(collection, "clear_filter", %{"field" => field}),
+  def handle_event(collection, "clear_filter", %{"field" => field}) when is_binary(field),
     do: commit(collection, &State.clear_filter(&1, field))
 
-  def handle_event(collection, "go_to_page", %{"page" => page}) do
+  def handle_event(collection, "go_to_page", %{"page" => page}) when is_binary(page) do
     case Integer.parse(page) do
       {number, ""} -> commit(collection, &State.go_to_page(&1, number))
       _ -> {collection, []}
@@ -186,8 +186,9 @@ defmodule Cinder.Next.Collection do
     {field_errors, other} =
       error
       |> List.wrap()
-      |> Enum.flat_map(&Map.get(&1, :errors, [&1]))
-      |> Enum.split_with(&(to_string(Map.get(&1, :field)) in arguments))
+      # The engine also returns plain strings (e.g. "Cannot sort by...")
+      |> Enum.flat_map(&if(is_map(&1), do: Map.get(&1, :errors, [&1]), else: [&1]))
+      |> Enum.split_with(&(is_map(&1) and to_string(Map.get(&1, :field)) in arguments))
 
     errors =
       field_errors
@@ -274,6 +275,28 @@ defmodule Cinder.Next.Collection do
         {%{collection | state: new}, []}
     end
   end
+
+  # The form's params, as the client sent them: kept as raw input, stored and
+  # rendered back. Only params for declared fields (and their `_unused_` markers)
+  # survive, as strings or lists of strings; anything else would crash the render.
+  defp clean_raw(raw, config) when is_map(raw) do
+    for {key, value} <- raw, declared_param?(key, config), clean_value?(value), into: %{} do
+      {key, value}
+    end
+  end
+
+  defp clean_raw(_raw, _config), do: %{}
+
+  defp declared_param?("_unused_" <> key, config), do: declared_param?(key, config)
+
+  defp declared_param?(key, config) when is_binary(key),
+    do: Enum.any?(config.filter_order, &State.param_field?(key, &1))
+
+  defp declared_param?(_key, _config), do: false
+
+  defp clean_value?(value) when is_binary(value), do: true
+  defp clean_value?(values) when is_list(values), do: Enum.all?(values, &is_binary/1)
+  defp clean_value?(_value), do: false
 
   defp from_url(_collection, state, nil), do: state
 

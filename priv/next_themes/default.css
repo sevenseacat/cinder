@@ -321,10 +321,16 @@
     }
   }
 
-  .cinder-confirm {
+  /* `button.` to outrank the shared button rule, which is `button:is(...)` */
+  button.cinder-confirm {
     border-color: var(--cinder-danger);
     background: var(--cinder-danger);
     color: #fff;
+
+    &:hover:not(:disabled) {
+      background: var(--cinder-danger);
+      filter: brightness(0.92);
+    }
   }
 
   /* Groups */
