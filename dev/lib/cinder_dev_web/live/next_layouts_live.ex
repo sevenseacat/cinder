@@ -1,17 +1,29 @@
 defmodule CinderDevWeb.NextLayoutsLive do
   @moduledoc """
-  The shell-rewrite spike's layout customisation: a `:toolbar` region slot, a
-  `:page` slot (the whole page), a list, and a grid with breakpoint columns. Only
-  the `:page` one is URL-synced, because two URL-synced collections on one page aren't
+  The shell-rewrite spike's layout customisation: a `:toolbar` region slot, a page
+  arranged freely (a collection kept in this LiveView, with filters in a sidebar and
+  pagination twice), grouping, a list, and a grid with breakpoint columns. The rest
+  are collection components, side by side with the LiveView-kept one. Only the
+  sidebar one is URL-synced, because two URL-synced collections on one page aren't
   supported yet.
   """
   use CinderDevWeb, :live_view
-  use Cinder.UrlSync
+  use Cinder.Next.LiveView
 
   @impl true
-  def handle_params(params, uri, socket) do
-    {:noreply, Cinder.UrlSync.handle_params(params, uri, socket)}
+  def mount(_params, _session, socket) do
+    {:ok,
+     Cinder.Next.LiveView.assign_collection(socket, :sidebar, Music.Album,
+       url: true,
+       page_size: 8,
+       filters: [genre: [type: :select, prompt: "Any genre"], title: :text],
+       sorts: [:title],
+       search: ["title"]
+     )}
   end
+
+  @impl true
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
 
   @impl true
   def render(assigns) do
@@ -35,31 +47,23 @@ defmodule CinderDevWeb.NextLayoutsLive do
         </:toolbar>
       </Cinder.Next.collection>
 
-      <h2 class="mt-12 text-lg font-semibold">Custom layout: sidebar, pagination top and bottom</h2>
-      <Cinder.Next.collection
-        id="sidebar"
-        resource={Music.Album}
-        url_state={@url_state}
-        page_size={8}
-      >
-        <:col :let={album} field="title" sort search>{album.title}</:col>
-        <:col field="genre" />
-        <:filter field="genre" type="select" prompt="Any genre" />
-        <:filter field="title" type="text" />
-        <:page :let={c}>
-          <div class="grid gap-6 md:grid-cols-[16rem_1fr]">
-            <form {c.form_attrs} class="space-y-4">
-              <Cinder.Next.search search={c.search} />
-              <Cinder.Next.filter :for={f <- c.filters} filter={f} />
-            </form>
-            <main class="space-y-4">
-              <Cinder.Next.pagination collection={c} />
-              <Cinder.Next.table collection={c} />
-              <Cinder.Next.pagination collection={c} />
-            </main>
-          </div>
-        </:page>
-      </Cinder.Next.collection>
+      <h2 class="mt-12 text-lg font-semibold">
+        Arranged freely: a sidebar, pagination top and bottom (kept in this LiveView)
+      </h2>
+      <div {@sidebar.attrs} class="grid gap-6 md:grid-cols-[16rem_1fr]">
+        <form {@sidebar.form_attrs} class="space-y-4">
+          <Cinder.Next.search search={@sidebar.search} />
+          <Cinder.Next.filter :for={f <- @sidebar.filters} filter={f} />
+        </form>
+        <main class="space-y-4">
+          <Cinder.Next.pagination collection={@sidebar} />
+          <Cinder.Next.table collection={@sidebar}>
+            <:col :let={album} field="title">{album.title}</:col>
+            <:col :let={album} field="genre">{album.genre}</:col>
+          </Cinder.Next.table>
+          <Cinder.Next.pagination collection={@sidebar} />
+        </main>
+      </div>
 
       <h2 class="mt-12 text-lg font-semibold">Grouped by genre (the default table)</h2>
       <Cinder.Next.collection id="grouped" resource={Music.Album} page_size={12}>

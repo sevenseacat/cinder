@@ -13,8 +13,8 @@ defmodule Cinder.Next.LiveView do
          )}
       end
 
-  `@albums` is then the collection's view-model, the same one a `<:page>` gets, for
-  `Cinder.Next`'s components or your own. Its events are named
+  `@albums` is then the collection's view-model, for `Cinder.Next`'s components or your
+  own. Its events are named
   `cinder:albums:<event>`, and the `on_mount` hook this attaches handles them, the
   URL (for `url: true`) and the loads, so the LiveView's own callbacks only see
   their own events.
@@ -72,7 +72,7 @@ defmodule Cinder.Next.LiveView do
     query_opts = Keyword.get(opts, :query_opts, []) ++ if(load, do: [load: load], else: [])
 
     opts
-    |> Keyword.drop([:filters, :sorts, :bulk_actions, :search, :query_opts, :group])
+    |> Keyword.drop([:filters, :arguments, :sorts, :bulk_actions, :search, :query_opts, :group])
     |> Map.new()
     |> Map.merge(%{
       query_key => query,
@@ -81,6 +81,7 @@ defmodule Cinder.Next.LiveView do
       :search => opts[:search],
       :group => group(opts[:group]),
       :filter => Enum.map(opts[:filters] || [], &slot(:filter, :field, &1, :type)),
+      :argument => Enum.map(opts[:arguments] || [], &slot(:argument, :name, &1, :type)),
       :sort => Enum.map(opts[:sorts] || [], &slot(:sort, :field, &1, nil)),
       :bulk_action => Enum.map(opts[:bulk_actions] || [], &slot(:bulk_action, :name, &1, :action))
     })

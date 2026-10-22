@@ -88,6 +88,40 @@ defmodule Cinder.Next.LiveViewTest do
     assert titles(render_async(view)) == ["Charlie", "Delta"]
   end
 
+  test "takes a read action's arguments as a keyword list, like `<:argument>`", %{conn: conn} do
+    for {album, tracks} <-
+          Enum.zip(Enum.sort_by(Ash.read!(Music.Album), & &1.title), [8, 10, 12, 14, 16]) do
+      Ash.Seed.update!(album, %{track_count: tracks})
+    end
+
+    path =
+      Cinder.TestLive.NextFixture.register(
+        &Cinder.Next.LiveView.assign_collection(&1, :albums, Music.Album,
+          action: :with_min_tracks,
+          arguments: [min_tracks: [label: "Min. tracks"]]
+        ),
+        fn assigns ->
+          ~H"""
+          <form {@albums.form_attrs}>
+            <Cinder.Next.filter :for={f <- @albums.filters} filter={f} />
+          </form>
+          <Cinder.Next.table collection={@albums}>
+            <:col :let={album} field="title"><h3>{album.title}</h3></:col>
+          </Cinder.Next.table>
+          """
+        end
+      )
+
+    {:ok, view, _html} = live(conn, path)
+    assert render_async(view) =~ "Min. tracks"
+
+    view
+    |> element("#albums-filters")
+    |> render_change(%{"filters" => %{"min_tracks" => "12"}})
+
+    assert Enum.sort(titles(render_async(view))) == ["Charlie", "Delta", "Echo"]
+  end
+
   test "the LiveView's own events still arrive, and unknown collection events do nothing", %{
     view: view
   } do

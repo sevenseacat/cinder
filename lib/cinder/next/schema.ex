@@ -63,6 +63,11 @@ defmodule Cinder.Next.Schema do
                    type: :keyword_list,
                    doc: "`[field: type]` or `[field: [type: ..., options: ...]]`"
                  ],
+                 arguments: [
+                   type: :keyword_list,
+                   doc:
+                     "The action's arguments to take as inputs: `[name: type]` or `[name: [label: ...]]`"
+                 ],
                  sorts: [
                    type: {:list, :any},
                    doc: "`[field]` or `[field: [label: ..., cycle: ...]]`"
