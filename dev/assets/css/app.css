@@ -25,6 +25,7 @@
 @import "../../../priv/next_themes/default.css";
 @import "../../../priv/next_themes/modern.css";
 @import "../../../priv/next_themes/modern_converted.css";
+@import "../../../priv/next_themes/daisy_ui.css";
 
 /* Petal Components, for the Next Petal page. Its classes are all `pc-` prefixed. */
 @import "../../deps/petal_components/assets/default.css";

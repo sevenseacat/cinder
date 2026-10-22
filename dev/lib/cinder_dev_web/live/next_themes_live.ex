@@ -21,7 +21,7 @@ defmodule CinderDevWeb.NextThemesLive do
       current_path={@current_path}
       query_params={@query_params}
     >
-      <div class="grid gap-10 xl:grid-cols-3">
+      <div class="grid gap-10 xl:grid-cols-2">
         <section>
           <h2 class="mb-4 text-lg font-semibold">"default"</h2>
           <.albums id="default-theme" />
@@ -33,6 +33,10 @@ defmodule CinderDevWeb.NextThemesLive do
         <section data-cinder-theme="modern-converted">
           <h2 class="mb-4 text-lg font-semibold">modern, converted by the mix task</h2>
           <.albums id="modern-converted-theme" />
+        </section>
+        <section data-cinder-theme="daisy_ui">
+          <h2 class="mb-4 text-lg font-semibold">daisy_ui (daisyUI classes through @apply)</h2>
+          <.albums id="daisy-theme" />
         </section>
       </div>
     </Layouts.app>

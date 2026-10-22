@@ -1,0 +1,112 @@
+/* Spike (7CC-158): the daisyUI theme for `Cinder.Next` (the default for new Cinder
+ * installs, as daisyUI is Phoenix's): daisyUI's own classes, applied to the
+ * `cinder-*` parts. Unlike the plain-CSS themes it uses `@apply`: it needs Tailwind
+ * with daisyUI anyway, and applying daisyUI's classes keeps it in step with the
+ * app's daisyUI theme (colours, radii, sizes).
+ *
+ * Scoped to `[data-cinder-theme="daisy_ui"]` for the dev app's themes page.
+ */
+@layer cinder {
+  [data-cinder-theme="daisy_ui"] {
+    /* Cinder's variables from daisyUI's, so anything not restyled below still
+       follows the app's daisyUI theme */
+    --cinder-fg: var(--color-base-content);
+    --cinder-muted: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+    --cinder-bg: var(--color-base-100);
+    --cinder-border: var(--color-base-300);
+    --cinder-hover: var(--color-base-200);
+    --cinder-accent: var(--color-primary);
+    --cinder-active-bg: color-mix(in oklab, var(--color-primary) 10%, transparent);
+    --cinder-danger: var(--color-error);
+    --cinder-radius: var(--radius-field);
+
+    .cinder-toolbar {
+      @apply gap-4;
+    }
+
+    :is(.cinder-search, .cinder-filter, .cinder-sort-select) > label {
+      @apply label text-xs;
+    }
+
+    :is(.cinder-search, .cinder-filter) input {
+      @apply input input-sm;
+    }
+
+    :is(.cinder-filter, .cinder-sort-select) select {
+      @apply select select-sm;
+    }
+
+    :is(.cinder-filter-clear, .cinder-search-clear) {
+      @apply btn btn-ghost btn-xs btn-circle;
+    }
+
+    .cinder-table {
+      @apply table;
+    }
+
+    .cinder-header-cell {
+      @apply border-0 text-xs;
+    }
+
+    .cinder-cell {
+      @apply border-0;
+    }
+
+    /* As today's daisy_ui theme: selected rows tinted, selected cards ringed */
+    .cinder-row[data-selected] {
+      @apply bg-primary/5;
+    }
+
+    :is(.cinder-select, .cinder-select-page) {
+      @apply checkbox checkbox-sm;
+    }
+
+    .cinder-item {
+      @apply card card-border bg-base-100 p-4;
+
+      &[data-selected] {
+        @apply ring-2 ring-primary border-base-300 bg-base-100;
+      }
+    }
+
+    .cinder-pagination {
+      @apply gap-1;
+    }
+
+    button.cinder-page {
+      @apply btn btn-sm;
+
+      &[data-active] {
+        @apply btn-active btn-primary;
+      }
+    }
+
+    .cinder-layout-switch {
+      @apply join;
+    }
+
+    button.cinder-layout {
+      @apply btn btn-sm join-item;
+
+      &[data-active] {
+        @apply btn-active;
+      }
+    }
+
+    .cinder-bulk-bar {
+      @apply alert;
+    }
+
+    button:is(.cinder-bulk-action, .cinder-clear-selection, .cinder-cancel) {
+      @apply btn btn-sm;
+    }
+
+    button.cinder-confirm {
+      @apply btn btn-sm btn-error;
+    }
+
+    .cinder-group-header th {
+      @apply bg-base-200;
+    }
+  }
+}
