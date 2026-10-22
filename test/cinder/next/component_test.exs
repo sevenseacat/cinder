@@ -236,17 +236,18 @@ defmodule Cinder.Next.ComponentTest do
   # For components like Petal's table, which take a command per column, not attrs
   test "sort_command/2 sorts like a sortable header", %{conn: conn} do
     path =
-      Cinder.TestLive.Fixture.register(fn assigns ->
-        ~H"""
-        <Cinder.Next.collection id="albums" resource={Music.Album} page_size={2}>
-          <:sort field="title" />
-          <:page :let={c}>
-            <button id="by-title" phx-click={Cinder.Next.sort_command(c, "title")}>Title</button>
-            <p :for={row <- c.rows}>{row.record.title}</p>
-          </:page>
-        </Cinder.Next.collection>
-        """
-      end)
+      Cinder.TestLive.NextFixture.register(
+        &Cinder.Next.LiveView.assign_collection(&1, :albums, Music.Album,
+          page_size: 2,
+          sorts: [:title]
+        ),
+        fn assigns ->
+          ~H"""
+          <button id="by-title" phx-click={Cinder.Next.sort_command(@albums, "title")}>Title</button>
+          <p :for={row <- @albums.rows}>{row.record.title}</p>
+          """
+        end
+      )
 
     {:ok, view, _html} = live(conn, path)
     render_async(view)
@@ -266,13 +267,11 @@ defmodule Cinder.Next.ComponentTest do
             </select>
           </:filter>
           <:filter field="title" />
-          <:page :let={c}>
-            <form {c.form_attrs}>
-              <div id="top"><Cinder.Next.filter collection={c} field="genre" /></div>
-              <div id="bottom"><Cinder.Next.filter collection={c} field="title" /></div>
-            </form>
-            <p :for={row <- c.rows}>{row.record.title}</p>
-          </:page>
+          <:col :let={album} field="title">{album.title}</:col>
+          <:toolbar :let={c}>
+            <div id="top"><Cinder.Next.filter collection={c} field="genre" /></div>
+            <div id="bottom"><Cinder.Next.filter collection={c} field="title" /></div>
+          </:toolbar>
         </Cinder.Next.collection>
         """
       end)

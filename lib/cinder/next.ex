@@ -417,7 +417,20 @@ defmodule Cinder.Next do
   attr :class, :any, default: nil
   attr :rest, :global
 
+  slot :col,
+    doc: """
+    The table's own columns, instead of the collection's `<:col>`s: how a template
+    gives a collection kept in a LiveView (which has no slots) its columns. Each is
+    matched to the collection's sort for its field.
+    """ do
+    attr :field, :string, required: true
+    attr :label, :string
+  end
+
+  @doc "The records as a table, with the collection's columns or its own `:col`s"
   def table(assigns) do
+    assigns = assign(assigns, :columns, table_columns(assigns.col, assigns.collection))
+
     ~H"""
     <table {merge(%{}, "table", @class, @rest)}>
       <thead>
@@ -425,7 +438,7 @@ defmodule Cinder.Next do
           <th :if={@collection.selection} class="cinder-select-cell">
             <input {styled(@collection.selection.page_attrs, "select-page")} />
           </th>
-          <th :for={column <- @collection.columns} {styled(column.attrs, "header-cell")}>
+          <th :for={column <- @columns} {styled(column.attrs, "header-cell")}>
             <%= if column.sort do %>
               <button {styled(column.sort.attrs, "sort")}>
                 <.header_content column={column} /><span {styled(column.sort.indicator_attrs, "sort-indicator")}></span>
@@ -441,24 +454,24 @@ defmodule Cinder.Next do
       <%= for group <- @collection.groups || [] do %>
         <tbody {styled(group.attrs, "group")}>
           <tr class="cinder-group-header">
-            <th colspan={column_count(@collection)} scope="colgroup">
+            <th colspan={column_count(@columns, @collection)} scope="colgroup">
               <.group_header group={group} />
             </th>
           </tr>
         </tbody>
         <tbody {styled(group.items_attrs, "group-items")}>
-          <.table_row :for={row <- group.items} row={row} collection={@collection} />
+          <.table_row :for={row <- group.items} row={row} columns={@columns} />
         </tbody>
       <% end %>
       <tbody>
         <%= if !@collection.groups do %>
-          <.table_row :for={row <- @collection.rows} row={row} collection={@collection} />
+          <.table_row :for={row <- @collection.rows} row={row} columns={@columns} />
         <% end %>
         <tr :if={@collection.rows == [] and @collection.status == :idle} class="cinder-empty">
-          <td colspan={column_count(@collection)}>{dgettext("cinder", "No results found")}</td>
+          <td colspan={column_count(@columns, @collection)}>{dgettext("cinder", "No results found")}</td>
         </tr>
         <tr :if={@collection.status == :error} class="cinder-error">
-          <td colspan={column_count(@collection)}>
+          <td colspan={column_count(@columns, @collection)}>
             {dgettext("cinder", "An error occurred while loading data")}
           </td>
         </tr>
@@ -494,9 +507,23 @@ defmodule Cinder.Next do
     """
   end
 
+  defp table_columns([], collection), do: collection.columns
+
+  defp table_columns(cols, collection) do
+    for col <- cols do
+      column = %{
+        field: col.field,
+        label: col[:label] || Cinder.Filter.Helpers.humanize_embedded_field(col.field),
+        slot: col
+      }
+
+      View.column(column, collection.sorts[col.field])
+    end
+  end
+
   # Columns plus the selection column, for cells that span the whole table
-  defp column_count(collection),
-    do: length(collection.columns) + if(collection.selection, do: 1, else: 0)
+  defp column_count(columns, collection),
+    do: length(columns) + if(collection.selection, do: 1, else: 0)
 
   attr :column, :map, required: true
 
@@ -505,13 +532,13 @@ defmodule Cinder.Next do
   defp header_content(assigns), do: ~H"{render_slot(@column.header, @column)}"
 
   attr :row, :map, required: true
-  attr :collection, :map, required: true
+  attr :columns, :list, required: true
 
   defp table_row(assigns) do
     ~H"""
     <tr {styled(@row.attrs, "row")}>
       <td :if={@row.select_attrs} class="cinder-select-cell"><input {styled(@row.select_attrs, "select")} /></td>
-      <td :for={column <- @collection.columns} class="cinder-cell" data-field={column.field}>
+      <td :for={column <- @columns} class="cinder-cell" data-field={column.field}>
         <%= if column.slot[:inner_block] do %>
           {render_slot(column.slot, @row.record)}
         <% else %>

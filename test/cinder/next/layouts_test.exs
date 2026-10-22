@@ -72,38 +72,42 @@ defmodule Cinder.Next.LayoutsTest do
     assert titles(change(view, %{"search" => "echo"})) == ["Echo"]
   end
 
-  defp sidebar_layout(url_synced?) do
-    fn assigns ->
-      assigns = assign(assigns, :url_synced?, url_synced?)
-
-      ~H"""
-      <Cinder.Next.collection
-        id="albums"
-        resource={Music.Album}
-        url_state={@url_synced? && @url_state}
-        page_size={2}
-      >
-        <:col :let={album} field="title" sort search>{album.title}</:col>
-        <:filter field="genre" />
-        <:page :let={c}>
-          <form {c.form_attrs} class="sidebar">
-            <Cinder.Next.filter :for={f <- c.filters} filter={f} />
+  # A page of its own: the collection kept in the LiveView, arranged freely
+  defp sidebar_page(conn, url_synced?) do
+    path =
+      Cinder.TestLive.NextFixture.register(
+        &Cinder.Next.LiveView.assign_collection(&1, :albums, Music.Album,
+          url: url_synced?,
+          page_size: 2,
+          filters: [genre: []],
+          sorts: [:title],
+          search: ["title"]
+        ),
+        fn assigns ->
+          ~H"""
+          <form {@albums.form_attrs} class="sidebar">
+            <Cinder.Next.filter :for={f <- @albums.filters} filter={f} />
           </form>
           <%!-- Outside the form, joining it through `form=` --%>
-          <Cinder.Next.search search={c.search} />
+          <Cinder.Next.search search={@albums.search} />
           <main>
-            <Cinder.Next.pagination collection={c} id="top-pagination" />
-            <Cinder.Next.table collection={c} />
-            <Cinder.Next.pagination collection={c} id="bottom-pagination" />
+            <Cinder.Next.pagination collection={@albums} id="top-pagination" />
+            <Cinder.Next.table collection={@albums}>
+              <:col :let={album} field="title">{album.title}</:col>
+            </Cinder.Next.table>
+            <Cinder.Next.pagination collection={@albums} id="bottom-pagination" />
           </main>
-        </:page>
-      </Cinder.Next.collection>
-      """
-    end
+          """
+        end
+      )
+
+    {:ok, view, _html} = live(conn, path)
+    render_async(view)
+    view
   end
 
-  test "a custom layout puts filters in a sidebar and pagination top and bottom", %{conn: conn} do
-    view = mount(conn, sidebar_layout(false))
+  test "a page of its own puts filters in a sidebar and pagination top and bottom", %{conn: conn} do
+    view = sidebar_page(conn, false)
     html = render_async(view)
 
     # The layout places the form: filters inside it, search outside it through `form=`
@@ -122,10 +126,8 @@ defmodule Cinder.Next.LayoutsTest do
              ["Bravo", "Delta"]
   end
 
-  # Feature 006 crashed after push_patch when slots reached the LiveComponent as
-  # top-level assigns. The inner block travels inside the config instead.
-  test "a URL-synced custom layout survives repeated patches", %{conn: conn} do
-    view = mount(conn, sidebar_layout(true))
+  test "a URL-synced page of its own survives repeated patches", %{conn: conn} do
+    view = sidebar_page(conn, true)
 
     change(view, %{"filters" => %{"genre" => "rock"}})
     assert assert_patch(view) =~ "genre=rock"
@@ -145,18 +147,19 @@ defmodule Cinder.Next.LayoutsTest do
   test "components take a class and other attributes", %{
     conn: conn
   } do
-    view =
-      mount(conn, fn assigns ->
-        ~H"""
-        <Cinder.Next.collection id="albums" resource={Music.Album}>
-          <:col :let={album} field="title">{album.title}</:col>
-          <:page :let={c}>
-            <Cinder.Next.table collection={c} class="striped" data-density="compact" />
-          </:page>
-        </Cinder.Next.collection>
-        """
-      end)
+    path =
+      Cinder.TestLive.NextFixture.register(
+        &Cinder.Next.LiveView.assign_collection(&1, :albums, Music.Album),
+        fn assigns ->
+          ~H"""
+          <Cinder.Next.table collection={@albums} class="striped" data-density="compact">
+            <:col :let={album} field="title">{album.title}</:col>
+          </Cinder.Next.table>
+          """
+        end
+      )
 
+    {:ok, view, _html} = live(conn, path)
     [table] = Regex.run(~r/<table[^>]*>/, render_async(view))
 
     # Cinder's class first (what its CSS styles), then the caller's

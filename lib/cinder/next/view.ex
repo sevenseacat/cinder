@@ -540,15 +540,18 @@ defmodule Cinder.Next.View do
 
   defp autocomplete_search(ctx), do: ctx.raw[ctx.name <> "_autocomplete_search"] || ""
 
-  # A column's header; a sortable one shares its field's sort view-model, so the
-  # header's button is the same as a sort chip's
-  defp column(column, sort) do
+  @doc """
+  A column's view-model, from a config column or a table's own `:col` slot (`field`,
+  `label`, `slot`, `header`). A sortable one shares its field's sort view-model, so
+  the header's button is the same as a sort chip's.
+  """
+  def column(column, sort) do
     %{
       field: column.field,
       label: column.label,
       slot: column.slot,
       # The `<:header>` slot entry, rendered with this map, or nil for the label
-      header: column.header,
+      header: Map.get(column, :header),
       sort: sort,
       attrs: %{
         "data-field" => column.field,

@@ -325,21 +325,19 @@ defmodule Cinder.Next.HardFiltersTest do
     conn: conn
   } do
     path =
-      Cinder.TestLive.Fixture.register(fn assigns ->
-        ~H"""
-        <Cinder.Next.collection id="albums" resource={Music.Album}>
-          <:col :let={album} field="title">{album.title}</:col>
-          <:filter field="genre" type="select" />
-          <:filter field="title" type="text" />
-          <:page :let={c}>
-            <form {c.form_attrs}>
-              <input :for={f <- c.filters} {f.input_attrs} />
-            </form>
-            <p :for={row <- c.rows}>{row.record.title}</p>
-          </:page>
-        </Cinder.Next.collection>
-        """
-      end)
+      Cinder.TestLive.NextFixture.register(
+        &Cinder.Next.LiveView.assign_collection(&1, :albums, Music.Album,
+          filters: [genre: :select, title: :text]
+        ),
+        fn assigns ->
+          ~H"""
+          <form {@albums.form_attrs}>
+            <input :for={f <- @albums.filters} {f.input_attrs} />
+          </form>
+          <p :for={row <- @albums.rows}>{row.record.title}</p>
+          """
+        end
+      )
 
     {:ok, view, _html} = live(conn, path)
     render_async(view)

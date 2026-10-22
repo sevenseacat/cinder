@@ -14,5 +14,6 @@ defmodule Cinder.TestRouter do
     live "/c/:id", Cinder.TestLive.Fixture
     live "/next-live", Cinder.TestLive.NextLiveView
     live "/next-live/plain", Cinder.TestLive.NextLiveView, :plain
+    live "/n/:id", Cinder.TestLive.NextFixture
   end
 end
