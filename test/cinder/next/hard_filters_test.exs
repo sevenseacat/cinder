@@ -121,7 +121,7 @@ defmodule Cinder.Next.HardFiltersTest do
 
       # Where the browser can't anchor it, the hook places it (a bundled colocated hook)
       assert html =~
-               ~r/<div(?=[^>]*id="#{panel_id}")(?=[^>]*phx-hook="Cinder.Next.Dropdown")[^>]*>/
+               ~r/<div(?=[^>]*id="#{panel_id}")(?=[^>]*phx-hook="Cinder.Filters.MultiSelect.Dropdown")[^>]*>/
 
       assert html =~ "Select options..."
 

@@ -240,4 +240,57 @@ defmodule Cinder.Filters.Autocomplete do
       nil -> nil
     end
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  alias Cinder.Next.FilterView
+
+  # The input is a search box. What's typed is raw input, so it narrows the options
+  # without a query; choosing an option (a radio) is what filters. The chosen one
+  # is always among the options, even when the search no longer matches it: its
+  # radio is what posts the value, so dropping it would clear the filter.
+  @impl true
+  def view(filter, ctx) do
+    search = FilterView.raw(ctx, "autocomplete_search") || ""
+    all = FilterView.declared_options(ctx)
+
+    matching =
+      all
+      |> Enum.filter(fn {label, _value} ->
+        String.contains?(String.downcase(label), String.downcase(search))
+      end)
+      |> Enum.take(ctx.options[:max_results] || 10)
+
+    chosen = Enum.filter(all, fn {_label, value} -> to_string(value) == filter.value end)
+
+    %{
+      filter
+      | options:
+          FilterView.choices(ctx, Enum.uniq(chosen ++ matching), "radio", &(&1 == filter.value)),
+        # It has no single input holding its value
+        form_field: nil,
+        input_attrs:
+          Map.merge(Map.delete(filter.input_attrs, "required"), %{
+            "type" => "search",
+            "name" => Cinder.Filter.field_name(ctx.name, "autocomplete_search"),
+            "value" => search,
+            "placeholder" =>
+              ctx.options[:placeholder] ||
+                dgettext("cinder", "Search %{label}...", label: ctx.label),
+            "autocomplete" => "off"
+          })
+    }
+  end
+
+  @impl true
+  def control(assigns) do
+    ~H"""
+    <span class="cinder-filter-autocomplete">
+      <input {@filter.input_attrs} />
+      <label :for={option <- @filter.options} class="cinder-filter-option">
+        <input {option.input_attrs} /> {option.label}
+      </label>
+    </span>
+    """
+  end
 end

@@ -203,4 +203,63 @@ defmodule Cinder.Filters.NumberRange do
         end
     end
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  alias Cinder.Next.FilterView
+
+  # Two inputs, one filter
+  @impl true
+  def view(filter, ctx) do
+    current = FilterView.filter_value(ctx) || %{}
+
+    value = %{
+      min: FilterView.raw(ctx, "min") || to_string(current[:min] || ""),
+      max: FilterView.raw(ctx, "max") || to_string(current[:max] || "")
+    }
+
+    bounds = [min: dgettext("cinder", "Min"), max: dgettext("cinder", "Max")]
+
+    %{
+      filter
+      | value: value,
+        label_attrs: %{"for" => ctx.input_id <> "-min"},
+        input_attrs:
+          for {bound, placeholder} <- bounds, into: %{} do
+            {bound,
+             %{
+               "id" => "#{ctx.input_id}-#{bound}",
+               "type" => "number",
+               "name" => Cinder.Filter.field_name(ctx.name, Atom.to_string(bound)),
+               "value" => value[bound],
+               "placeholder" => placeholder,
+               "step" => ctx.options[:step],
+               "form" => ctx.form_id,
+               "phx-debounce" => "300",
+               "aria-describedby" => ctx.described_by
+             }}
+          end,
+        form_field:
+          for {bound, _placeholder} <- bounds, into: %{} do
+            {bound,
+             FilterView.form_field(
+               ctx,
+               "#{ctx.name}_#{bound}",
+               "#{ctx.input_id}-#{bound}",
+               value[bound]
+             )}
+          end
+    }
+  end
+
+  @impl true
+  def control(assigns) do
+    ~H"""
+    <span class="cinder-filter-range">
+      <input {@filter.input_attrs.min} />
+      <span>{dgettext("cinder", "to")}</span>
+      <input {@filter.input_attrs.max} />
+    </span>
+    """
+  end
 end

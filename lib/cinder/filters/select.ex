@@ -168,4 +168,32 @@ defmodule Cinder.Filters.Select do
     # Use the centralized helper which supports direct, relationship, and embedded fields
     Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  alias Cinder.Next.FilterView
+
+  # Options start with the prompt that clears the filter. `value` is ignored on a
+  # real `<select>` (its options' `selected` decides), but it keeps the filter's
+  # state whatever control the attrs are spread on.
+  @impl true
+  def view(filter, ctx) do
+    prompt = ctx.options[:prompt] || dgettext("cinder", "All %{label}", label: ctx.label)
+    choices = [{prompt, ""} | FilterView.declared_options(ctx)]
+
+    %{
+      filter
+      | options: FilterView.choices(ctx, choices, "radio", &(&1 == filter.value)),
+        input_attrs: Map.drop(filter.input_attrs, ["type", "phx-debounce"])
+    }
+  end
+
+  @impl true
+  def control(assigns) do
+    ~H"""
+    <select {@filter.input_attrs}>
+      <option :for={option <- @filter.options} {option.attrs}>{option.label}</option>
+    </select>
+    """
+  end
 end

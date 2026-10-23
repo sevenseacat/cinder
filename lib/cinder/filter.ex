@@ -323,6 +323,22 @@ defmodule Cinder.Filter do
   """
   @callback build_query(Ash.Query.t(), String.t(), map()) :: Ash.Query.t()
 
+  @doc """
+  The new shell (spike): adds this type's parts to the filter's view-model. Gets
+  the common view-model and its context, and returns the view-model. See
+  `Cinder.Next.FilterView`.
+  """
+  @callback view(filter :: map(), ctx :: map()) :: map()
+
+  @doc """
+  The new shell (spike): renders this type's controls from `@filter`, its
+  view-model. Without it, the default markup renders `@filter.input_attrs` as an
+  `<input>`.
+  """
+  @callback control(assigns :: map()) :: Phoenix.LiveView.Rendered.t()
+
+  @optional_callbacks view: 2, control: 1
+
   # Shared utility functions
 
   @doc """

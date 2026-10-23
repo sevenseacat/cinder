@@ -18,7 +18,7 @@ msgid "Clear all"
 msgstr "Ryd alle"
 
 #: lib/cinder/filter_manager.ex
-#: lib/cinder/next/view.ex
+#: lib/cinder/next/filter_view.ex
 #, elixir-autogen
 msgid "Clear filter"
 msgstr "Ryd filter"
@@ -43,7 +43,6 @@ msgstr "viser %{start}-%{end} af %{total}"
 
 #: lib/cinder/filters/date_range.ex
 #: lib/cinder/filters/number_range.ex
-#: lib/cinder/next.ex
 #, elixir-autogen
 msgid "to"
 msgstr "til"
@@ -103,7 +102,6 @@ msgid "Sort by:"
 msgstr "Sortér efter:"
 
 #: lib/cinder/filters/text.ex
-#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Filter %{label}..."
 msgstr "Filtrér %{label}..."
@@ -114,19 +112,16 @@ msgid "From"
 msgstr "Fra"
 
 #: lib/cinder/filters/number_range.ex
-#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Max"
 msgstr "Maks"
 
 #: lib/cinder/filters/number_range.ex
-#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Min"
 msgstr "Min"
 
 #: lib/cinder/filters/autocomplete.ex
-#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Search %{label}..."
 msgstr "Søg %{label}..."
@@ -143,7 +138,6 @@ msgstr "Til"
 
 #: lib/cinder/filter_manager.ex
 #: lib/cinder/filters/select.ex
-#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "All %{label}"
 msgstr "Alle %{label}"
@@ -163,7 +157,6 @@ msgid "Search..."
 msgstr "Søg..."
 
 #: lib/cinder/filters/multi_select.ex
-#: lib/cinder/next/view.ex
 #, elixir-autogen, elixir-format
 msgid "Select options..."
 msgstr "Vælg muligheder..."

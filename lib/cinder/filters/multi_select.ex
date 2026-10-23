@@ -214,4 +214,80 @@ defmodule Cinder.Filters.MultiSelect do
     # Pass match_mode as additional context for array field handling
     Cinder.Filter.Helpers.build_ash_filter(query, field, values, :in, match_mode: match_mode)
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  alias Cinder.Next.FilterView
+
+  # A button that opens a panel of checkboxes. The panel is a `popover`: the
+  # browser puts it in the top layer (never clipped by an `overflow` container or
+  # covered by later content) and closes it on Escape or a click outside, with no
+  # JS. Where anchor positioning is supported, the structural CSS places it under
+  # its button by these anchor names; elsewhere the hook below does.
+  @impl true
+  def view(filter, ctx) do
+    filter = FilterView.checkboxes(filter, ctx)
+    panel_id = ctx.input_id <> "-panel"
+    anchor = "--" <> ctx.input_id
+    labels = for %{selected?: true, label: label} <- filter.options, do: label
+
+    summary =
+      case labels do
+        [] -> dgettext("cinder", "Select options...")
+        [_ | _] when length(labels) <= 2 -> Enum.join(labels, ", ")
+        _ -> dgettext("cinder", "%{count} selected", count: length(labels))
+      end
+
+    Map.put(filter, :dropdown, %{
+      summary: summary,
+      trigger_attrs: %{
+        "type" => "button",
+        "id" => ctx.input_id,
+        "popovertarget" => panel_id,
+        "aria-haspopup" => "true",
+        "style" => "anchor-name: #{anchor}"
+      },
+      panel_attrs: %{
+        "id" => panel_id,
+        "popover" => "auto",
+        "aria-labelledby" => ctx.input_id,
+        "phx-hook" => "Cinder.Filters.MultiSelect.Dropdown",
+        "style" => "position-anchor: #{anchor}"
+      }
+    })
+  end
+
+  @impl true
+  def control(assigns) do
+    ~H"""
+    <button {Cinder.Next.styled(@filter.dropdown.trigger_attrs, "dropdown-trigger")}>
+      {@filter.dropdown.summary}
+    </button>
+    <%!-- Where the browser can't anchor the panel (no `position-area`), it would
+         open as a fixed, centred popover that doesn't scroll with the page. This
+         places it under its button in page coordinates instead, each time it
+         opens, through `this.js()` so re-renders keep it. A bundled colocated
+         hook: apps import `phoenix-colocated/cinder` (as decided on PR #209). --%>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".Dropdown">
+      export default {
+        mounted() {
+          if (CSS.supports("position-area: block-end")) return
+          this.el.addEventListener("toggle", (event) => {
+            if (event.newState !== "open") return
+            const trigger = document.querySelector(`[popovertarget="${this.el.id}"]`)
+            const rect = trigger.getBoundingClientRect()
+            const style = `position: absolute; inset: auto; margin: 0; ` +
+              `top: ${rect.bottom + window.scrollY + 4}px; left: ${rect.left + window.scrollX}px`
+            this.js().setAttribute(this.el, "style", style)
+          })
+        }
+      }
+    </script>
+    <div {Cinder.Next.styled(@filter.dropdown.panel_attrs, "dropdown-panel")}>
+      <label :for={option <- @filter.options} class="cinder-filter-option">
+        <input {option.input_attrs} /> {option.label}
+      </label>
+    </div>
+    """
+  end
 end

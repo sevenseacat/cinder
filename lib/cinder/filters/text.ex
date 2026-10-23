@@ -106,4 +106,21 @@ defmodule Cinder.Filters.Text do
     # Use the centralized helper which supports direct, relationship, and embedded fields
     Cinder.Filter.Helpers.build_ash_filter(query, field, search_value, operator)
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  @impl true
+  def view(filter, ctx) do
+    placeholder =
+      ctx.options[:placeholder] || dgettext("cinder", "Filter %{label}...", label: ctx.label)
+
+    %{
+      filter
+      | input_attrs:
+          Map.merge(filter.input_attrs, %{
+            "type" => ctx.options[:input_type] || "text",
+            "placeholder" => placeholder
+          })
+    }
+  end
 end

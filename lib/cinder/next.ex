@@ -267,82 +267,47 @@ defmodule Cinder.Next do
     """
   end
 
-  # A dropdown: a button, and a popover panel of checkboxes (see `View.dropdown/3`)
-  def filter(%{filter: %{type: :multi_select}} = assigns) do
-    ~H"""
-    <div {merge(@filter.attrs, "filter", @class, @rest)}>
-      <label for={@filter.dropdown.trigger_attrs["id"]}>{@filter.label}</label>
-      <button {styled(@filter.dropdown.trigger_attrs, "dropdown-trigger")}>
-        {@filter.dropdown.summary}
-      </button>
-      <%!-- Where the browser can't anchor the panel (no `position-area`), it would
-           open as a fixed, centred popover that doesn't scroll with the page. This
-           places it under its button in page coordinates instead, each time it
-           opens, through `this.js()` so re-renders keep it. A bundled colocated
-           hook: apps import `phoenix-colocated/cinder` (as decided on PR #209). --%>
-      <script :type={Phoenix.LiveView.ColocatedHook} name=".Dropdown">
-        export default {
-          mounted() {
-            if (CSS.supports("position-area: block-end")) return
-            this.el.addEventListener("toggle", (event) => {
-              if (event.newState !== "open") return
-              const trigger = document.querySelector(`[popovertarget="${this.el.id}"]`)
-              const rect = trigger.getBoundingClientRect()
-              const style = `position: absolute; inset: auto; margin: 0; ` +
-                `top: ${rect.bottom + window.scrollY + 4}px; left: ${rect.left + window.scrollX}px`
-              this.js().setAttribute(this.el, "style", style)
-            })
-          }
-        }
-      </script>
-      <div {styled(@filter.dropdown.panel_attrs, "dropdown-panel")}>
-        <label :for={option <- @filter.options} class="cinder-filter-option">
-          <input {option.input_attrs} /> {option.label}
-        </label>
-      </div>
-      <button {styled(@filter.clear_attrs, "filter-clear")}>×</button>
-      <p :if={@filter.help} {styled(@filter.help_attrs, "filter-help")}>{@filter.help}</p>
-    </div>
-    """
-  end
-
-  # A group of checkboxes is labelled by a legend, not a label pointing at one input
-  def filter(%{filter: %{type: :multi_checkboxes}} = assigns) do
-    ~H"""
-    <fieldset {merge(@filter.attrs, "filter", @class, @rest)}>
-      <legend>{@filter.label}</legend>
-      <label :for={option <- @filter.options} class="cinder-filter-option">
-        <input {option.input_attrs} /> {option.label}
-      </label>
-      <button {styled(@filter.clear_attrs, "filter-clear")}>×</button>
-      <p :if={@filter.help} {styled(@filter.help_attrs, "filter-help")}>{@filter.help}</p>
-    </fieldset>
-    """
-  end
-
+  # A group of inputs (checkboxes, radios) is labelled by a legend; one input, by a label
   def filter(assigns) do
     ~H"""
-    <div {merge(@filter.attrs, "filter", @class, @rest)}>
-      <label {@filter.label_attrs}>{@filter.label}<span :if={@filter.required?} aria-hidden="true"> *</span></label>
-      <input :if={@filter.type == :text} {@filter.input_attrs} />
-      <select :if={@filter.type == :select} {@filter.input_attrs}>
-        <option :for={option <- @filter.options} {option.attrs}>{option.label}</option>
-      </select>
-      <span :if={@filter.type == :autocomplete} class="cinder-filter-autocomplete">
-        <input {@filter.input_attrs} />
-        <label :for={option <- @filter.options} class="cinder-filter-option">
-          <input {option.input_attrs} /> {option.label}
-        </label>
-      </span>
-      <span :if={@filter.type == :number_range} class="cinder-filter-range">
-        <input {@filter.input_attrs.min} />
-        <span>{dgettext("cinder", "to")}</span>
-        <input {@filter.input_attrs.max} />
-      </span>
-      <button {styled(@filter.clear_attrs, "filter-clear")}>×</button>
-      <p :if={@filter.help} {styled(@filter.help_attrs, "filter-help")}>{@filter.help}</p>
-      <p :if={@filter.errors != []} {styled(@filter.error_attrs, "filter-error")}>{Enum.join(@filter.errors, ", ")}</p>
+    <fieldset :if={@filter.group?} {merge(@filter.attrs, "filter", @class, @rest)}>
+      <legend>{@filter.label}<.required filter={@filter} /></legend>
+      <.filter_parts filter={@filter} />
+    </fieldset>
+    <div :if={!@filter.group?} {merge(@filter.attrs, "filter", @class, @rest)}>
+      <label {@filter.label_attrs}>{@filter.label}<.required filter={@filter} /></label>
+      <.filter_parts filter={@filter} />
     </div>
+    """
+  end
+
+  defp required(assigns) do
+    ~H"""
+    <span :if={@filter.required?} aria-hidden="true"> *</span>
+    """
+  end
+
+  defp filter_parts(assigns) do
+    ~H"""
+    <.filter_control filter={@filter} />
+    <button {styled(@filter.clear_attrs, "filter-clear")}>×</button>
+    <p :if={@filter.help} {styled(@filter.help_attrs, "filter-help")}>{@filter.help}</p>
+    <p :if={@filter.errors != []} {styled(@filter.error_attrs, "filter-error")}>{Enum.join(@filter.errors, ", ")}</p>
+    """
+  end
+
+  attr :filter, :map, required: true
+
+  @doc """
+  A filter's controls alone, with no label or help: its type's `control/1`, or
+  `@filter.input_attrs` as an `<input>`.
+  """
+  def filter_control(%{filter: %{control: control}} = assigns) when control != nil,
+    do: control.(assigns)
+
+  def filter_control(assigns) do
+    ~H"""
+    <input {@filter.input_attrs} />
     """
   end
 
@@ -613,7 +578,8 @@ defmodule Cinder.Next do
 
   # What these components render gets a `cinder-<part>` class: the part's name, and
   # what Cinder's CSS styles. Attribute maps carry no name or class, so your own
-  # markup spreading them is never styled by Cinder.
-  defp styled(attrs, part),
+  # markup spreading them is never styled by Cinder. Public for filter types' controls.
+  @doc false
+  def styled(attrs, part),
     do: Map.update(attrs, "class", "cinder-" <> part, &["cinder-" <> part, &1])
 end

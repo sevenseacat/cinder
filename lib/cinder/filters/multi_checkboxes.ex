@@ -148,4 +148,20 @@ defmodule Cinder.Filters.MultiCheckboxes do
     # Pass match_mode as additional context for array field handling
     Cinder.Filter.Helpers.build_ash_filter(query, field, values, :in, match_mode: match_mode)
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  alias Cinder.Next.FilterView
+
+  @impl true
+  def view(filter, ctx), do: %{FilterView.checkboxes(filter, ctx) | group?: true}
+
+  @impl true
+  def control(assigns) do
+    ~H"""
+    <label :for={option <- @filter.options} class="cinder-filter-option">
+      <input {option.input_attrs} /> {option.label}
+    </label>
+    """
+  end
 end
