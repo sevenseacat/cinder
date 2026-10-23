@@ -25,6 +25,10 @@ config :ash, default_string_length_count: :codepoints
 
 config :cinder, default_theme: "daisy_ui"
 
+# Custom filters for the shell-rewrite spike's /next/filters
+config :cinder,
+  filters: [slider: CinderDev.Filters.Slider, custom_select: CinderDev.Filters.CustomSelect]
+
 # Configure LiveView
 config :phoenix_live_view,
   # the attribute set on all root tags. Used for Phoenix.LiveView.ColocatedCSS.

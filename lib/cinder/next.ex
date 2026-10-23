@@ -79,9 +79,12 @@ defmodule Cinder.Next do
     attr :match_mode, :any, values: [:any, :all, "any", "all"]
     attr :case_sensitive, :boolean
     attr :max_results, :integer, doc: "Autocomplete: how many matching options to show"
-    attr :include_time, :boolean, doc: "Date range: dates and times, not only dates"
-    attr :labels, :map, doc: "Boolean: the choices' labels, `%{true: \"Yes\", false: \"No\"}`"
-    attr :value, :any, doc: "Checkbox: the value it filters by when checked (default `true`)"
+
+    attr :opts, :list,
+      doc: """
+      The type's own options, checked by its `options_schema/0`: a date range's
+      `include_time`, a boolean's `labels`, a checkbox's `value`, a custom type's
+      """
   end
 
   slot :argument,

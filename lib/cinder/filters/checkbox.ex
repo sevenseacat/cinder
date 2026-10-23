@@ -174,6 +174,13 @@ defmodule Cinder.Filters.Checkbox do
 
   # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
 
+  @impl true
+  def options_schema do
+    [
+      value: [type: :any, default: true, doc: "What it filters by, when checked"]
+    ]
+  end
+
   # The default input, as one checkbox posting the declared value (`true` by
   # default) when it's checked, and nothing when it isn't
   @impl true

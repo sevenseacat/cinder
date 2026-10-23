@@ -80,7 +80,7 @@ defmodule Cinder.Next.LiveView do
       :query_opts => query_opts,
       :search => opts[:search],
       :group => group(opts[:group]),
-      :filter => Enum.map(opts[:filters] || [], &slot(:filter, :field, &1, :type)),
+      :filter => Enum.map(opts[:filters] || [], &filter_slot/1),
       :argument => Enum.map(opts[:arguments] || [], &slot(:argument, :name, &1, :type)),
       :sort => Enum.map(opts[:sorts] || [], &slot(:sort, :field, &1, nil)),
       :bulk_action => Enum.map(opts[:bulk_actions] || [], &slot(:bulk_action, :name, &1, :action))
@@ -94,6 +94,17 @@ defmodule Cinder.Next.LiveView do
   defp group(opts) do
     {field, opts} = Keyword.pop!(opts, :field)
     [Map.merge(%{__slot__: :group, inner_block: nil, field: to_string(field)}, Map.new(opts))]
+  end
+
+  # `[type: :slider, min: 0]` reads flat; the keys a `<:filter>` doesn't declare
+  # are the type's own `opts`
+  defp filter_slot(entry) do
+    slot = slot(:filter, :field, entry, :type)
+    {own, opts} = Map.split(slot, [:__slot__, :inner_block | Cinder.Next.Schema.filter_keys()])
+
+    if opts == %{},
+      do: own,
+      else: Map.put(own, :opts, Keyword.merge(Map.to_list(opts), Map.get(own, :opts, [])))
   end
 
   # `title`, `{:genre, :select}` or `{:price, [type: :number_range, label: ...]}`

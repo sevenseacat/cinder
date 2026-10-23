@@ -94,6 +94,11 @@ defmodule Cinder.Filters.Boolean do
 
   # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
 
+  @impl true
+  def options_schema do
+    [labels: [type: :map, doc: "The choices' labels, `%{true: \"Yes\", false: \"No\"}`"]]
+  end
+
   # A radio group of its two labels
   @impl true
   def view(filter, ctx) do

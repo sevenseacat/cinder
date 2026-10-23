@@ -337,7 +337,15 @@ defmodule Cinder.Filter do
   """
   @callback control(assigns :: map()) :: Phoenix.LiveView.Rendered.t()
 
-  @optional_callbacks view: 2, control: 1
+  @doc """
+  The new shell (spike): a `Spark.Options` schema for this type's own options,
+  given as `opts={[...]}` on `<:filter>` (or flat in `assign_collection/4`'s
+  keyword lists), checked when the collection mounts. Without one, the keys of
+  `default_options/0` are accepted, unchecked.
+  """
+  @callback options_schema() :: keyword()
+
+  @optional_callbacks view: 2, control: 1, options_schema: 0
 
   # Shared utility functions
 

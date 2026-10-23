@@ -301,6 +301,7 @@ if Code.ensure_loaded?(Igniter) do
       def build_query(query, field, filter_value) do
         #{base_filter}.build_query(query, field, filter_value)
       end
+      #{new_shell_callbacks(base_filter)}
 
       # You can override any of the above functions to customize behavior
       # For example, to customize rendering:
@@ -310,6 +311,21 @@ if Code.ensure_loaded?(Igniter) do
       #   # Your custom rendering logic here
       # end
       """
+    end
+
+    # The new shell's callbacks (spike), delegated to the base where it has them,
+    # so a generated filter renders like its base until it's customised
+    defp new_shell_callbacks(base_filter) do
+      base = Module.concat([base_filter])
+      Code.ensure_loaded(base)
+
+      [
+        {:options_schema, 0, "def options_schema, do: #{base_filter}.options_schema()"},
+        {:view, 2, "def view(filter, ctx), do: #{base_filter}.view(filter, ctx)"},
+        {:control, 1, "def control(assigns), do: #{base_filter}.control(assigns)"}
+      ]
+      |> Enum.filter(fn {name, arity, _code} -> function_exported?(base, name, arity) end)
+      |> Enum.map_join(fn {_name, _arity, code} -> "\n@impl true\n#{code}\n" end)
     end
 
     # Get the base filter module for each template

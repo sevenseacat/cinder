@@ -1,7 +1,8 @@
 defmodule CinderDevWeb.NextFiltersLive do
   @moduledoc """
   The shell-rewrite spike's filter types, each rendered by the default markup from
-  its view-model (`Cinder.Next.FilterView`): the built-ins, and custom filters.
+  its view-model (`Cinder.Next.FilterView`): the built-ins, and two custom filters
+  registered in `config/config.exs`.
   """
   use CinderDevWeb, :live_view
   use Cinder.UrlSync
@@ -55,7 +56,7 @@ defmodule CinderDevWeb.NextFiltersLive do
           field="is_remastered"
           type="boolean"
           label="Remastered"
-          labels={%{true: "Yes", false: "No"}}
+          opts={[labels: %{true: "Yes", false: "No"}]}
         />
         <:filter
           field="artist.name"
@@ -63,7 +64,21 @@ defmodule CinderDevWeb.NextFiltersLive do
           label="Artist"
           options={@artists}
         />
-        <:filter field="track_count" type="checkbox" label="Twelve tracks" value={12} />
+        <:filter field="track_count" type="checkbox" label="Twelve tracks" opts={[value: 12]} />
+      </Cinder.Next.collection>
+
+      <h2 class="mt-12 text-lg font-semibold">Custom filters</h2>
+      <p class="text-sm opacity-70">
+        A hand-written slider (`CinderDev.Filters.Slider`), and a select from
+        `mix cinder.gen.filter CinderDev.Filters.CustomSelect custom_select --template=select`
+        (not URL-synced)
+      </p>
+      <Cinder.Next.collection id="custom-filters" resource={Music.Album} page_size={5}>
+        <:col :let={album} field="title">{album.title}</:col>
+        <:col field="genre" />
+        <:col field="track_count" label="Tracks" />
+        <:filter field="track_count" type="slider" label="Tracks, at most" opts={[min: 5, max: 20]} />
+        <:filter field="genre" type="custom_select" label="Genre (generated filter)" />
       </Cinder.Next.collection>
     </Layouts.app>
     """

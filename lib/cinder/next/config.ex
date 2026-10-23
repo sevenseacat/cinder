@@ -88,10 +88,7 @@ defmodule Cinder.Next.Config do
     :operator,
     :match_mode,
     :case_sensitive,
-    :max_results,
-    :include_time,
-    :labels,
-    :value
+    :max_results
   ]
 
   @doc "Builds the config from `Cinder.Next.collection/1`'s assigns."
@@ -270,9 +267,21 @@ defmodule Cinder.Next.Config do
         filter_options: slot_options(slot)
       })
 
+    # The type's own options, checked by the type (once it's known: it may be inferred)
+    opts =
+      case slot[:opts] do
+        nil ->
+          []
+
+        opts ->
+          module = Cinder.Filters.Registry.get_filter(inferred.filter_type)
+          where = "<:filter> for #{inspect(name)} (#{inferred.filter_type})"
+          Cinder.Next.Schema.validate_filter_opts!(module, opts, where)
+      end
+
     %Filter{
       type: inferred.filter_type,
-      options: inferred.filter_options,
+      options: Keyword.merge(inferred.filter_options, opts),
       help: slot[:help],
       render: if(slot[:inner_block], do: slot)
     }

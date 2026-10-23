@@ -102,9 +102,7 @@ defmodule Cinder.Next.Schema do
       match_mode: [type: {:custom, __MODULE__, :one_of, [[:any, :all]]}],
       case_sensitive: [type: :boolean],
       max_results: [type: :pos_integer],
-      include_time: [type: :boolean],
-      labels: [type: :map],
-      value: [type: :any]
+      opts: [type: :keyword_list]
     ],
     argument: [
       name: [type: :string, required: true],
@@ -156,6 +154,23 @@ defmodule Cinder.Next.Schema do
           assigns
       end
     end)
+  end
+
+  @doc "The attrs a `<:filter>` declares; a keyword list's other keys are its `opts`."
+  def filter_keys, do: Keyword.keys(@slots.filter)
+
+  @doc """
+  Checks a filter type's own options (`opts`) against its module's
+  `options_schema/0`, or, without one, against the keys of its
+  `default_options/0`. Returns them validated, with the schema's defaults.
+  """
+  def validate_filter_opts!(module, opts, where) do
+    schema =
+      if function_exported?(module, :options_schema, 0),
+        do: module.options_schema(),
+        else: for(key <- Keyword.keys(module.default_options()), do: {key, [type: :any]})
+
+    validate!(opts, schema, where)
   end
 
   @doc "`assign_collection/4`'s options, as Markdown for its docs."
@@ -210,12 +225,11 @@ defmodule Cinder.Next.Schema do
   @doc false
   # A built-in type (atom or string) or a custom filter module; a string is matched
   # against the known types rather than made into an atom
-  def filter_type(type) when is_atom(type), do: {:ok, type}
+  # A built-in type, or a custom one registered in `config :cinder, filters: [...]`
+  def filter_type(type) when is_atom(type) or is_binary(type) do
+    known = Cinder.Filters.Registry.all_filters_with_custom() |> Map.keys() |> Enum.sort()
 
-  def filter_type(type) when is_binary(type) do
-    known = Cinder.Filters.Registry.filter_types()
-
-    case Enum.find(known, &(Atom.to_string(&1) == type)) do
+    case Enum.find(known, &(&1 == type or Atom.to_string(&1) == type)) do
       nil -> {:error, "unknown filter type #{inspect(type)}. Known types: #{inspect(known)}"}
       atom -> {:ok, atom}
     end

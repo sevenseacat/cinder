@@ -61,7 +61,8 @@ defmodule Cinder.Next.FilterTypesTest do
         <Cinder.Next.collection id="albums" resource={Music.Album} url_state={@url_state}>
           <:col :let={album} field="title">{album.title}</:col>
           <:filter field="release_date" type="date_range" />
-          <:filter field="is_remastered" type="boolean" labels={%{true: "Yes", false: "No"}} />
+          <:filter field="is_remastered" type="boolean"
+            opts={[labels: %{true: "Yes", false: "No"}]} />
           <:filter
             field="genre"
             type="radio_group"

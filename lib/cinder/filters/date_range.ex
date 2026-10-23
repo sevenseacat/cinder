@@ -355,6 +355,14 @@ defmodule Cinder.Filters.DateRange do
 
   alias Cinder.Next.FilterView
 
+  @impl true
+  def options_schema do
+    [
+      include_time: [type: :boolean, default: false, doc: "Dates and times, not only dates"],
+      format: [type: {:in, [:date, :datetime]}, default: :date]
+    ]
+  end
+
   # Two inputs, one filter, as dates or (`include_time`) dates and times
   @impl true
   def view(filter, ctx) do
