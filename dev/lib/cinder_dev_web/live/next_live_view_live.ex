@@ -1,7 +1,8 @@
 defmodule CinderDevWeb.NextLiveViewLive do
   @moduledoc """
   The shell-rewrite spike's sketch 8b: the collection lives in this LiveView's
-  assigns (`use Cinder.Next.LiveView`), declared in `mount`, and the template is
+  assigns (`use Cinder.Next.LiveView`), declared in a module with `Cinder.Next.Dsl`
+  (`CinderDevWeb.Collections.Albums`) and assigned in `mount`. The template is
   only function components, arranged freely: pagination twice, the bulk bar under
   the results, and the card written where the grid is.
   """
@@ -13,21 +14,7 @@ defmodule CinderDevWeb.NextLiveViewLive do
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     Collections.assign_collection(socket, :albums, Music.Album,
-       url: true,
-       load: [:artist],
-       page_size: 12,
-       layouts: [:grid],
-       grid_columns: [xs: 1, sm: 2, lg: 3],
-       selectable: true,
-       search: ["title", "artist.name"],
-       filters: [genre: [type: :select, prompt: "Any genre"], price: :number_range],
-       sorts: [:title, :price, release_date: [label: "Released"]],
-       bulk_actions: [
-         remaster: :remaster,
-         delete: [action: :destroy, confirm: "Delete {count} albums?"]
-       ]
-     )}
+     Collections.assign_collection(socket, :albums, CinderDevWeb.Collections.Albums, url: true)}
   end
 
   @impl true

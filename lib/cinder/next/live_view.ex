@@ -43,8 +43,9 @@ defmodule Cinder.Next.LiveView do
   end
 
   @doc """
-  Declares a collection and assigns its view-model as `name`. `query` is a resource
-  or an `Ash.Query`.
+  Declares a collection and assigns its view-model as `name`. `query` is a resource,
+  an `Ash.Query`, or a module declaring the collection with `Cinder.Next.Dsl` (the
+  options here then add to and override its declarations).
 
   The options are the collection's attrs, with the slots as keyword lists, checked
   against the same schemas (`Cinder.Next.Schema`). Generated from them:
@@ -52,9 +53,9 @@ defmodule Cinder.Next.LiveView do
   #{Cinder.Next.Schema.live_view_docs()}
   """
   def assign_collection(socket, name, query, opts \\ []) do
-    opts = Cinder.Next.Schema.validate_live_view!(opts)
+    {query, opts} = declared(query, opts)
     {url?, opts} = Keyword.pop(opts, :url, false)
-    config = Config.build(to_assigns(name, query, opts))
+    config = config!(name, query, opts)
 
     # A URL-synced collection waits for the URL, which `handle_params` brings next
     {collection, effects} = Collection.new(to_string(name), config, if(url?, do: %{}))
@@ -63,6 +64,23 @@ defmodule Cinder.Next.LiveView do
     socket
     |> put_entry(name, %{collection: collection, url?: url?, loaded?: false})
     |> run(name, effects)
+  end
+
+  @doc false
+  # The config from a resource or query and keyword lists, checked; also how a
+  # `Cinder.Next.Dsl` module is checked when it compiles
+  def config!(name, query, opts),
+    do: Config.build(to_assigns(name, query, Cinder.Next.Schema.validate_live_view!(opts)))
+
+  # A `Cinder.Next.Dsl` module's declarations, under what only the page knows
+  # (`url`, the actor, a prepared `query` instead of the declared resource)
+  defp declared(query, opts) do
+    if Cinder.Next.Dsl.collection?(query) do
+      {resource, declared} = Keyword.pop(Cinder.Next.Dsl.options(query), :resource)
+      {opts[:query] || resource, Keyword.merge(declared, Keyword.delete(opts, :query))}
+    else
+      {query, opts}
+    end
   end
 
   # The slots `Cinder.Next.collection/1` would get, from keyword lists

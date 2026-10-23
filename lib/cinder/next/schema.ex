@@ -13,20 +13,16 @@ defmodule Cinder.Next.Schema do
 
   @layouts [:table, :grid, :list]
 
-  @collection [
-    id: [type: :string, doc: "The collection's DOM id, and the base of its form's"],
+  # Every option is in exactly one group, which says where it can be given. A new
+  # option goes in a group on purpose, so it can't turn up somewhere by default.
+
+  # Declared once for a collection: a component's attrs, a keyword list's options,
+  # and the DSL's `collection` section
+  @declared [
     resource: [type: :atom, doc: "The Ash resource to read"],
-    query: [type: :any, doc: "An `Ash.Query` to start from, instead of a resource"],
     action: [type: :atom, doc: "The read action (default: the query's, else the primary read)"],
-    scope: [type: :any, doc: "An `Ash.Scope.ToOpts` scope"],
-    actor: [type: :any, doc: "Shorthand for a scope with only an actor"],
-    tenant: [type: :any, doc: "Shorthand for a scope with only a tenant"],
     query_opts: [type: :keyword_list, doc: "`:load`, `:select`, `:timeout` and so on"],
     page_size: [type: :pos_integer, doc: "Records per page (default 25)"],
-    url_state: [
-      type: :any,
-      doc: "From `Cinder.UrlSync.handle_params/3`, to keep state in the URL"
-    ],
     pagination_mode: [
       type: {:custom, __MODULE__, :one_of, [[:offset, :keyset]]},
       doc: "`:offset` (numbered pages, the default) or `:keyset` (previous and next)"
@@ -34,10 +30,6 @@ defmodule Cinder.Next.Schema do
     layout: [
       type: {:custom, __MODULE__, :layout, []},
       doc: "`:table`, `:grid` or `:list` (a one-column grid): how records show, at first"
-    ],
-    layouts: [
-      type: {:list, {:custom, __MODULE__, :one_of, [[:table, :grid]]}},
-      doc: "The layouts to switch between, when no slots say (inferred otherwise)"
     ],
     grid_columns: [
       type: {:custom, __MODULE__, :grid_columns, []},
@@ -54,7 +46,16 @@ defmodule Cinder.Next.Schema do
     reorderable: [
       type: :boolean,
       doc: "The table's columns can be chosen and reordered, from a \"Columns\" control"
-    ],
+    ]
+  ]
+
+  # Per request or per user: a component's attrs and a keyword list's options, not
+  # the DSL's
+  @runtime [
+    query: [type: :any, doc: "An `Ash.Query` to start from, instead of a resource"],
+    scope: [type: :any, doc: "An `Ash.Scope.ToOpts` scope"],
+    actor: [type: :any, doc: "Shorthand for a scope with only an actor"],
+    tenant: [type: :any, doc: "Shorthand for a scope with only a tenant"],
     column_prefs: [
       type: :map,
       doc: "Saved column choices to start from: `%{order: [field], visible: %{field => boolean}}`"
@@ -65,34 +66,58 @@ defmodule Cinder.Next.Schema do
     ]
   ]
 
-  # `assign_collection/4`'s own options: the slots as keyword lists, and the URL.
-  # Their entries are checked as slots once they've been turned into them.
-  @live_view @collection ++
-               [
-                 url: [type: :boolean, doc: "Keep the collection's state in the URL"],
-                 load: [type: :any, doc: "Shorthand for `query_opts: [load: ...]`"],
-                 filters: [
-                   type: :keyword_list,
-                   doc: "`[field: type]` or `[field: [type: ..., options: ...]]`"
-                 ],
-                 arguments: [
-                   type: :keyword_list,
-                   doc:
-                     "The action's arguments to take as inputs: `[name: type]` or `[name: [label: ...]]`"
-                 ],
-                 sorts: [
-                   type: {:list, :any},
-                   doc: "`[field]` or `[field: [label: ..., cycle: ...]]`"
-                 ],
-                 bulk_actions: [
-                   type: :keyword_list,
-                   doc: "`[name: action]` or `[name: [action: ..., confirm: ...]]`"
-                 ],
-                 group: [
-                   type: {:or, [:atom, :keyword_list]},
-                   doc: "A field to group each page's rows by, or `[field: ..., sort: :desc]`"
-                 ]
-               ]
+  # Only a component's attrs: a keyword list's collection is named, and syncs the
+  # URL with `url`
+  @component_only [
+    id: [type: :string, doc: "The collection's DOM id, and the base of its form's"],
+    url_state: [
+      type: :any,
+      doc: "From `Cinder.UrlSync.handle_params/3`, to keep state in the URL"
+    ]
+  ]
+
+  # Only a keyword list's and the DSL's: what a component says with its slots
+  @keyword_declared [
+    load: [type: :any, doc: "Shorthand for `query_opts: [load: ...]`"],
+    layouts: [
+      type: {:list, {:custom, __MODULE__, :one_of, [[:table, :grid]]}},
+      doc: "The layouts to switch between (a component infers them from its slots)"
+    ],
+    group: [
+      type: {:or, [:atom, :keyword_list]},
+      doc: "A field to group each page's rows by, or `[field: ..., sort: :desc]`"
+    ]
+  ]
+
+  # The slots as keyword lists, checked as slots once they've been turned into
+  # them; the DSL has a section of entities for each
+  @keyword_slots [
+    filters: [
+      type: :keyword_list,
+      doc: "`[field: type]` or `[field: [type: ..., options: ...]]`"
+    ],
+    arguments: [
+      type: :keyword_list,
+      doc: "The action's arguments to take as inputs: `[name: type]` or `[name: [label: ...]]`"
+    ],
+    sorts: [
+      type: {:list, :any},
+      doc: "`[field]` or `[field: [label: ..., cycle: ...]]`"
+    ],
+    bulk_actions: [
+      type: :keyword_list,
+      doc: "`[name: action]` or `[name: [action: ..., confirm: ...]]`"
+    ]
+  ]
+
+  # Only a keyword list's
+  @keyword_runtime [url: [type: :boolean, doc: "Keep the collection's state in the URL"]]
+
+  # `Cinder.Next.collection/1`'s attrs
+  @collection @declared ++ @runtime ++ @component_only
+
+  # `Cinder.Next.LiveView.assign_collection/4`'s options
+  @live_view @declared ++ @runtime ++ @keyword_declared ++ @keyword_slots ++ @keyword_runtime
 
   @slots %{
     col: [
@@ -186,7 +211,30 @@ defmodule Cinder.Next.Schema do
     validate!(opts, schema, where)
   end
 
+  @doc "The `Cinder.Next.Dsl` `collection` section's options: the declared ones."
+  def dsl_collection, do: @declared ++ @keyword_declared
+
+  @doc "The DSL's sections of entities: the slots as keyword lists."
+  def dsl_sections, do: Keyword.keys(@keyword_slots)
+
+  @doc false
+  # For the test that keeps `Cinder.Next.collection/1`'s attr and slot declarations
+  # in step with these schemas
+  def component_attrs, do: Keyword.keys(@collection)
+  def slot_attrs(slot), do: Keyword.keys(@slots[slot])
+  def slots, do: Map.keys(@slots)
+
+  @doc """
+  A slot's schema, as a `Cinder.Next.Dsl` entity's: its field or name is the
+  entity's first argument, an atom or a string.
+  """
+  def dsl_entity(slot) do
+    key = if slot in [:argument, :bulk_action], do: :name, else: :field
+    Keyword.update!(@slots[slot], key, &Keyword.put(&1, :type, {:or, [:atom, :string]}))
+  end
+
   @doc "`assign_collection/4`'s options, as Markdown for its docs."
+
   def live_view_docs, do: Spark.Options.docs(@live_view)
 
   @doc "Checks `assign_collection/4`'s options, before they become slots."
