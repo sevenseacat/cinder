@@ -357,4 +357,40 @@ defmodule Cinder.Next.ViewTest do
       refute pagination.next.attrs["disabled"]
     end
   end
+
+  describe "column choices" do
+    defp columns(prefs) do
+      build(col: [col("title"), col("genre"), col("price", hidden: true)]).columns
+      |> View.arrange_columns(prefs)
+      |> Enum.map(&{&1.field, &1.visible?})
+    end
+
+    test "columns follow the user's order and choices, else what's declared" do
+      assert columns(%{order: nil, visible: %{}}) ==
+               [{"title", true}, {"genre", true}, {"price", false}]
+
+      assert columns(%{order: ["price", "title"], visible: %{"price" => true, "title" => false}}) ==
+               [{"price", true}, {"title", false}, {"genre", true}]
+    end
+
+    test "the control toggles each column, moves it by sending the whole new order, and keeps one column showing" do
+      collection = build(col: [col("title"), col("genre"), col("price", hidden: true)])
+      prefs = %{order: nil, visible: %{"genre" => false}}
+
+      %{items: [title, genre, price]} =
+        View.columns_control(collection, View.arrange_columns(collection.columns, prefs))
+
+      # The only visible column can't be hidden; hidden ones can be shown
+      assert title.toggle_attrs["checked"] and title.toggle_attrs["disabled"]
+      assert genre.toggle_attrs["phx-value-visible"] == "true"
+      refute genre.toggle_attrs["disabled"]
+
+      assert title.up_attrs["disabled"]
+      assert title.down_attrs["phx-value-order"] == "genre,title,price"
+      assert genre.up_attrs["phx-value-order"] == "genre,title,price"
+      assert price.down_attrs["disabled"]
+      assert price.up_attrs["phx-click"] == "set_column_order"
+      assert price.up_attrs["phx-target"] == @myself
+    end
+  end
 end

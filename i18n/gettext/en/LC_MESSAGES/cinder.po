@@ -241,3 +241,18 @@ msgstr "Select"
 #, elixir-autogen, elixir-format
 msgid "Select page"
 msgstr "Select page"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Columns"
+msgstr ""
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Move %{label} down"
+msgstr ""
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Move %{label} up"
+msgstr ""

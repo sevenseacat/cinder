@@ -50,6 +50,18 @@ defmodule Cinder.Next.Schema do
     selectable: [
       type: {:or, [:boolean, {:fun, 1}]},
       doc: "Rows can be selected: `true`, or a function of the record"
+    ],
+    reorderable: [
+      type: :boolean,
+      doc: "The table's columns can be chosen and reordered, from a \"Columns\" control"
+    ],
+    column_prefs: [
+      type: :map,
+      doc: "Saved column choices to start from: `%{order: [field], visible: %{field => boolean}}`"
+    ],
+    on_columns_change: [
+      type: {:fun, 1},
+      doc: "Called with the column choices when the user changes them, to save them"
     ]
   ]
 
@@ -88,7 +100,8 @@ defmodule Cinder.Next.Schema do
       label: [type: :string],
       sort: [type: :boolean],
       filter: [type: :boolean],
-      search: [type: :boolean]
+      search: [type: :boolean],
+      hidden: [type: :boolean]
     ],
     filter: [
       field: [type: :string, required: true],

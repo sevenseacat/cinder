@@ -113,6 +113,21 @@
     }
   }
 
+  /* The columns control sits above the table, at its end */
+  .cinder-table-caption {
+    caption-side: top;
+    text-align: end;
+  }
+
+  .cinder-column-row {
+    display: flex;
+    align-items: center;
+
+    & .cinder-filter-option {
+      flex: 1;
+    }
+  }
+
   /* A card's checkbox sits in its corner, out of the content's way */
   .cinder-item:has(> .cinder-select) {
     position: relative;

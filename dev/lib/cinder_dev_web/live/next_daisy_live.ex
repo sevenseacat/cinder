@@ -22,6 +22,7 @@ defmodule CinderDevWeb.NextDaisyLive do
        layouts: [:grid, :table],
        grid_columns: [xs: 1, sm: 2, lg: 3],
        selectable: true,
+       reorderable: true,
        load: [:artist],
        page_size: 12,
        search: [fields: ["title", "artist.name"]],
@@ -168,7 +169,12 @@ defmodule CinderDevWeb.NextDaisyLive do
           <:col :let={album} field="artist.name">{album.artist.name}</:col>
           <:col :let={album} field="genre">{album.genre}</:col>
           <:col :let={album} field="price">${Decimal.to_string(album.price)}</:col>
+          <:col :let={album} field="release_date" label="Released" hidden>{album.release_date}</:col>
         </Cinder.Next.table>
+        <%!-- What an app would save for the user (`on_columns_change` hands it over too) --%>
+        <p :if={@daisy.layout == :table} class="text-xs opacity-60">
+          Column choices: <code>{inspect(@daisy.column_prefs)}</code>
+        </p>
         <%!-- Its own grid, spreading each row's attrs (data-row-id, data-selected) onto
              its own wrapper: Cinder's CSS only styles the `cinder-*` classes its own
              components render, so the daisyUI card isn't wrapped in a second card --%>

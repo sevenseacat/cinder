@@ -241,3 +241,18 @@ msgstr "Velg"
 #, elixir-autogen, elixir-format
 msgid "Select page"
 msgstr "Velg side"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Columns"
+msgstr "Kolonner"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Move %{label} down"
+msgstr "Flytt %{label} ned"
+
+#: lib/cinder/next/view.ex
+#, elixir-autogen, elixir-format
+msgid "Move %{label} up"
+msgstr "Flytt %{label} opp"

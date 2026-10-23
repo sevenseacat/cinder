@@ -3,7 +3,8 @@ defmodule CinderDevWeb.NextLive do
   The shell-rewrite spike (`Cinder.Next.collection`), with the same collection as
   the Table page, for comparing the two side by side. It pages by keyset, through
   the `:paginated` action, where the Table page uses offset pages, and switches
-  between the table and a grid of cards.
+  between the table and a grid of cards. Its columns can be chosen and reordered
+  (`reorderable`), with release date and remastered hidden at first.
   """
   use CinderDevWeb, :live_view
   use Cinder.UrlSync
@@ -27,6 +28,7 @@ defmodule CinderDevWeb.NextLive do
         resource={Music.Album}
         action={:paginated}
         pagination_mode="keyset"
+        reorderable
         url_state={@url_state}
         query_opts={[load: [:artist]]}
         grid_columns={[xs: 1, sm: 2, lg: 3]}
@@ -50,8 +52,8 @@ defmodule CinderDevWeb.NextLive do
           {column.label}
           <span class="tooltip tooltip-bottom font-normal" data-tip="Excluding tax">(?)</span>
         </:header>
-        <:col field="release_date" sort />
-        <:col field="is_remastered" label="Remastered" />
+        <:col field="release_date" sort hidden />
+        <:col field="is_remastered" label="Remastered" hidden />
         <%!-- Remastered albums can't be selected, so they can't be remastered again --%>
         <:bulk_action name="remaster" action={:remaster} />
         <:bulk_action name="delete" action={:destroy} confirm="Delete {count} albums?" />

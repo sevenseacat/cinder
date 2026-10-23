@@ -174,6 +174,9 @@ defmodule Cinder.Next.LiveView do
 
       {:url, params}, socket ->
         Cinder.UrlSync.update_url(socket, params, socket.assigns[:__cinder_uri__])
+
+      {:columns_changed, fun, prefs}, socket ->
+        tap(socket, fn _ -> fun.(prefs) end)
     end)
   end
 

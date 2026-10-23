@@ -39,7 +39,7 @@ defmodule Cinder.Next.Config do
     @moduledoc false
     @enforce_keys [:field, :label, :slot]
     # `header` is the field's `<:header>` slot entry, if it has one
-    defstruct [:field, :label, :slot, :header]
+    defstruct [:field, :label, :slot, :header, hidden: false]
   end
 
   @enforce_keys [:query, :resource, :fields]
@@ -65,6 +65,11 @@ defmodule Cinder.Next.Config do
     group: nil,
     # `false`, `true`, or a function of the record
     selectable: false,
+    # The table's columns can be chosen and reordered, from saved prefs; the app
+    # hears of changes through `on_columns_change`
+    reorderable: false,
+    column_prefs: nil,
+    on_columns_change: nil,
     # Declared bulk actions in order, by name
     bulk_actions: [],
     toolbar_slot: [],
@@ -166,7 +171,8 @@ defmodule Cinder.Next.Config do
             field: col.field,
             label: fields[col.field].label,
             slot: col,
-            header: headers[col.field]
+            header: headers[col.field],
+            hidden: col[:hidden] || false
           }
         end,
       search: search(assigns[:search], search_fields),
@@ -176,6 +182,9 @@ defmodule Cinder.Next.Config do
       item_slot: assigns[:item] || [],
       group: group(assigns[:group] || []),
       selectable: assigns[:selectable] || false,
+      reorderable: assigns[:reorderable] || false,
+      column_prefs: assigns[:column_prefs],
+      on_columns_change: assigns[:on_columns_change],
       bulk_actions: bulk_actions(assigns[:bulk_action] || []),
       toolbar_slot: assigns[:toolbar] || [],
       id: assigns[:id],

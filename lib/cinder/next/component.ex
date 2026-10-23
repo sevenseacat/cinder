@@ -37,6 +37,7 @@ defmodule Cinder.Next.Component do
     Enum.reduce(effects, assign_collection(socket, collection), fn
       :load, socket -> load(socket)
       {:url, params}, socket -> notify(socket, params)
+      {:columns_changed, fun, prefs}, socket -> tap(socket, fn _ -> fun.(prefs) end)
     end)
   end
 

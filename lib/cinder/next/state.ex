@@ -34,6 +34,7 @@ defmodule Cinder.Next.State do
           default_layout: atom() | nil,
           layouts: [atom()],
           selected: MapSet.t(String.t()),
+          columns: %{order: [String.t()] | nil, visible: %{String.t() => boolean()}},
           pending_action: String.t() | nil
         }
 
@@ -62,7 +63,11 @@ defmodule Cinder.Next.State do
             selected: MapSet.new(),
             # A bulk action waiting on its confirm, by name. Running one with a
             # `confirm` needs this set first, so a crafted event can't skip it.
-            pending_action: nil
+            pending_action: nil,
+            # The user's choice of table columns, as overrides of what's declared: an
+            # order (fields), and columns shown or hidden. Not query and not in the
+            # URL; an app persists it, if it likes, through `on_columns_change`.
+            columns: %{order: nil, visible: %{}}
 
   @doc """
   A fresh state. `:page_size`, `:sort` and `:layout` are also what an empty URL goes
@@ -80,9 +85,41 @@ defmodule Cinder.Next.State do
       default_sort: sort,
       layout: layout,
       default_layout: layout,
-      layouts: Keyword.get(opts, :layouts, [])
+      layouts: Keyword.get(opts, :layouts, []),
+      columns: column_prefs(Keyword.get(opts, :columns))
     }
   end
+
+  @max_columns 100
+
+  @doc "Shows or hides a table column, by field."
+  def set_column_visible(state, field, visible?) when is_binary(field) and is_boolean(visible?),
+    do: put_in(state.columns.visible[field], visible?)
+
+  @doc """
+  Puts the table's columns in this order, by field. Fields come from the client,
+  so only strings count, and only so many: an unknown field is never rendered.
+  """
+  def set_column_order(state, fields) when is_list(fields) do
+    order = fields |> Enum.filter(&is_binary/1) |> Enum.uniq() |> Enum.take(@max_columns)
+    put_in(state.columns.order, order)
+  end
+
+  # Saved column choices, as an app gives them back (`column_prefs`)
+  defp column_prefs(%{} = prefs) do
+    blank = %{order: nil, visible: %{}}
+    order = Map.get(prefs, :order)
+    visible = Map.get(prefs, :visible, %{})
+
+    blank
+    |> then(&if(is_list(order), do: set_column_order(%{columns: &1}, order).columns, else: &1))
+    |> Map.put(
+      :visible,
+      for({f, v} <- visible, is_binary(f) and is_boolean(v), into: %{}, do: {f, v})
+    )
+  end
+
+  defp column_prefs(_none), do: %{order: nil, visible: %{}}
 
   @doc "Switches layout, to one of the collection's layouts (atom or string)."
   def set_layout(state, layout) do

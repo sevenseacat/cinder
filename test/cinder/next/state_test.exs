@@ -251,4 +251,36 @@ defmodule Cinder.Next.StateTest do
       assert restored.page_size == 10
     end
   end
+
+  describe "column choices" do
+    test "are overrides of what's declared, and never change the query" do
+      state =
+        State.new()
+        |> State.set_column_visible("price", true)
+        |> State.set_column_visible("genre", false)
+        |> State.set_column_order(["price", "title"])
+
+      assert state.columns == %{
+               order: ["price", "title"],
+               visible: %{"price" => true, "genre" => false}
+             }
+
+      refute State.query_changed?(State.new(), state)
+    end
+
+    test "keep only fields from what the client sends, or an app gives back" do
+      assert State.set_column_order(State.new(), ["a", 1, "a", nil, "b"]).columns.order == [
+               "a",
+               "b"
+             ]
+
+      assert length(
+               State.set_column_order(State.new(), Enum.map(1..500, &"f#{&1}")).columns.order
+             ) == 100
+
+      restored = State.new(columns: %{order: ["b", :x], visible: %{"a" => false, "b" => "yes"}})
+      assert restored.columns == %{order: ["b"], visible: %{"a" => false}}
+      assert State.new(columns: "junk").columns == %{order: nil, visible: %{}}
+    end
+  end
 end

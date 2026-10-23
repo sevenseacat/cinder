@@ -6,6 +6,8 @@ defmodule Cinder.Next.Collection do
 
     * `:load`: run `load_fun/1` (async or not) and hand the result to `loaded/2`
     * `{:url, params}`: patch the URL; the params come back through `apply_url/2`
+    * `{:columns_changed, fun, prefs}`: call the app's `on_columns_change` with the
+      user's column choices
 
   Nothing here touches a socket, so the same core can live in a LiveComponent
   (`Cinder.Next.Component`) or in a LiveView's assigns.
@@ -23,7 +25,7 @@ defmodule Cinder.Next.Collection do
     url_synced?: false
   ]
 
-  @type effect :: :load | {:url, map()}
+  @type effect :: :load | {:url, map()} | {:columns_changed, (map() -> any()), map()}
 
   @doc """
   A new collection, loading. `url_params` are the URL's params when it's URL-synced,
@@ -35,6 +37,7 @@ defmodule Cinder.Next.Collection do
         page_size: config.page_size,
         layout: config.default_layout,
         layouts: config.layouts,
+        columns: config.column_prefs,
         sort: QueryBuilder.extract_query_sorts(config.query, config.engine_columns)
       )
 
@@ -98,6 +101,15 @@ defmodule Cinder.Next.Collection do
 
   def handle_event(collection, "set_layout", %{"layout" => layout}),
     do: commit(collection, &State.set_layout(&1, layout))
+
+  # The column choices are the user's view, not query: they never load or touch
+  # the URL, and the app hears about them only if it asked to
+  def handle_event(collection, "set_column", %{"field" => field, "visible" => visible})
+      when is_binary(field) and visible in ["true", "false"],
+      do: columns(collection, &State.set_column_visible(&1, field, visible == "true"))
+
+  def handle_event(collection, "set_column_order", %{"order" => order}) when is_binary(order),
+    do: columns(collection, &State.set_column_order(&1, String.split(order, ",")))
 
   def handle_event(collection, "go_to_cursor", %{"after" => cursor}),
     do: commit(collection, &State.go_to_cursor(&1, :after, cursor))
@@ -241,6 +253,15 @@ defmodule Cinder.Next.Collection do
   # parent's assigns, so every cell would be sent again with the same rows.
   #
   # Raw form input isn't part of the query, so it's kept straight away either way.
+  defp columns(collection, transition) do
+    new = transition.(collection.state)
+    changed? = new.columns != collection.state.columns
+    callback = collection.config.on_columns_change
+
+    {%{collection | state: new},
+     if(changed? and callback, do: [{:columns_changed, callback, new.columns}], else: [])}
+  end
+
   defp commit(collection, transition) do
     old = collection.state
     new = transition.(old)

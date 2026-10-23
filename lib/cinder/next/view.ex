@@ -62,6 +62,9 @@ defmodule Cinder.Next.View do
       # So `grid/1` can render cards given only the collection
       item_slot: config.item_slot,
       columns: Enum.map(config.columns, &column(&1, sorts[&1.field])),
+      reorderable?: config.reorderable,
+      # The user's column choices; the table arranges its columns by them
+      column_prefs: state.columns,
       rows: rows,
       # `nil` unless grouped: then the page's rows by group (see `groups/2`)
       groups: groups(config, rows),
@@ -215,6 +218,106 @@ defmodule Cinder.Next.View do
   end
 
   @doc """
+  Columns in the user's order (`column_prefs`), each with `visible?`: what the
+  user chose, or else whether it's declared `hidden`. Columns the order doesn't
+  name (added since it was saved) keep their place after the ones it does.
+  """
+  def arrange_columns(columns, prefs) do
+    order = Map.new(Enum.with_index(prefs.order || []))
+
+    columns
+    |> Enum.with_index()
+    |> Enum.sort_by(fn {column, index} ->
+      case order[column.field] do
+        nil -> {1, index}
+        position -> {0, position}
+      end
+    end)
+    |> Enum.map(fn {column, _index} ->
+      Map.put(column, :visible?, Map.get(prefs.visible, column.field, not column.hidden))
+    end)
+  end
+
+  @doc """
+  The columns control's view-model, from the collection and its arranged columns:
+  a popover (`trigger_attrs`, `panel_attrs`, like a multi-select's) of `items`, each
+  with a checkbox (`toggle_attrs`) and buttons to move it (`up_attrs`,
+  `down_attrs`). The last visible column can't be hidden.
+  """
+  def columns_control(collection, columns) do
+    id = collection.form_id <> "-columns"
+    anchor = "--" <> id
+    fields = Enum.map(columns, & &1.field)
+    visible_count = Enum.count(columns, & &1.visible?)
+    last = length(columns) - 1
+
+    %{
+      label: dgettext("cinder", "Columns"),
+      trigger_attrs: %{
+        "type" => "button",
+        "id" => id,
+        "popovertarget" => id <> "-panel",
+        "aria-haspopup" => "true",
+        "style" => "anchor-name: #{anchor}"
+      },
+      panel_attrs: %{
+        "id" => id <> "-panel",
+        "popover" => "auto",
+        "aria-labelledby" => id,
+        "phx-hook" => "Cinder.Filters.MultiSelect.Dropdown",
+        "style" => "position-anchor: #{anchor}"
+      },
+      items:
+        for {column, index} <- Enum.with_index(columns) do
+          %{
+            field: column.field,
+            label: column.label,
+            visible?: column.visible?,
+            toggle_attrs: %{
+              "type" => "checkbox",
+              "id" => "#{id}-#{index}",
+              "checked" => column.visible?,
+              "disabled" => column.visible? and visible_count == 1,
+              "phx-click" => collection.event_prefix <> "set_column",
+              "phx-value-field" => column.field,
+              "phx-value-visible" => to_string(not column.visible?),
+              "phx-target" => collection.target
+            },
+            up_attrs:
+              move_attrs(collection, fields, index, index - 1, index == 0, column.label, :up),
+            down_attrs:
+              move_attrs(collection, fields, index, index + 1, index == last, column.label, :down)
+          }
+        end
+    }
+  end
+
+  # A button sending the whole new order, so the server needn't know the table's
+  # columns (in a LiveView, only the template does)
+  defp move_attrs(collection, fields, from, to, disabled?, label, direction) do
+    order =
+      if disabled?,
+        do: fields,
+        else:
+          fields
+          |> List.replace_at(from, Enum.at(fields, to))
+          |> List.replace_at(to, Enum.at(fields, from))
+
+    %{
+      "type" => "button",
+      "disabled" => disabled?,
+      "aria-label" =>
+        if(direction == :up,
+          do: dgettext("cinder", "Move %{label} up", label: label),
+          else: dgettext("cinder", "Move %{label} down", label: label)
+        ),
+      "phx-click" => collection.event_prefix <> "set_column_order",
+      "phx-value-order" => Enum.join(order, ","),
+      "phx-target" => collection.target
+    }
+  end
+
+  @doc """
   A column's view-model, from a config column or a table's own `:col` slot (`field`,
   `label`, `slot`, `header`). A sortable one shares its field's sort view-model, so
   the header's button is the same as a sort chip's.
@@ -226,6 +329,8 @@ defmodule Cinder.Next.View do
       slot: column.slot,
       # The `<:header>` slot entry, rendered with this map, or nil for the label
       header: Map.get(column, :header),
+      # Declared hidden: available from the columns control, not shown at first
+      hidden: Map.get(column, :hidden, false),
       sort: sort,
       attrs: %{
         "data-field" => column.field,

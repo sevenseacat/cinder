@@ -61,6 +61,7 @@ defmodule Cinder.Next do
     attr :sort, :boolean, doc: "Shorthand for a `<:sort>` with defaults"
     attr :filter, :boolean, doc: "Shorthand for a `<:filter>` with an inferred type"
     attr :search, :boolean, doc: "Include this field in search"
+    attr :hidden, :boolean, doc: "Available to show from the columns control, but hidden at first"
   end
 
   slot :filter,
@@ -100,6 +101,18 @@ defmodule Cinder.Next do
     attr :prompt, :string
     attr :placeholder, :string
   end
+
+  attr :reorderable, :boolean,
+    default: false,
+    doc: "The table's columns can be chosen and reordered, from a \"Columns\" control"
+
+  attr :column_prefs, :map,
+    default: nil,
+    doc: "Saved column choices to start from (what `on_columns_change` was given)"
+
+  attr :on_columns_change, :any,
+    default: nil,
+    doc: "Called with the column choices when the user changes them, to save them"
 
   attr :selectable, :any,
     default: false,
@@ -388,14 +401,26 @@ defmodule Cinder.Next do
     """ do
     attr :field, :string, required: true
     attr :label, :string
+    attr :hidden, :boolean
   end
 
   @doc "The records as a table, with the collection's columns or its own `:col`s"
   def table(assigns) do
-    assigns = assign(assigns, :columns, table_columns(assigns.col, assigns.collection))
+    collection = assigns.collection
+
+    columns =
+      View.arrange_columns(table_columns(assigns.col, collection), collection.column_prefs)
+
+    assigns =
+      assigns
+      |> assign(:columns, Enum.filter(columns, & &1.visible?))
+      |> assign(:control, collection.reorderable? && View.columns_control(collection, columns))
 
     ~H"""
     <table {merge(%{}, "table", @class, @rest)}>
+      <caption :if={@control} class="cinder-table-caption">
+        <.columns_control control={@control} />
+      </caption>
       <thead>
         <tr>
           <th :if={@collection.selection} class="cinder-select-cell">
@@ -477,11 +502,31 @@ defmodule Cinder.Next do
       column = %{
         field: col.field,
         label: col[:label] || Cinder.Filter.Helpers.humanize_embedded_field(col.field),
-        slot: col
+        slot: col,
+        hidden: col[:hidden] || false
       }
 
       View.column(column, collection.sorts[col.field])
     end
+  end
+
+  attr :control, :map, required: true, doc: "From `Cinder.Next.View.columns_control/2`"
+
+  @doc """
+  A "Columns" button opening a panel to show, hide and reorder the table's
+  columns. Rendered by the table when the collection is `reorderable`.
+  """
+  def columns_control(assigns) do
+    ~H"""
+    <button {styled(@control.trigger_attrs, "dropdown-trigger")}>{@control.label}</button>
+    <div {styled(@control.panel_attrs, "dropdown-panel")}>
+      <div :for={item <- @control.items} class="cinder-column-row">
+        <label class="cinder-filter-option"><input {item.toggle_attrs} /> {item.label}</label>
+        <button {styled(item.up_attrs, "column-move")}>↑</button>
+        <button {styled(item.down_attrs, "column-move")}>↓</button>
+      </div>
+    </div>
+    """
   end
 
   # Columns plus the selection column, for cells that span the whole table
