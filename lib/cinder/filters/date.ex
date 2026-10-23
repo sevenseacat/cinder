@@ -153,4 +153,18 @@ defmodule Cinder.Filters.Date do
   end
 
   defp valid_date?(_), do: false
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  # The default input, as a date
+  @impl true
+  def view(filter, _ctx) do
+    value = filter.value |> String.split("T") |> List.first()
+
+    %{
+      filter
+      | value: value,
+        input_attrs: %{filter.input_attrs | "type" => "date", "value" => value}
+    }
+  end
 end

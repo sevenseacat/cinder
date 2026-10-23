@@ -350,4 +350,63 @@ defmodule Cinder.Filters.DateRange do
         query
     end
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  alias Cinder.Next.FilterView
+
+  # Two inputs, one filter, as dates or (`include_time`) dates and times
+  @impl true
+  def view(filter, ctx) do
+    include_time? = Keyword.get(ctx.options, :include_time, false)
+    current = FilterView.filter_value(ctx) || %{}
+
+    value =
+      for bound <- [:from, :to], into: %{} do
+        raw = FilterView.raw(ctx, Atom.to_string(bound))
+        {bound, raw || format_value_for_input(current[bound] || "", include_time?)}
+      end
+
+    bounds = [from: dgettext("cinder", "From"), to: dgettext("cinder", "To")]
+
+    %{
+      filter
+      | value: value,
+        label_attrs: %{"for" => ctx.input_id <> "-from"},
+        input_attrs:
+          for {bound, placeholder} <- bounds, into: %{} do
+            {bound,
+             %{
+               "id" => "#{ctx.input_id}-#{bound}",
+               "type" => if(include_time?, do: "datetime-local", else: "date"),
+               "name" => Cinder.Filter.field_name(ctx.name, Atom.to_string(bound)),
+               "value" => value[bound],
+               "placeholder" => placeholder,
+               "form" => ctx.form_id,
+               "aria-describedby" => ctx.described_by
+             }}
+          end,
+        form_field:
+          for {bound, _placeholder} <- bounds, into: %{} do
+            {bound,
+             FilterView.form_field(
+               ctx,
+               "#{ctx.name}_#{bound}",
+               "#{ctx.input_id}-#{bound}",
+               value[bound]
+             )}
+          end
+    }
+  end
+
+  @impl true
+  def control(assigns) do
+    ~H"""
+    <span class="cinder-filter-range">
+      <input {@filter.input_attrs.from} />
+      <span>{dgettext("cinder", "to")}</span>
+      <input {@filter.input_attrs.to} />
+    </span>
+    """
+  end
 end

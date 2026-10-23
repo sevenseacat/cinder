@@ -88,7 +88,10 @@ defmodule Cinder.Next.Config do
     :operator,
     :match_mode,
     :case_sensitive,
-    :max_results
+    :max_results,
+    :include_time,
+    :labels,
+    :value
   ]
 
   @doc "Builds the config from `Cinder.Next.collection/1`'s assigns."

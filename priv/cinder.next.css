@@ -98,7 +98,7 @@
   /* A dropdown's panel opens under its button where anchor positioning is
      supported (the anchor names are on the elements). `inset: auto` undoes the
      popover default (`inset: 0`), which would stretch it to fill the space below.
-     Elsewhere, the `Cinder.Next.Dropdown` hook places it when it opens. */
+     Elsewhere, the `Cinder.Filters.MultiSelect.Dropdown` hook places it when it opens. */
   @supports (position-area: block-end) {
     .cinder-dropdown-panel {
       inset: auto;

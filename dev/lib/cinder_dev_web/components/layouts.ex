@@ -27,7 +27,8 @@ defmodule CinderDevWeb.Layouts do
     {"/next/petal", "Next Petal"},
     {"/next/live", "Next in a LiveView"},
     {"/next/power", "Next power user"},
-    {"/next/themes", "Next themes"}
+    {"/next/themes", "Next themes"},
+    {"/next/filters", "Next filters"}
   ]
 
   @doc "The demo pages, as `{path, label}`, for the nav and the smoke tests."

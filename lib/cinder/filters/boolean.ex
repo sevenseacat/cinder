@@ -91,4 +91,20 @@ defmodule Cinder.Filters.Boolean do
 
     Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  # A radio group of its two labels
+  @impl true
+  def view(filter, ctx) do
+    labels = Keyword.get(ctx.options, :labels, %{})
+
+    RadioGroup.radios(filter, ctx, [
+      {Map.get(labels, true, dgettext("cinder", "True")), "true"},
+      {Map.get(labels, false, dgettext("cinder", "False")), "false"}
+    ])
+  end
+
+  @impl true
+  defdelegate control(assigns), to: RadioGroup
 end

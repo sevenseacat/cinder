@@ -121,4 +121,32 @@ defmodule Cinder.Filters.RadioGroup do
 
     Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  alias Cinder.Next.FilterView
+
+  @impl true
+  def view(filter, ctx), do: radios(filter, ctx, FilterView.declared_options(ctx))
+
+  @doc false
+  # A group of radios, one per choice, with no single input
+  def radios(filter, ctx, choices) do
+    %{
+      filter
+      | group?: true,
+        label_attrs: %{},
+        input_attrs: nil,
+        options: FilterView.choices(ctx, choices, "radio", &(&1 == filter.value))
+    }
+  end
+
+  @impl true
+  def control(assigns) do
+    ~H"""
+    <label :for={option <- @filter.options} class="cinder-filter-option">
+      <input {option.input_attrs} /> {option.label}
+    </label>
+    """
+  end
 end

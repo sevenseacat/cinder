@@ -101,7 +101,10 @@ defmodule Cinder.Next.Schema do
       operator: [type: {:or, [:atom, :string]}],
       match_mode: [type: {:custom, __MODULE__, :one_of, [[:any, :all]]}],
       case_sensitive: [type: :boolean],
-      max_results: [type: :pos_integer]
+      max_results: [type: :pos_integer],
+      include_time: [type: :boolean],
+      labels: [type: :map],
+      value: [type: :any]
     ],
     argument: [
       name: [type: :string, required: true],

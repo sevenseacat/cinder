@@ -171,4 +171,25 @@ defmodule Cinder.Filters.Checkbox do
   defp boolean_field?(column) do
     Map.get(column, :filter_type) == :boolean
   end
+
+  # The new shell (spike): this type's additions to its view-model (see `Cinder.Next.FilterView`)
+
+  # The default input, as one checkbox posting the declared value (`true` by
+  # default) when it's checked, and nothing when it isn't
+  @impl true
+  def view(filter, ctx) do
+    value = to_string(Keyword.get(ctx.options, :value, true))
+
+    %{
+      filter
+      | input_attrs:
+          filter.input_attrs
+          |> Map.drop(["phx-debounce", "required"])
+          |> Map.merge(%{
+            "type" => "checkbox",
+            "value" => value,
+            "checked" => filter.value == value
+          })
+    }
+  end
 end
