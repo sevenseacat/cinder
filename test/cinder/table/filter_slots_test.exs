@@ -851,7 +851,7 @@ defmodule Cinder.Table.FilterSlotsTest do
     end
 
     test "raises helpful error for invalid string filter type on col slot" do
-      assert_raise ArgumentError, ~r/Invalid filter type :multiselect for field "status"/, fn ->
+      assert_raise ArgumentError, ~r/Invalid filter type "multiselect" for field "status"/, fn ->
         col_slots = [
           %{
             field: "status",
@@ -862,6 +862,28 @@ defmodule Cinder.Table.FilterSlotsTest do
 
         Cinder.Collection.process_columns(col_slots, TestUser)
       end
+    end
+
+    # String types are matched against the known ones, never converted to atoms
+    test "a string filter type creates no atom, and a known one still resolves" do
+      type = "cinder_bogus_#{System.unique_integer([:positive])}"
+
+      assert_raise ArgumentError, ~r/Invalid filter type "#{type}"/, fn ->
+        Cinder.Collection.process_columns(
+          [%{field: "status", filter: [type: type], __slot__: :col}],
+          TestUser
+        )
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(type) end
+
+      [column] =
+        Cinder.Collection.process_columns(
+          [%{field: "name", filter: "select", __slot__: :col}],
+          TestUser
+        )
+
+      assert column.filter_type == :select
     end
 
     test "filter slot with fn on non-existent field is still filterable" do

@@ -1059,13 +1059,13 @@ defmodule Cinder.Collection do
         {filter_type, []}
 
       filter_type when is_binary(filter_type) ->
-        normalized_type = String.to_atom(filter_type)
+        normalized_type = known_filter_type(filter_type)
         validate_filter_type!(normalized_type, field)
         {normalized_type, []}
 
       filter_config when is_list(filter_config) ->
         type = Keyword.get(filter_config, :type, :auto)
-        normalized_type = if is_binary(type), do: String.to_atom(type), else: type
+        normalized_type = known_filter_type(type)
         validate_filter_type!(normalized_type, field)
         options = Keyword.delete(filter_config, :type)
         {normalized_type, options}
@@ -1074,6 +1074,19 @@ defmodule Cinder.Collection do
         {:text, []}
     end
   end
+
+  # A type given as a string (`filter="select"`) is matched against the known types,
+  # never converted, so it can't create an atom; an unknown one stays a string and
+  # gets the same error as an unknown atom
+  defp known_filter_type("auto"), do: :auto
+
+  defp known_filter_type(type) when is_binary(type) do
+    Cinder.Filters.Registry.all_filters_with_custom()
+    |> Map.keys()
+    |> Enum.find(type, &(Atom.to_string(&1) == type))
+  end
+
+  defp known_filter_type(type), do: type
 
   defp validate_filter_type!(:auto, _field), do: :ok
 
@@ -1115,10 +1128,10 @@ defmodule Cinder.Collection do
   defp get_field_value(item, field) when is_binary(field) do
     case String.split(field, ".", parts: 2) do
       [single_field] ->
-        get_in(item, [Access.key(String.to_atom(single_field))])
+        get_by_name(item, single_field)
 
       [relationship, nested_field] ->
-        case get_in(item, [Access.key(String.to_atom(relationship))]) do
+        case get_by_name(item, relationship) do
           nil -> nil
           related_item -> get_field_value(related_item, nested_field)
         end
@@ -1126,4 +1139,12 @@ defmodule Cinder.Collection do
   end
 
   defp get_field_value(item, field), do: get_in(item, [Access.key(field)])
+
+  # A name that isn't an existing atom can't be a key of a struct or an atom-keyed
+  # map, so there's nothing to read, and no atom to create
+  defp get_by_name(item, name) do
+    get_in(item, [Access.key(String.to_existing_atom(name))])
+  rescue
+    ArgumentError -> nil
+  end
 end
