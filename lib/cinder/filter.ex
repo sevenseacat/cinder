@@ -78,8 +78,7 @@ defmodule Cinder.Filter do
         @impl true
         def build_query(query, field, filter_value) do
           %{value: value} = filter_value
-          field_atom = String.to_atom(field)
-          Ash.Query.filter(query, ^ref(field_atom) <= ^value)
+          Cinder.Filter.Helpers.build_ash_filter(query, field, value, :less_than_or_equal)
         end
       end
 
@@ -172,31 +171,21 @@ defmodule Cinder.Filter do
         Cinder.Filter.Helpers.build_ash_filter(query, field, value, operator)
       end
 
-  ### Basic Field Filtering
+  ### Field Filtering
+
+  `Cinder.Filter.Helpers.build_ash_filter/4` builds the filter for any field notation:
+  direct fields, relationships (`"user.name"`) and embedded fields (below), with
+  `:equals`, `:contains`, `:starts_with`, `:ends_with`, `:in`, and the comparisons
+  (`:greater_than`, `:less_than_or_equal` and so on):
 
       def build_query(query, field, filter_value) do
         %{value: value} = filter_value
-        field_atom = String.to_atom(field)
-        Ash.Query.filter(query, ^ref(field_atom) == ^value)
+        Cinder.Filter.Helpers.build_ash_filter(query, field, value, :equals)
       end
 
-  ### Relationship Filtering
-
-  Handle dot notation fields like "user.name":
-
-      def build_query(query, field, filter_value) do
-        %{value: value} = filter_value
-
-        if String.contains?(field, ".") do
-          path_atoms = field |> String.split(".") |> Enum.map(&String.to_atom/1)
-          {rel_path, [field_atom]} = Enum.split(path_atoms, -1)
-
-          Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) == ^value))
-        else
-          field_atom = String.to_atom(field)
-          Ash.Query.filter(query, ^ref(field_atom) == ^value)
-        end
-      end
+  Prefer it to building `ref/1` expressions from `field` yourself: it handles every
+  notation, and never turns a name into a new atom (`String.to_atom/1` on names isn't
+  safe in general, since atoms are never garbage collected).
 
   ### Embedded Field Filtering
 
