@@ -103,6 +103,8 @@ if Code.ensure_loaded?(Igniter) do
       options = igniter.args.options
 
       module_name = Igniter.Project.Module.parse(arguments.module)
+      # The developer's own argument on the command line, not client input
+      # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
       filter_type = String.to_atom(arguments.type)
       template = options[:template] || "basic"
 
@@ -147,6 +149,8 @@ if Code.ensure_loaded?(Igniter) do
         igniter
       else
         # Create test file in test directory with proper naming
+        # A new module, named from the developer's own argument, so a new atom
+        # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
         test_module_name = Module.concat([module_name, Test])
         test_content = generate_test_content(module_name, filter_type)
 

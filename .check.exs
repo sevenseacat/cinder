@@ -34,7 +34,7 @@
     {:credo, "mix credo --min-priority high"},
     {:mix_audit, false},
     {:hex_audit, "mix hex.audit"},
-    {:sobelow, "mix sobelow --exit --threshold high -i Config.HTTPS"},
+    {:sobelow, "mix sobelow --exit --threshold low --skip -i Config.HTTPS"},
     {:ex_unit, true},
     {:gettext, "mix gettext.extract --check-up-to-date"},
     {:dev_app,

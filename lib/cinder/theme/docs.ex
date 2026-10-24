@@ -10,6 +10,8 @@ defmodule Cinder.Theme.Docs do
   @doc """
   Updates the theming guide with auto-generated property reference documentation.
   """
+  # A build-time task writing a path it builds itself, never one from input
+  # sobelow_skip ["Traversal.FileModule"]
   def write_docs! do
     [prelude, _ | rest] =
       @theming_file
