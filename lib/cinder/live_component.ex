@@ -340,41 +340,13 @@ defmodule Cinder.LiveComponent do
 
   @impl true
   def handle_event("toggle_sort", %{"key" => key}, socket) do
-    current_sort = socket.assigns.sort_by
-
-    # Find the column to get its sort cycle configuration
-    column = Enum.find(socket.assigns.col, &(&1.field == key))
-    sort_cycle = if column, do: column.sort_cycle, else: nil
-
-    new_sort =
-      Cinder.QueryBuilder.toggle_sort_with_cycle(
-        current_sort,
-        key,
-        sort_cycle,
-        socket.assigns.sort_mode
-      )
-
-    # Check if URL sync is enabled
-    url_sync_enabled = !!socket.assigns[:on_state_change]
-
-    socket =
-      socket
-      |> assign(:sort_by, new_sort)
-      |> assign(:current_page, 1)
-      |> assign(:after_keyset, nil)
-      |> assign(:before_keyset, nil)
-      |> assign(:user_has_interacted, true)
-
-    socket =
-      if url_sync_enabled do
-        assign(socket, :__reload_requested__, true)
-      else
-        load_data(socket)
-      end
-
-    socket = notify_state_change(socket)
-
-    {:noreply, socket}
+    # The key is client-supplied. Anything that isn't a declared sortable column
+    # is ignored: otherwise it reaches query validation, which would mint an atom
+    # per distinct key (atom exhaustion) and let clients sort by hidden fields.
+    case Enum.find(socket.assigns.columns, &(&1.field == key)) do
+      %{sortable: true} = column -> {:noreply, toggle_sort(socket, column)}
+      _ -> {:noreply, socket}
+    end
   end
 
   @impl true
@@ -533,6 +505,36 @@ defmodule Cinder.LiveComponent do
   # ============================================================================
   # BULK ACTION HELPERS
   # ============================================================================
+
+  defp toggle_sort(socket, column) do
+    new_sort =
+      Cinder.QueryBuilder.toggle_sort_with_cycle(
+        socket.assigns.sort_by,
+        column.field,
+        column.sort_cycle,
+        socket.assigns.sort_mode
+      )
+
+    # Check if URL sync is enabled
+    url_sync_enabled = !!socket.assigns[:on_state_change]
+
+    socket =
+      socket
+      |> assign(:sort_by, new_sort)
+      |> assign(:current_page, 1)
+      |> assign(:after_keyset, nil)
+      |> assign(:before_keyset, nil)
+      |> assign(:user_has_interacted, true)
+
+    socket =
+      if url_sync_enabled do
+        assign(socket, :__reload_requested__, true)
+      else
+        load_data(socket)
+      end
+
+    notify_state_change(socket)
+  end
 
   defp execute_bulk_action(slot, socket) do
     action = slot[:action]

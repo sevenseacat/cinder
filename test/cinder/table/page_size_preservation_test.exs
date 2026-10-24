@@ -164,6 +164,8 @@ defmodule Cinder.Table.PageSizePreservationTest do
         |> Phoenix.Component.assign(:query_columns, [
           %{field: "name", filterable: true, filter_type: :text}
         ])
+        # toggle_sort ignores keys that aren't declared sortable columns
+        |> Phoenix.Component.assign(:columns, [%{field: "name", sortable: true, sort_cycle: nil}])
         |> Phoenix.Component.assign(:user_has_interacted, false)
 
       {:ok, socket: socket}

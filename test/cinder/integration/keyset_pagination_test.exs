@@ -702,12 +702,14 @@ defmodule Cinder.Integration.KeysetPaginationTest do
       {:ok, socket} = LiveComponent.mount(%Phoenix.LiveView.Socket{})
       {:ok, socket} = LiveComponent.update(build_keyset_test_assigns(), socket)
 
-      # Simulate having navigated to page 2
+      # Simulate having navigated to page 2. The key must be a declared sortable
+      # column or the event is ignored.
       socket =
         socket
         |> Phoenix.Component.assign(:after_keyset, "page1_last_cursor")
         |> Phoenix.Component.assign(:before_keyset, nil)
         |> Phoenix.Component.assign(:sort_by, [])
+        |> Phoenix.Component.assign(:columns, [%{field: "name", sortable: true, sort_cycle: nil}])
 
       {:noreply, socket} =
         LiveComponent.handle_event("toggle_sort", %{"key" => "name"}, socket)
