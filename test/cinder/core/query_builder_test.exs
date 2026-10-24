@@ -393,6 +393,56 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  # Sort keys come from the client (URL params, events). Validating one must never
+  # create an atom, or a client sending distinct keys could fill the atom table.
+  describe "sort field validation with client-supplied names" do
+    defp bogus, do: "cinder_bogus_#{System.unique_integer([:positive])}"
+
+    defp refute_atom_exists(name),
+      do: assert_raise(ArgumentError, fn -> String.to_existing_atom(name) end)
+
+    test "an unknown field, relationship or embedded name is an error, and creates no atom" do
+      for {resource, notation} <- [
+            {Album, &Function.identity/1},
+            {AggregateAlbum, &(&1 <> ".name")},
+            {AggregateAlbum, &("artist." <> &1)},
+            {TestUser, &(&1 <> "__first_name")},
+            {TestUser, &("profile__" <> &1)},
+            {TestUser, &("settings__address__" <> &1)}
+          ] do
+        name = bogus()
+        field = notation.(name)
+
+        assert {:error, _} = QueryBuilder.validate_sortable_fields([{field, :asc}], resource),
+               "#{field} on #{inspect(resource)}"
+
+        refute_atom_exists(name)
+      end
+    end
+
+    test "field_exists_on_resource?/2 and get_calculation_info/2 say no without creating an atom" do
+      name = bogus()
+
+      refute QueryBuilder.field_exists_on_resource?(Album, name)
+      assert QueryBuilder.get_calculation_info(Album, name) == nil
+      refute_atom_exists(name)
+    end
+
+    test "real fields still validate" do
+      assert QueryBuilder.validate_sortable_fields([{"title", :asc}], Album) == :ok
+
+      assert QueryBuilder.validate_sortable_fields([{"profile__first_name", :asc}], TestUser) ==
+               :ok
+    end
+
+    # Regression: a failure inside validation used to let the sort through (fail-open)
+    @tag :capture_log
+    test "a sort that can't be validated is an error, not let through" do
+      assert {:error, message} = QueryBuilder.validate_sortable_fields([{"title", :asc}], String)
+      assert message =~ "Failed to validate sort fields"
+    end
+  end
+
   describe "resolve_field_resource/2" do
     test "handles direct fields" do
       # Should handle direct fields

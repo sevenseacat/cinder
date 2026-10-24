@@ -870,10 +870,13 @@ defmodule Cinder.QueryBuilder do
   """
   def get_calculation_info(resource, field_name) when is_atom(resource) do
     try do
-      calculations = Ash.Resource.Info.calculations(resource)
-      field_atom = if is_binary(field_name), do: String.to_atom(field_name), else: field_name
+      case existing_atom(field_name) do
+        {:ok, field_atom} ->
+          Enum.find(Ash.Resource.Info.calculations(resource), &(&1.name == field_atom))
 
-      Enum.find(calculations, &(&1.name == field_atom))
+        :error ->
+          nil
+      end
     rescue
       _ -> nil
     end
@@ -921,7 +924,7 @@ defmodule Cinder.QueryBuilder do
       error ->
         require Logger
         Logger.warning("Failed to validate sortable fields: #{inspect(error)}")
-        :ok
+        {:error, "Failed to validate sort fields: #{Exception.message(error)}"}
     end
   end
 
@@ -955,10 +958,8 @@ defmodule Cinder.QueryBuilder do
       # Parse field to handle relationship calculations for sortability check
       {target_resource, target_field} = resolve_field_resource(resource, field_string)
 
-      target_field_atom = String.to_atom(target_field)
-
       # Check if it's a calculation that needs validation
-      case get_calculation_info(target_resource, target_field_atom) do
+      case get_calculation_info(target_resource, target_field) do
         nil ->
           # Regular field that exists - should be sortable
           {unsortable, details}
@@ -1006,14 +1007,14 @@ defmodule Cinder.QueryBuilder do
         # Relationship field - try to resolve the target resource
         try do
           if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
-            case Ash.Resource.Info.relationship(resource, String.to_atom(relationship_name)) do
-              %{destination: destination_resource} ->
-                # Recursively resolve the remaining field path
-                resolve_field_resource(destination_resource, remaining_field)
-
-              nil ->
-                # Relationship not found, treat as direct field
-                {resource, field}
+            with {:ok, relationship} <- existing_atom(relationship_name),
+                 %{destination: destination_resource} <-
+                   Ash.Resource.Info.relationship(resource, relationship) do
+              # Recursively resolve the remaining field path
+              resolve_field_resource(destination_resource, remaining_field)
+            else
+              # Relationship not found, treat as direct field
+              _not_found -> {resource, field}
             end
           else
             # Not an Ash resource, can't resolve relationships
@@ -1085,11 +1086,12 @@ defmodule Cinder.QueryBuilder do
     try do
       if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
         Enum.reduce_while(rel_path, {:ok, resource}, fn rel_name, {:ok, current_resource} ->
-          case Ash.Resource.Info.relationship(current_resource, String.to_atom(rel_name)) do
-            %{destination: destination_resource} ->
-              {:cont, {:ok, destination_resource}}
-
-            nil ->
+          with {:ok, rel_atom} <- existing_atom(rel_name),
+               %{destination: destination_resource} <-
+                 Ash.Resource.Info.relationship(current_resource, rel_atom) do
+            {:cont, {:ok, destination_resource}}
+          else
+            _not_found ->
               {:halt,
                {:error, "Relationship #{rel_name} not found on #{inspect(current_resource)}"}}
           end
@@ -1107,10 +1109,8 @@ defmodule Cinder.QueryBuilder do
   defp validate_embedded_field(resource, embed_field, nested_field) do
     try do
       if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
-        embed_field_atom = String.to_atom(embed_field)
-
         # Check if embed_field is an embedded attribute
-        case Ash.Resource.Info.attribute(resource, embed_field_atom) do
+        case embedded_attribute(resource, embed_field) do
           %{type: :map} ->
             # Map type - assume nested field is valid (can't validate structure)
             true
@@ -1145,9 +1145,7 @@ defmodule Cinder.QueryBuilder do
   defp validate_nested_embedded_field(resource, embed_field, nested_path) do
     try do
       if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
-        embed_field_atom = String.to_atom(embed_field)
-
-        case Ash.Resource.Info.attribute(resource, embed_field_atom) do
+        case embedded_attribute(resource, embed_field) do
           %{type: :map} ->
             # Map type - assume nested path is valid (can't validate structure)
             true
@@ -1188,9 +1186,7 @@ defmodule Cinder.QueryBuilder do
         # Multi-level nesting - recursively validate
         try do
           if is_atom(embedded_type) and Ash.Resource.Info.resource?(embedded_type) do
-            next_embed_atom = String.to_atom(next_embed_field)
-
-            case Ash.Resource.Info.attribute(embedded_type, next_embed_atom) do
+            case embedded_attribute(embedded_type, next_embed_field) do
               %{type: :map} ->
                 # Map type - assume remaining path is valid
                 true
@@ -1266,18 +1262,23 @@ defmodule Cinder.QueryBuilder do
   def field_exists_on_resource?(resource, field) do
     try do
       if is_atom(resource) and Ash.Resource.Info.resource?(resource) do
-        field_atom = if is_binary(field), do: String.to_atom(field), else: field
+        case existing_atom(field) do
+          {:ok, field_atom} ->
+            # Get all valid field types
+            attributes = Ash.Resource.Info.attributes(resource) |> Enum.map(& &1.name)
+            relationships = Ash.Resource.Info.relationships(resource) |> Enum.map(& &1.name)
+            calculations = Ash.Resource.Info.calculations(resource) |> Enum.map(& &1.name)
+            aggregates = Ash.Resource.Info.aggregates(resource) |> Enum.map(& &1.name)
 
-        # Get all valid field types
-        attributes = Ash.Resource.Info.attributes(resource) |> Enum.map(& &1.name)
-        relationships = Ash.Resource.Info.relationships(resource) |> Enum.map(& &1.name)
-        calculations = Ash.Resource.Info.calculations(resource) |> Enum.map(& &1.name)
-        aggregates = Ash.Resource.Info.aggregates(resource) |> Enum.map(& &1.name)
+            valid_fields = MapSet.new(attributes ++ relationships ++ calculations ++ aggregates)
 
-        valid_fields = MapSet.new(attributes ++ relationships ++ calculations ++ aggregates)
+            # Check the target field on the resolved resource
+            MapSet.member?(valid_fields, field_atom)
 
-        # Check the target field on the resolved resource
-        MapSet.member?(valid_fields, field_atom)
+          # Not an existing atom, so no field has this name
+          :error ->
+            false
+        end
       else
         # Not an Ash resource, assume field exists
         true
@@ -1286,6 +1287,25 @@ defmodule Cinder.QueryBuilder do
       _ ->
         # Error checking resource, assume field exists
         true
+    end
+  end
+
+  # Field names here can come from the client (sort keys), so they're only matched
+  # against atoms that already exist: one that isn't can't name a field, and
+  # converting it would let a client fill the atom table
+  defp existing_atom(name) when is_atom(name), do: {:ok, name}
+
+  defp existing_atom(name) when is_binary(name) do
+    {:ok, String.to_existing_atom(name)}
+  rescue
+    ArgumentError -> :error
+  end
+
+  # An attribute by name, or nil when there's no such attribute
+  defp embedded_attribute(resource, name) do
+    case existing_atom(name) do
+      {:ok, atom} -> Ash.Resource.Info.attribute(resource, atom)
+      :error -> nil
     end
   end
 
