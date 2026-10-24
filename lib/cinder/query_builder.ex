@@ -870,12 +870,13 @@ defmodule Cinder.QueryBuilder do
   """
   def get_calculation_info(resource, field_name) when is_atom(resource) do
     try do
-      case existing_atom(field_name) do
-        {:ok, field_atom} ->
-          Enum.find(Ash.Resource.Info.calculations(resource), &(&1.name == field_atom))
+      # Reading the calculations loads the resource, so its names exist as atoms
+      # before the name is matched against them
+      calculations = Ash.Resource.Info.calculations(resource)
 
-        :error ->
-          nil
+      case existing_atom(field_name) do
+        {:ok, field_atom} -> Enum.find(calculations, &(&1.name == field_atom))
+        :error -> nil
       end
     rescue
       _ -> nil

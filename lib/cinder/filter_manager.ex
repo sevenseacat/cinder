@@ -598,18 +598,23 @@ defmodule Cinder.FilterManager do
 
         _ ->
           # Regular field lookup
-          get_regular_attribute(resource, String.to_atom(key))
+          get_regular_attribute(resource, key)
       end
     rescue
+      # Including a name that isn't an existing atom (the lookups below use
+      # `String.to_existing_atom`), which can't be a field, so nothing is inferred
       _ -> nil
     catch
       _ -> nil
     end
   end
 
-  defp get_regular_attribute(resource, key_atom) do
-    # Check if this is actually an Ash resource using Ash.Resource.Info.resource?/1
+  defp get_regular_attribute(resource, key) do
+    # Check if this is actually an Ash resource using Ash.Resource.Info.resource?/1.
+    # That loads the module, so only then do its field names exist as atoms.
     if Ash.Resource.Info.resource?(resource) do
+      key_atom = String.to_existing_atom(key)
+
       # First check regular attributes
       attributes = Ash.Resource.Info.attributes(resource)
       attribute = Enum.find(attributes, &(&1.name == key_atom))
@@ -652,8 +657,7 @@ defmodule Cinder.FilterManager do
 
   defp get_embedded_attribute(resource, embed_field, field_name) do
     if Ash.Resource.Info.resource?(resource) do
-      embed_atom = String.to_atom(embed_field)
-      field_atom = String.to_atom(field_name)
+      embed_atom = String.to_existing_atom(embed_field)
 
       # Get the embedded resource attribute
       attributes = Ash.Resource.Info.attributes(resource)
@@ -665,6 +669,8 @@ defmodule Cinder.FilterManager do
 
         # Check if the embedded resource has the field
         if Ash.Resource.Info.resource?(embedded_resource) do
+          # Only now is the embedded resource loaded, with its field names as atoms
+          field_atom = String.to_existing_atom(field_name)
           embedded_attributes = Ash.Resource.Info.attributes(embedded_resource)
           nested_attribute = Enum.find(embedded_attributes, &(&1.name == field_atom))
           nested_attribute
@@ -681,7 +687,7 @@ defmodule Cinder.FilterManager do
 
   defp get_nested_embedded_attribute(resource, embed_field, field_path) do
     if Ash.Resource.Info.resource?(resource) do
-      embed_atom = String.to_atom(embed_field)
+      embed_atom = String.to_existing_atom(embed_field)
 
       # Get the embedded resource attribute
       attributes = Ash.Resource.Info.attributes(resource)
@@ -723,7 +729,7 @@ defmodule Cinder.FilterManager do
   defp traverse_embedded_path(current_resource, [field_name]) do
     # Final field in the path
     if Ash.Resource.Info.resource?(current_resource) do
-      field_atom = String.to_atom(field_name)
+      field_atom = String.to_existing_atom(field_name)
       attributes = Ash.Resource.Info.attributes(current_resource)
       Enum.find(attributes, &(&1.name == field_atom))
     else
@@ -734,7 +740,7 @@ defmodule Cinder.FilterManager do
   defp traverse_embedded_path(current_resource, [field_name | rest]) do
     # Navigate to the next embedded resource
     if Ash.Resource.Info.resource?(current_resource) do
-      field_atom = String.to_atom(field_name)
+      field_atom = String.to_existing_atom(field_name)
       attributes = Ash.Resource.Info.attributes(current_resource)
       attribute = Enum.find(attributes, &(&1.name == field_atom))
 
@@ -753,8 +759,7 @@ defmodule Cinder.FilterManager do
     related_resource = traverse_relationship_path(resource, rel_path)
 
     if related_resource do
-      field_atom = String.to_atom(field_name)
-      get_regular_attribute(related_resource, field_atom)
+      get_regular_attribute(related_resource, field_name)
     else
       nil
     end
@@ -763,7 +768,7 @@ defmodule Cinder.FilterManager do
   defp traverse_relationship_path(resource, [rel_name]) do
     # Final relationship in the path
     if Ash.Resource.Info.resource?(resource) do
-      rel_atom = String.to_atom(rel_name)
+      rel_atom = String.to_existing_atom(rel_name)
       relationships = Ash.Resource.Info.relationships(resource)
       relationship = Enum.find(relationships, &(&1.name == rel_atom))
 
@@ -780,7 +785,7 @@ defmodule Cinder.FilterManager do
   defp traverse_relationship_path(resource, [rel_name | rest]) do
     # Navigate to the next related resource
     if Ash.Resource.Info.resource?(resource) do
-      rel_atom = String.to_atom(rel_name)
+      rel_atom = String.to_existing_atom(rel_name)
       relationships = Ash.Resource.Info.relationships(resource)
       relationship = Enum.find(relationships, &(&1.name == rel_atom))
 

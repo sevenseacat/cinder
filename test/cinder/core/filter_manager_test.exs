@@ -837,4 +837,39 @@ defmodule Cinder.FilterManagerRuntimeTest do
       refute html =~ "Name:"
     end
   end
+
+  # Field names here come from columns, but are only matched against existing atoms:
+  # a name that isn't one can't be a field, and nothing should create one
+  describe "inferring a filter for a field name that isn't an atom" do
+    test "infers nothing, in any notation, and creates no atom" do
+      for notation <- [
+            &Function.identity/1,
+            &(&1 <> ".name"),
+            &("artist." <> &1),
+            &(&1 <> "__label"),
+            &("details__" <> &1)
+          ] do
+        name = "cinder_bogus_#{System.unique_integer([:positive])}"
+        field = notation.(name)
+
+        config = FilterManager.infer_filter_config(field, Music.Album, %{filterable: true})
+
+        assert config.filter_type == :text, field
+        assert_raise ArgumentError, fn -> String.to_existing_atom(name) end
+      end
+    end
+
+    test "still infers real fields in every notation" do
+      for {field, type} <- [
+            {"genre", :select},
+            {"artist.name", :text},
+            {"details__catalog_number", :text},
+            {"is_remastered", :boolean}
+          ] do
+        assert FilterManager.infer_filter_config(field, Music.Album, %{filterable: true}).filter_type ==
+                 type,
+               field
+      end
+    end
+  end
 end
