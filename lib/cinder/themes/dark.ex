@@ -126,7 +126,7 @@ defmodule Cinder.Themes.Dark do
   set :filter_multicheckboxes_option_class, "flex items-center space-x-3"
 
   set :filter_multicheckboxes_checkbox_class,
-      "h-4 w-4 bg-gray-700 border-gray-600 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer"
+      "h-4 w-4 bg-gray-700 border-gray-600 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-purple-500 focus:ring-2 cursor-pointer mr-2"
 
   set :filter_multicheckboxes_label_class, "text-sm font-medium text-gray-300 cursor-pointer"
   # Range filters
