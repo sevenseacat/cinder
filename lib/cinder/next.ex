@@ -157,6 +157,15 @@ defmodule Cinder.Next do
 
   slot :item, doc: "A grid layout's card for each record, via `:let`"
 
+  slot :row_action,
+    doc: """
+    Per-row actions (links, buttons), via `:let` the record: all of them in one last
+    cell of each table row, like `core_components`' `<:action>` (named for the row,
+    since `action` is the read action). They aren't a column of data, so they can't
+    be sorted, filtered, chosen or moved. A grid's cards are your own `<:item>`, so
+    put a card's actions there.
+    """
+
   # Region slots replace one region of the default page, receiving the whole
   # collection view-model via `:let`. For a page arranged freely, keep the collection
   # in the LiveView instead (`Cinder.Next.LiveView`).
@@ -404,9 +413,15 @@ defmodule Cinder.Next do
     attr :hidden, :boolean
   end
 
+  slot :row_action,
+    doc: "The table's own per-row actions, instead of the collection's `<:row_action>`s"
+
   @doc "The records as a table, with the collection's columns or its own `:col`s"
   def table(assigns) do
     collection = assigns.collection
+
+    row_actions =
+      if assigns.row_action != [], do: assigns.row_action, else: collection.row_action_slot
 
     columns =
       View.arrange_columns(table_columns(assigns.col, collection), collection.column_prefs)
@@ -415,6 +430,7 @@ defmodule Cinder.Next do
       assigns
       |> assign(:columns, Enum.filter(columns, & &1.visible?))
       |> assign(:control, collection.reorderable? && View.columns_control(collection, columns))
+      |> assign(:row_actions, row_actions)
 
     ~H"""
     <table {merge(%{}, "table", @class, @rest)}>
@@ -435,6 +451,9 @@ defmodule Cinder.Next do
               <.header_content column={column} />
             <% end %>
           </th>
+          <th :if={@row_actions != []} class="cinder-actions-cell">
+            <span class="cinder-sr-only">{dgettext("cinder", "Actions")}</span>
+          </th>
         </tr>
       </thead>
       <%!-- Grouped: a header body and an items body per group, since a <tbody>
@@ -442,24 +461,24 @@ defmodule Cinder.Next do
       <%= for group <- @collection.groups || [] do %>
         <tbody {styled(group.attrs, "group")}>
           <tr class="cinder-group-header">
-            <th colspan={column_count(@columns, @collection)} scope="colgroup">
+            <th colspan={column_count(@columns, @collection, @row_actions)} scope="colgroup">
               <.group_header group={group} />
             </th>
           </tr>
         </tbody>
         <tbody {styled(group.items_attrs, "group-items")}>
-          <.table_row :for={row <- group.items} row={row} columns={@columns} />
+          <.table_row :for={row <- group.items} row={row} columns={@columns} actions={@row_actions} />
         </tbody>
       <% end %>
       <tbody>
         <%= if !@collection.groups do %>
-          <.table_row :for={row <- @collection.rows} row={row} columns={@columns} />
+          <.table_row :for={row <- @collection.rows} row={row} columns={@columns} actions={@row_actions} />
         <% end %>
         <tr :if={@collection.rows == [] and @collection.status == :idle} class="cinder-empty">
-          <td colspan={column_count(@columns, @collection)}>{dgettext("cinder", "No results found")}</td>
+          <td colspan={column_count(@columns, @collection, @row_actions)}>{dgettext("cinder", "No results found")}</td>
         </tr>
         <tr :if={@collection.status == :error} class="cinder-error">
-          <td colspan={column_count(@columns, @collection)}>
+          <td colspan={column_count(@columns, @collection, @row_actions)}>
             {dgettext("cinder", "An error occurred while loading data")}
           </td>
         </tr>
@@ -529,9 +548,11 @@ defmodule Cinder.Next do
     """
   end
 
-  # Columns plus the selection column, for cells that span the whole table
-  defp column_count(columns, collection),
-    do: length(columns) + if(collection.selection, do: 1, else: 0)
+  # Columns plus the selection and actions cells, for cells that span the whole table
+  defp column_count(columns, collection, row_actions),
+    do:
+      length(columns) + if(collection.selection, do: 1, else: 0) +
+        if(row_actions != [], do: 1, else: 0)
 
   attr :column, :map, required: true
 
@@ -541,6 +562,7 @@ defmodule Cinder.Next do
 
   attr :row, :map, required: true
   attr :columns, :list, required: true
+  attr :actions, :list, required: true
 
   defp table_row(assigns) do
     ~H"""
@@ -553,6 +575,7 @@ defmodule Cinder.Next do
           {View.field_value(@row.record, column.field)}
         <% end %>
       </td>
+      <td :if={@actions != []} class="cinder-actions-cell">{render_slot(@actions, @row.record)}</td>
     </tr>
     """
   end

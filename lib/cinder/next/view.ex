@@ -61,6 +61,8 @@ defmodule Cinder.Next.View do
       grid_attrs: grid_attrs(config.grid_columns),
       # So `grid/1` can render cards given only the collection
       item_slot: config.item_slot,
+      # The `<:row_action>`s, for the table's last cell (or wherever custom markup puts them)
+      row_action_slot: config.row_action_slot,
       columns: Enum.map(config.columns, &column(&1, sorts[&1.field])),
       reorderable?: config.reorderable,
       # The user's column choices; the table arranges its columns by them

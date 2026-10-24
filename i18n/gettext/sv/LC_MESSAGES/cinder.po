@@ -256,3 +256,8 @@ msgstr "Flytta %{label} nedåt"
 #, elixir-autogen, elixir-format
 msgid "Move %{label} up"
 msgstr "Flytta %{label} uppåt"
+
+#: lib/cinder/next.ex
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr "Åtgärder"

@@ -265,11 +265,12 @@ defmodule Cinder.Next.ConfigTest do
   end
 
   describe "validation" do
-    # A socket isn't needed: the options are checked before it's touched
+    # The options are checked before the socket is touched, but it's shaped like one
+    # that `use Cinder.Next.LiveView` has prepared, for the type checker
     defp assign_collection(opts),
       do:
         Cinder.Next.LiveView.assign_collection(
-          %Phoenix.LiveView.Socket{},
+          %Phoenix.LiveView.Socket{assigns: %{__changed__: %{}, __cinder__: %{}}},
           :albums,
           Music.Album,
           opts
@@ -278,6 +279,12 @@ defmodule Cinder.Next.ConfigTest do
     test "an unknown option is an error, rather than ignored" do
       assert_raise ArgumentError, ~r/assign_collection: unknown options \[:sortz\]/, fn ->
         assign_collection(sortz: [:title])
+      end
+    end
+
+    test "a <:col> with no field (an old-style actions column) points to <:row_action>" do
+      assert_raise ArgumentError, ~r/<:col> needs a field.*use\s+<:row_action/s, fn ->
+        build(col: [%{__slot__: :col, inner_block: :rendered, label: "Actions"}])
       end
     end
 

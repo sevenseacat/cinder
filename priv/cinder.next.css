@@ -113,6 +113,16 @@
     }
   }
 
+  /* Read by screen readers, not shown (the actions column's header) */
+  .cinder-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   /* The columns control sits above the table, at its end */
   .cinder-table-caption {
     caption-side: top;

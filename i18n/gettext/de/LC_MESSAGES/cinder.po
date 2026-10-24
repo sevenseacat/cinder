@@ -253,3 +253,8 @@ msgstr "%{label} nach unten verschieben"
 #, elixir-autogen, elixir-format
 msgid "Move %{label} up"
 msgstr "%{label} nach oben verschieben"
+
+#: lib/cinder/next.ex
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr "Aktionen"

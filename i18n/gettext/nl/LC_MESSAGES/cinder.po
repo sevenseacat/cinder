@@ -256,3 +256,8 @@ msgstr "%{label} omlaag verplaatsen"
 #, elixir-autogen, elixir-format
 msgid "Move %{label} up"
 msgstr "%{label} omhoog verplaatsen"
+
+#: lib/cinder/next.ex
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr "Acties"

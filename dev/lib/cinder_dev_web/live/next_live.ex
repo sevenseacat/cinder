@@ -54,6 +54,9 @@ defmodule CinderDevWeb.NextLive do
         </:header>
         <:col field="release_date" sort hidden />
         <:col field="is_remastered" label="Remastered" hidden />
+        <:row_action :let={album}>
+          <a href={"#album-#{album.id}"} class="link link-primary text-sm">Details</a>
+        </:row_action>
         <%!-- Remastered albums can't be selected, so they can't be remastered again --%>
         <:bulk_action name="remaster" action={:remaster} />
         <:bulk_action name="delete" action={:destroy} confirm="Delete {count} albums?" />

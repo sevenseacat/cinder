@@ -61,6 +61,8 @@ defmodule Cinder.Next.Config do
     grid_columns: nil,
     columns: [],
     item_slot: [],
+    # `<:row_action>`s: each table row's last cell
+    row_action_slot: [],
     # `nil`, or `%{field, direction, slot}`: rows grouped by a field on each page
     group: nil,
     # `false`, `true`, or a function of the record
@@ -180,6 +182,7 @@ defmodule Cinder.Next.Config do
       default_layout: layout,
       grid_columns: grid_columns,
       item_slot: assigns[:item] || [],
+      row_action_slot: assigns[:row_action] || [],
       group: group(assigns[:group] || []),
       selectable: assigns[:selectable] || false,
       reorderable: assigns[:reorderable] || false,

@@ -241,6 +241,14 @@ defmodule Cinder.Next.Schema do
   def validate_live_view!(opts), do: validate!(opts, @live_view, "assign_collection")
 
   # A slot entry is a map with Phoenix's own keys; only the attrs are checked
+  defp validate_slot!(%{__slot__: :col} = entry, :col, _schema)
+       when not is_map_key(entry, :field),
+       do:
+         raise(ArgumentError, """
+         <:col> needs a field. For per-row buttons or links (an "actions" column), use \
+         <:row_action :let={record}> instead: it renders in each row's last cell.\
+         """)
+
   defp validate_slot!(entry, slot, schema) do
     attrs = entry |> Map.drop([:__slot__, :inner_block]) |> Map.to_list()
     name = entry[:field] || entry[:name]
