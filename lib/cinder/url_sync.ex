@@ -233,8 +233,9 @@ defmodule Cinder.UrlSync do
         sort -> sort
       end)
 
-    # Use empty columns list since we don't have column context here
-    Cinder.UrlManager.decode_state(safe_params, [])
+    # There are no columns here yet, so the sort is only parsed, not checked. The
+    # component checks it against its columns before applying it.
+    decode_unchecked(safe_params)
   end
 
   @doc """
@@ -262,9 +263,16 @@ defmodule Cinder.UrlSync do
         sort -> sort
       end)
 
-    # Use empty columns list - this will preserve page/sort but may lose filter details
-    # That's why we also preserve raw params in the url_state
-    Cinder.UrlManager.decode_state(safe_params, [])
+    # There are no columns here yet: filter details may be lost (which is why the raw
+    # params are kept in url_state too), and the sort is only parsed, not checked. The
+    # component checks it against its columns before applying it.
+    decode_unchecked(safe_params)
+  end
+
+  defp decode_unchecked(params) do
+    params
+    |> Cinder.UrlManager.decode_state([])
+    |> Map.put(:sort_by, Cinder.UrlManager.decode_sort(params["sort"]))
   end
 
   # Keep old name for backward compatibility

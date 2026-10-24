@@ -28,6 +28,19 @@ defmodule Cinder.Integration.SortKeyGuardTest do
     """
   end
 
+  # No columns at all, so the URL's sort has nothing to be checked against
+  defp synced_grid(assigns) do
+    ~H"""
+    <Cinder.collection
+      query={Ash.Query.sort(Music.Album, title: :asc)}
+      layout={:grid}
+      url_state={@url_state}
+    >
+      <:item :let={album}><p class="album">{album.title}</p></:item>
+    </Cinder.collection>
+    """
+  end
+
   setup do
     # Sorted by is_remastered ascending these would swap, so a sort that slips
     # through changes the row order.
@@ -105,6 +118,24 @@ defmodule Cinder.Integration.SortKeyGuardTest do
       |> assert_has("td", text: "Bbb")
 
       refute_atom_exists(key)
+    end
+
+    # Regression: with no columns to check against, the sort went through unchecked.
+    # A real attribute sorted the records (by a field nothing declared sortable), and
+    # anything else failed validation and put the whole collection in its error state.
+    test "is ignored when the collection has no columns to sort by", %{conn: conn} do
+      path = Cinder.TestLive.Fixture.register(&synced_grid/1)
+
+      # Each of these would put Bbb first if it were applied
+      for sort <- ["-title", "is_remastered", bogus_key()] do
+        conn
+        |> visit(path <> "?sort=#{sort}")
+        |> unwrap(fn view ->
+          html = render(view)
+          assert html =~ ~r/Aaa.*Bbb/s, "?sort=#{sort} changed the order, or errored"
+          html
+        end)
+      end
     end
   end
 end

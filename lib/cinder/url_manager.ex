@@ -354,14 +354,10 @@ defmodule Cinder.UrlManager do
   end
 
   # Helper function to filter sorts based on column definitions
+  # Only declared sortable columns: a URL's sort is client input, so anything else
+  # (including everything, when there are no columns) is dropped rather than applied
   defp filter_valid_sorts(sorts, columns) do
-    if Enum.empty?(columns) do
-      sorts
-    else
-      Enum.filter(sorts, fn {field, _direction} ->
-        field_sortable?(field, columns)
-      end)
-    end
+    Enum.filter(sorts, fn {field, _direction} -> field_sortable?(field, columns) end)
   end
 
   # Helper function to check if a field is sortable

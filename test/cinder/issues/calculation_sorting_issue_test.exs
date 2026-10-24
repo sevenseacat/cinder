@@ -818,16 +818,19 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     # - another_invalid (doesn't exist)
   end
 
-  test "URL parameter filtering works with empty columns list" do
-    # Verify backward compatibility when no columns are provided
+  test "URL parameter filtering drops every sort when there are no columns to check against" do
     url_params = %{
       "sort" => "any_field,-another_field"
     }
 
-    # With empty columns, should preserve all sorts (backward compatibility)
+    # A URL's sort is client input: with no declared sortable columns, nothing is
+    # sortable. (It used to pass everything through, unchecked.) Parsing without
+    # checking is `decode_sort/1`, for callers that check later.
     result = Cinder.UrlManager.decode_state(url_params, [])
 
-    assert result.sort_by == [
+    assert result.sort_by == []
+
+    assert Cinder.UrlManager.decode_sort("any_field,-another_field") == [
              {"any_field", :asc},
              {"another_field", :desc}
            ]
