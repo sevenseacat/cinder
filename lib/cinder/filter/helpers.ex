@@ -26,6 +26,20 @@ defmodule Cinder.Filter.Helpers do
 
   require Logger
 
+  @doc false
+  # Field names from the app's own declarations (column and filter fields), never
+  # from the client: form params and URLs are matched against declared columns before
+  # they get here. They can't use `String.to_existing_atom`, because keys inside
+  # map-typed fields (`metadata__foo`) and names like `:"artist.name"` may never exist
+  # as compile-time atoms. The set is finite (what the app declares), so it can't
+  # exhaust the atom table. This is the one place Cinder makes such atoms, so the
+  # security checks have one exception.
+  # sobelow_skip ["DOS.StringToAtom"]
+  def declared_field_atom(name) when is_binary(name) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+    String.to_atom(name)
+  end
+
   @doc """
   Validates and trims string input, returning error for empty strings.
 
@@ -311,27 +325,27 @@ defmodule Cinder.Filter.Helpers do
 
     case parse_field_notation(field) do
       {:direct, field_name} ->
-        field_atom = String.to_atom(field_name)
+        field_atom = declared_field_atom(field_name)
         apply_operator_to_field(query, field_atom, value, operator, opts)
 
       {:relationship, rel_path, field_name} ->
-        rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
-        field_atom = String.to_atom(field_name)
+        rel_path_atoms = Enum.map(rel_path, &declared_field_atom/1)
+        field_atom = declared_field_atom(field_name)
         apply_operator_to_relationship(query, rel_path_atoms, field_atom, value, operator, opts)
 
       {:embedded, embed_field, field_name} ->
-        embed_atom = String.to_atom(embed_field)
-        field_atom = String.to_atom(field_name)
+        embed_atom = declared_field_atom(embed_field)
+        field_atom = declared_field_atom(field_name)
         apply_operator_to_embedded(query, embed_atom, field_atom, value, operator, opts)
 
       {:nested_embedded, embed_field, field_path} ->
-        embed_atom = String.to_atom(embed_field)
+        embed_atom = declared_field_atom(embed_field)
         apply_operator_to_nested_embedded(query, embed_atom, field_path, value, operator, opts)
 
       {:relationship_embedded, rel_path, embed_field, field_name} ->
-        rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
-        embed_atom = String.to_atom(embed_field)
-        field_atom = String.to_atom(field_name)
+        rel_path_atoms = Enum.map(rel_path, &declared_field_atom/1)
+        embed_atom = declared_field_atom(embed_field)
+        field_atom = declared_field_atom(field_name)
 
         apply_operator_to_relationship_embedded(
           query,
@@ -344,8 +358,8 @@ defmodule Cinder.Filter.Helpers do
         )
 
       {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
-        rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
-        embed_atom = String.to_atom(embed_field)
+        rel_path_atoms = Enum.map(rel_path, &declared_field_atom/1)
+        embed_atom = declared_field_atom(embed_field)
 
         apply_operator_to_relationship_nested_embedded(
           query,
@@ -944,7 +958,7 @@ defmodule Cinder.Filter.Helpers do
     import Ash.Expr
 
     # Convert field path to atoms for get_path
-    field_atoms = Enum.map(field_path, &String.to_atom/1)
+    field_atoms = Enum.map(field_path, &declared_field_atom/1)
 
     case operator do
       :equals ->
@@ -1066,7 +1080,7 @@ defmodule Cinder.Filter.Helpers do
     import Ash.Expr
 
     # Convert field path to atoms for get_path
-    field_atoms = Enum.map(field_path, &String.to_atom/1)
+    field_atoms = Enum.map(field_path, &declared_field_atom/1)
 
     case operator do
       :equals ->

@@ -78,12 +78,12 @@ defmodule Cinder.Filters.Date do
       {:ok, date} ->
         case Helpers.parse_field_notation(field) do
           {:direct, field_name} ->
-            field_atom = String.to_atom(field_name)
+            field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
             Ash.Query.filter(query, type(^ref(field_atom), :date) == ^date)
 
           {:relationship, rel_path, field_name} ->
-            rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
-            field_atom = String.to_atom(field_name)
+            rel_path_atoms = Enum.map(rel_path, &Cinder.Filter.Helpers.declared_field_atom/1)
+            field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
 
             Ash.Query.filter(
               query,
@@ -91,8 +91,8 @@ defmodule Cinder.Filters.Date do
             )
 
           {:embedded, embed_field, field_name} ->
-            embed_atom = String.to_atom(embed_field)
-            field_atom = String.to_atom(field_name)
+            embed_atom = Cinder.Filter.Helpers.declared_field_atom(embed_field)
+            field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
 
             Ash.Query.filter(
               query,
@@ -100,8 +100,8 @@ defmodule Cinder.Filters.Date do
             )
 
           {:nested_embedded, embed_field, field_path} ->
-            embed_atom = String.to_atom(embed_field)
-            field_atoms = Enum.map(field_path, &String.to_atom/1)
+            embed_atom = Cinder.Filter.Helpers.declared_field_atom(embed_field)
+            field_atoms = Enum.map(field_path, &Cinder.Filter.Helpers.declared_field_atom/1)
 
             Ash.Query.filter(
               query,
@@ -109,9 +109,9 @@ defmodule Cinder.Filters.Date do
             )
 
           {:relationship_embedded, rel_path, embed_field, field_name} ->
-            rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
-            embed_atom = String.to_atom(embed_field)
-            field_atom = String.to_atom(field_name)
+            rel_path_atoms = Enum.map(rel_path, &Cinder.Filter.Helpers.declared_field_atom/1)
+            embed_atom = Cinder.Filter.Helpers.declared_field_atom(embed_field)
+            field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
 
             Ash.Query.filter(
               query,
@@ -122,9 +122,9 @@ defmodule Cinder.Filters.Date do
             )
 
           {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
-            rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
-            embed_atom = String.to_atom(embed_field)
-            field_atoms = Enum.map(field_path, &String.to_atom/1)
+            rel_path_atoms = Enum.map(rel_path, &Cinder.Filter.Helpers.declared_field_atom/1)
+            embed_atom = Cinder.Filter.Helpers.declared_field_atom(embed_field)
+            field_atoms = Enum.map(field_path, &Cinder.Filter.Helpers.declared_field_atom/1)
 
             Ash.Query.filter(
               query,

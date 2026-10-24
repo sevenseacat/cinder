@@ -168,7 +168,7 @@ defmodule Cinder.UrlManager do
             to_string(filter.value)
         end
 
-      {String.to_atom(key), encoded_value}
+      {Cinder.Filter.Helpers.declared_field_atom(key), encoded_value}
     end)
     |> Enum.into(%{})
   end

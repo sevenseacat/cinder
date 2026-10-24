@@ -632,9 +632,9 @@ defmodule Cinder.QueryBuilder do
   defp apply_embedded_sort(query, rel_path, embed_field, field_path, direction) do
     import Ash.Expr
 
-    rel_path_atoms = Enum.map(rel_path, &String.to_atom/1)
-    embed_atom = String.to_atom(embed_field)
-    field_atoms = Enum.map(field_path, &String.to_atom/1)
+    rel_path_atoms = Enum.map(rel_path, &Cinder.Filter.Helpers.declared_field_atom/1)
+    embed_atom = Cinder.Filter.Helpers.declared_field_atom(embed_field)
+    field_atoms = Enum.map(field_path, &Cinder.Filter.Helpers.declared_field_atom/1)
 
     sort_expr =
       case rel_path_atoms do

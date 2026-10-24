@@ -304,11 +304,11 @@ defmodule Cinder.Filters.DateRange do
     field_type =
       case Cinder.Filter.Helpers.parse_field_notation(field) do
         {:direct, field_name} ->
-          field_atom = String.to_atom(field_name)
+          field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
           get_field_type(resource, field_atom)
 
         {:relationship, _rel_path, field_name} ->
-          field_atom = String.to_atom(field_name)
+          field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
           get_field_type(resource, field_atom)
 
         {:embedded, _embed_field, _field_name} ->

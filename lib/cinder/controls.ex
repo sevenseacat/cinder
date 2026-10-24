@@ -94,7 +94,7 @@ defmodule Cinder.Controls do
     filters =
       Enum.map(filterable_columns, fn column ->
         current_value = Map.get(filter_values, column.field, "")
-        key = String.to_atom(column.field)
+        key = Cinder.Filter.Helpers.declared_field_atom(column.field)
 
         {key,
          %{
