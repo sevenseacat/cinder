@@ -4,7 +4,7 @@
 
 ### Breaking changes
 
-* Cinder now requires `phoenix_live_view ~> 1.1` and Phoenix 1.8, and ships a colocated hook that your `app.js` must register. Run `mix cinder.upgrade 0.17.0 0.18.0`, or see the [upgrading guide](docs/upgrading.md).
+* Cinder now requires `phoenix_live_view ~> 1.1`, and ships a colocated hook that your `app.js` must register. Run `mix cinder.upgrade 0.17.0 0.18.0`, or see the [upgrading guide](docs/upgrading.md).
 
 ### Features
 

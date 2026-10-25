@@ -56,7 +56,6 @@ defmodule Cinder.MixProject do
     [
       {:ash, "~> 3.0"},
       {:ash_phoenix, "~> 2.3"},
-      {:phoenix, "~> 1.8"},
       {:phoenix_live_view, "~> 1.1"},
       {:gettext, "~> 1.0.0"},
       {:usage_rules, "~> 1.0", only: [:dev]},

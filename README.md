@@ -93,7 +93,7 @@ For list or grid layouts:
 
 ## Requirements
 
-- Phoenix LiveView 1.1+ (Phoenix 1.8+)
+- Phoenix LiveView 1.1+
 - Ash Framework 3.0+
 - Elixir 1.17+
 

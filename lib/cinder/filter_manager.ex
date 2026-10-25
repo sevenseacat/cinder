@@ -159,10 +159,18 @@ defmodule Cinder.FilterManager do
               const button = event.target.closest("[data-cinder-clear]")
               if (!button) return
               const scope = button.closest("[data-cinder-filter]") || this.el
-              this.partialInputs(scope).forEach((input) => { input.value = "" })
+              this.partialInputs(scope).forEach((input) => this.clear(input))
               this.sync()
             })
             this.sync()
+          },
+          clear(input) {
+            // Safari keeps a partly typed date on screen through value = "" (it already reads ""),
+            // so rebuild the field by switching its type away and back
+            const type = input.type
+            input.type = "text"
+            input.value = ""
+            input.type = type
           },
           updated() {
             this.sync()

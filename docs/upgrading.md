@@ -7,8 +7,8 @@ This guide covers breaking changes, deprecations, and migration paths for Cinder
 ### Changed: Cinder requires LiveView 1.1 and ships a JS hook
 
 Cinder now includes a [colocated hook](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedHook.html)
-that clears partially typed date and number filters. It requires `phoenix_live_view ~> 1.1`
-and Phoenix 1.8, and your `LiveSocket` has to register Cinder's hooks.
+that clears partially typed date and number filters. It requires `phoenix_live_view ~> 1.1`,
+and your `LiveSocket` has to register Cinder's hooks.
 
 **This affects every app using Cinder.** Without the hook, filters still work, but partially
 typed values are not cleared and LiveView logs an "unknown hook" error in the browser console.
