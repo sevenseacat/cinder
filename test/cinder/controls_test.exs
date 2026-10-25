@@ -507,4 +507,79 @@ defmodule Cinder.ControlsTest do
       assert html =~ "FIELDS:name,status"
     end
   end
+
+  describe "partial input hook wiring" do
+    defp render_controls(assigns) do
+      render_component(&FilterManager.render_filter_controls/1, assigns)
+      |> LazyHTML.from_fragment()
+    end
+
+    defp attr(document, selector, name) do
+      document |> LazyHTML.query(selector) |> LazyHTML.attribute(name)
+    end
+
+    test "renders the hook on the filter container" do
+      document = render_controls(base_assigns())
+
+      assert attr(document, "#test-table-filter-container", "phx-hook") == [
+               "Cinder.FilterManager.PartialInputs"
+             ]
+
+      assert [class] = attr(document, "#test-table-filter-container", "class")
+      assert class =~ "group/cinder-filters"
+    end
+
+    test "renders the hook on the filter container with a :controls slot" do
+      controls_slot = [%{__slot__: :controls, inner_block: fn _assigns, _controls -> "" end}]
+      document = render_controls(Map.put(base_assigns(), :controls_slot, controls_slot))
+
+      assert attr(document, "#test-table-filter-container", "phx-hook") == [
+               "Cinder.FilterManager.PartialInputs"
+             ]
+    end
+
+    test "marks each filter and keys its clear button off the hook's attribute" do
+      document = render_controls(base_assigns())
+
+      assert attr(document, "[data-cinder-filter]", "data-cinder-filter") == ["name", "status"]
+
+      for class <- attr(document, "[data-cinder-filter]", "class") do
+        assert class =~ "group/cinder-filter"
+      end
+
+      for class <- attr(document, "[data-cinder-filter] > button[data-cinder-clear]", "class") do
+        assert class =~ "invisible group-data-[cinder-partial]/cinder-filter:visible"
+      end
+    end
+
+    test "keys clear all off the hook's attribute on the container" do
+      document = render_controls(base_assigns())
+
+      assert [class] =
+               attr(
+                 document,
+                 ~s(button[data-cinder-clear][phx-click="clear_all_filters"]),
+                 "class"
+               )
+
+      assert class =~ "invisible group-data-[cinder-partial]/cinder-filters:visible"
+    end
+
+    test "keeps clear buttons visible for active filters" do
+      filters = %{"name" => %{type: :text, value: "john", operator: :contains}}
+      document = render_controls(base_assigns(%{filters: filters}))
+
+      assert [class] =
+               attr(
+                 document,
+                 ~s([data-cinder-filter="name"] > button[data-cinder-clear]),
+                 "class"
+               )
+
+      refute class =~ "invisible"
+
+      assert [class] = attr(document, ~s(button[phx-click="clear_all_filters"]), "class")
+      refute class =~ "invisible"
+    end
+  end
 end
