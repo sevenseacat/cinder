@@ -63,6 +63,9 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
     view
   end
 
+  # Callbacks reach the test in two hops (the collection messages the LiveView, the
+  # fixture forwards it), after the event has returned, so they get a generous wait
+
   defp event(view, name, params),
     do: view |> with_target("[data-phx-component]") |> render_click(name, params)
 
@@ -93,7 +96,7 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
   } do
     view = mount(conn, Music.Album)
     select(view, albums["Alpha"])
-    assert_receive {:selection_changed, %{selected_count: 1}}
+    assert_receive {:selection_changed, %{selected_count: 1}}, 1000
 
     event(view, "goto_page", %{"page" => "1"})
     refute_receive {:selection_changed, _}
@@ -101,7 +104,7 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
     Fixture.run(view, &assign(&1, :base_query, Ash.Query.filter(Music.Album, genre == :jazz)))
     render_async(view)
 
-    assert_receive {:selection_changed, %{selected_count: 0, action: :clear}}
+    assert_receive {:selection_changed, %{selected_count: 0, action: :clear}}, 1000
     event(view, "bulk_action_execute", %{"index" => 0})
     refute remastered?(albums["Alpha"])
   end
@@ -137,7 +140,7 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
     select(view, albums["Alpha"])
     event(view, "bulk_action_execute", %{"index" => 0})
 
-    assert_receive {:bulk_failed, %{partial: true, reason: [^error]}}
+    assert_receive {:bulk_failed, %{partial: true, reason: [^error]}}, 1000
     refute_received {:bulk_done, _}
 
     # Ash only returns the errors when asked
