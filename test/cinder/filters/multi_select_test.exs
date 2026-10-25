@@ -122,4 +122,32 @@ defmodule Cinder.Filters.MultiSelectTest do
 
   # Note: Basic process/2, validate/1, empty?/1 functionality is tested in
   # test/cinder/configuration/filters_test.exs
+  # Values come from the client (URLs and form events), and each one becomes part of
+  # the query, so they're trimmed to what the filter could have offered
+  for module <- [Cinder.Filters.MultiSelect, Cinder.Filters.MultiCheckboxes] do
+    describe "#{inspect(module)}.process/2 trims client values" do
+      @module module
+
+      test "to unique values among the options, when there are options" do
+        column = %{filter_options: [options: [{"Rock", :rock}, {"Jazz", "jazz"}, "pop"]]}
+
+        assert %{value: ["rock", "jazz", "pop"]} =
+                 @module.process(["rock", "zzz", "rock", "jazz", "pop", ""], column)
+
+        assert @module.process(["zzz", "nope"], column) == nil
+      end
+
+      test "to a capped number of unique strings, when there are no options" do
+        values = Enum.map(1..500, &"v#{&1}")
+
+        assert %{value: kept} = @module.process(values ++ values, %{filter_options: []})
+        assert kept == Enum.take(values, 100)
+      end
+
+      test "dropping anything that isn't a string" do
+        assert %{value: ["a"]} =
+                 @module.process(["a", %{"x" => "y"}, ["b"], 1], %{filter_options: []})
+      end
+    end
+  end
 end

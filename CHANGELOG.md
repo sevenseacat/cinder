@@ -19,6 +19,11 @@
 * Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
 * Sort keys sent by the client are now ignored unless they're a declared sortable column, so they can no longer create atoms or sort by fields that weren't defined as sortable.
 * Self-closing `<:col field="..." />` columns now render their field's value in table layouts, instead of crashing.
+* Page numbers from the URL are capped at 1,000,000, and multi-select values from the URL or a form are trimmed to the filter's options (or to 100 when it has none), so they can't make a query do unbounded work.
+
+### Deprecations
+
+* `Cinder.UrlManager.validate_url_params/1` is deprecated and will be removed in 1.0: Cinder never called it, and URL params are now bounded where they're decoded.
 
 ## v0.17.0 (2026-08-08)
 

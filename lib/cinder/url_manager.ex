@@ -6,6 +6,8 @@ defmodule Cinder.UrlManager do
   to/from URL parameters for browser history and bookmark support.
   """
 
+  @max_page 1_000_000
+
   @type filter_value ::
           String.t()
           | [String.t()]
@@ -372,7 +374,8 @@ defmodule Cinder.UrlManager do
   @doc """
   Decodes page number from URL parameter.
 
-  Returns 1 for invalid or missing page parameters.
+  Returns 1 for invalid or missing page parameters, and caps the page at
+  1,000,000.
 
   ## Examples
 
@@ -386,9 +389,12 @@ defmodule Cinder.UrlManager do
       1
 
   """
-  def decode_page(page_param) when is_binary(page_param) do
+  # A page becomes the query's offset, so a client-supplied one is bounded: past
+  # @max_page it's capped (an empty page past the end, like any too-large page), and a
+  # number too long to be a page isn't parsed at all
+  def decode_page(page_param) when is_binary(page_param) and byte_size(page_param) <= 20 do
     case Integer.parse(page_param) do
-      {page, ""} when page > 0 -> page
+      {page, ""} when page > 0 -> min(page, @max_page)
       _ -> 1
     end
   end
@@ -482,12 +488,8 @@ defmodule Cinder.UrlManager do
     end)
   end
 
-  @doc """
-  Validates URL parameters for potential security issues.
-
-  Performs basic validation to ensure URL parameters are safe to process.
-  Returns {:ok, params} for valid parameters or {:error, reason} for invalid ones.
-  """
+  @doc false
+  @deprecated "Unused by Cinder, and removed in 1.0: URL params are bounded where they're decoded"
   def validate_url_params(params) when is_map(params) do
     # Basic validation - check for reasonable parameter sizes
     max_param_length = 1000

@@ -283,6 +283,24 @@ defmodule Cinder.UrlManagerTest do
     end
   end
 
+  # Regression: a URL could carry any number of multi-select values, each becoming
+  # part of the query
+  describe "decode_filters/2 with multi-select values" do
+    test "keeps only unique values that are among the filter's options" do
+      columns = [
+        %{
+          field: "tags",
+          filterable: true,
+          filter_type: :multi_select,
+          filter_options: [options: [{"A", "a"}, {"B", "b"}]]
+        }
+      ]
+
+      %{"tags" => filter} = UrlManager.decode_filters(%{"tags" => "a,a,b,zzz,a"}, columns)
+      assert filter.value == ["a", "b"]
+    end
+  end
+
   describe "decode_filters/2" do
     setup do
       columns = [
@@ -513,6 +531,15 @@ defmodule Cinder.UrlManagerTest do
       assert UrlManager.decode_page(nil) == 1
     end
 
+    # Regression: any page number became the query's offset, so a huge one could
+    # overflow the data layer's integers (and a long digit string cost CPU to parse)
+    test "caps the page, and ignores absurdly long numbers" do
+      assert UrlManager.decode_page("1000000") == 1_000_000
+      assert UrlManager.decode_page("1000001") == 1_000_000
+      assert UrlManager.decode_page("99999999999999999999") == 1_000_000
+      assert UrlManager.decode_page(String.duplicate("9", 5000)) == 1
+    end
+
     test "handles non-string input" do
       assert UrlManager.decode_page(123) == 1
       assert UrlManager.decode_page([]) == 1
@@ -601,11 +628,15 @@ defmodule Cinder.UrlManagerTest do
     end
   end
 
+  # Deprecated (unused by Cinder, removed in 1.0), but it still works until then
   describe "validate_url_params/1" do
+    # Called through apply/3, so the deprecation doesn't warn when the tests compile
+    defp validate_url_params(params), do: apply(UrlManager, :validate_url_params, [params])
+
     test "validates normal parameters" do
       params = %{"title" => "test", "page" => "2"}
 
-      assert UrlManager.validate_url_params(params) == {:ok, params}
+      assert validate_url_params(params) == {:ok, params}
     end
 
     test "rejects too many parameters" do
@@ -614,21 +645,21 @@ defmodule Cinder.UrlManagerTest do
         |> Enum.map(fn i -> {"key#{i}", "value#{i}"} end)
         |> Enum.into(%{})
 
-      assert UrlManager.validate_url_params(params) == {:error, "Too many URL parameters"}
+      assert validate_url_params(params) == {:error, "Too many URL parameters"}
     end
 
     test "rejects parameters that are too long" do
       long_value = String.duplicate("a", 1001)
       params = %{"title" => long_value}
 
-      assert UrlManager.validate_url_params(params) == {:error, "URL parameter too long"}
+      assert validate_url_params(params) == {:error, "URL parameter too long"}
     end
 
     test "rejects non-map input" do
-      assert UrlManager.validate_url_params("not a map") ==
+      assert validate_url_params("not a map") ==
                {:error, "Invalid URL parameters format"}
 
-      assert UrlManager.validate_url_params(nil) == {:error, "Invalid URL parameters format"}
+      assert validate_url_params(nil) == {:error, "Invalid URL parameters format"}
     end
   end
 

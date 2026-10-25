@@ -5,6 +5,12 @@ defmodule Cinder.Filters.MultiCheckboxes do
   Provides multiple selection filtering with checkbox inputs for each option.
   This is the traditional checkbox-based interface for selecting multiple values.
 
+  ## Values from the client
+
+  Selections arrive from the browser (the URL, or the form), so they're trimmed before
+  they reach the query: duplicates are dropped, and only values among the filter's
+  `options` are kept when it has any. Without options, at most 100 values are kept.
+
   ## Match Mode Options
 
   The `match_mode` option controls how multiple selections are combined:
@@ -77,13 +83,12 @@ defmodule Cinder.Filters.MultiCheckboxes do
 
   @impl true
   def process(raw_value, column) when is_list(raw_value) do
-    # Filter out empty values
-    values = Enum.reject(raw_value, &(&1 == "" or is_nil(&1)))
+    filter_options = Map.get(column, :filter_options, [])
+    values = Cinder.Filter.Helpers.client_multi_values(raw_value, filter_options)
 
     if Enum.empty?(values) do
       nil
     else
-      filter_options = Map.get(column, :filter_options, [])
       match_mode = get_option(filter_options, :match_mode, :any)
 
       %{

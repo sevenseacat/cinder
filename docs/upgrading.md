@@ -2,6 +2,17 @@
 
 This guide covers breaking changes, deprecations, and migration paths for Cinder.
 
+## Upgrading to 0.18.0
+
+### Deprecated: `Cinder.UrlManager.validate_url_params/1`
+
+Cinder never called it, and it's removed in 1.0. URL params are bounded where they're
+decoded instead: sorts are kept only for declared sortable columns, filters only for
+declared filterable columns (with multi-select values trimmed to the filter's options),
+page sizes only from the configured options, and pages are capped. If you call it
+yourself, check what you rely on it for: its limits (50 params, 1,000 characters each) can
+reject legitimate URLs.
+
 ## Upgrading to 0.16.0
 
 ### Removed: Unicode sort-glyph theme keys

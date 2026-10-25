@@ -872,4 +872,21 @@ defmodule Cinder.FilterManagerRuntimeTest do
       end
     end
   end
+
+  # Regression: a form event could post any number of multi-select values, each one
+  # part of the query, just as a URL could
+  test "params_to_filters/2 trims a form's multi-select values to the filter's options" do
+    columns = [
+      %{
+        field: "tags",
+        filterable: true,
+        filter_type: :multi_checkboxes,
+        filter_options: [options: [{"A", "a"}, {"B", "b"}]]
+      }
+    ]
+
+    params = %{"tags" => ["b", "a", "b"] ++ Enum.map(1..1000, &"junk#{&1}")}
+
+    assert %{"tags" => %{value: ["b", "a"]}} = FilterManager.params_to_filters(params, columns)
+  end
 end

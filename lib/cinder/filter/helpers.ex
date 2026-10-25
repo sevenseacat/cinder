@@ -26,6 +26,29 @@ defmodule Cinder.Filter.Helpers do
 
   require Logger
 
+  @max_multi_values 100
+
+  @doc false
+  # The values a multi-value filter gets from the client (a URL or a form event), each
+  # of which becomes part of the query, trimmed to what the filter could have offered:
+  # unique, non-empty strings, only those among its options when it has any, and at
+  # most @max_multi_values. Anything else is dropped silently.
+  def client_multi_values(values, filter_options) do
+    allowed =
+      filter_options
+      |> Keyword.get(:options, [])
+      |> MapSet.new(fn
+        {_label, value} -> to_string(value)
+        value -> to_string(value)
+      end)
+
+    values
+    |> Enum.filter(&(is_binary(&1) and &1 != ""))
+    |> Enum.uniq()
+    |> Enum.filter(&(MapSet.size(allowed) == 0 or MapSet.member?(allowed, &1)))
+    |> Enum.take(@max_multi_values)
+  end
+
   @doc false
   # Field names from the app's own declarations (column and filter fields), never
   # from the client: form params and URLs are matched against declared columns before
