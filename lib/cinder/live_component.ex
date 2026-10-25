@@ -320,22 +320,27 @@ defmodule Cinder.LiveComponent do
     new_filters = Cinder.FilterManager.clear_filter(socket.assigns.filters, key)
 
     # Also clear the autocomplete search term for this field
-    raw_filter_params = Map.get(socket.assigns, :raw_filter_params, %{})
+    old_raw_filter_params = Map.get(socket.assigns, :raw_filter_params, %{})
     autocomplete_search_key = "#{key}_autocomplete_search"
-    raw_filter_params = Map.delete(raw_filter_params, autocomplete_search_key)
+    raw_filter_params = Map.delete(old_raw_filter_params, autocomplete_search_key)
 
-    socket =
-      socket
-      |> assign(:filters, new_filters)
-      |> assign(:raw_filter_params, raw_filter_params)
-      |> assign(:current_page, 1)
-      |> assign(:after_keyset, nil)
-      |> assign(:before_keyset, nil)
-      |> load_data()
+    # Clearing an input that holds only a partially entered value changes nothing here
+    if new_filters == socket.assigns.filters and raw_filter_params == old_raw_filter_params do
+      {:noreply, socket}
+    else
+      socket =
+        socket
+        |> assign(:filters, new_filters)
+        |> assign(:raw_filter_params, raw_filter_params)
+        |> assign(:current_page, 1)
+        |> assign(:after_keyset, nil)
+        |> assign(:before_keyset, nil)
+        |> load_data()
 
-    socket = notify_state_change(socket, new_filters)
+      socket = notify_state_change(socket, new_filters)
 
-    {:noreply, socket}
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -358,16 +363,20 @@ defmodule Cinder.LiveComponent do
   def handle_event("clear_all_filters", _params, socket) do
     new_filters = Cinder.FilterManager.clear_all_filters(socket.assigns.filters)
 
-    socket =
-      socket
-      |> assign(:filters, new_filters)
-      |> assign(:current_page, 1)
-      |> assign(:after_keyset, nil)
-      |> assign(:before_keyset, nil)
-      |> load_data()
-      |> notify_state_change()
+    if new_filters == socket.assigns.filters do
+      {:noreply, socket}
+    else
+      socket =
+        socket
+        |> assign(:filters, new_filters)
+        |> assign(:current_page, 1)
+        |> assign(:after_keyset, nil)
+        |> assign(:before_keyset, nil)
+        |> load_data()
+        |> notify_state_change()
 
-    {:noreply, socket}
+      {:noreply, socket}
+    end
   end
 
   # ============================================================================
