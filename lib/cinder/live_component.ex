@@ -148,8 +148,28 @@ defmodule Cinder.LiveComponent do
       |> assign_column_definitions()
       |> decode_url_state(assigns)
       |> load_data_if_needed(prev_state)
+      |> clear_selection_if_scope_changed(prev_state)
 
     {:ok, socket}
+  end
+
+  @scope_keys [:query, :actor_id, :tenant_id, :scope_id]
+
+  # A new base query, actor, tenant or scope means a different set of records, so a
+  # selection made in the old one is cleared: otherwise it would count records the
+  # bulk actions can no longer reach. The user's own filters, sort and page are left
+  # alone, since a selection is meant to survive those.
+  defp clear_selection_if_scope_changed(socket, prev_state) do
+    scope_changed? =
+      Map.take(data_state(socket.assigns), @scope_keys) != Map.take(prev_state, @scope_keys)
+
+    if scope_changed? and MapSet.size(socket.assigns[:selected_ids] || MapSet.new()) > 0 do
+      socket
+      |> assign(:selected_ids, MapSet.new())
+      |> notify_selection_change(:clear)
+    else
+      socket
+    end
   end
 
   defp do_update_item_if_visible(socket, id, raw_item, update_fn, id_field) do
@@ -441,7 +461,10 @@ defmodule Cinder.LiveComponent do
   # ============================================================================
 
   @impl true
-  def handle_event("bulk_action_execute", %{"index" => index}, socket) do
+  # The index comes from the client, so it has to name one of the actions: a forged
+  # one (a string, a negative index aliasing the last action) does nothing
+  def handle_event("bulk_action_execute", %{"index" => index}, socket)
+      when is_integer(index) and index >= 0 do
     slots = socket.assigns[:bulk_action_slots] || []
     slot = Enum.at(slots, index)
 
@@ -451,6 +474,11 @@ defmodule Cinder.LiveComponent do
       Logger.warning("Cinder: Bulk action slot not found at index #{index}")
       {:noreply, socket}
     end
+  end
+
+  def handle_event("bulk_action_execute", params, socket) do
+    Logger.warning("Cinder: Ignoring a bulk action with an invalid index: #{inspect(params)}")
+    {:noreply, socket}
   end
 
   @impl true
@@ -546,9 +574,12 @@ defmodule Cinder.LiveComponent do
       resource = extract_resource(socket.assigns)
 
       if resource do
+        # The base query, not just its resource: its filters, tenant and read action
+        # bound what the action can touch, so a selected record that has since left
+        # the collection's scope isn't acted on
         result =
           Cinder.BulkActionExecutor.execute(action,
-            resource: resource,
+            resource: socket.assigns.query,
             ids: selected_ids,
             id_field: socket.assigns[:id_field] || :id,
             actor: socket.assigns[:actor],
@@ -572,6 +603,18 @@ defmodule Cinder.LiveComponent do
 
       {:error, reason} ->
         handle_bulk_action_error(slot, socket, reason)
+
+      # Some records changed and some didn't: an error, but the data and selection
+      # are stale either way (without `return_records?` there's no telling which ids
+      # failed, and keeping them would re-apply the action to the ones that worked)
+      {:partial_success, %Ash.BulkResult{errors: errors}} ->
+        socket =
+          socket
+          |> assign(:selected_ids, MapSet.new())
+          |> notify_selection_change(:clear)
+          |> load_data()
+
+        handle_bulk_action_error(slot, socket, errors || [], partial: true)
     end
   end
 
@@ -600,8 +643,12 @@ defmodule Cinder.LiveComponent do
     {:noreply, socket}
   end
 
-  defp handle_bulk_action_error(slot, socket, reason) do
-    Logger.error("Cinder: Bulk action failed: #{inspect(reason)}")
+  defp handle_bulk_action_error(slot, socket, reason, opts \\ []) do
+    partial? = Keyword.get(opts, :partial, false)
+
+    Logger.error(
+      "Cinder: Bulk action #{if partial?, do: "partly failed", else: "failed"}: #{inspect(reason)}"
+    )
 
     if event_name = slot[:on_error] do
       send(
@@ -610,7 +657,8 @@ defmodule Cinder.LiveComponent do
          %{
            component_id: socket.assigns.id,
            action: slot[:action],
-           reason: reason
+           reason: reason,
+           partial: partial?
          }}
       )
     end

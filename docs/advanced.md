@@ -667,9 +667,23 @@ For full control over button rendering, provide inner content instead of `label`
 <:bulk_action action={&MyApp.Users.archive/2}>Archive</:bulk_action>
 ```
 
+### Which Records an Action Can Touch
+
+A bulk action runs on the selected records that are still in the collection's scope: the
+query is built from your `query` (with its filters, tenant and read action), filtered to the
+selected IDs. So a collection given `query={Ash.Query.filter(MyApp.Post, org_id == ^@org.id)}`
+never acts on another org's posts, even if a selected post has moved since. Only records the
+collection has shown can be selected, and changing its `query`, `actor`, `tenant` or `scope`
+clears the selection.
+
+Whether the actor may run the action at all is up to your Ash policies (and tenant), as for
+any other Ash call: Cinder doesn't add authorization of its own.
+
 ### Confirmation Dialogs
 
-Add `confirm` to show a browser confirmation dialog. Use `{count}` to interpolate the selection count:
+Add `confirm` to show a browser confirmation dialog. Use `{count}` to interpolate the selection count.
+It's a prompt for the user, checked only in the browser, not a security check: anyone allowed to
+run the action can run it without confirming, so keep that decision in your Ash policies.
 
 ```heex
 <:bulk_action action={:destroy} confirm="Are you sure you want to delete {count} records?">
@@ -704,10 +718,16 @@ def handle_info({:users_archived, payload}, socket) do
 end
 
 def handle_info({:archive_failed, payload}, socket) do
-  # payload contains: %{component_id, action, reason}
+  # payload contains: %{component_id, action, reason, partial}
   {:noreply, put_flash(socket, :error, "Archive failed: #{inspect(payload.reason)}")}
 end
 ```
+
+If some records were changed and some failed (Ash's `:partial_success`), `on_error` fires with
+`partial: true` and the errors as `reason`, and the selection is cleared, since the records
+that succeeded have changed. For an atom action Cinder asks Ash to return the errors
+(`return_errors?: true`); pass `action_opts={[return_errors?: false]}` to skip that for very
+large selections.
 
 ### Action Options
 

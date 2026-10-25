@@ -20,6 +20,9 @@
 * Sort keys sent by the client are now ignored unless they're a declared sortable column, so they can no longer create atoms or sort by fields that weren't defined as sortable.
 * Self-closing `<:col field="..." />` columns now render their field's value in table layouts, instead of crashing.
 * Page numbers from the URL are capped at 1,000,000, and multi-select values from the URL or a form are trimmed to the filter's options (or to 100 when it has none), so they can't make a query do unbounded work.
+* Bulk actions only act on selected records that are still in the collection's `query`, and the selection is cleared when the `query` changes.
+* A bulk action that partly fails now fires `on_error` instead of `on_success`.
+* Invalid bulk action events are ignored instead of crashing the collection.
 
 ### Deprecations
 
