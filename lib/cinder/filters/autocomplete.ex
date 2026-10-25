@@ -172,10 +172,13 @@ defmodule Cinder.Filters.Autocomplete do
   end
 
   @impl true
-  def process(raw_value, _column) when is_binary(raw_value) do
+  def process(raw_value, column) when is_binary(raw_value) do
     trimmed = String.trim(raw_value)
+    filter_options = Map.get(column, :filter_options, [])
 
-    if trimmed == "" do
+    # A value from the client that isn't among the options can't be used: no filter
+    if trimmed == "" or
+         not Cinder.Filter.Helpers.client_value_allowed?(trimmed, filter_options) do
       nil
     else
       %{

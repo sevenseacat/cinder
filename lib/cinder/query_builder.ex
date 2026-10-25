@@ -444,15 +444,10 @@ defmodule Cinder.QueryBuilder do
         Logger.warning("Unknown filter type: #{type}")
         query
 
+      # A filter that fails to build raises through to `build_query/2`, which fails the
+      # load: dropping it would show data the filter was there to exclude
       filter_module ->
-        try do
-          filter_module.build_query(query, key, filter_config)
-        rescue
-          error ->
-            require Logger
-            Logger.error("Error building query for filter #{type}: #{inspect(error)}")
-            query
-        end
+        filter_module.build_query(query, key, filter_config)
     end
   end
 

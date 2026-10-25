@@ -288,7 +288,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       assert show_search_helper(processed_columns) == true
     end
 
-    test "search attribute works with URL-safe embedded fields" do
+    test "search attribute on fields the resource doesn't have (embedded notation) is skipped, not an error" do
       # Test search on embedded fields (URL-safe notation)
       col_slots = [
         %{field: "profile__first_name", search: true, label: "First Name"},

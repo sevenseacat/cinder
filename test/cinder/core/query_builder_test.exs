@@ -673,19 +673,14 @@ defmodule Cinder.QueryBuilderTest do
       assert result.filters == [:custom_applied]
     end
 
-    test "attempts to apply standard filters for columns without custom functions" do
+    # A filter that can't be built fails the load rather than being dropped, which would
+    # show the records it was there to exclude (it used to return the query unfiltered)
+    test "a standard filter that can't be built raises instead of being dropped" do
       query = %MockQueryFilters{resource: TestResource}
       filters = %{"title" => %{type: :text, value: "test", operator: :contains}}
       columns = [%{field: "title", filter_fn: nil}]
 
-      # This will now gracefully handle errors and return the original query
-      # instead of raising an exception. We use with_log to get both result and suppress logs.
-      {result, _logs} =
-        ExUnit.CaptureLog.with_log(fn ->
-          QueryBuilder.apply_filters(query, filters, columns)
-        end)
-
-      assert result == query
+      assert_raise ArgumentError, fn -> QueryBuilder.apply_filters(query, filters, columns) end
     end
   end
 
@@ -1588,7 +1583,7 @@ defmodule Cinder.QueryBuilderTest do
       assert result.filter != nil
     end
 
-    test "handles URL-safe field notation in default search" do
+    test "a searchable field the resource doesn't have (in embedded notation) is skipped, not an error" do
       query = Ash.Query.for_read(SearchTestResource, :read)
       columns = [%{field: "user__profile__name", searchable: true}]
 

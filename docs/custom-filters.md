@@ -297,6 +297,9 @@ Processes raw form/URL input into structured filter data.
 
 Must return a map with `:type`, `:value`, `:operator` keys, or `nil`.
 
+Return `nil` if the value can't be used, such as an invalid date from a hand-edited URL. The
+filter is then ignored, instead of the query failing.
+
 #### `validate/1`
 Validates a processed filter value.
 

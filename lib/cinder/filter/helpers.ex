@@ -34,20 +34,31 @@ defmodule Cinder.Filter.Helpers do
   # unique, non-empty strings, only those among its options when it has any, and at
   # most @max_multi_values. Anything else is dropped silently.
   def client_multi_values(values, filter_options) do
-    allowed =
-      filter_options
-      |> Keyword.get(:options, [])
-      |> MapSet.new(fn
-        {_label, value} -> to_string(value)
-        value -> to_string(value)
-      end)
+    allowed = allowed_values(filter_options)
 
     values
     |> Enum.filter(&(is_binary(&1) and &1 != ""))
     |> Enum.uniq()
-    |> Enum.filter(&(MapSet.size(allowed) == 0 or MapSet.member?(allowed, &1)))
+    |> Enum.filter(&allowed?(&1, allowed))
     |> Enum.take(@max_multi_values)
   end
+
+  @doc false
+  # Whether a single-choice filter's value from the client is one it could have
+  # offered: among its options, when it has any
+  def client_value_allowed?(value, filter_options),
+    do: allowed?(value, allowed_values(filter_options))
+
+  defp allowed_values(filter_options) do
+    filter_options
+    |> Keyword.get(:options, [])
+    |> MapSet.new(fn
+      {_label, value} -> to_string(value)
+      value -> to_string(value)
+    end)
+  end
+
+  defp allowed?(value, allowed), do: MapSet.size(allowed) == 0 or MapSet.member?(allowed, value)
 
   @doc false
   # Field names from the app's own declarations (column and filter fields), never

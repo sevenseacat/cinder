@@ -23,6 +23,8 @@
 * Bulk actions only act on selected records that are still in the collection's `query`, and the selection is cleared when the `query` changes.
 * A bulk action that partly fails now fires `on_error` instead of `on_success`.
 * Invalid bulk action events are ignored instead of crashing the collection.
+* Filter values that can't be used, like an invalid date in the URL, are ignored instead of breaking the collection.
+* A filter that fails to build now shows the error state, instead of showing unfiltered results.
 
 ### Deprecations
 

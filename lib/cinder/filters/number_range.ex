@@ -60,57 +60,35 @@ defmodule Cinder.Filters.NumberRange do
   end
 
   @impl true
-  def process(raw_value, _column) when is_binary(raw_value) do
-    # Handle comma-separated values from form processing
+  def process(raw_value, column) when is_binary(raw_value) do
+    # Comma-separated from URLs: "min,max", or a single "min"
     case String.split(raw_value, ",", parts: 2) do
-      [min, max] ->
-        min_trimmed = String.trim(min)
-        max_trimmed = String.trim(max)
-
-        if min_trimmed == "" and max_trimmed == "" do
-          nil
-        else
-          %{
-            type: :number_range,
-            value: %{min: min_trimmed, max: max_trimmed},
-            operator: :between
-          }
-        end
-
-      [single] ->
-        trimmed = String.trim(single)
-
-        if trimmed == "" do
-          nil
-        else
-          %{
-            type: :number_range,
-            value: %{min: trimmed, max: ""},
-            operator: :between
-          }
-        end
-
-      _ ->
-        nil
+      [min, max] -> process(%{min: min, max: max}, column)
+      [min] -> process(%{min: min, max: ""}, column)
     end
   end
 
+  # A bound that isn't a number (from a hand-edited URL, say) is dropped, leaving the
+  # range open on that side, rather than reaching the data layer
   def process(%{min: min, max: max}, _column) do
-    min_trimmed = String.trim(min || "")
-    max_trimmed = String.trim(max || "")
+    min = usable_bound(min)
+    max = usable_bound(max)
 
-    if min_trimmed == "" and max_trimmed == "" do
+    if min == "" and max == "" do
       nil
     else
-      %{
-        type: :number_range,
-        value: %{min: min_trimmed, max: max_trimmed},
-        operator: :between
-      }
+      %{type: :number_range, value: %{min: min, max: max}, operator: :between}
     end
   end
 
   def process(_raw_value, _column), do: nil
+
+  defp usable_bound(value) when is_binary(value) do
+    trimmed = String.trim(value)
+    if valid_number?(trimmed), do: trimmed, else: ""
+  end
+
+  defp usable_bound(_value), do: ""
 
   @impl true
   def validate(value) do

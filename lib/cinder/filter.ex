@@ -265,7 +265,7 @@ defmodule Cinder.Filter do
   - `column` - Column definition with filter configuration
 
   ## Returns
-  Structured filter value map or nil if invalid
+  Structured filter value map, or nil if the value can't be used
   """
   @callback process(raw_filter_value(), column()) :: processed_filter_value()
 

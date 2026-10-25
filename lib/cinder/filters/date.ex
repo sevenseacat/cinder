@@ -40,10 +40,11 @@ defmodule Cinder.Filters.Date do
 
   @impl true
   def process(value, _column) when is_binary(value) do
-    case String.trim(value) do
-      "" -> nil
-      trimmed -> build(trimmed)
-    end
+    trimmed = String.trim(value)
+
+    # Anything that isn't a date (from a hand-edited URL, say) is no filter, rather
+    # than a value the data layer would reject
+    if valid_date?(trimmed), do: build(trimmed)
   end
 
   def process(_value, _column), do: nil

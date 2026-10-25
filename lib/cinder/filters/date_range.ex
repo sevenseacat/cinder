@@ -69,57 +69,35 @@ defmodule Cinder.Filters.DateRange do
   end
 
   @impl true
-  def process(raw_value, _column) when is_binary(raw_value) do
-    # Handle comma-separated values from form processing
+  def process(raw_value, column) when is_binary(raw_value) do
+    # Comma-separated from URLs: "from,to", or a single "from"
     case String.split(raw_value, ",", parts: 2) do
-      [from, to] ->
-        from_trimmed = String.trim(from)
-        to_trimmed = String.trim(to)
-
-        if from_trimmed == "" and to_trimmed == "" do
-          nil
-        else
-          %{
-            type: :date_range,
-            value: %{from: from_trimmed, to: to_trimmed},
-            operator: :between
-          }
-        end
-
-      [single] ->
-        trimmed = String.trim(single)
-
-        if trimmed == "" do
-          nil
-        else
-          %{
-            type: :date_range,
-            value: %{from: trimmed, to: ""},
-            operator: :between
-          }
-        end
-
-      _ ->
-        nil
+      [from, to] -> process(%{from: from, to: to}, column)
+      [from] -> process(%{from: from, to: ""}, column)
     end
   end
 
+  # A bound that isn't a date or datetime (from a hand-edited URL, say) is dropped,
+  # leaving the range open on that side, rather than reaching the data layer
   def process(%{from: from, to: to}, _column) do
-    from_trimmed = String.trim(from || "")
-    to_trimmed = String.trim(to || "")
+    from = usable_bound(from)
+    to = usable_bound(to)
 
-    if from_trimmed == "" and to_trimmed == "" do
+    if from == "" and to == "" do
       nil
     else
-      %{
-        type: :date_range,
-        value: %{from: from_trimmed, to: to_trimmed},
-        operator: :between
-      }
+      %{type: :date_range, value: %{from: from, to: to}, operator: :between}
     end
   end
 
   def process(_raw_value, _column), do: nil
+
+  defp usable_bound(value) when is_binary(value) do
+    trimmed = String.trim(value)
+    if valid_date_or_datetime?(trimmed), do: trimmed, else: ""
+  end
+
+  defp usable_bound(_value), do: ""
 
   @impl true
   def validate(value) do
@@ -168,6 +146,8 @@ defmodule Cinder.Filters.DateRange do
   defp valid_date_or_datetime?(nil), do: true
 
   defp valid_date_or_datetime?(value) when is_binary(value) do
+    value = if Regex.match?(~r/T\d{2}:\d{2}$/, value), do: value <> ":00", else: value
+
     # Try datetime first (ISO8601 with T)
     if String.contains?(value, "T") do
       case DateTime.from_iso8601(value) do
