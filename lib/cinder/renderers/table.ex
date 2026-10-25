@@ -101,7 +101,12 @@ defmodule Cinder.Renderers.Table do
                 />
               </td>
               <td :for={column <- @columns} class={[@theme.td_class, column.class]} data-key="td_class">
-                {render_slot(column.slot, item)}
+                <%!-- A self-closing `<:col field="..." />` has no content: show the field's value --%>
+                <%= if column.slot[:inner_block] do %>
+                  {render_slot(column.slot, item)}
+                <% else %>
+                  {column.inner_block.(item)}
+                <% end %>
               </td>
             </tr>
             <!-- Error State -->

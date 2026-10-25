@@ -18,6 +18,7 @@
 * Radio group filters with non-string option values (like enum atoms) now show the chosen option as selected, instead of losing it on the first click.
 * Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
 * Sort keys sent by the client are now ignored unless they're a declared sortable column, so they can no longer create atoms or sort by fields that weren't defined as sortable.
+* Self-closing `<:col field="..." />` columns now render their field's value in table layouts, instead of crashing.
 
 ## v0.17.0 (2026-08-08)
 

@@ -1119,26 +1119,54 @@ defmodule Cinder.Collection do
 
   defp default_inner_block(field) do
     if field do
-      fn item -> get_field_value(item, field) end
+      fn item -> item |> get_field_value(field) |> display_value() end
     else
       fn _item -> nil end
     end
   end
 
-  defp get_field_value(item, field) when is_binary(field) do
-    case String.split(field, ".", parts: 2) do
-      [single_field] ->
-        get_by_name(item, single_field)
-
-      [relationship, nested_field] ->
-        case get_by_name(item, relationship) do
-          nil -> nil
-          related_item -> get_field_value(related_item, nested_field)
-        end
+  # Follows every notation a column field can use: relationships (`artist.name`),
+  # embedded fields (`details__label`), and both together
+  # What HEEx can render goes as it is (strings, numbers, atoms, dates); anything else
+  # (a `Decimal`, a struct) as text, rather than crashing the table
+  defp display_value(value) do
+    cond do
+      Phoenix.HTML.Safe.impl_for(value) -> value
+      String.Chars.impl_for(value) -> to_string(value)
+      true -> inspect(value)
     end
   end
 
+  defp get_field_value(item, field) when is_binary(field) do
+    field
+    |> Cinder.Filter.Helpers.parse_field_notation()
+    |> field_path()
+    |> Enum.reduce_while(item, fn name, current ->
+      case get_by_name(current, name) do
+        nil -> {:halt, nil}
+        value -> {:cont, value}
+      end
+    end)
+  end
+
   defp get_field_value(item, field), do: get_in(item, [Access.key(field)])
+
+  defp field_path({:direct, field}), do: [field]
+  defp field_path({:relationship, rel_path, field}), do: rel_path ++ [field]
+  defp field_path({:embedded, embed, field}), do: [embed, field]
+  defp field_path({:nested_embedded, embed, path}), do: [embed | path]
+
+  defp field_path({:relationship_embedded, rel_path, embed, field}),
+    do: rel_path ++ [embed, field]
+
+  defp field_path({:relationship_nested_embedded, rel_path, embed, path}),
+    do: rel_path ++ [embed | path]
+
+  defp field_path({:invalid, _field}), do: []
+
+  # A map-typed field's value usually has string keys
+  defp get_by_name(%{} = map, name) when not is_struct(map) and is_map_key(map, name),
+    do: Map.get(map, name)
 
   # A name that isn't an existing atom can't be a key of a struct or an atom-keyed
   # map, so there's nothing to read, and no atom to create
