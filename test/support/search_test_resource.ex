@@ -19,6 +19,7 @@ defmodule Cinder.Support.SearchTestResource do
     attribute(:description, :string, public?: true)
     attribute(:status, :string, public?: true)
     attribute(:category, :string, public?: true)
+    attribute(:notes, :string, public?: true)
   end
 
   actions do

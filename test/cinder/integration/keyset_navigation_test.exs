@@ -10,8 +10,6 @@ defmodule Cinder.Integration.KeysetNavigationTest do
   import Phoenix.ConnTest, only: [get: 2]
   import Phoenix.LiveViewTest, only: [live: 2, render_async: 1, render_click: 1, element: 2]
 
-  require Ash.Query
-
   setup do
     artist = generate(artist(name: "Keyset Artist"))
 

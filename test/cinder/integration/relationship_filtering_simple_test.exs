@@ -359,8 +359,10 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
           %{field: "title", filter: :text, __slot__: :col},
           %{
             field: "artist.name",
-            filter: :select,
-            filter_options: ["Beatles", "Rolling Stones"],
+            filter: [
+              type: :select,
+              options: [{"Beatles", "beatles"}, {"Rolling Stones", "stones"}]
+            ],
             __slot__: :col
           },
           %{field: "artist.active", filter: :boolean, __slot__: :col},
@@ -374,6 +376,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       # Should render all filter types without errors
       assert html =~ "cinder-table"
       assert html =~ "Artist &gt; Name"
+      assert html =~ "Rolling Stones"
       assert html =~ "Artist &gt; Active"
       assert html =~ "Artist &gt; Founded Year"
       assert html =~ "Release Date"

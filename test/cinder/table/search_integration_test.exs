@@ -288,6 +288,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       assert show_search_helper(processed_columns) == true
     end
 
+    @tag :capture_log
     test "search attribute on fields the resource doesn't have (embedded notation) is skipped, not an error" do
       # Test search on embedded fields (URL-safe notation)
       col_slots = [
@@ -609,7 +610,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       ]
 
       filter_slots = [
-        %{field: "filter_only_field", type: :text, label: "Filter Only"}
+        %{field: "notes", type: :text, label: "Filter Only"}
       ]
 
       processed_cols = Cinder.Collection.process_columns(col_slots, SearchTestResource)
@@ -624,7 +625,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       # Searchable and filterable columns should be in query_columns
       assert "title" in query_fields
       assert "status" in query_fields
-      assert "filter_only_field" in query_fields
+      assert "notes" in query_fields
 
       # Sortable-only and display-only should NOT be in query_columns
       refute "category" in query_fields

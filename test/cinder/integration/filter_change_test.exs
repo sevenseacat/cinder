@@ -30,6 +30,11 @@ defmodule Cinder.Integration.FilterChangeTest do
     ]
   end
 
+  def send_album_read(_event, _measurements, %{resource: Music.Album}, test_pid),
+    do: send(test_pid, :album_read)
+
+  def send_album_read(_event, _measurements, _metadata, _test_pid), do: :ok
+
   setup do
     artist = generate(artist(name: "Artist"))
     generate(album(title: "Async Album", genre: :rock, artist_id: artist.id))
@@ -41,10 +46,8 @@ defmodule Cinder.Integration.FilterChangeTest do
     :telemetry.attach(
       handler_id,
       [:ash, :music, :read, :start],
-      fn _event, _measurements, %{resource: resource}, _config ->
-        if resource == Music.Album, do: send(test_pid, :album_read)
-      end,
-      nil
+      &__MODULE__.send_album_read/4,
+      test_pid
     )
 
     on_exit(fn ->

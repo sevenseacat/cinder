@@ -159,16 +159,16 @@ defmodule Cinder.FieldValidationTest do
 
     test "handles relationship fields correctly" do
       column = %{
-        field: "user.department",
+        field: "artist.name",
         filterable: true,
         filter_type: :text
       }
 
-      parsed_column = Column.parse_column(column, nil)
+      parsed_column = Column.parse_column(column, Music.Album)
 
-      assert parsed_column.field == "user.department"
-      assert parsed_column.relationship == "user"
-      assert parsed_column.display_field == "department"
+      assert parsed_column.field == "artist.name"
+      assert parsed_column.relationship == "artist"
+      assert parsed_column.display_field == "name"
     end
   end
 
@@ -357,6 +357,7 @@ defmodule Cinder.FieldValidationTest do
                false
     end
 
+    @tag :capture_log
     test "column validation uses comprehensive field validation" do
       # Test that Column module properly validates embedded fields
       column_config = %{

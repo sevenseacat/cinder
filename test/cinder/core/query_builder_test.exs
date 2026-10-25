@@ -1583,6 +1583,7 @@ defmodule Cinder.QueryBuilderTest do
       assert result.filter != nil
     end
 
+    @tag :capture_log
     test "a searchable field the resource doesn't have (in embedded notation) is skipped, not an error" do
       query = Ash.Query.for_read(SearchTestResource, :read)
       columns = [%{field: "user__profile__name", searchable: true}]
@@ -1594,6 +1595,7 @@ defmodule Cinder.QueryBuilderTest do
       assert result != nil
     end
 
+    @tag :capture_log
     test "handles errors gracefully and returns original query" do
       query = Ash.Query.for_read(SearchTestResource, :read)
       columns = [%{field: "nonexistent_field", searchable: true}]

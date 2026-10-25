@@ -259,6 +259,7 @@ defmodule Cinder.Table.SearchTest do
       end)
     end
 
+    @tag :capture_log
     test "search with non-existent fields is handled gracefully" do
       query = Ash.Query.for_read(SearchTestResource, :read)
 

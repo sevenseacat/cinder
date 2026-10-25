@@ -305,6 +305,7 @@ defmodule Cinder.ConfigRegistrationTest do
   end
 
   describe "Cinder.setup/0 integration" do
+    @tag :capture_log
     test "Cinder.setup registers config filters and validates" do
       Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 

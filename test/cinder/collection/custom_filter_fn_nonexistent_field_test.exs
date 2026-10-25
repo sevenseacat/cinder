@@ -61,6 +61,7 @@ defmodule Cinder.Collection.CustomFilterFnNonexistentFieldTest do
       assert applied_filter.value == "test_value"
     end
 
+    @tag :capture_log
     test "non-existent field without filter_fn remains non-filterable" do
       # Without a custom filter_fn, non-existent fields should not be filterable
       col_slots = [

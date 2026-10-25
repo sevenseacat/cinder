@@ -109,6 +109,7 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
     refute remastered?(albums["Alpha"])
   end
 
+  @tag :capture_log
   test "a forged action index runs nothing and doesn't crash", %{conn: conn, albums: albums} do
     view = mount(conn, Music.Album)
     select(view, albums["Alpha"])
@@ -123,6 +124,7 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
 
   # Ash skips records that fail and commits the rest by default, and treats a partial
   # success as a failure (its bang functions raise on it)
+  @tag :capture_log
   test "a partial success is reported as an error, with the errors", %{
     conn: conn,
     albums: albums

@@ -213,11 +213,8 @@ if Code.ensure_loaded?(Igniter) do
       end
     end
 
-    # Add completion notice
     defp add_completion_notice(igniter, module_name, filter_type) do
-      # Add informational output using Mix.shell
-      Mix.shell().info("""
-
+      Igniter.add_notice(igniter, """
       Custom filter #{inspect(module_name)} has been generated successfully!
 
       The filter has been automatically registered in your configuration.
@@ -232,8 +229,6 @@ if Code.ensure_loaded?(Igniter) do
 
       3. Run 'mix test' to verify your filter implementation!
       """)
-
-      igniter
     end
 
     # Generate filter module content based on template

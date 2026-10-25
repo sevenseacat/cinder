@@ -24,6 +24,9 @@ defmodule Cinder.Table.FilterSlotsTest do
       attribute(:department, :string)
       attribute(:salary, :decimal)
       attribute(:tags, {:array, :string})
+      attribute(:status, :string)
+      attribute(:price, :decimal)
+      attribute(:featured, :boolean)
     end
 
     actions do
