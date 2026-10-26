@@ -54,7 +54,10 @@ defmodule Cinder.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, "~> 3.0"},
+      {:ash, "~> 3.24 and >= 3.24.5"},
+      # Not used directly: for SQL data layers, 0.6.3 is the first that supports the
+      # `string_starts_with`/`string_ends_with` text filters use
+      {:ash_sql, ">= 0.6.3", optional: true},
       {:ash_phoenix, "~> 2.3"},
       {:phoenix_live_view, "~> 1.1"},
       {:gettext, "~> 1.0.0"},

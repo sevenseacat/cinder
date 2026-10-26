@@ -35,6 +35,13 @@ otherwise add `Mix.Project.build_path()` to esbuild's `NODE_PATH` (see the
 [ColocatedJS docs](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedJS.html#module-internals)).
 In release builds, run `mix compile` before `mix assets.deploy`.
 
+### Changed: Cinder requires Ash 3.24.5
+
+Text filters' `:starts_with` and `:ends_with` operators now use Ash's `string_starts_with` and
+`string_ends_with`, which arrived in Ash 3.24.5. (They used to match anywhere in the value, like
+`:contains`.) Apps using `ash_sql` (through `ash_postgres`, for example) also need `ash_sql` 0.6.3
+or later. If Hex reports a conflict, run `mix deps.update ash ash_sql ash_postgres`.
+
 ### Changed: `use Cinder.UrlSync` must come after `use Phoenix.LiveView`
 
 `use Cinder.UrlSync` now handles `handle_params/3` for you, so it has to come after

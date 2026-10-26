@@ -94,7 +94,7 @@ For list or grid layouts:
 ## Requirements
 
 - Phoenix LiveView 1.1+
-- Ash Framework 3.0+
+- Ash Framework 3.24.5+
 - Elixir 1.17+
 
 ## Contributing

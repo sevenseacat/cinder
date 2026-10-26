@@ -5,6 +5,7 @@
 ### Breaking changes
 
 * Cinder now requires `phoenix_live_view ~> 1.1`, and ships a colocated hook that your `app.js` must register. Run `mix cinder.upgrade 0.17.0 0.18.0`, or see the [upgrading guide](docs/upgrading.md).
+* Cinder now requires Ash 3.24.5 or later, and `ash_sql` 0.6.3 or later in apps that use it.
 
 ### Features
 
@@ -17,6 +18,7 @@
 
 ### Bugfixes
 
+* Text filters with `operator: :starts_with` or `:ends_with` now match only the start or end of the value, instead of anywhere in it.
 * Global search no longer repeats the query's existing filters inside every search branch, and a searchable column with an invalid field no longer stops search from narrowing a filtered query. Thanks @Alt-iOS! ([#244](https://github.com/sevenseacat/cinder/pull/244))
 * Typing in an autocomplete filter's search box no longer reloads the collection on every keystroke. Thanks @Alt-iOS! ([#246](https://github.com/sevenseacat/cinder/pull/246))
 * Clearing a date or number filter now also clears a partially typed value, and the filter's × and "Clear all" show while one is typed.

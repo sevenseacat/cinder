@@ -428,13 +428,13 @@ defmodule Cinder.Filter.Helpers do
       :starts_with ->
         Ash.Query.filter(
           query,
-          exists(^rel_path, contains(type(^ref(field_atom), :string), ^value))
+          exists(^rel_path, string_starts_with(type(^ref(field_atom), :string), ^value))
         )
 
       :ends_with ->
         Ash.Query.filter(
           query,
-          exists(^rel_path, contains(type(^ref(field_atom), :string), ^value))
+          exists(^rel_path, string_ends_with(type(^ref(field_atom), :string), ^value))
         )
 
       :greater_than ->
@@ -537,10 +537,10 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
 
       :starts_with ->
-        Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
+        Ash.Query.filter(query, string_starts_with(type(^ref(field_atom), :string), ^value))
 
       :ends_with ->
-        Ash.Query.filter(query, contains(type(^ref(field_atom), :string), ^value))
+        Ash.Query.filter(query, string_ends_with(type(^ref(field_atom), :string), ^value))
 
       :greater_than ->
         if is_nil(value) do
@@ -954,10 +954,16 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
 
       :starts_with ->
-        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+        Ash.Query.filter(
+          query,
+          string_starts_with(get_path(^ref(embed_atom), [^field_atom]), ^value)
+        )
 
       :ends_with ->
-        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+        Ash.Query.filter(
+          query,
+          string_ends_with(get_path(^ref(embed_atom), [^field_atom]), ^value)
+        )
 
       :greater_than ->
         Ash.Query.filter(query, get_path(^ref(embed_atom), [^field_atom]) > ^value)
@@ -1002,10 +1008,16 @@ defmodule Cinder.Filter.Helpers do
         Ash.Query.filter(query, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
 
       :starts_with ->
-        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+        Ash.Query.filter(
+          query,
+          string_starts_with(get_path(^ref(embed_atom), ^field_atoms), ^value)
+        )
 
       :ends_with ->
-        Ash.Query.filter(query, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+        Ash.Query.filter(
+          query,
+          string_ends_with(get_path(^ref(embed_atom), ^field_atoms), ^value)
+        )
 
       :greater_than ->
         Ash.Query.filter(query, get_path(^ref(embed_atom), ^field_atoms) > ^value)
@@ -1056,13 +1068,13 @@ defmodule Cinder.Filter.Helpers do
       :starts_with ->
         Ash.Query.filter(
           query,
-          exists(^rel_path, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+          exists(^rel_path, string_starts_with(get_path(^ref(embed_atom), [^field_atom]), ^value))
         )
 
       :ends_with ->
         Ash.Query.filter(
           query,
-          exists(^rel_path, contains(get_path(^ref(embed_atom), [^field_atom]), ^value))
+          exists(^rel_path, string_ends_with(get_path(^ref(embed_atom), [^field_atom]), ^value))
         )
 
       :greater_than ->
@@ -1132,13 +1144,13 @@ defmodule Cinder.Filter.Helpers do
       :starts_with ->
         Ash.Query.filter(
           query,
-          exists(^rel_path, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+          exists(^rel_path, string_starts_with(get_path(^ref(embed_atom), ^field_atoms), ^value))
         )
 
       :ends_with ->
         Ash.Query.filter(
           query,
-          exists(^rel_path, contains(get_path(^ref(embed_atom), ^field_atoms), ^value))
+          exists(^rel_path, string_ends_with(get_path(^ref(embed_atom), ^field_atoms), ^value))
         )
 
       :greater_than ->
