@@ -55,7 +55,14 @@ Default for string fields. Performs case-insensitive contains search:
 >
   {article.author_name}
 </:col>
+
+<!-- Match the start of the value instead of anywhere in it -->
+<:col :let={article} field="slug" filter={[type: :text, operator: :starts_with]}>
+  {article.slug}
+</:col>
 ```
+
+The `operator` option can be `:contains` (the default), `:starts_with`, `:ends_with` or `:equals`.
 
 ### Select Filter
 

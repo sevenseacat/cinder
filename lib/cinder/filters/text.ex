@@ -2,8 +2,8 @@ defmodule Cinder.Filters.Text do
   @moduledoc """
   Text filter implementation for Cinder tables.
 
-  Provides text-based filtering with support for different operators
-  like contains, equals, starts_with, etc.
+  Provides text-based filtering. The `operator` option can be `:contains` (the default),
+  `:starts_with`, `:ends_with` or `:equals`.
   """
 
   @behaviour Cinder.Filter

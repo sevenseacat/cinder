@@ -314,7 +314,11 @@ defmodule Cinder.Collection do
     attr(:label, :string, doc: "Custom filter label")
     attr(:options, :list, doc: "Options for select/multi_select filters")
     attr(:value, :any, doc: "Default or fixed value for checkbox filters")
-    attr(:operator, :atom, doc: "Filter operator (:eq, :contains, :gt, etc.)")
+
+    attr(:operator, :atom,
+      doc: "Text filter operator: :contains (default), :starts_with, :ends_with or :equals"
+    )
+
     attr(:case_sensitive, :boolean, doc: "Whether text filtering is case-sensitive")
     attr(:placeholder, :string, doc: "Placeholder text for filter input")
     attr(:labels, :map, doc: "Custom labels for boolean filter options")
