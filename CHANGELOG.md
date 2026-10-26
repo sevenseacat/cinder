@@ -13,6 +13,7 @@
 * `refresh_table/3` and `refresh_tables/3` accept `silent: true`, which keeps the current rows on screen without a loading indicator while the refresh runs. Thanks @Alt-iOS! ([#226](https://github.com/sevenseacat/cinder/pull/226))
 * Added `remove_item/3` and `remove_items/3`, which remove rows from a collection without re-querying, dropping them from the selection and the footer count. Thanks @Alt-iOS! ([#229](https://github.com/sevenseacat/cinder/pull/229))
 * `pagination` accepts a keyword list, with a `count` option: `true` (default), `:async` to count in the background, or `false` to skip the total count. Thanks @Alt-iOS! ([#241](https://github.com/sevenseacat/cinder/pull/241))
+* `use Cinder.UrlSync` is now all a LiveView needs for URL sync, without a `handle_params/3` calling `Cinder.UrlSync.handle_params/3`.
 
 ### Bugfixes
 

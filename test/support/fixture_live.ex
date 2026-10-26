@@ -82,16 +82,24 @@ defmodule Cinder.TestLive.Fixture do
     end
   end
 
-  @impl true
-  def mount(%{"id" => id}, _session, socket) do
+  @doc """
+  Assigns the render function registered under `id`, for this fixture and the other
+  fixture LiveViews in `Cinder.TestLive.UrlSyncFixtures`.
+  """
+  def assign_registered(socket, id) do
     case :ets.lookup(@table, id) do
       [{^id, render_fun, forward_to}] ->
-        {:ok, assign(socket, __render_fun__: render_fun, __forward_to__: forward_to)}
+        assign(socket, __render_fun__: render_fun, __forward_to__: forward_to)
 
       [] ->
         raise "No fixture registered for id #{inspect(id)}. " <>
                 "Call Cinder.TestLive.Fixture.register/1 and visit the returned path."
     end
+  end
+
+  @impl true
+  def mount(%{"id" => id}, _session, socket) do
+    {:ok, assign_registered(socket, id)}
   end
 
   @impl true

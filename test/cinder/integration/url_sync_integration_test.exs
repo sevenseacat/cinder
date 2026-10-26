@@ -76,16 +76,6 @@ defmodule Cinder.UrlSyncIntegrationTest do
       assert is_map(state.filters)
     end
 
-    test "URL sync macro injection" do
-      # Test that the UrlSync macro properly injects handle_info
-      defmodule TestUrlSyncView do
-        use Cinder.UrlSync
-      end
-
-      # Verify the function exists
-      assert function_exported?(TestUrlSyncView, :handle_info, 2)
-    end
-
     test "edge case handling" do
       # Test with minimal params
       minimal_params = %{}

@@ -56,19 +56,6 @@ defmodule Cinder.UrlSyncTest do
     end
   end
 
-  describe "__using__ macro" do
-    defmodule TestLiveView do
-      use Cinder.UrlSync
-
-      # Simulate a minimal LiveView for testing
-      def test_handle_info_exists?, do: function_exported?(__MODULE__, :handle_info, 2)
-    end
-
-    test "injects handle_info callback" do
-      assert TestLiveView.test_handle_info_exists?()
-    end
-  end
-
   describe "public API functionality" do
     test "handles multiple filter types without errors" do
       params = %{
@@ -208,35 +195,6 @@ defmodule Cinder.UrlSyncTest do
 
       assert UrlSync.build_url(encoded_state, "http://localhost:4000/weapons") ==
                "/weapons?name=john&page=2"
-    end
-
-    test "URL sync helper macro injection works correctly" do
-      # Test that the injected handle_info can process the expected message format
-      defmodule TestUrlSyncLiveView do
-        use Cinder.UrlSync
-
-        # Test helper to check if handle_info exists and accepts the right format
-        def test_message_handling do
-          # Simulate the message format that UrlManager sends
-          encoded_state = %{"name" => "test", "page" => "2"}
-          message = {:table_state_change, "test-table", encoded_state}
-
-          # Mock socket - in real usage this would be a proper LiveView socket
-          mock_socket = %{assigns: %{live_action: :index}}
-
-          # This should not crash and should return the expected tuple format
-          try do
-            result = handle_info(message, mock_socket)
-            {:ok, elem(result, 0) == :noreply}
-          rescue
-            # Expected to fail due to push_patch not working with mock socket
-            FunctionClauseError -> {:ok, true}
-            _ -> {:error, false}
-          end
-        end
-      end
-
-      assert {:ok, true} = TestUrlSyncLiveView.test_message_handling()
     end
 
     test "build_url uses the URI from the socket's url_state when current_uri is nil" do

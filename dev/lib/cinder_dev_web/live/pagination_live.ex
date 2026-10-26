@@ -8,11 +8,6 @@ defmodule CinderDevWeb.PaginationLive do
   use Cinder.UrlSync
 
   @impl true
-  def handle_params(params, uri, socket) do
-    {:noreply, Cinder.UrlSync.handle_params(params, uri, socket)}
-  end
-
-  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app

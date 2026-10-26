@@ -35,6 +35,15 @@ otherwise add `Mix.Project.build_path()` to esbuild's `NODE_PATH` (see the
 [ColocatedJS docs](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.ColocatedJS.html#module-internals)).
 In release builds, run `mix compile` before `mix assets.deploy`.
 
+### Changed: `use Cinder.UrlSync` must come after `use Phoenix.LiveView`
+
+`use Cinder.UrlSync` now handles `handle_params/3` for you, so it has to come after
+`use MyAppWeb, :live_view` (or `use Phoenix.LiveView`). If it comes first, compiling
+fails with an error saying so.
+
+A `handle_params/3` that only calls `Cinder.UrlSync.handle_params/3` can be removed, but
+it still works if you keep it.
+
 ### Deprecated: `Cinder.UrlManager.validate_url_params/1`
 
 Cinder never called it, and it's removed in 1.0. URL params are bounded where they're

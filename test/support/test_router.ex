@@ -12,5 +12,8 @@ defmodule Cinder.TestRouter do
   scope "/" do
     pipe_through :browser
     live "/c/:id", Cinder.TestLive.Fixture
+    live "/n/:id", Cinder.TestLive.UrlSyncFixtures.NoHandleParams
+    live "/o/:id", Cinder.TestLive.UrlSyncFixtures.OwnCallbacks
+    live "/h/:id", Cinder.TestLive.UrlSyncFixtures.AfterHaltingHook
   end
 end

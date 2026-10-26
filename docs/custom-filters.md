@@ -625,8 +625,7 @@ This is the most critical callback - without it, your filter won't actually filt
 - Run `Cinder.Filters.Registry.validate_custom_filters()`
 
 ### URL State Not Persisting
-- Ensure using `Cinder.UrlSync`
-- Check `handle_params/3` implementation
+- Ensure the LiveView has `use Cinder.UrlSync`
 - Verify `url_state={@url_state}` attribute
 
 ## Advanced Topics

@@ -7,10 +7,10 @@ defmodule Cinder.UrlSync do
 
   ## Usage
 
-  1. Add `use Cinder.UrlSync` to your LiveView
-  2. Call `Cinder.UrlSync.handle_params/3` in your `handle_params/3` callback
-  3. Pass `url_state={@url_state}` to your collection component
-  4. That's it! The helper handles all URL updates automatically.
+  1. Add `use Cinder.UrlSync` to your LiveView, after `use MyAppWeb, :live_view`
+     (or `use Phoenix.LiveView`)
+  2. Pass `url_state={@url_state}` to your collection component
+  3. That's it! The helper handles all URL updates automatically.
 
   ## Example
 
@@ -20,11 +20,6 @@ defmodule Cinder.UrlSync do
 
         def mount(_params, _session, socket) do
           {:ok, assign(socket, :current_user, get_current_user())}
-        end
-
-        def handle_params(params, uri, socket) do
-          socket = Cinder.UrlSync.handle_params(params, uri, socket)
-          {:noreply, socket}
         end
 
         def render(assigns) do
@@ -41,11 +36,8 @@ defmodule Cinder.UrlSync do
         end
       end
 
-  The helper automatically:
-  - Handles `:table_state_change` messages from collection components
-  - Updates the URL with new collection state
-  - Preserves other URL parameters
-  - Works with any number of collection components on the same page
+  Your LiveView can still have its own `handle_params/3` and `handle_info/2`: they run as
+  usual, and `@url_state` is already assigned when `handle_params/3` runs.
 
   ## Custom URL Parameters
 
@@ -73,25 +65,64 @@ defmodule Cinder.UrlSync do
   import Phoenix.Component, only: [assign: 3]
 
   @doc """
-  Adds URL sync support to a LiveView.
+  Adds URL sync to a LiveView. It must come after `use Phoenix.LiveView` (or
+  `use MyAppWeb, :live_view`).
 
-  This macro injects the necessary `handle_info/2` callback to handle
-  collection state changes and update the URL accordingly.
+  Adds `on_mount Cinder.UrlSync`, and a `handle_params/3` that does nothing, which your
+  LiveView can replace with its own.
   """
   defmacro __using__(_opts) do
+    # `on_mount` needs `use Phoenix.LiveView` to have run, and this order never used to
+    # matter, so say how to fix it. (Checked as the module body runs: the earlier `use`
+    # hasn't set `@behaviour` yet while this macro expands.)
     quote do
-      @doc """
-      Handles collection state changes and updates the URL.
-
-      This function is automatically injected by `use Cinder.UrlSync`.
-      It handles `:table_state_change` messages from collection components.
-      """
-      def handle_info({:table_state_change, _table_id, encoded_state}, socket) do
-        current_uri = get_in(socket.assigns, [:url_state, :uri])
-        {:noreply, Cinder.UrlSync.update_url(socket, encoded_state, current_uri)}
+      unless Phoenix.LiveView in List.wrap(Module.get_attribute(__MODULE__, :behaviour)) do
+        raise CompileError,
+          file: unquote(__CALLER__.file),
+          line: unquote(__CALLER__.line),
+          description:
+            "`use Cinder.UrlSync` must come after `use Phoenix.LiveView` (or `use MyAppWeb, :live_view`)"
       end
+
+      require Phoenix.LiveView
+      Phoenix.LiveView.on_mount(Cinder.UrlSync)
+
+      # A patch calls the LiveView's `handle_params/3` without checking it exists, so
+      # without one, some `handle_params` hook has to halt, and that skips the hooks
+      # after it (often this one). Having one means no hook needs to halt. (No `@impl`:
+      # with one, an override is treated as marked too and never gets the missing-`@impl` warning.)
+      def handle_params(_params, _uri, socket), do: {:noreply, socket}
+      defoverridable handle_params: 3
     end
   end
+
+  @doc """
+  Assigns `@url_state` from the URL, and updates the URL when a collection's state changes.
+  `use Cinder.UrlSync` adds it. On its own (`on_mount Cinder.UrlSync`, or on a
+  `live_session`), the LiveView needs a `handle_params/3` if any other hook halts without one.
+  """
+  def on_mount(:default, _params, _session, socket) do
+    {:cont,
+     socket
+     |> Phoenix.LiveView.attach_hook(:cinder_url_sync_params, :handle_params, &params_hook/3)
+     |> Phoenix.LiveView.attach_hook(:cinder_url_sync_info, :handle_info, &info_hook/2)}
+  end
+
+  # Carrying on to a LiveView without its own `handle_params/3` crashes on patch
+  defp params_hook(params, uri, socket) do
+    socket = handle_params(params, uri, socket)
+
+    if function_exported?(socket.view, :handle_params, 3),
+      do: {:cont, socket},
+      else: {:halt, socket}
+  end
+
+  defp info_hook({:table_state_change, _table_id, encoded_state}, socket) do
+    current_uri = get_in(socket.assigns, [:url_state, :uri])
+    {:halt, update_url(socket, encoded_state, current_uri)}
+  end
+
+  defp info_hook(_message, socket), do: {:cont, socket}
 
   @doc """
   Updates the LiveView socket with new URL parameters.
@@ -293,8 +324,7 @@ defmodule Cinder.UrlSync do
   Helper function to handle collection state in LiveView handle_params.
 
   This function extracts URL parameters and creates a URL state object that
-  can be passed to collection components. It should be called from your LiveView's
-  `handle_params/3` callback.
+  can be passed to collection components. `use Cinder.UrlSync` calls it for you.
 
   ## Parameters
 

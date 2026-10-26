@@ -31,11 +31,6 @@ defmodule MyAppWeb.UsersLive do
     {:ok, assign(socket, :current_user, get_current_user(socket))}
   end
 
-  def handle_params(params, uri, socket) do
-    socket = Cinder.UrlSync.handle_params(params, uri, socket)
-    {:noreply, socket}
-  end
-
   def render(assigns) do
     ~H"""
     <Cinder.collection
@@ -54,6 +49,8 @@ defmodule MyAppWeb.UsersLive do
   end
 end
 ```
+
+`use Cinder.UrlSync` goes after `use MyAppWeb, :live_view`. Your LiveView can still have its own `handle_params/3`, and `@url_state` is assigned before it runs.
 
 ### URL Examples
 
