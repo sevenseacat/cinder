@@ -197,6 +197,13 @@ defmodule Cinder.Collection do
     doc: "Whether to show sort controls (auto-detected if nil, list/grid only)"
   )
 
+  attr(:sort_mode, :any,
+    default: :additive,
+    values: [:additive, :exclusive, "additive", "exclusive"],
+    doc:
+      "How sorting by another column combines with the current sort: :additive adds to it, :exclusive replaces it (also accepts strings)"
+  )
+
   attr(:loading_message, :string, default: nil, doc: "Message to show while loading")
 
   attr(:filters_label, :string,
