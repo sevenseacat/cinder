@@ -5,6 +5,8 @@ defmodule Cinder.ThemeTest do
 
   alias Cinder.Theme
 
+  doctest Cinder.Theme
+
   describe "default/0" do
     test "returns default theme configuration" do
       theme = Theme.default()

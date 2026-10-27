@@ -6,6 +6,8 @@ defmodule Cinder.Filters.RegistryTest do
 
   alias Cinder.Filters.Registry
 
+  doctest Cinder.Filters.Registry
+
   # Test module that implements the Cinder.Filter behavior
   defmodule TestSliderFilter do
     use Cinder.Filter

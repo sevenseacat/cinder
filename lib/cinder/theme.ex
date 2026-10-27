@@ -245,11 +245,13 @@ defmodule Cinder.Theme do
 
   ## Examples
 
-      iex> Cinder.Theme.merge("modern")
-      %{container_class: "bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden", ...}
+      iex> Cinder.Theme.merge("modern").container_class
+      "bg-white shadow-lg rounded-xl border border-gray-100 [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl"
 
-      iex> Cinder.Theme.merge(MyApp.CustomTheme)
-      %{container_class: "custom-container", ...}
+  A theme module (`use Cinder.Theme`) works the same way:
+
+      Cinder.Theme.merge(MyApp.CustomTheme)
+      #=> %{container_class: "custom-container", ...}
 
   """
   def merge(theme_config)

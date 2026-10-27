@@ -302,7 +302,7 @@ defmodule Cinder.Filter.Helpers do
       {:ok, %{type: :text, value: "test", operator: :equals}}
 
       iex> validate_filter_structure(%{type: :text, value: "test"})
-      {:error, :missing_operator}
+      {:error, {:missing_fields, [:operator]}}
 
   """
   def validate_filter_structure(filter) when is_map(filter) do
@@ -724,11 +724,13 @@ defmodule Cinder.Filter.Helpers do
 
   ## Examples
 
-      iex> validate_filter_implementation(MyApp.Filters.ValidFilter)
+      iex> validate_filter_implementation(Cinder.Filters.Text)
       {:ok, "Filter implementation is valid"}
 
-      iex> validate_filter_implementation(InvalidModule)
-      {:error, ["Missing callback: render/4", "Missing callback: process/2"]}
+  A module missing callbacks lists them:
+
+      validate_filter_implementation(MyApp.Filters.Unfinished)
+      #=> {:error, ["Missing callback: render/4", "Missing callback: process/2"]}
 
   """
   def validate_filter_implementation(module) when is_atom(module) do
@@ -1268,11 +1270,11 @@ defmodule Cinder.Filter.Helpers do
 
   ## Examples
 
-      iex> validate_embedded_field_syntax("profile[:first_name]")
+      iex> validate_embedded_field_syntax("profile__first_name")
       :ok
 
-      iex> validate_embedded_field_syntax("profile[invalid]")
-      {:error, "Invalid embedded field syntax: missing colon"}
+      iex> validate_embedded_field_syntax("profile__")
+      {:error, "Invalid field syntax"}
 
   """
   def validate_embedded_field_syntax(field) when is_binary(field) do

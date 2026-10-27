@@ -254,8 +254,8 @@ defmodule Cinder.Filter.Debug do
 
   ## Examples
 
-      iex> Cinder.Filter.Debug.enable_debug()
-      :ok
+      Cinder.Filter.Debug.enable_debug()
+      #=> :ok
 
   """
   def enable_debug do
@@ -268,8 +268,8 @@ defmodule Cinder.Filter.Debug do
 
   ## Examples
 
-      iex> Cinder.Filter.Debug.disable_debug()
-      :ok
+      Cinder.Filter.Debug.disable_debug()
+      #=> :ok
 
   """
   def disable_debug do

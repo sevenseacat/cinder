@@ -120,9 +120,15 @@ defmodule Cinder.UrlManager do
       iex> columns = [%{field: "title", filterable: true, filter_type: :text}]
       iex> Cinder.UrlManager.decode_state(url_params, columns)
       %{
-        filters: %{"title" => %{type: :text, value: "test", operator: :contains}},
+        filters: %{
+          "title" => %{type: :text, value: "test", operator: :contains, case_sensitive: false}
+        },
         current_page: 2,
-        sort_by: [{"title", :desc}]
+        sort_by: [{"title", :desc}],
+        page_size: 25,
+        search_term: "",
+        after: nil,
+        before: nil
       }
 
   """

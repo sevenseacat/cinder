@@ -39,11 +39,13 @@ defmodule Cinder.Filters.Registry do
       iex> Cinder.Filters.Registry.get_filter(:text)
       Cinder.Filters.Text
 
-      iex> Cinder.Filters.Registry.get_filter(:slider)
-      MyApp.Filters.Slider
-
       iex> Cinder.Filters.Registry.get_filter(:unknown)
       nil
+
+  With `config :cinder, filters: [slider: MyApp.Filters.Slider]`:
+
+      Cinder.Filters.Registry.get_filter(:slider)
+      #=> MyApp.Filters.Slider
   """
   def get_filter(filter_type) do
     Map.get(all_filters_with_custom(), filter_type)
@@ -59,11 +61,13 @@ defmodule Cinder.Filters.Registry do
       iex> Cinder.Filters.Registry.registered?(:text)
       true
 
-      iex> Cinder.Filters.Registry.registered?(:slider)
-      true
-
       iex> Cinder.Filters.Registry.registered?(:unknown)
       false
+
+  With `config :cinder, filters: [slider: MyApp.Filters.Slider]`:
+
+      Cinder.Filters.Registry.registered?(:slider)
+      #=> true
   """
   def registered?(filter_type) do
     Map.has_key?(all_filters_with_custom(), filter_type)
@@ -223,8 +227,10 @@ defmodule Cinder.Filters.Registry do
 
   ## Examples
 
-      iex> Cinder.Filters.Registry.list_custom_filters()
-      %{slider: MyApp.Filters.Slider, color_picker: MyApp.Filters.ColorPicker}
+  With `config :cinder, filters: [slider: MyApp.Filters.Slider, color_picker: MyApp.Filters.ColorPicker]`:
+
+      Cinder.Filters.Registry.list_custom_filters()
+      #=> %{slider: MyApp.Filters.Slider, color_picker: MyApp.Filters.ColorPicker}
   """
   def list_custom_filters do
     get_config_filters()
@@ -241,11 +247,13 @@ defmodule Cinder.Filters.Registry do
 
   ## Examples
 
-      iex> Cinder.Filters.Registry.custom_filter?(:slider)
-      true
-
       iex> Cinder.Filters.Registry.custom_filter?(:text)
       false
+
+  With `config :cinder, filters: [slider: MyApp.Filters.Slider]`:
+
+      Cinder.Filters.Registry.custom_filter?(:slider)
+      #=> true
   """
   def custom_filter?(filter_type) do
     Map.has_key?(list_custom_filters(), filter_type)
@@ -262,12 +270,10 @@ defmodule Cinder.Filters.Registry do
 
   ## Examples
 
-      iex> Cinder.Filters.Registry.all_filters_with_custom()
-      %{
-        text: Cinder.Filters.Text,
-        select: Cinder.Filters.Select,
-        slider: MyApp.Filters.Slider
-      }
+  With `config :cinder, filters: [slider: MyApp.Filters.Slider]`:
+
+      Cinder.Filters.Registry.all_filters_with_custom()
+      #=> %{text: Cinder.Filters.Text, select: Cinder.Filters.Select, ..., slider: MyApp.Filters.Slider}
   """
   def all_filters_with_custom do
     config_filters = get_config_filters()
@@ -290,8 +296,10 @@ defmodule Cinder.Filters.Registry do
       iex> Cinder.Filters.Registry.validate_custom_filters()
       :ok
 
-      iex> Cinder.Filters.Registry.validate_custom_filters()
-      {:error, ["Module MyApp.Filters.BrokenSlider does not implement required function render/4"]}
+  With a custom filter that's missing a callback:
+
+      Cinder.Filters.Registry.validate_custom_filters()
+      #=> {:error, ["Module MyApp.Filters.BrokenSlider does not implement required function render/4"]}
   """
   def validate_custom_filters do
     custom_filters = list_custom_filters()

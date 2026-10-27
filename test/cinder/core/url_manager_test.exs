@@ -3,6 +3,8 @@ defmodule Cinder.UrlManagerTest do
 
   alias Cinder.UrlManager
 
+  doctest Cinder.UrlManager
+
   describe "encode_state/1" do
     test "encodes complete state with filters, pagination, and sorting" do
       state = %{
