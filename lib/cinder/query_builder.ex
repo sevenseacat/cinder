@@ -43,6 +43,7 @@ defmodule Cinder.QueryBuilder do
     try do
       base_query = Ash.Query.new(resource_or_query)
       resource = base_query.resource
+      sort_by = with_tiebreakers(sort_by, Keyword.get(options, :tiebreakers, %{}))
 
       case validate_sortable_fields(sort_by, resource) do
         :ok ->
@@ -88,6 +89,7 @@ defmodule Cinder.QueryBuilder do
     - `:actor` - The current user/actor
     - `:filters` - Filter map
     - `:sort_by` - Sort specifications
+    - `:tiebreakers` - Map of a sortable column's field to its `then` fields
     - `:page_size` - Number of records per page
     - `:current_page` - Current page number
     - `:columns` - Column definitions
@@ -611,6 +613,23 @@ defmodule Cinder.QueryBuilder do
       expr(^acc or ^condition)
     end)
   end
+
+  # `tiebreakers` maps a column's field to its `then` fields. They go after all of the
+  # user's sorts, in their column's direction, so they only break the ties those leave.
+  # A field already sorted by keeps its place and direction.
+  defp with_tiebreakers(sort_by, tiebreakers) when is_list(sort_by) do
+    tiebreaker_sorts =
+      for {field, direction} <- sort_by,
+          tiebreaker <- Map.get(tiebreakers, field, []),
+          do: {tiebreaker, direction}
+
+    Enum.uniq_by(sort_by ++ tiebreaker_sorts, fn
+      {field, _direction} -> field
+      other -> other
+    end)
+  end
+
+  defp with_tiebreakers(sort_by, _tiebreakers), do: sort_by
 
   @doc """
   Applies sorting to an Ash query based on sort specifications.

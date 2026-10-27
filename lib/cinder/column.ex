@@ -320,7 +320,8 @@ defmodule Cinder.Column do
 
   # Whether a column can be sorted or filtered by its field, with the reason if not. With no
   # Ash resource there.s nothing to check against, so it.s allowed
-  defp queryable(resource, field, verb) do
+  @doc false
+  def queryable(resource, field, verb) do
     if is_atom(resource) and resource != nil and Ash.Resource.Info.resource?(resource) do
       with {:ok, resolved} <- Cinder.Field.resolve(resource, field),
            nil <- Cinder.Field.query_error(resolved) do

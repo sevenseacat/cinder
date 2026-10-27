@@ -804,6 +804,39 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
+  describe "build_query/2 with tiebreakers" do
+    defp sorted_by(sort_by, tiebreakers) do
+      {:ok, query} =
+        QueryBuilder.build_query(TestUser, sort_by: sort_by, tiebreakers: tiebreakers)
+
+      query.sort
+    end
+
+    test "adds tiebreakers in the column's direction" do
+      tiebreakers = %{"name" => ["email", "id"]}
+
+      assert sorted_by([{"name", :asc}], tiebreakers) == [name: :asc, email: :asc, id: :asc]
+    end
+
+    test "puts tiebreakers after all of the sorts" do
+      tiebreakers = %{"name" => ["id"]}
+
+      assert sorted_by([{"name", :desc}, {"email", :asc}], tiebreakers) ==
+               [name: :desc, email: :asc, id: :desc]
+    end
+
+    test "leaves a field that is already sorted by alone" do
+      tiebreakers = %{"name" => ["name", "email"]}
+
+      assert sorted_by([{"name", :desc}, {"email", :asc}], tiebreakers) ==
+               [name: :desc, email: :asc]
+    end
+
+    test "leaves a sort without tiebreakers alone" do
+      assert sorted_by([{"name", :asc}], %{"email" => ["id"]}) == [name: :asc]
+    end
+  end
+
   describe "apply_sorting/2" do
     test "returns query unchanged when no sorting" do
       query = %MockQuerySorts{resource: TestResource}
