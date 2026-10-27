@@ -22,27 +22,28 @@ defmodule Cinder.Filters.MultiSelect do
   ## Examples
 
       # ANY logic - show books with at least one selected tag
-      <:col field="tags" filter={:multi_select}
-            filter_options={[
-              options: [{"Fiction", "fiction"}, {"Romance", "romance"}],
-              match_mode: :any
-            ]} />
+      <:col
+        field="tags"
+        filter={[type: :multi_select, options: [{"Fiction", "fiction"}, {"Romance", "romance"}]]}
+      />
 
       # ALL logic - show books that have all selected tags
-      <:col field="tags" filter={:multi_select}
-            filter_options={[
-              options: [{"Fiction", "fiction"}, {"Bestseller", "bestseller"}],
-              match_mode: :all
-            ]} />
+      <:col
+        field="tags"
+        filter={[
+          type: :multi_select,
+          options: [{"Fiction", "fiction"}, {"Bestseller", "bestseller"}],
+          match_mode: :all
+        ]}
+      />
 
-  ## Array Field Support
+  ## Array Fields
 
-  This filter automatically detects array fields and uses containment logic:
-  - For array fields: `"selected_value" in array_field`
-  - For non-array fields: `field in [selected_values]`
-
-  The `match_mode` option only affects array fields. For non-array fields,
-  standard IN operator logic is always used regardless of match_mode.
+  On an array field (an array attribute, a `list` aggregate or an array calculation), a
+  record matches when its array holds the selected values. Through a to-many relationship
+  (`albums.tags`, `albums.genre`), `:all` means the related records hold every value between
+  them. On a plain field of the record itself, `match_mode` has no effect: a record matches
+  any of the values.
   """
 
   @behaviour Cinder.Filter
@@ -148,7 +149,12 @@ defmodule Cinder.Filters.MultiSelect do
   end
 
   @impl true
-  def process(raw_value, column) when is_list(raw_value) do
+  def process(raw_value, column), do: process(raw_value, column, :multi_select)
+
+  # Shared with `Cinder.Filters.MultiCheckboxes`, which differs only in how it renders.
+  # The type tag stays its own: it picks the filter module that builds the query.
+  @doc false
+  def process(raw_value, column, type) when is_list(raw_value) do
     filter_options = Map.get(column, :filter_options, [])
     values = Cinder.Filter.Helpers.client_multi_values(raw_value, filter_options)
 
@@ -158,7 +164,7 @@ defmodule Cinder.Filters.MultiSelect do
       match_mode = get_option(filter_options, :match_mode, :any)
 
       %{
-        type: :multi_select,
+        type: type,
         value: values,
         operator: :in,
         match_mode: match_mode
@@ -166,22 +172,25 @@ defmodule Cinder.Filters.MultiSelect do
     end
   end
 
-  def process(raw_value, column) when is_binary(raw_value) do
+  def process(raw_value, column, type) when is_binary(raw_value) do
     # Handle single value as list
-    process([raw_value], column)
+    process([raw_value], column, type)
   end
 
-  def process(_raw_value, _column), do: nil
+  def process(_raw_value, _column, _type), do: nil
 
   @impl true
-  def validate(value) do
+  def validate(value), do: validate(value, :multi_select)
+
+  @doc false
+  def validate(value, type) do
     case value do
-      %{type: :multi_select, value: vals, operator: :in, match_mode: mode} when is_list(vals) ->
+      %{type: ^type, value: vals, operator: :in, match_mode: mode} when is_list(vals) ->
         valid_values = not Enum.empty?(vals) and Enum.all?(vals, &is_binary/1)
         valid_mode = mode in [:any, :all]
         valid_values and valid_mode
 
-      %{type: :multi_select, value: vals, operator: :in} when is_list(vals) ->
+      %{type: ^type, value: vals, operator: :in} when is_list(vals) ->
         # Backward compatibility - old format without match_mode
         not Enum.empty?(vals) and Enum.all?(vals, &is_binary/1)
 
