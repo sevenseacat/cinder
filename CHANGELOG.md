@@ -18,7 +18,7 @@
 
 ### Bugfixes
 
-* A collection's data load no longer copies the parent LiveView's assigns into its task once per column. Column slots close over those assigns, and the copy grew to gigabytes on a busy page.
+* A collection's data load no longer copies the parent LiveView's assigns into its task once per column, which could reach gigabytes on a busy page. Thanks @DGollings! ([#250](https://github.com/sevenseacat/cinder/pull/250))
 * Text filters with `operator: :starts_with` or `:ends_with` now match only the start or end of the value, instead of anywhere in it.
 * Global search no longer repeats the query's existing filters inside every search branch, and a searchable column with an invalid field no longer stops search from narrowing a filtered query. Thanks @Alt-iOS! ([#244](https://github.com/sevenseacat/cinder/pull/244))
 * Typing in an autocomplete filter's search box no longer reloads the collection on every keystroke. Thanks @Alt-iOS! ([#246](https://github.com/sevenseacat/cinder/pull/246))
