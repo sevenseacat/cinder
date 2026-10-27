@@ -715,6 +715,16 @@ defmodule Cinder.LiveComponent do
     end
   end
 
+  # A column's slot (or a raw slot's inner_block) is a HEEx closure over the parent
+  # LiveView's assigns. The query never reads it, and carrying it into the async load
+  # copies those assigns into the task once per column (process copies do not keep
+  # sharing), which reached gigabytes on a busy page.
+  defp without_slots(columns) do
+    Enum.map(columns, fn column ->
+      column |> Map.delete(:inner_block) |> Map.replace(:slot, nil)
+    end)
+  end
+
   defp maybe_notify_query_change(socket, nil), do: socket
 
   # An async count isn't known when the page loads; a second notification carries
@@ -1206,7 +1216,7 @@ defmodule Cinder.LiveComponent do
       sort_by: sort_by,
       page_size: page_size,
       current_page: current_page,
-      columns: query_columns,
+      columns: without_slots(query_columns),
       search_term: search_term,
       search_fn: socket.assigns.search_fn,
       pagination_configured: socket.assigns.page_size_config.configurable || page_size != 25,
