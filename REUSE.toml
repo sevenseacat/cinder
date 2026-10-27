@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2025 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+#
+# SPDX-License-Identifier: MIT
+
+# Published files carry their own header (checked by test/cinder/reuse_test.exs). This
+# covers everything else: tests, the dev app, config, CI, images, lock files, and the
+# generated i18n files (a header would fail `mix gettext.extract --check-up-to-date`).
+version = 1
+
+[[annotations]]
+path = "**"
+SPDX-FileCopyrightText = "Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>"
+SPDX-License-Identifier = "MIT"

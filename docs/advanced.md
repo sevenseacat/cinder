@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Advanced Features
 
 This guide covers URL state management, relationships, embedded resources, refresh, state slots, performance, and bulk actions. For basic setup, see [Getting Started](getting-started.md).

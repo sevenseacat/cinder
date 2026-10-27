@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+#
+# SPDX-License-Identifier: MIT
+
 defmodule Cinder.Renderers.BulkActions do
   @moduledoc """
   Shared bulk actions component used by Table, List, and Grid renderers.

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Cinder Usage Rules
 
 Cinder is a data collection component for Phoenix LiveView with Ash Framework integration. It supports table, list, and grid layouts with shared filtering, sorting, search, and pagination.

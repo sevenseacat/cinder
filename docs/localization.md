@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Localization
 
 Cinder includes built-in translations for table UI elements (pagination, filtering, sorting controls).

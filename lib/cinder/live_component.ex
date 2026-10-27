@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+#
+# SPDX-License-Identifier: MIT
+
 defmodule Cinder.LiveComponent do
   @moduledoc """
   Shared LiveComponent for all Cinder data layouts (Table, List, etc.).

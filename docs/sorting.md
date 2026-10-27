@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Sorting
 
 This guide covers sorting configuration and behavior. For basic setup, see [Getting Started](getting-started.md).

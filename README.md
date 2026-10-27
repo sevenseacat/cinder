@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Cinder
 
 A powerful, intelligent data collection component for Ash Framework resources in Phoenix LiveView.

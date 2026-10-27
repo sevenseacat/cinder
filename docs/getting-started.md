@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Getting Started
 
 This guide covers the fundamentals of building collections with Cinder. For a quick start, see the [README](../README.md).

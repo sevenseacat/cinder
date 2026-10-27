@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Custom Filters
 
 This guide covers how to create custom filters for Cinder tables. Custom filters allow you to extend Cinder's filtering capabilities with domain-specific UI components and logic.

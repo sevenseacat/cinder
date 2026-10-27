@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Cinder contributors <https://github.com/sevenseacat/cinder/graphs/contributors>
+#
+# SPDX-License-Identifier: MIT
+
 defmodule Cinder.Theme.Docs do
   @moduledoc """
   Auto-generates theme documentation from `Cinder.Theme.complete_default/0`.
