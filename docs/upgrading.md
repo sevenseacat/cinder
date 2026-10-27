@@ -60,6 +60,19 @@ page sizes only from the configured options, and pages are capped. If you call i
 yourself, check what you rely on it for: its limits (50 params, 1,000 characters each) can
 reject legitimate URLs.
 
+### Deprecated: `Cinder.QueryBuilder`'s field helpers
+
+`validate_field_existence/2`, `field_exists_on_resource?/2`, `resolve_field_resource/2`,
+`get_calculation_info/2` and `calculation_sortable?/1` are removed in 1.0. Cinder no longer
+uses them. They no longer accept the bracket notation (`profile[:first_name]`).
+
+### Changed: sorting or filtering a column that can't support it warns
+
+A column with `sort` or `filter` on a field that can't be sorted or filtered by (one that
+doesn't exist, an in-memory calculation, or a calculation that needs arguments) still gets
+neither, but now logs a warning. In 1.0 it raises, so fix any you see: remove the option, or
+use a field that supports it.
+
 ## Upgrading to 0.16.0
 
 ### Removed: Unicode sort-glyph theme keys

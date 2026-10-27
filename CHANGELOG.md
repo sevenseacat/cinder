@@ -19,6 +19,7 @@
 
 ### Bugfixes
 
+* Columns on a calculation that needs arguments are no longer offered as sortable or filterable, which failed when used.
 * A collection's data load no longer copies the parent LiveView's assigns into its task once per column, which could reach gigabytes on a busy page. Thanks @DGollings! ([#250](https://github.com/sevenseacat/cinder/pull/250))
 * Text filters with `operator: :starts_with` or `:ends_with` now match only the start or end of the value, instead of anywhere in it.
 * Global search no longer repeats the query's existing filters inside every search branch, and a searchable column with an invalid field no longer stops search from narrowing a filtered query. Thanks @Alt-iOS! ([#244](https://github.com/sevenseacat/cinder/pull/244))
@@ -39,6 +40,8 @@
 ### Deprecations
 
 * `Cinder.UrlManager.validate_url_params/1` is deprecated and will be removed in 1.0: Cinder never called it, and URL params are now bounded where they're decoded.
+* `Cinder.QueryBuilder`'s field helpers (`validate_field_existence/2`, `field_exists_on_resource?/2`, `resolve_field_resource/2`, `get_calculation_info/2`, `calculation_sortable?/1`) are deprecated and will be removed in 1.0.
+* A column with `sort` or `filter` on a field that can't support it now logs a warning, and will raise in 1.0.
 
 ## v0.17.0 (2026-08-08)
 

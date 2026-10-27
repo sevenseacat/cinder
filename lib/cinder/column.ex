@@ -89,16 +89,10 @@ defmodule Cinder.Column do
       # Check if this field is a non-filterable calculation
       {filterable, filter_warning} = determine_filterability(resource, field, slot)
 
-      # Log warnings if calculation has issues
-      if sort_warning do
-        require Logger
-        Logger.info("Cinder Column: #{sort_warning}")
-      end
-
-      if filter_warning do
-        require Logger
-        Logger.info("Cinder Column: #{filter_warning}")
-      end
+      # A column asking for sorting or filtering it can't have. A warning for now: these
+      # become errors in 1.0
+      if sort_warning, do: Logger.warning("Cinder Column: #{sort_warning}")
+      if filter_warning, do: Logger.warning("Cinder Column: #{filter_warning}")
 
       # Create column struct
       %__MODULE__{
@@ -270,7 +264,7 @@ defmodule Cinder.Column do
 
       true ->
         # User explicitly wants sorting - check if it's possible
-        {auto_sortable, auto_warning} = determine_auto_sortability(resource, field)
+        {auto_sortable, auto_warning} = queryable(resource, field, "sorted")
 
         if auto_sortable do
           # User wants to enable sorting on something that can be sorted - OK
@@ -280,37 +274,6 @@ defmodule Cinder.Column do
           # Keep it non-sortable and show the warning about why it can't work
           {false, auto_warning}
         end
-    end
-  end
-
-  # Determines sortability based purely on the field's nature (ignoring user overrides)
-  defp determine_auto_sortability(resource, field) do
-    # Validate field existence first using comprehensive validation
-    if Cinder.QueryBuilder.validate_field_existence(resource, field) do
-      # Parse field to handle relationship calculations
-      {target_resource, target_field} =
-        Cinder.QueryBuilder.resolve_field_resource(resource, field)
-
-      # Check if this field is a calculation on the target resource
-      case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
-        nil ->
-          # Not a calculation, should be sortable
-          {true, nil}
-
-        calc ->
-          if Cinder.QueryBuilder.calculation_sortable?(calc) do
-            {true, nil}
-          else
-            warning =
-              "Field '#{field}' is an in-memory calculation and cannot be sorted. " <>
-                "Consider using expr() for database-level calculations that support sorting."
-
-            {false, warning}
-          end
-      end
-    else
-      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
-      {false, warning}
     end
   end
 
@@ -341,7 +304,7 @@ defmodule Cinder.Column do
           {true, nil}
         else
           # User explicitly wants filtering - check if it's possible
-          {auto_filterable, auto_warning} = determine_auto_filterability(resource, field)
+          {auto_filterable, auto_warning} = queryable(resource, field, "filtered")
 
           if auto_filterable do
             # User wants filtering on something that can be filtered - OK
@@ -355,35 +318,19 @@ defmodule Cinder.Column do
     end
   end
 
-  # Determines filterability based purely on the field's nature (ignoring user overrides)
-  defp determine_auto_filterability(resource, field) do
-    # Validate field existence first using comprehensive validation
-    if Cinder.QueryBuilder.validate_field_existence(resource, field) do
-      # Parse field to handle relationship calculations
-      {target_resource, target_field} =
-        Cinder.QueryBuilder.resolve_field_resource(resource, field)
-
-      # Check if this field is a calculation on the target resource
-      case Cinder.QueryBuilder.get_calculation_info(target_resource, target_field) do
-        nil ->
-          # Not a calculation, should be filterable
-          {true, nil}
-
-        calc ->
-          if Cinder.QueryBuilder.calculation_sortable?(calc) do
-            # Database-level calculations can be filtered
-            {true, nil}
-          else
-            warning =
-              "Field '#{field}' is an in-memory calculation and cannot be filtered. " <>
-                "Consider using expr() for database-level calculations that support filtering."
-
-            {false, warning}
-          end
+  # Whether a column can be sorted or filtered by its field, with the reason if not. With no
+  # Ash resource there.s nothing to check against, so it.s allowed
+  defp queryable(resource, field, verb) do
+    if is_atom(resource) and resource != nil and Ash.Resource.Info.resource?(resource) do
+      with {:ok, resolved} <- Cinder.Field.resolve(resource, field),
+           nil <- Cinder.Field.query_error(resolved) do
+        {true, nil}
+      else
+        :error -> {false, "Field '#{field}' does not exist on #{inspect(resource)}."}
+        reason -> {false, "Field '#{field}' #{reason}, so it can't be #{verb}."}
       end
     else
-      warning = "Field '#{field}' does not exist on #{inspect(resource)}."
-      {false, warning}
+      {true, nil}
     end
   end
 end

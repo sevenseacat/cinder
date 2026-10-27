@@ -60,6 +60,10 @@ defmodule Music.Artist do
 
   calculations do
     calculate(:name_lower, :string, expr(string_downcase(name)))
+
+    calculate :name_with, :string, expr(name <> ^arg(:suffix)) do
+      argument(:suffix, :string, allow_nil?: false)
+    end
   end
 
   aggregates do

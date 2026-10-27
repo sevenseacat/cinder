@@ -420,14 +420,6 @@ defmodule Cinder.QueryBuilderTest do
       end
     end
 
-    test "field_exists_on_resource?/2 and get_calculation_info/2 say no without creating an atom" do
-      name = bogus()
-
-      refute QueryBuilder.field_exists_on_resource?(Album, name)
-      assert QueryBuilder.get_calculation_info(Album, name) == nil
-      refute_atom_exists(name)
-    end
-
     test "real fields still validate" do
       assert QueryBuilder.validate_sortable_fields([{"title", :asc}], Album) == :ok
 
@@ -443,28 +435,30 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "resolve_field_resource/2" do
-    test "handles direct fields" do
-      # Should handle direct fields
-      {resource, field} = QueryBuilder.resolve_field_resource(Album, "title")
-      assert resource == Album
-      assert field == "title"
-    end
+  # Deprecated wrappers over `Cinder.Field` (its tests cover the edge cases), until 1.0
+  describe "deprecated field helpers" do
+    defp deprecated(function, args), do: apply(QueryBuilder, function, args)
 
-    test "handles calculation fields" do
-      # Should handle calculations
-      {resource, field} = QueryBuilder.resolve_field_resource(Album, "track_count")
-      assert resource == Album
-      assert field == "track_count"
-    end
+    test "agree with what they used to say" do
+      assert deprecated(:validate_field_existence, [Music.Album, "artist.name"])
+      assert deprecated(:validate_field_existence, [Music.Album, "details__label"])
+      refute deprecated(:validate_field_existence, [Music.Album, "nope"])
+      assert deprecated(:validate_field_existence, [NotAnAshResource, "anything"])
 
-    test "handles relationship fields correctly" do
-      # Test that it handles dot notation gracefully (even if relationship doesn't exist)
-      {resource, field} = QueryBuilder.resolve_field_resource(Album, "artist.name")
+      assert deprecated(:field_exists_on_resource?, [Music.Album, "title"])
+      assert deprecated(:field_exists_on_resource?, [Music.Album, "artist"])
+      refute deprecated(:field_exists_on_resource?, [Music.Album, "artist.name"])
 
-      # Should return something reasonable, doesn't need to be perfect since relationship doesn't exist
-      assert is_atom(resource)
-      assert is_binary(field)
+      assert %{name: :title_lower} =
+               calculation = deprecated(:get_calculation_info, [Music.Album, :title_lower])
+
+      assert deprecated(:get_calculation_info, [Music.Album, "title"]) == nil
+      assert deprecated(:calculation_sortable?, [calculation])
+
+      assert deprecated(:resolve_field_resource, [Music.Album, "artist.name"]) ==
+               {Music.Artist, "name"}
+
+      assert deprecated(:resolve_field_resource, [Music.Album, "title"]) == {Music.Album, "title"}
     end
   end
 

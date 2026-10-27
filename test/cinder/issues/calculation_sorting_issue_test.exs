@@ -359,28 +359,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
   when a solution is implemented.
   """
 
-  test "detection correctly identifies calculation types" do
-    # Test the new calculation_sortable?/1 function
-    calculations = Ash.Resource.Info.calculations(TestUser)
-
-    expr_calc = Enum.find(calculations, &(&1.name == :full_name_expr))
-    module_calc = Enum.find(calculations, &(&1.name == :full_name_module))
-
-    assert QueryBuilder.calculation_sortable?(expr_calc)
-    refute QueryBuilder.calculation_sortable?(module_calc)
-  end
-
-  test "get_calculation_info correctly retrieves calculation details" do
-    # Test the new get_calculation_info/2 function
-    expr_info = QueryBuilder.get_calculation_info(TestUser, :full_name_expr)
-    module_info = QueryBuilder.get_calculation_info(TestUser, :full_name_module)
-    non_calc_info = QueryBuilder.get_calculation_info(TestUser, :first_name)
-
-    assert expr_info != nil
-    assert module_info != nil
-    assert non_calc_info == nil
-  end
-
   test "validation prevents sorting on in-memory calculations" do
     # Test that our new validation correctly prevents sorting on in-memory calculations
 
@@ -740,7 +718,7 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
 
     assert {:error, message} = QueryBuilder.build_and_execute(TestUser, invalid_options)
     assert message =~ "Cannot sort by invalid fields: full_name_module"
-    assert message =~ "FullNameCalc - missing expression/2"
+    assert message =~ "FullNameCalc is missing expression/2"
 
     # Test database calculation - should work fine
     valid_options = [
@@ -1077,8 +1055,9 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
         assert in_memory_parsed.sort_warning =~ "in-memory calculation"
       end)
 
-    assert log4 =~
-             "Field 'profile.formatted_bio' is an in-memory calculation and cannot be sorted"
+    assert log4 =~ "[warning]"
+    assert log4 =~ "Field 'profile.formatted_bio' is an in-memory calculation"
+    assert log4 =~ "can't be sorted"
   end
 
   test "QueryBuilder validation uses correct error messages for relationship fields" do
