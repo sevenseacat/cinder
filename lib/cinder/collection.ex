@@ -437,6 +437,8 @@ defmodule Cinder.Collection do
     {search_label, search_placeholder, search_enabled, search_fn} =
       process_search_config(assigns.search, processed_columns)
 
+    if is_nil(search_fn), do: warn_unsearchable_columns(processed_columns, resource)
+
     # Determine if filters should be shown
     show_filters = determine_show_filters(assigns, query_columns, search_enabled)
 
@@ -603,7 +605,7 @@ defmodule Cinder.Collection do
         field_name = field || "unknown"
 
         Logger.warning(
-          "[DEPRECATED] Field '#{field_name}' uses deprecated filter_options attribute. Use `filter={[type: #{inspect(filter_type)}, ...]}` instead."
+          "[DEPRECATED] Field '#{field_name}' uses the filter_options attribute, which is removed in 1.0. Use `filter={[type: #{inspect(filter_type)}, ...]}` instead."
         )
       end
 
@@ -852,6 +854,16 @@ defmodule Cinder.Collection do
         else
           {nil, nil, false, nil}
         end
+    end
+  end
+
+  # The default search skips a column whose field it can't search, so warn about it, as for
+  # sorting and filtering. A custom search function gets the columns to handle as it likes.
+  # A warning for now: these become errors in 1.0
+  defp warn_unsearchable_columns(columns, resource) do
+    for %{searchable: true, field: field} <- columns,
+        {false, warning} <- [Cinder.Column.queryable(resource, field, "searched")] do
+      Logger.warning("Cinder Column: #{warning}")
     end
   end
 

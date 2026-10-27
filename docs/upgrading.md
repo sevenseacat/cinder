@@ -94,12 +94,13 @@ to set up: remove the call from your `Application.start/2`.
 - `Cinder.Theme.validate/1`, `Cinder.Theme.valid_property?/1` and
   `Cinder.Messages.gettext_backend/0`: Cinder never called them.
 
-### Changed: sorting or filtering a column that can't support it warns
+### Changed: sorting, filtering or searching a column that can't support it warns
 
 A column with `sort` or `filter` on a field that can't be sorted or filtered by (one that
 doesn't exist, an in-memory calculation, or a calculation that needs arguments) still gets
-neither, but now logs a warning. In 1.0 it raises, so fix any you see: remove the option, or
-use a field that supports it.
+neither, but now logs a warning. So does a column with `search` on such a field, which the
+search skips, unless the collection has its own search function (`search={[fn: ...]}`). In
+1.0 these raise, so fix any you see: remove the option, or use a field that supports it.
 
 ## Upgrading to 0.16.0
 

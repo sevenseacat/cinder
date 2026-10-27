@@ -53,7 +53,7 @@ SPDX-License-Identifier: MIT
 * `Cinder.Table.table/1`, deprecated since 0.9, now warns at compile time.
 * `Cinder.setup/0` is deprecated: custom filters need no setup.
 * `Cinder.UrlManager.decode_sort/1`, `Cinder.UrlSync.extract_table_state/1`, `Cinder.Theme.validate/1`, `Cinder.Theme.valid_property?/1` and `Cinder.Messages.gettext_backend/0` are deprecated and will be removed in 1.0.
-* A column with `sort` or `filter` on a field that can't support it now logs a warning, and will raise in 1.0.
+* A column with `sort`, `filter` or `search` on a field that can't support it now logs a warning, and will raise in 1.0.
 
 ## v0.17.0 (2026-08-08)
 

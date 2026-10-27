@@ -69,4 +69,21 @@ defmodule Cinder.DeprecationsTest do
     missing = Enum.reject(@deprecated_calls, &(warnings =~ "#{&1} is deprecated"))
     assert missing == []
   end
+
+  test "a theme's component/2 block warns" do
+    warnings =
+      capture_io(:stderr, fn ->
+        Code.compile_string("""
+        defmodule Cinder.DeprecationsTest.Theme do
+          use Cinder.Theme
+
+          component Cinder.Components.Table do
+            set :container_class, "my-table"
+          end
+        end
+        """)
+      end)
+
+    assert warnings =~ "component/2 is deprecated in Cinder themes and will be removed in 1.0"
+  end
 end
