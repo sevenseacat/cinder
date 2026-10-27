@@ -9,8 +9,11 @@ defmodule Cinder.ReuseTest do
   """
   use ExUnit.Case, async: true
 
+  # `reuse lint` reads any tag in a file as the file's own, so these are fenced off
+  # REUSE-IgnoreStart
   @copyright ~r/SPDX-FileCopyrightText: 20\d\d Cinder contributors <https:\/\/github\.com\/sevenseacat\/cinder\/graphs\/contributors>/
   @licence "SPDX-License-Identifier: MIT"
+  # REUSE-IgnoreEnd
 
   defp published_files do
     package_files =
