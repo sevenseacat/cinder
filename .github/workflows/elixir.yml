@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Elixir
-        uses: erlef/setup-beam@v1.18.2
+        uses: erlef/setup-beam@v1.24.1
         with:
           version-file: .tool-versions
           version-type: strict
