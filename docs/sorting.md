@@ -53,6 +53,15 @@ Sort modes:
 - `"additive"` (default) - New sorts are added to existing ones
 - `"exclusive"` - Clicking a column replaces all existing sorts
 
+## Tiebreakers
+
+`then` lists fields to sort by when the column is sorted, in the column's direction. They go after all of the user's sorts, so they only break the ties those leave, and a field the user sorts by explicitly keeps its own direction:
+
+```heex
+<!-- Stops sharing a position keep their insertion order -->
+<:col field="position" sort={[then: ["inserted_at"]]} />
+```
+
 ## Default Sort Order
 
 Provide a default sort via the `query` parameter. User sorting replaces (not adds to) the default:

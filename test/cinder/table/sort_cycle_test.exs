@@ -56,6 +56,41 @@ defmodule Cinder.Table.SortCycleTest do
       assert column.sortable == true
       assert column.sort_cycle == [nil, :high, :low]
     end
+
+    test "includes a then tiebreaker alongside the default cycle" do
+      col_slots = [
+        %{
+          field: "priority",
+          sort: [then: "created_at"],
+          filter: false,
+          inner_block: fn -> "Priority" end
+        }
+      ]
+
+      [column] = Table.process_columns(col_slots, SortCycleTestResource)
+
+      assert column.sort_then == ["created_at"]
+      assert column.sort_cycle == [nil, :asc, :desc]
+    end
+
+    test "drops then tiebreakers that can't be sorted by, with a warning" do
+      col_slots = [
+        %{
+          field: "priority",
+          sort: [then: ["missing", :created_at]],
+          filter: false,
+          inner_block: fn -> "Priority" end
+        }
+      ]
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          [column] = Table.process_columns(col_slots, SortCycleTestResource)
+          assert column.sort_then == ["created_at"]
+        end)
+
+      assert log =~ "ignoring priority's tiebreaker. Field 'missing' does not exist"
+    end
   end
 
   describe "toggle_sort_with_cycle/3" do

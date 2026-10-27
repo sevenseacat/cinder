@@ -289,7 +289,8 @@ defmodule Cinder.Collection do
     )
 
     attr(:sort, :any,
-      doc: "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc]])"
+      doc:
+        "Enable sorting (true, false, or unified config [cycle: [nil, :asc, :desc], then: [\"inserted_at\"]])"
     )
 
     attr(:search, :boolean, doc: "Enable global search on this column")
@@ -650,6 +651,7 @@ defmodule Cinder.Collection do
         filter_fn: parsed_column.filter_fn,
         searchable: parsed_column.searchable,
         sort_cycle: sort_config.cycle || [nil, :asc, :desc],
+        sort_then: sortable_tiebreakers(sort_config.then, field, resource),
         __slot__: :col
       }
     end)
@@ -1048,22 +1050,40 @@ defmodule Cinder.Collection do
   # PRIVATE HELPERS - Column Processing
   # ============================================================================
 
+  # Checked here rather than when sorting, where a bad one puts the collection in its error state
+  defp sortable_tiebreakers(then, column_field, resource) do
+    then
+    |> List.wrap()
+    |> Enum.map(&to_string/1)
+    |> Enum.filter(fn field ->
+      case Cinder.Column.queryable(resource, field, "sorted") do
+        {true, nil} ->
+          true
+
+        {false, warning} ->
+          Logger.warning("Cinder Column: ignoring #{column_field}'s tiebreaker. #{warning}")
+          false
+      end
+    end)
+  end
+
   defp extract_sort_config(sort_attr) do
     case sort_attr do
       true ->
-        %{enabled: true, cycle: nil}
+        %{enabled: true, cycle: nil, then: []}
 
       false ->
-        %{enabled: false, cycle: nil}
+        %{enabled: false, cycle: nil, then: []}
 
       config when is_list(config) ->
         %{
           enabled: Keyword.get(config, :enabled, true),
-          cycle: Keyword.get(config, :cycle)
+          cycle: Keyword.get(config, :cycle),
+          then: Keyword.get(config, :then, [])
         }
 
       _ ->
-        %{enabled: false, cycle: nil}
+        %{enabled: false, cycle: nil, then: []}
     end
   end
 

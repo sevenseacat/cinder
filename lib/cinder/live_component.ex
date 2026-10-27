@@ -725,6 +725,13 @@ defmodule Cinder.LiveComponent do
     end)
   end
 
+  # Taken from the display columns: query_columns only has filterable and searchable ones
+  defp tiebreakers(columns) do
+    for %{sortable: true, field: field, sort_then: [_ | _] = then} <- columns,
+        into: %{},
+        do: {field, then}
+  end
+
   # The columns' inferred loads go in alongside any explicit ones: `Ash.Query.load/2`
   # merges each `:load`, so neither replaces the other
   defp with_loads(query_opts, []), do: query_opts
@@ -1221,6 +1228,7 @@ defmodule Cinder.LiveComponent do
       query_opts: with_loads(query_opts, socket.assigns.inferred_loads),
       filters: filters,
       sort_by: sort_by,
+      tiebreakers: tiebreakers(columns),
       page_size: page_size,
       current_page: current_page,
       columns: without_slots(query_columns),
