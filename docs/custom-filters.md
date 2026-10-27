@@ -77,7 +77,6 @@ end
 - `--template` or `-t` - Choose the base filter to copy from
 - `--no-tests` - Skip generating test file
 - `--no-config` - Skip automatic configuration registration
-- `--no-setup` - Skip setup instructions
 
 ## Quick Start
 
@@ -241,30 +240,7 @@ config :cinder, :filters, [
 ]
 ```
 
-### 2. Initialize Cinder
-
-Call `Cinder.setup()` in your application startup:
-
-```elixir
-# lib/my_app/application.ex
-defmodule MyApp.Application do
-  use Application
-
-  def start(_type, _args) do
-    # Set up Cinder with configured filters
-    Cinder.setup()
-
-    children = [
-      # your supervisors...
-    ]
-
-    opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-    Supervisor.start_link(children, opts)
-  end
-end
-```
-
-### 3. Use in Tables
+### 2. Use in Collections
 
 Use your custom filter in column definitions:
 
@@ -615,7 +591,6 @@ This is the most critical callback - without it, your filter won't actually filt
 
 ### Filter Not Appearing
 - Check configuration: `config :cinder, :filters, [slider: MyApp.Filters.Slider]`
-- Verify `Cinder.setup()` was called
 - Ensure column uses `filter={:slider}` (not `filter_type`)
 - Check console for registration errors
 
@@ -679,7 +654,6 @@ end
 
 - Use `use Cinder.Filter` to get all necessary imports and behavior
 - Configure filters in `config.exs` with `:filters` key
-- Call `Cinder.setup()` once in application startup
 - Use `filter={:my_filter}` in column definitions
 - Always implement `build_query/3` - this is what actually filters data
 - Handle both direct fields and relationship fields (dot notation)

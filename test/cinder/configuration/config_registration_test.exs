@@ -259,9 +259,6 @@ defmodule Cinder.ConfigRegistrationTest do
     end
 
     test "filter with __using__ macro works correctly" do
-      # Register and test the filter
-      Registry.register_filter(:test_slider, TestSliderFilter)
-
       # Test rendering
       column = %{field: "price", label: "Price"}
       theme = %{}
@@ -304,84 +301,10 @@ defmodule Cinder.ConfigRegistrationTest do
     end
   end
 
-  describe "Cinder.setup/0 integration" do
-    @tag :capture_log
-    test "Cinder.setup registers config filters and validates" do
-      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
-
-      # setup should return :ok and register filters
-      assert Cinder.setup() == :ok
-
-      # Verify filter was registered
-      assert Registry.get_filter(:slider) == TestSliderFilter
-      assert Registry.custom_filter?(:slider) == true
-    end
-
-    test "Cinder.setup handles registration errors gracefully" do
-      import ExUnit.CaptureLog
-
-      Application.put_env(:cinder, :filters,
-        slider: TestSliderFilter,
-        broken: NonExistentModule
-      )
-
-      log_output =
-        capture_log(fn ->
-          result = Cinder.setup()
-          # Should still return :ok
-          assert result == :ok
-        end)
-
-      # Should log warning about failed registration
-      assert log_output =~ "Some custom filters failed to register"
-      assert log_output =~ "broken:"
-
-      # Valid filter should still work
-      assert Registry.get_filter(:slider) == TestSliderFilter
-    end
-
-    test "Cinder.setup logs successful registrations" do
-      import ExUnit.CaptureLog
-
-      Application.put_env(:cinder, :filters,
-        slider: TestSliderFilter,
-        another_slider: TestAnotherFilter
-      )
-
-      log_output =
-        capture_log(fn ->
-          assert Cinder.setup() == :ok
-        end)
-
-      # Should log successful registration
-      assert log_output =~ "Registered 2 custom filters"
-      assert log_output =~ "slider"
-      assert log_output =~ "another_slider"
-    end
-
-    test "Cinder.setup with no configured filters" do
-      import ExUnit.CaptureLog
-
-      # No filters configured
-      Application.put_env(:cinder, :filters, [])
-
-      log_output =
-        capture_log(fn ->
-          assert Cinder.setup() == :ok
-        end)
-
-      # Should not log registration message when no filters
-      refute log_output =~ "Registered"
-    end
-  end
-
   describe "edge cases and error handling" do
     test "config registration provides filters through configuration" do
       # Set up config
       Application.put_env(:cinder, :filters, slider: TestSliderFilter)
-
-      # Runtime registration only validates, doesn't store
-      assert Registry.register_filter(:slider, TestSliderFilter) == :ok
 
       # Config registration makes filters available
       Registry.register_config_filters()

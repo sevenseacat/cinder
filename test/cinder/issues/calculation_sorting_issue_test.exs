@@ -808,7 +808,7 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
 
     assert result.sort_by == []
 
-    assert Cinder.UrlManager.decode_sort("any_field,-another_field") == [
+    assert Cinder.UrlManager.parse_sort("any_field,-another_field") == [
              {"any_field", :asc},
              {"another_field", :desc}
            ]

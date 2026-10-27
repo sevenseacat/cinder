@@ -71,7 +71,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -82,7 +82,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -95,7 +95,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -107,7 +107,7 @@ defmodule Cinder.QuerySupportTest do
 
       assert_raise ArgumentError,
                    "Either :resource or :query must be provided",
-                   fn -> render_component(&Cinder.Table.table/1, assigns) end
+                   fn -> render_component(&Cinder.collection/1, assigns) end
     end
 
     test "logs warning when both resource and query are provided" do
@@ -123,7 +123,7 @@ defmodule Cinder.QuerySupportTest do
       # Collection now warns instead of raising, and uses the query
       log =
         capture_log(fn ->
-          html = render_component(&Cinder.Table.table/1, assigns)
+          html = render_component(&Cinder.collection/1, assigns)
           assert html =~ "cinder-table"
         end)
 
@@ -139,7 +139,7 @@ defmodule Cinder.QuerySupportTest do
 
       assert_raise ArgumentError,
                    "Either :resource or :query must be provided",
-                   fn -> render_component(&Cinder.Table.table/1, assigns) end
+                   fn -> render_component(&Cinder.collection/1, assigns) end
     end
   end
 
@@ -154,7 +154,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
   end
@@ -169,7 +169,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -186,7 +186,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
   end
@@ -205,7 +205,7 @@ defmodule Cinder.QuerySupportTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should have inferred filter types from the resource
       assert html =~ "cinder-table"
@@ -225,7 +225,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
   end
@@ -249,7 +249,7 @@ defmodule Cinder.QuerySupportTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
 
       # Should still have table functionality
@@ -276,7 +276,7 @@ defmodule Cinder.QuerySupportTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
 
       # Should integrate with URL sync
@@ -293,7 +293,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -306,7 +306,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -320,7 +320,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -334,7 +334,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -348,7 +348,7 @@ defmodule Cinder.QuerySupportTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
   end

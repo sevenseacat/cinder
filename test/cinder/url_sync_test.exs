@@ -3,9 +3,9 @@ defmodule Cinder.UrlSyncTest do
 
   alias Cinder.UrlSync
 
-  describe "extract_table_state/1" do
+  describe "extract_collection_state/1" do
     test "extracts empty state from empty params" do
-      state = UrlSync.extract_table_state(%{})
+      state = UrlSync.extract_collection_state(%{})
 
       assert state.filters == %{}
       assert state.current_page == 1
@@ -14,7 +14,7 @@ defmodule Cinder.UrlSyncTest do
 
     test "extracts filter state from params" do
       params = %{"name" => "john", "email" => "test@example.com"}
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       assert is_map(state.filters)
       assert state.current_page == 1
@@ -22,14 +22,14 @@ defmodule Cinder.UrlSyncTest do
 
     test "extracts page state from params" do
       params = %{"page" => "3"}
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       assert state.current_page == 3
     end
 
     test "extracts sort state from params" do
       params = %{"sort" => "name"}
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       assert state.sort_by == [{"name", :asc}]
     end
@@ -41,7 +41,7 @@ defmodule Cinder.UrlSyncTest do
         "sort" => "-created_at"
       }
 
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       assert is_map(state.filters)
       assert state.current_page == 2
@@ -50,7 +50,7 @@ defmodule Cinder.UrlSyncTest do
 
     test "handles empty list for sort safely" do
       params = %{"sort" => []}
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       assert state.sort_by == []
     end
@@ -66,7 +66,7 @@ defmodule Cinder.UrlSyncTest do
         "tags" => ["admin", "user"]
       }
 
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       # Should extract all filter types without errors
       assert is_map(state.filters)
@@ -84,7 +84,7 @@ defmodule Cinder.UrlSyncTest do
       ]
 
       for {params, expected} <- test_cases do
-        state = UrlSync.extract_table_state(params)
+        state = UrlSync.extract_collection_state(params)
 
         if Map.has_key?(expected, :filters) do
           assert state.filters == expected.filters
@@ -104,7 +104,7 @@ defmodule Cinder.UrlSyncTest do
   describe "page_size URL parameter handling" do
     test "extracts page_size from URL parameters" do
       params = %{"page_size" => "50"}
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       # page_size should be available in filters for component processing
       assert Map.has_key?(params, "page_size")
@@ -115,7 +115,7 @@ defmodule Cinder.UrlSyncTest do
 
     test "preserves invalid page_size in raw params for component validation" do
       params = %{"page_size" => "invalid"}
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       # Invalid page_size should not crash URL parsing
       assert state.current_page == 1
@@ -126,7 +126,7 @@ defmodule Cinder.UrlSyncTest do
 
     test "handles missing page_size gracefully" do
       params = %{"name" => "test", "page" => "2"}
-      state = UrlSync.extract_table_state(params)
+      state = UrlSync.extract_collection_state(params)
 
       # Should work fine without page_size parameter
       assert state.current_page == 2
@@ -139,7 +139,7 @@ defmodule Cinder.UrlSyncTest do
 
       # Current behavior: page_size is preserved in raw params
       params_with_page_size = %{"name" => "test", "page_size" => "50"}
-      state = UrlSync.extract_table_state(params_with_page_size)
+      state = UrlSync.extract_collection_state(params_with_page_size)
 
       # The component will handle page_size validation and URL sync
       assert Map.get(params_with_page_size, "page_size") == "50"
@@ -159,14 +159,14 @@ defmodule Cinder.UrlSyncTest do
       # but we can verify that the message format would be correct by testing the
       # encoding and callback atom setup
 
-      # Test that extract_table_state can handle the encoded format
+      # Test that extract_collection_state can handle the encoded format
       sample_encoded_state = %{
         "name" => "john",
         "page" => "2",
         "sort" => "-created_at"
       }
 
-      decoded_state = UrlSync.extract_table_state(sample_encoded_state)
+      decoded_state = UrlSync.extract_collection_state(sample_encoded_state)
 
       # Verify the round-trip works
       assert decoded_state.current_page == 2

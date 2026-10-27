@@ -476,39 +476,39 @@ defmodule Cinder.UrlManagerTest do
     end
   end
 
-  describe "decode_sort/1" do
+  describe "parse_sort/1" do
     test "decodes single ascending sort" do
-      result = UrlManager.decode_sort("title")
+      result = UrlManager.parse_sort("title")
 
       assert result == [{"title", :asc}]
     end
 
     test "decodes single descending sort" do
-      result = UrlManager.decode_sort("-title")
+      result = UrlManager.parse_sort("-title")
 
       assert result == [{"title", :desc}]
     end
 
     test "decodes multiple sorts" do
-      result = UrlManager.decode_sort("-title,created_at,-price")
+      result = UrlManager.parse_sort("-title,created_at,-price")
 
       assert result == [{"title", :desc}, {"created_at", :asc}, {"price", :desc}]
     end
 
     test "filters out empty sort fields" do
-      result = UrlManager.decode_sort("title,,created_at")
+      result = UrlManager.parse_sort("title,,created_at")
 
       assert result == [{"title", :asc}, {"created_at", :asc}]
     end
 
     test "handles nil input" do
-      result = UrlManager.decode_sort(nil)
+      result = UrlManager.parse_sort(nil)
 
       assert result == []
     end
 
     test "handles empty string" do
-      result = UrlManager.decode_sort("")
+      result = UrlManager.parse_sort("")
 
       assert result == []
     end

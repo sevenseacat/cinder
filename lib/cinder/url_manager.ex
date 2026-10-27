@@ -295,18 +295,21 @@ defmodule Cinder.UrlManager do
   @doc """
   Decodes sort string from URL parameters.
 
-  Parses Ash sort string format into sort tuples.
-  Fields prefixed with "-" are descending, others are ascending.
+  Parses Ash sort string format into sort tuples, keeping only the fields of sortable
+  columns. Fields prefixed with "-" are descending, others are ascending.
 
   ## Examples
 
-      iex> Cinder.UrlManager.decode_sort("-title,created_at")
+      iex> columns = [%{field: "title"}, %{field: "created_at"}]
+      iex> Cinder.UrlManager.decode_sort("-title,created_at,secret", columns)
       [{"title", :desc}, {"created_at", :asc}]
 
-      iex> Cinder.UrlManager.decode_sort("--payment_date,++created_at")
+      iex> columns = [%{field: "payment_date"}, %{field: "created_at"}]
+      iex> Cinder.UrlManager.decode_sort("--payment_date,++created_at", columns)
       [{"payment_date", :desc_nils_last}, {"created_at", :asc_nils_first}]
 
-      iex> Cinder.UrlManager.decode_sort("-+score,+-priority")
+      iex> columns = [%{field: "score"}, %{field: "priority"}]
+      iex> Cinder.UrlManager.decode_sort("-+score,+-priority", columns)
       [{"score", :asc_nils_last}, {"priority", :desc_nils_first}]
 
   """
@@ -319,12 +322,14 @@ defmodule Cinder.UrlManager do
   def decode_sort(nil, _columns), do: []
   def decode_sort("", _columns), do: []
 
-  # Backward compatibility - if called without columns, parse but don't validate
-  def decode_sort(url_sort) when is_binary(url_sort) do
-    parse_sort_string(url_sort)
-  end
+  @doc false
+  @deprecated "Use decode_sort/2 instead"
+  def decode_sort(url_sort), do: parse_sort(url_sort)
 
-  def decode_sort(nil), do: []
+  # For callers without columns yet, who must check the fields before applying the sort
+  @doc false
+  def parse_sort(nil), do: []
+  def parse_sort(url_sort) when is_binary(url_sort), do: parse_sort_string(url_sort)
 
   # Helper function to parse sort string into {field, direction} tuples
   defp parse_sort_string(url_sort) do

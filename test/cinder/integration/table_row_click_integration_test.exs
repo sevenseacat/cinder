@@ -40,17 +40,16 @@ defmodule Cinder.Table.RowClickIntegrationTest do
     def wrapper(assigns) do
       ~H"""
       <div>
-        <Cinder.Table.table
-          resource={TestUser}
-          actor={nil}
-          row_click={@row_click_fn}
-        >
+        <.table resource={TestUser} actor={nil} row_click={@row_click_fn}>
           <:col field="name">Name</:col>
           <:col field="email">Email</:col>
-        </Cinder.Table.table>
+        </.table>
       </div>
       """
     end
+
+    # Called at runtime, so the deprecated component doesn't warn on every compile
+    defp table(assigns), do: Function.capture(Cinder.Table, :table, 1).(assigns)
   end
 
   defmodule TestNoRowClickWrapper do
@@ -59,10 +58,10 @@ defmodule Cinder.Table.RowClickIntegrationTest do
     def wrapper(assigns) do
       ~H"""
       <div>
-        <Cinder.Table.table resource={TestUser} actor={nil}>
+        <Cinder.collection resource={TestUser} actor={nil}>
           <:col field="name">Name</:col>
           <:col field="email">Email</:col>
-        </Cinder.Table.table>
+        </Cinder.collection>
       </div>
       """
     end

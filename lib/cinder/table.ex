@@ -113,7 +113,7 @@ defmodule Cinder.Table do
 
   This is equivalent to calling `Cinder.collection` with `layout={:table}`.
   """
-  @doc deprecated: "Use Cinder.collection instead"
+  @deprecated "Use Cinder.collection/1 instead"
   def table(assigns) do
     # Map row_click to click for Collection
     assigns =
@@ -129,33 +129,26 @@ defmodule Cinder.Table do
   # These are kept for backward compatibility with code that calls them directly
   # ============================================================================
 
-  @doc """
-  Process column definitions into the format expected by the underlying component.
-  Delegates to `Cinder.Collection.process_columns/2`.
-  """
+  @doc false
+  @deprecated "Use Cinder.Collection.process_columns/2 instead"
   defdelegate process_columns(col_slots, resource), to: Cinder.Collection
 
-  @doc """
-  Process filter-only slot definitions.
-  Delegates to `Cinder.Collection.process_filter_slots/2`.
-  """
+  @doc false
+  @deprecated "Use Cinder.Collection.process_filter_slots/2 instead"
   defdelegate process_filter_slots(filter_slots, resource), to: Cinder.Collection
 
-  @doc """
-  Builds the list of columns used for query operations (filtering AND searching).
-  Delegates to `Cinder.Collection.build_query_columns/2`.
-  """
+  @doc false
+  @deprecated "Use Cinder.Collection.build_query_columns/2 instead"
   defdelegate build_query_columns(processed_columns, processed_filter_slots),
     to: Cinder.Collection
 
   @doc false
-  @deprecated "Use build_query_columns/2 instead"
+  @deprecated "Use Cinder.Collection.build_query_columns/2 instead"
   defdelegate merge_filter_configurations(processed_columns, processed_filter_slots),
-    to: Cinder.Collection
+    to: Cinder.Collection,
+    as: :build_query_columns
 
-  @doc """
-  Process unified search configuration into individual components.
-  Delegates to `Cinder.Collection.process_search_config/2`.
-  """
+  @doc false
+  @deprecated "Use Cinder.Collection.process_search_config/2 instead"
   defdelegate process_search_config(search_config, columns), to: Cinder.Collection
 end

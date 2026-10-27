@@ -2,7 +2,7 @@ defmodule Cinder.Table.SortCycleTest do
   use ExUnit.Case
 
   alias Cinder.QueryBuilder
-  alias Cinder.Table
+  alias Cinder.Collection
 
   describe "process_columns/2 with sort cycles" do
     test "includes default sort cycle in processed columns" do
@@ -15,7 +15,7 @@ defmodule Cinder.Table.SortCycleTest do
         }
       ]
 
-      processed = Table.process_columns(col_slots, SortCycleTestResource)
+      processed = Collection.process_columns(col_slots, SortCycleTestResource)
       column = List.first(processed)
 
       assert column.sortable == true
@@ -33,7 +33,7 @@ defmodule Cinder.Table.SortCycleTest do
         }
       ]
 
-      processed = Table.process_columns(col_slots, SortCycleTestResource)
+      processed = Collection.process_columns(col_slots, SortCycleTestResource)
       column = List.first(processed)
 
       assert column.sortable == true
@@ -50,7 +50,7 @@ defmodule Cinder.Table.SortCycleTest do
         }
       ]
 
-      processed = Table.process_columns(col_slots, SortCycleTestResource)
+      processed = Collection.process_columns(col_slots, SortCycleTestResource)
       column = List.first(processed)
 
       assert column.sortable == true
@@ -67,7 +67,7 @@ defmodule Cinder.Table.SortCycleTest do
         }
       ]
 
-      [column] = Table.process_columns(col_slots, SortCycleTestResource)
+      [column] = Collection.process_columns(col_slots, SortCycleTestResource)
 
       assert column.sort_then == ["created_at"]
       assert column.sort_cycle == [nil, :asc, :desc]
@@ -85,7 +85,7 @@ defmodule Cinder.Table.SortCycleTest do
 
       log =
         ExUnit.CaptureLog.capture_log(fn ->
-          [column] = Table.process_columns(col_slots, SortCycleTestResource)
+          [column] = Collection.process_columns(col_slots, SortCycleTestResource)
           assert column.sort_then == ["created_at"]
         end)
 
@@ -362,7 +362,7 @@ defmodule Cinder.Table.SortCycleTest do
       assert encoded == "--created_at,++updated_at"
 
       # Should decode back to original
-      decoded = Cinder.UrlManager.decode_sort(encoded)
+      decoded = Cinder.UrlManager.parse_sort(encoded)
       assert decoded == sort_data
     end
 
@@ -374,7 +374,7 @@ defmodule Cinder.Table.SortCycleTest do
       # Should use clean format: field for asc, -field for desc
       assert encoded == "-title,created_at"
 
-      decoded = Cinder.UrlManager.decode_sort(encoded)
+      decoded = Cinder.UrlManager.parse_sort(encoded)
       assert decoded == sort_data
     end
 
@@ -391,7 +391,7 @@ defmodule Cinder.Table.SortCycleTest do
     test "handles mixed prefix types in URLs with standard directions only" do
       # Mix of standard and null-handling directions
       mixed_encoded = "--payment_date,++created_at,-title,status"
-      decoded = Cinder.UrlManager.decode_sort(mixed_encoded)
+      decoded = Cinder.UrlManager.parse_sort(mixed_encoded)
 
       expected = [
         {"payment_date", :desc_nils_last},
@@ -420,7 +420,7 @@ defmodule Cinder.Table.SortCycleTest do
       # Each direction gets its own encoding scheme
       assert encoded == "++field1,+-field2,-+field3,--field4"
 
-      decoded = Cinder.UrlManager.decode_sort(encoded)
+      decoded = Cinder.UrlManager.parse_sort(encoded)
       assert decoded == sort_data
     end
 
@@ -436,7 +436,7 @@ defmodule Cinder.Table.SortCycleTest do
       encoded = Cinder.UrlManager.encode_sort(sort_data)
       assert encoded == "--payment_date,++created_at,title,-priority"
 
-      decoded = Cinder.UrlManager.decode_sort(encoded)
+      decoded = Cinder.UrlManager.parse_sort(encoded)
       assert decoded == sort_data
     end
   end
@@ -542,8 +542,8 @@ defmodule Cinder.Table.SortCycleTest do
         }
       ]
 
-      # Process columns (what Table.table/1 does internally)
-      processed_columns = Table.process_columns(col_slots, SortCycleTestResource)
+      # Process columns (what Cinder.collection/1 does internally)
+      processed_columns = Collection.process_columns(col_slots, SortCycleTestResource)
 
       # Verify columns have correct cycle configuration
       name_col = Enum.find(processed_columns, &(&1.field == "name"))

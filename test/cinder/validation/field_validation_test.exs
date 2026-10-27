@@ -19,7 +19,7 @@ defmodule Cinder.FieldValidationTest do
       assert_raise ArgumentError,
                    ~r/column with filter attribute\(s\) requires a 'field' attribute/,
                    fn ->
-                     Cinder.Table.process_columns([user_column], nil)
+                     Cinder.Collection.process_columns([user_column], nil)
                    end
     end
 
@@ -33,7 +33,7 @@ defmodule Cinder.FieldValidationTest do
       }
 
       # Should work without error
-      [column] = Cinder.Table.process_columns([correct_column], nil)
+      [column] = Cinder.Collection.process_columns([correct_column], nil)
 
       assert column.field == "scroll"
       assert column.label == "Type"
@@ -49,12 +49,12 @@ defmodule Cinder.FieldValidationTest do
       }
 
       assert_raise ArgumentError, fn ->
-        Cinder.Table.process_columns([missing_field_column], nil)
+        Cinder.Collection.process_columns([missing_field_column], nil)
       end
 
       # Verify the error message is helpful and actionable
       try do
-        Cinder.Table.process_columns([missing_field_column], nil)
+        Cinder.Collection.process_columns([missing_field_column], nil)
       rescue
         error in ArgumentError ->
           message = Exception.message(error)
@@ -71,7 +71,7 @@ defmodule Cinder.FieldValidationTest do
       }
 
       # Should work for action columns (no filter/sort)
-      [column] = Cinder.Table.process_columns([empty_field_column], nil)
+      [column] = Cinder.Collection.process_columns([empty_field_column], nil)
       assert column.field == ""
       assert column.label == "Actions"
       assert column.filterable == false
@@ -85,7 +85,7 @@ defmodule Cinder.FieldValidationTest do
       }
 
       # Should work for action columns (no filter/sort)
-      [column] = Cinder.Table.process_columns([nil_field_column], nil)
+      [column] = Cinder.Collection.process_columns([nil_field_column], nil)
       assert column.field == nil
       assert column.label == "Actions"
       assert column.filterable == false
@@ -105,7 +105,7 @@ defmodule Cinder.FieldValidationTest do
       assert_raise ArgumentError,
                    ~r/column with filter attribute\(s\) requires a 'field' attribute/,
                    fn ->
-                     Cinder.Table.process_columns([invalid_column], nil)
+                     Cinder.Collection.process_columns([invalid_column], nil)
                    end
     end
 
@@ -121,7 +121,7 @@ defmodule Cinder.FieldValidationTest do
       assert_raise ArgumentError,
                    ~r/column with sort attribute\(s\) requires a 'field' attribute/,
                    fn ->
-                     Cinder.Table.process_columns([invalid_column], nil)
+                     Cinder.Collection.process_columns([invalid_column], nil)
                    end
     end
 
@@ -132,7 +132,7 @@ defmodule Cinder.FieldValidationTest do
         # No field, filter, or sort - this is an action column
       }
 
-      [column] = Cinder.Table.process_columns([action_column], nil)
+      [column] = Cinder.Collection.process_columns([action_column], nil)
       assert column.field == nil
       assert column.label == "Actions"
       assert column.filterable == false

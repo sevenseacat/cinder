@@ -182,18 +182,12 @@ defmodule Cinder.Filters.Registry do
   end
 
   @doc false
-  # Internal function for manual filter registration.
-  #
-  # For new applications, use configuration-based registration instead:
-  #
-  #     config :cinder, :filters, %{
-  #       slider: MyApp.Filters.Slider
-  #     }
-  #
-  # Then call Cinder.setup() in your application startup.
-  #
-  # This function is kept for internal use and testing scenarios.
-  def register_filter(filter_type, module) when is_atom(filter_type) and is_atom(module) do
+  @deprecated "Custom filters are read from `config :cinder, :filters`, no registration needed"
+  def register_filter(filter_type, module), do: register_config_filter(filter_type, module)
+
+  # Checks a configured filter: there's nothing to store, as filters are read from config
+  @doc false
+  def register_config_filter(filter_type, module) when is_atom(filter_type) and is_atom(module) do
     cond do
       # Prevent overriding built-in filter types
       Map.has_key?(all_filters(), filter_type) ->
@@ -208,15 +202,8 @@ defmodule Cinder.Filters.Registry do
         {:error, "Module #{inspect(module)} does not implement Cinder.Filter behavior"}
 
       true ->
-        # Just validate - no storage needed for config-only approach
         :ok
     end
-  end
-
-  # Internal function used by register_config_filters/0 to avoid
-  # overriding runtime-registered filters.
-  def register_config_filter(filter_type, module) when is_atom(filter_type) and is_atom(module) do
-    register_filter(filter_type, module)
   end
 
   @doc """
@@ -336,10 +323,7 @@ defmodule Cinder.Filters.Registry do
   end
 
   @doc """
-  Registers custom filters from application configuration.
-
-  This function should be called during application startup to register
-  filters defined in config files.
+  Checks the custom filters in application configuration.
 
   ## Configuration
 

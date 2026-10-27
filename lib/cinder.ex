@@ -37,29 +37,13 @@ defmodule Cinder do
   </Cinder.collection>
   ```
 
-  The `Cinder.Table.table` component is also available for table-specific usage:
+  Pass a `query` instead of a `resource` to start from a query of your own:
 
   ```heex
-  # Using resource parameter
-  <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+  <Cinder.collection query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
     <:col :let={user} field="name" filter sort>{user.name}</:col>
     <:col :let={user} field="email" filter>{user.email}</:col>
-    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-  </Cinder.Table.table>
-
-  # Using query parameter
-  <Cinder.Table.table query={MyApp.User} actor={@current_user}>
-    <:col :let={user} field="name" filter sort>{user.name}</:col>
-    <:col :let={user} field="email" filter>{user.email}</:col>
-    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-  </Cinder.Table.table>
-
-  # Advanced query usage
-  <Cinder.Table.table query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
-    <:col :let={user} field="name" filter sort>{user.name}</:col>
-    <:col :let={user} field="email" filter>{user.email}</:col>
-    <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-  </Cinder.Table.table>
+  </Cinder.collection>
   ```
 
   ## Custom Filters
@@ -72,13 +56,7 @@ defmodule Cinder do
         color_picker: MyApp.Filters.ColorPicker
       ]
 
-      # 2. Set up Cinder in your application.ex
-      def start(_type, _args) do
-        Cinder.setup()  # Automatically registers all configured filters
-        # ... rest of application startup
-      end
-
-      # 3. Create custom filters with minimal boilerplate
+      # 2. Create custom filters with minimal boilerplate
       defmodule MyApp.Filters.Slider do
         use Cinder.Filter  # Includes everything you need
 
@@ -102,12 +80,12 @@ defmodule Cinder do
         def empty?(value), do: # Check if filter is empty
       end
 
-      # 4. Use in your tables
-      <:col field="price" filter={:slider} filter_options={[min: 0, max: 1000]}>
+      # 3. Use in your collections
+      <:col field="price" filter={[type: :slider, min: 0, max: 1000]}>
         ${product.price}
       </:col>
 
-  That's it! No manual registration, no complex setup - just configure and use.
+  No registration or setup needed: configure them and use them.
 
   ## Key Features
 
@@ -122,19 +100,11 @@ defmodule Cinder do
   ## Main Components
 
   - `Cinder.collection/1` - Unified collection component (table, list, or grid layouts)
-  - `Cinder.Table` - The table component
-  - `Cinder.Table.UrlSync` - URL state management helper
-  - `Cinder.Table.Refresh` - Table refresh helpers
+  - `Cinder.UrlSync` - URL state management helper
   - `Cinder.Filter` - Base behavior for custom filters
-  - `Cinder.setup/0` - One-time setup for custom filters
 
-  ## Table Refresh Functions
+  ## Refreshing Collections
 
-  For convenience, table refresh functions are available directly from the main module:
-
-      import Cinder.Table.Refresh
-
-      # Or use fully qualified names
       def handle_event("delete", %{"id" => id}, socket) do
         # ... delete logic ...
         {:noreply, Cinder.refresh_table(socket, "my-table")}
@@ -160,62 +130,8 @@ defmodule Cinder do
   defdelegate remove_item(socket, collection_id, id), to: Cinder.Update
   defdelegate remove_items(socket, collection_id, ids), to: Cinder.Update
 
-  @doc """
-  Sets up Cinder with configured custom filters.
-
-  This is the recommended way to use custom filters in Cinder. Call this
-  function once during application startup to automatically register all
-  custom filters defined in your configuration.
-
-  ## Configuration
-
-  Define your custom filters in your application configuration:
-
-      config :cinder, :filters, [
-        slider: MyApp.Filters.Slider,
-        color_picker: MyApp.Filters.ColorPicker
-      ]
-
-  ## Usage
-
-  Call `setup/0` once in your application startup:
-
-      # In your application.ex
-      def start(_type, _args) do
-        Cinder.setup()  # Registers all configured filters automatically
-
-        children = [
-          # ... your application's children
-        ]
-
-        opts = [strategy: :one_for_one, name: MyApp.Supervisor]
-        Supervisor.start_link(children, opts)
-      end
-
-  ## What it does
-
-  - Registers all custom filters from configuration
-  - Validates that all filter modules implement the required behavior
-  - Provides helpful logging for successful registrations and errors
-  - Gracefully handles configuration issues without breaking startup
-
-  ## Returns
-
-  Always returns `:ok`. Any registration issues are logged as warnings
-  but don't prevent application startup.
-
-  ## Examples
-
-      # Successful setup with filters
-      Cinder.setup()
-      # => :ok
-      # Logs: "Cinder: Registered 3 custom filters: slider, color_picker, date_picker"
-
-      # Setup with configuration errors
-      Cinder.setup()
-      # => :ok
-      # Logs: "Cinder: Some custom filters failed to register: ..."
-  """
+  @doc false
+  @deprecated "Custom filters are read from `config :cinder, :filters`, no setup needed"
   def setup do
     case Cinder.Filters.Registry.register_config_filters() do
       :ok ->

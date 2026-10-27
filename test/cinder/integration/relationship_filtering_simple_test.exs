@@ -304,7 +304,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render without errors
       assert html =~ "cinder-table"
@@ -325,7 +325,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render without errors
       assert html =~ "cinder-table"
@@ -344,7 +344,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should contain form with filter inputs
       assert html =~ ~r/<form[^>]*phx-change="filter_change"/
@@ -371,7 +371,7 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render all filter types without errors
       assert html =~ "cinder-table"

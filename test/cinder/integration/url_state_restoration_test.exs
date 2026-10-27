@@ -69,7 +69,7 @@ defmodule Cinder.UrlStateRestorationTest do
   end
 
   describe "URL state extraction and restoration" do
-    test "extract_table_state loses filter information due to empty columns" do
+    test "extract_collection_state loses filter information due to empty columns" do
       # Simulate URL parameters that would come from a real URL
       url_params = %{
         "title" => "Abbey Road",
@@ -79,8 +79,8 @@ defmodule Cinder.UrlStateRestorationTest do
         "sort" => "-title"
       }
 
-      # This is what currently happens - extract_table_state uses empty columns
-      table_state = Cinder.UrlSync.extract_table_state(url_params)
+      # This is what currently happens - extract_collection_state uses empty columns
+      table_state = Cinder.UrlSync.extract_collection_state(url_params)
 
       # The problem: all filters are lost because there are no columns to match against
       assert table_state.filters == %{}
@@ -193,7 +193,7 @@ defmodule Cinder.UrlStateRestorationTest do
       assigns = %{
         resource: TestAlbum,
         actor: nil,
-        # These would be empty because extract_table_state uses empty columns
+        # These would be empty because extract_collection_state uses empty columns
         url_filters: %{},
         url_page: 2,
         url_sort: [{"title", :desc}],
@@ -203,7 +203,7 @@ defmodule Cinder.UrlStateRestorationTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Component should render but filters won't be applied
       assert html =~ "cinder-table"
@@ -362,9 +362,9 @@ defmodule Cinder.UrlStateRestorationTest do
         "page" => "2"
       }
 
-      # 2. Parent LiveView handle_params calls extract_table_state
+      # 2. Parent LiveView handle_params calls extract_collection_state
       # This still uses empty columns but now also stores raw params
-      table_state = Cinder.UrlSync.extract_table_state(incoming_url_params)
+      table_state = Cinder.UrlSync.extract_collection_state(incoming_url_params)
 
       # 3. Parent assigns state and raw params to socket (fixed version)
       parent_assigns = %{
@@ -413,9 +413,9 @@ defmodule Cinder.UrlStateRestorationTest do
         "page" => "2"
       }
 
-      # 2. Parent LiveView handle_params calls extract_table_state
+      # 2. Parent LiveView handle_params calls extract_collection_state
       # This uses empty columns, so filters are lost
-      broken_table_state = Cinder.UrlSync.extract_table_state(incoming_url_params)
+      broken_table_state = Cinder.UrlSync.extract_collection_state(incoming_url_params)
 
       # 3. Parent assigns the broken state to socket
       parent_assigns = %{

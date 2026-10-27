@@ -171,40 +171,6 @@ defmodule Cinder.ThemeDslTest do
     end
   end
 
-  describe "theme validation" do
-    test "validates valid theme modules" do
-      assert Theme.validate(SimpleTestTheme) == :ok
-    end
-
-    test "validates theme modules that compile successfully" do
-      assert Theme.validate(InheritanceTestTheme) == :ok
-    end
-
-    test "validates non-theme modules" do
-      {:error, reason} = Theme.validate(String)
-      assert String.contains?(reason, "does not implement resolve_theme/0")
-    end
-
-    test "handles validation errors gracefully" do
-      # Test with a module that doesn't exist
-      {:error, reason} = Theme.validate(NonExistentModule)
-      assert String.contains?(reason, "does not implement resolve_theme/0")
-    end
-  end
-
-  describe "theme property validation" do
-    test "valid_property? accepts known properties" do
-      assert Theme.valid_property?(:container_class) == true
-      assert Theme.valid_property?(:filter_text_input_class) == true
-    end
-
-    test "valid_property? rejects unknown properties" do
-      assert Theme.valid_property?(:invalid_property) == false
-      assert Theme.valid_property?("string_key") == false
-      assert Theme.valid_property?(123) == false
-    end
-  end
-
   describe "backwards compatibility" do
     test "string presets still work" do
       modern_theme = Theme.merge("modern")
@@ -212,14 +178,6 @@ defmodule Cinder.ThemeDslTest do
 
       retro_theme = Theme.merge("retro")
       assert String.contains?(retro_theme.container_class, "bg-gray-900")
-    end
-
-    test "validation works for all theme types" do
-      assert Theme.validate("modern") == :ok
-      assert Theme.validate(SimpleTestTheme) == :ok
-
-      {:error, _} = Theme.validate("invalid_preset")
-      {:error, _} = Theme.validate(123)
     end
   end
 
@@ -259,16 +217,6 @@ defmodule Cinder.ThemeDslTest do
       assert_raise ArgumentError, ~r/does not implement resolve_theme\/0/, fn ->
         Theme.merge(NonExistentTheme)
       end
-    end
-
-    test "provides helpful error for invalid theme resolution" do
-      # Test with a module that exists but doesn't have the DSL
-      defmodule BadTheme do
-        def some_function, do: :ok
-      end
-
-      {:error, reason} = Theme.validate(BadTheme)
-      assert String.contains?(reason, "does not implement resolve_theme/0")
     end
   end
 end

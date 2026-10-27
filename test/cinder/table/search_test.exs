@@ -112,7 +112,8 @@ defmodule Cinder.Table.SearchTest do
         %{field: "email", searchable: false}
       ]
 
-      {label, placeholder, enabled, search_fn} = Cinder.Table.process_search_config(nil, columns)
+      {label, placeholder, enabled, search_fn} =
+        Cinder.Collection.process_search_config(nil, columns)
 
       assert enabled == true
       assert label == "Search"
@@ -127,7 +128,7 @@ defmodule Cinder.Table.SearchTest do
       ]
 
       {_label, _placeholder, enabled, _search_fn} =
-        Cinder.Table.process_search_config(nil, columns)
+        Cinder.Collection.process_search_config(nil, columns)
 
       assert enabled == false
     end
@@ -137,7 +138,7 @@ defmodule Cinder.Table.SearchTest do
       config = [label: "Find Users", placeholder: "Type to search users..."]
 
       {label, placeholder, enabled, search_fn} =
-        Cinder.Table.process_search_config(config, columns)
+        Cinder.Collection.process_search_config(config, columns)
 
       assert enabled == true
       assert label == "Find Users"
@@ -149,7 +150,7 @@ defmodule Cinder.Table.SearchTest do
       columns = [%{field: "name", searchable: true}]
 
       {label, placeholder, enabled, search_fn} =
-        Cinder.Table.process_search_config(false, columns)
+        Cinder.Collection.process_search_config(false, columns)
 
       assert enabled == false
       assert label == nil
@@ -168,7 +169,7 @@ defmodule Cinder.Table.SearchTest do
       config = [fn: custom_search_fn]
 
       {label, placeholder, enabled, search_fn} =
-        Cinder.Table.process_search_config(config, columns)
+        Cinder.Collection.process_search_config(config, columns)
 
       assert enabled == true
       assert label == "Search"

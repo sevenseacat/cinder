@@ -336,11 +336,8 @@ defmodule Cinder.Theme do
     ~w(compact daisy_ui dark flowbite futuristic modern retro)
   end
 
-  @doc """
-  Validates a theme configuration.
-
-  Returns :ok if the theme is valid, or {:error, reason} if invalid.
-  """
+  @doc false
+  @deprecated "Unused by Cinder, and removed in 1.0"
   def validate(theme_module) when is_atom(theme_module) do
     if function_exported?(theme_module, :resolve_theme, 0) do
       # For DSL-based themes, use the DSL validation
@@ -369,9 +366,8 @@ defmodule Cinder.Theme do
     @theme_defaults
   end
 
-  @doc """
-  Validates that a theme property key is valid.
-  """
+  @doc false
+  @deprecated "Unused by Cinder, and removed in 1.0"
   def valid_property?(key) when is_atom(key) do
     Map.has_key?(@theme_defaults, key)
   end

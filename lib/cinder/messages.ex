@@ -37,11 +37,8 @@ defmodule Cinder.Messages do
     end
   end
 
-  @doc """
-  Gets the default `Gettext` backend or a user configured one.
-
-  This is called at compile-time to determine which backend to use.
-  """
+  @doc false
+  @deprecated "Unused by Cinder, and removed in 1.0"
   def gettext_backend do
     Application.get_env(:cinder, :gettext_backend, Cinder.Gettext)
   end

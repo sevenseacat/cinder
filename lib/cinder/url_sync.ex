@@ -307,11 +307,11 @@ defmodule Cinder.UrlSync do
   defp decode_unchecked(params) do
     params
     |> Cinder.UrlManager.decode_state([])
-    |> Map.put(:sort_by, Cinder.UrlManager.decode_sort(params["sort"]))
+    |> Map.put(:sort_by, Cinder.UrlManager.parse_sort(params["sort"]))
   end
 
-  # Keep old name for backward compatibility
   @doc false
+  @deprecated "Use extract_collection_state/1 instead"
   def extract_table_state(params), do: extract_collection_state(params)
 
   # Private helper functions

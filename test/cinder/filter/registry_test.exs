@@ -115,10 +115,8 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   describe "custom filter registration" do
-    test "register_filter/2 successfully validates custom filter" do
-      result = Registry.register_filter(:slider, TestSliderFilter)
-
-      assert result == :ok
+    test "register_config_filter/2 accepts a valid custom filter" do
+      assert Registry.register_config_filter(:slider, TestSliderFilter) == :ok
     end
 
     test "custom filters work with configuration" do
@@ -129,8 +127,8 @@ defmodule Cinder.Filters.RegistryTest do
       assert Registry.custom_filter?(:slider) == true
     end
 
-    test "register_filter/2 prevents overriding built-in filter types" do
-      result = Registry.register_filter(:text, TestSliderFilter)
+    test "register_config_filter/2 prevents overriding built-in filter types" do
+      result = Registry.register_config_filter(:text, TestSliderFilter)
 
       assert {:error, message} = result
       assert message == "Cannot override built-in filter type :text"
@@ -139,29 +137,20 @@ defmodule Cinder.Filters.RegistryTest do
       assert Registry.get_filter(:text) == Cinder.Filters.Text
     end
 
-    test "register_filter/2 validates module exists" do
-      result = Registry.register_filter(:nonexistent, NonExistentModule)
+    test "register_config_filter/2 validates module exists" do
+      result = Registry.register_config_filter(:nonexistent, NonExistentModule)
 
       assert {:error, message} = result
       assert message == "Module NonExistentModule does not exist"
     end
 
-    test "register_filter/2 validates module implements behavior" do
-      result = Registry.register_filter(:invalid, NonBehaviorModule)
+    test "register_config_filter/2 validates module implements behavior" do
+      result = Registry.register_config_filter(:invalid, NonBehaviorModule)
 
       assert {:error, message} = result
 
       assert message ==
                "Module Cinder.Filters.RegistryTest.NonBehaviorModule does not implement Cinder.Filter behavior"
-    end
-
-    test "register_filter/2 allows re-registration of same custom filter" do
-      assert Registry.register_filter(:slider, TestSliderFilter) == :ok
-      assert Registry.register_filter(:slider, TestSliderFilter) == :ok
-
-      # Set config to test filter availability
-      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
-      assert Registry.get_filter(:slider) == TestSliderFilter
     end
   end
 
@@ -225,8 +214,6 @@ defmodule Cinder.Filters.RegistryTest do
 
   describe "custom filter validation" do
     test "validate_custom_filters/0 returns :ok when all filters are valid" do
-      Registry.register_filter(:slider, TestSliderFilter)
-
       assert Registry.validate_custom_filters() == :ok
     end
 
@@ -331,11 +318,6 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   describe "error handling and edge cases" do
-    test "registration handles atom filter type names" do
-      result = Registry.register_filter(:slider, TestSliderFilter)
-      assert result == :ok
-    end
-
     test "configuration maintains consistency" do
       Application.put_env(:cinder, :filters, filter1: TestSliderFilter, filter2: TestSliderFilter)
 

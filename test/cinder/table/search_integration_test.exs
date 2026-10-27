@@ -97,7 +97,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       ]
 
       # Process through full pipeline
-      processed_columns = Cinder.Table.process_columns(col_slots, SearchTestResource)
+      processed_columns = Cinder.Collection.process_columns(col_slots, SearchTestResource)
       query = Ash.Query.for_read(SearchTestResource, :read)
 
       # Apply search and verify end-to-end flow
@@ -141,7 +141,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       ]
 
       # Process through table's column processing
-      processed = Cinder.Table.process_columns(col_slots, SearchTestResource)
+      processed = Cinder.Collection.process_columns(col_slots, SearchTestResource)
 
       # Verify searchable fields are set correctly
       searchable_fields = Enum.filter(processed, & &1.searchable)
@@ -164,7 +164,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
         %{field: "id", label: "ID"}
       ]
 
-      processed_columns = Cinder.Table.process_columns(col_slots, SearchTestResource)
+      processed_columns = Cinder.Collection.process_columns(col_slots, SearchTestResource)
 
       # Find specific columns
       title_col = Enum.find(processed_columns, &(&1.field == "title"))
@@ -202,7 +202,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
 
       Enum.each(valid_slot_configs, fn slot_config ->
         # This should not raise an error if the search attribute is properly defined
-        processed = Cinder.Table.process_columns([slot_config], SearchTestResource)
+        processed = Cinder.Collection.process_columns([slot_config], SearchTestResource)
         assert length(processed) == 1
 
         # Verify searchable is set correctly
@@ -254,7 +254,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
         %{field: "status", sort: true, label: "Status"}
       ]
 
-      processed_columns = Cinder.Table.process_columns(col_slots, SearchTestResource)
+      processed_columns = Cinder.Collection.process_columns(col_slots, SearchTestResource)
 
       # No columns should be searchable
       assert Enum.all?(processed_columns, &(&1.searchable == false))
@@ -276,7 +276,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
       ]
 
       # This should process without errors even though the relationships don't exist on our test resource
-      processed_columns = Cinder.Table.process_columns(col_slots, SearchTestResource)
+      processed_columns = Cinder.Collection.process_columns(col_slots, SearchTestResource)
 
       user_name_col = Enum.find(processed_columns, &(&1.field == "user.name"))
       user_email_col = Enum.find(processed_columns, &(&1.field == "user.email"))
@@ -297,7 +297,7 @@ defmodule Cinder.Table.SearchIntegrationTest do
         %{field: "settings__theme", search: false, label: "Theme"}
       ]
 
-      processed_columns = Cinder.Table.process_columns(col_slots, SearchTestResource)
+      processed_columns = Cinder.Collection.process_columns(col_slots, SearchTestResource)
 
       first_name_col = Enum.find(processed_columns, &(&1.field == "profile__first_name"))
       last_name_col = Enum.find(processed_columns, &(&1.field == "profile__last_name"))

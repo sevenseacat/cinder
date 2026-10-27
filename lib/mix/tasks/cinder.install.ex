@@ -54,9 +54,8 @@ if Code.ensure_loaded?(Igniter) do
 
     After installation:
 
-    1. Add Cinder.setup() to your Application.start/2 function (if using custom filters)
-    2. Start using Cinder tables in your LiveView templates
-    3. Explore the documentation for advanced features
+    1. Start using Cinder collections in your LiveView templates
+    2. Explore the documentation for advanced features
     """
 
     @shortdoc "Install Cinder and configure Tailwind CSS"
@@ -306,9 +305,9 @@ else
 
       3. Start using Cinder in your templates:
       ```elixir
-      <Cinder.Table.table resource={MyApp.User} actor={@current_user}>
+      <Cinder.collection resource={MyApp.User} actor={@current_user}>
         <:col :let={user} field="name" filter sort>{user.name}</:col>
-      </Cinder.Table.table>
+      </Cinder.collection>
       ```
       """)
 

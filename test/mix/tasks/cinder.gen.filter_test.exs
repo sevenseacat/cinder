@@ -13,8 +13,7 @@ defmodule Mix.Tasks.Cinder.Gen.FilterTest do
           "--template",
           "multi_checkboxes",
           "--no-tests",
-          "--no-config",
-          "--no-setup"
+          "--no-config"
         ])
 
       assert_creates(igniter, "lib/my_app/filters/boxes.ex")

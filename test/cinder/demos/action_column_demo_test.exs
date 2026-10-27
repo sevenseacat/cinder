@@ -4,7 +4,7 @@ defmodule Cinder.ActionColumnDemoTest do
   # This test file demonstrates the new action column functionality
   # It shows how users can now create tables with action columns using the existing :col slot
 
-  alias Cinder.Table
+  alias Cinder.Collection
 
   # Mock Ash resource for testing
   defmodule DemoUser do
@@ -52,7 +52,7 @@ defmodule Cinder.ActionColumnDemoTest do
         }
       ]
 
-      processed = Table.process_columns(columns, DemoUser)
+      processed = Collection.process_columns(columns, DemoUser)
 
       # Verify we have all columns
       assert length(processed) == 4
@@ -98,7 +98,7 @@ defmodule Cinder.ActionColumnDemoTest do
         }
       ]
 
-      processed = Table.process_columns(columns, DemoUser)
+      processed = Collection.process_columns(columns, DemoUser)
 
       assert length(processed) == 5
 
@@ -135,7 +135,7 @@ defmodule Cinder.ActionColumnDemoTest do
         }
       ]
 
-      processed = Table.process_columns(columns, DemoUser)
+      processed = Collection.process_columns(columns, DemoUser)
 
       assert length(processed) == 5
 
@@ -165,7 +165,7 @@ defmodule Cinder.ActionColumnDemoTest do
       assert_raise ArgumentError,
                    ~r/column with filter attribute\(s\) requires a 'field' attribute/,
                    fn ->
-                     Table.process_columns([invalid_filter], DemoUser)
+                     Collection.process_columns([invalid_filter], DemoUser)
                    end
 
       # Mistake 2: Trying to sort an action column
@@ -178,7 +178,7 @@ defmodule Cinder.ActionColumnDemoTest do
       assert_raise ArgumentError,
                    ~r/column with sort attribute\(s\) requires a 'field' attribute/,
                    fn ->
-                     Table.process_columns([invalid_sort], DemoUser)
+                     Collection.process_columns([invalid_sort], DemoUser)
                    end
     end
 
@@ -192,7 +192,7 @@ defmodule Cinder.ActionColumnDemoTest do
       }
 
       try do
-        Table.process_columns([invalid_column], DemoUser)
+        Collection.process_columns([invalid_column], DemoUser)
       rescue
         error in ArgumentError ->
           message = Exception.message(error)
@@ -219,7 +219,7 @@ defmodule Cinder.ActionColumnDemoTest do
         %{field: "created_at", sort: true, label: "Created"}
       ]
 
-      processed = Table.process_columns(old_style_columns, DemoUser)
+      processed = Collection.process_columns(old_style_columns, DemoUser)
 
       # Should work exactly as before
       assert length(processed) == 4
@@ -260,7 +260,7 @@ defmodule Cinder.ActionColumnDemoTest do
         }
       ]
 
-      processed = Table.process_columns(columns, DemoUser)
+      processed = Collection.process_columns(columns, DemoUser)
 
       assert length(processed) == 6
 

@@ -790,8 +790,8 @@ defmodule Cinder.Collection do
     query_relevant_columns ++ processed_filter_slots
   end
 
-  # Kept for backward compatibility - delegates to build_query_columns
   @doc false
+  @deprecated "Use build_query_columns/2 instead"
   def merge_filter_configurations(processed_columns, processed_filter_slots) do
     build_query_columns(processed_columns, processed_filter_slots)
   end

@@ -72,6 +72,28 @@ reject legitimate URLs.
 `get_calculation_info/2` and `calculation_sortable?/1` are removed in 1.0. Cinder no longer
 uses them. They no longer accept the bracket notation (`profile[:first_name]`).
 
+### Deprecated: `Cinder.Table.table/1` now warns
+
+It was deprecated in 0.9, and calls to it now warn when they're compiled. It's removed in
+1.0: see [the 0.9 notes](#new-unified-collection-api) to switch to
+`Cinder.collection`. `Cinder.Table`'s `process_columns/2`, `process_filter_slots/2`,
+`build_query_columns/2` and `process_search_config/2` are deprecated too: call them on
+`Cinder.Collection` instead.
+
+### Deprecated: `Cinder.setup/0`
+
+Custom filters are read from `config :cinder, :filters` when they're used, so there's nothing
+to set up: remove the call from your `Application.start/2`.
+`Cinder.Filters.Registry.register_filter/2` is deprecated for the same reason.
+
+### Deprecated: other functions removed in 1.0
+
+- `Cinder.UrlManager.decode_sort/1`: use `decode_sort/2`, which keeps only the sortable
+  columns' fields.
+- `Cinder.UrlSync.extract_table_state/1`: use `extract_collection_state/1`.
+- `Cinder.Theme.validate/1`, `Cinder.Theme.valid_property?/1` and
+  `Cinder.Messages.gettext_backend/0`: Cinder never called them.
+
 ### Changed: sorting or filtering a column that can't support it warns
 
 A column with `sort` or `filter` on a field that can't be sorted or filtered by (one that

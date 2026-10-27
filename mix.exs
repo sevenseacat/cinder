@@ -115,6 +115,8 @@ defmodule Cinder.MixProject do
         "docs/examples.md",
         "CHANGELOG.md"
       ],
+      # They name deprecated functions, which are hidden from the docs
+      skip_undefined_reference_warnings_on: ["docs/upgrading.md", "CHANGELOG.md"],
       groups_for_modules: [
         "Core Components": [
           Cinder,

@@ -45,42 +45,42 @@ defmodule Cinder.Table.ShowFiltersTest do
     # Auto-detection wrappers (using deprecated Table API to test backwards compat)
     def filterable(assigns) do
       ~H"""
-      <Cinder.Table.table resource={TestResource} actor={nil}>
+      <Cinder.collection resource={TestResource} actor={nil}>
         <:col field="name" filter={[type: :text]}>Name</:col>
-      </Cinder.Table.table>
+      </Cinder.collection>
       """
     end
 
     def searchable(assigns) do
       ~H"""
-      <Cinder.Table.table resource={TestResource} actor={nil}>
+      <Cinder.collection resource={TestResource} actor={nil}>
         <:col field="name" search>Name</:col>
         <:col field="email" search>Email</:col>
-      </Cinder.Table.table>
+      </Cinder.collection>
       """
     end
 
     def neither(assigns) do
       ~H"""
-      <Cinder.Table.table resource={TestResource} actor={nil}>
+      <Cinder.collection resource={TestResource} actor={nil}>
         <:col field="name">Name</:col>
-      </Cinder.Table.table>
+      </Cinder.collection>
       """
     end
 
     def explicitly_disabled(assigns) do
       ~H"""
-      <Cinder.Table.table resource={TestResource} actor={nil} show_filters={false}>
+      <Cinder.collection resource={TestResource} actor={nil} show_filters={false}>
         <:col field="name" filter={[type: :text]}>Name</:col>
-      </Cinder.Table.table>
+      </Cinder.collection>
       """
     end
 
     def search_disabled(assigns) do
       ~H"""
-      <Cinder.Table.table resource={TestResource} actor={nil} search={false}>
+      <Cinder.collection resource={TestResource} actor={nil} search={false}>
         <:col field="name" search>Name</:col>
-      </Cinder.Table.table>
+      </Cinder.collection>
       """
     end
 

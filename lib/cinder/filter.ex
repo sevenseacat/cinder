@@ -92,9 +92,6 @@ defmodule Cinder.Filter do
         slider: MyApp.Filters.Slider
       }
 
-  And call `Cinder.setup()` in your application start function to register
-  all configured filters.
-
   This automatically:
   - Adds the `@behaviour Cinder.Filter` declaration
   - Imports Phoenix.Component for HEEx templates

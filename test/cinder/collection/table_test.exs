@@ -1,4 +1,4 @@
-defmodule Cinder.TableTest do
+defmodule Cinder.Collection.TableTest do
   # The theme integration tests change the global :default_theme config
   use ExUnit.Case, async: false
   import Phoenix.LiveViewTest
@@ -90,8 +90,8 @@ defmodule Cinder.TableTest do
     end
 
     relationships do
-      belongs_to(:artist, Cinder.TableTest.TestArtist)
-      belongs_to(:publisher, Cinder.TableTest.TestPublisher)
+      belongs_to(:artist, Cinder.Collection.TableTest.TestArtist)
+      belongs_to(:publisher, Cinder.Collection.TableTest.TestPublisher)
     end
 
     actions do
@@ -130,7 +130,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       assert html =~ "cinder-table"
     end
@@ -142,7 +142,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render successfully with default configuration
       assert html =~ "cinder-table"
@@ -159,7 +159,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should contain custom class
       assert html =~ "custom-class"
@@ -179,7 +179,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render without errors - this indirectly tests column processing
       assert html =~ "cinder-table"
@@ -195,7 +195,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render without errors with relationship fields
       assert html =~ "cinder-table"
@@ -213,7 +213,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should handle different filter types without errors
       assert html =~ "cinder-table"
@@ -232,7 +232,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Text filter should render single text input
       assert html =~ ~r/name="filters\[name\]"/
@@ -253,7 +253,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # String "text" should render single input
       assert html =~ ~r/name="filters\[name\]"/
@@ -274,7 +274,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Text filter should render with custom placeholder
       assert html =~ ~r/placeholder="Search name\.\.\."/
@@ -296,7 +296,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # String "text" should render single input
       assert html =~ ~r/name="filters\[name\]"/
@@ -324,7 +324,7 @@ defmodule Cinder.TableTest do
             ]
           }
 
-          html = render_component(&Cinder.Table.table/1, assigns)
+          html = render_component(&Cinder.collection/1, assigns)
 
           # Should still work with old format
           assert html =~ ~r/placeholder="Old format"/
@@ -351,7 +351,7 @@ defmodule Cinder.TableTest do
             ]
           }
 
-          html = render_component(&Cinder.Table.table/1, assigns)
+          html = render_component(&Cinder.collection/1, assigns)
 
           # New format should win
           assert html =~ ~r/placeholder="New format"/
@@ -373,7 +373,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should show filters automatically when columns are filterable
       assert html =~ "cinder-table"
@@ -390,7 +390,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should respect explicit show_filters = false
       assert html =~ "cinder-table"
@@ -407,7 +407,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should apply theme without errors
       assert html =~ "cinder-table"
@@ -422,7 +422,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should use modern theme (has shadow-lg class)
       assert html =~ "cinder-table"
@@ -439,7 +439,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should use dark theme (has gray-800 class), not modern theme
       assert html =~ "cinder-table"
@@ -456,7 +456,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should use system default theme
       assert html =~ "cinder-table"
@@ -474,7 +474,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should use retro theme
       assert html =~ "cinder-table"
@@ -491,7 +491,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should enable URL sync without errors
       assert html =~ "cinder-table"
@@ -505,7 +505,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should work without URL sync
       assert html =~ "cinder-table"
@@ -522,7 +522,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render with number range filter (min/max inputs)
       assert html =~ "cinder-table"
@@ -540,7 +540,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should use text filter instead of number range when explicitly specified
       assert html =~ "cinder-table"
@@ -559,7 +559,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render without errors and include the component ID
       assert html =~ "cinder-table"
@@ -578,7 +578,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should still render correctly without URL sync
       assert html =~ "cinder-table"
@@ -597,7 +597,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should render successfully with query_opts
       assert html =~ "cinder-table"
@@ -612,7 +612,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should work fine without query_opts
       assert html =~ "cinder-table"
@@ -631,7 +631,7 @@ defmodule Cinder.TableTest do
         ]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should handle relationship fields properly
       assert html =~ "cinder-table"
@@ -649,7 +649,7 @@ defmodule Cinder.TableTest do
         col: []
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Should handle empty columns gracefully
       assert html =~ "cinder-table"
@@ -664,48 +664,7 @@ defmodule Cinder.TableTest do
       }
 
       # Should handle gracefully - the component processes columns even with valid resource
-      html = render_component(&Cinder.Table.table/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "accepts row_click attribute" do
-      row_click_fn = fn item -> Phoenix.LiveView.JS.navigate("/users/#{item.id}") end
-
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        row_click: row_click_fn,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.Table.table/1, assigns)
-
-      # Should render table successfully with row_click attribute
-      assert html =~ "cinder-table"
-    end
-
-    test "renders table without row_click (backward compatibility)" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.Table.table/1, assigns)
-
-      # Should render table successfully without row_click
-      assert html =~ "cinder-table"
-    end
-
-    test "row_click attribute defaults to nil" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      # Test that the component handles nil row_click gracefully
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
   end
@@ -731,7 +690,7 @@ defmodule Cinder.TableTest do
       }
 
       # Should render without errors - configurable page size format is accepted
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -744,7 +703,7 @@ defmodule Cinder.TableTest do
       }
 
       # Should render without errors - simple integer format is accepted
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -758,7 +717,7 @@ defmodule Cinder.TableTest do
       }
 
       # Should render without errors even with single option
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -785,7 +744,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Custom loading message should be present in the rendered HTML
       assert html =~ "Please wait, fetching data..."
@@ -803,7 +762,7 @@ defmodule Cinder.TableTest do
       }
 
       # Should render without errors - the attribute is accepted
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
     end
 
@@ -815,7 +774,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Custom filters label should be present in the rendered HTML
       assert html =~ "Search Options"
@@ -828,7 +787,7 @@ defmodule Cinder.TableTest do
         col: [%{field: "name", filter: true, __slot__: :col}]
       }
 
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
 
       # Default loading message should be present (component starts in loading state)
       assert html =~ "Loading..."
@@ -986,7 +945,7 @@ defmodule Cinder.TableTest do
         # Search
         search: [label: "Search", placeholder: "Type to search..."],
         # Row interaction
-        row_click: nil,
+        click: nil,
         # Columns
         col: [
           %{field: "name", filter: true, sort: true, search: true, __slot__: :col},
@@ -995,7 +954,7 @@ defmodule Cinder.TableTest do
       }
 
       # Should render without errors
-      html = render_component(&Cinder.Table.table/1, assigns)
+      html = render_component(&Cinder.collection/1, assigns)
       assert html =~ "cinder-table"
       assert html =~ "my-custom-class"
     end
