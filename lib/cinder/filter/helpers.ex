@@ -449,38 +449,28 @@ defmodule Cinder.Filter.Helpers do
       :less_than_or_equal ->
         Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) <= ^value))
 
+      :in when value == [] ->
+        query
+
       :in when is_list(value) ->
-        match_mode = Keyword.get(opts, :match_mode, :any)
+        # Each value is matched by a related record: `value in field` on an array field,
+        # `field == value` otherwise
+        matches =
+          case get_field_type(query.resource, rel_path ++ [field_atom]) do
+            {:array, _type} -> fn val -> expr(^val in ^ref(field_atom)) end
+            _other -> fn val -> expr(^ref(field_atom) == ^val) end
+          end
 
-        case value do
-          [] ->
-            query
+        case Keyword.get(opts, :match_mode, :any) do
+          # Every value matched, by any related records between them
+          :all ->
+            Enum.reduce(value, query, fn val, query ->
+              Ash.Query.filter(query, exists(^rel_path, ^matches.(val)))
+            end)
 
-          [single_value] ->
-            # Single value: same for both modes
-            Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) == ^single_value))
-
-          multiple_values ->
-            case match_mode do
-              :all ->
-                # ALL mode: must have a related record matching each value
-                # exists(rel, field == val1) AND exists(rel, field == val2) AND ...
-                conditions =
-                  Enum.map(multiple_values, fn val ->
-                    expr(exists(^rel_path, ^ref(field_atom) == ^val))
-                  end)
-
-                combined =
-                  Enum.reduce(conditions, fn condition, acc ->
-                    expr(^acc and ^condition)
-                  end)
-
-                Ash.Query.filter(query, ^combined)
-
-              _ ->
-                # ANY mode (default): exists with IN operator
-                Ash.Query.filter(query, exists(^rel_path, ^ref(field_atom) in ^multiple_values))
-            end
+          _any ->
+            condition = value |> Enum.map(matches) |> Enum.reduce(&expr(^&2 or ^&1))
+            Ash.Query.filter(query, exists(^rel_path, ^condition))
         end
 
       _ ->
@@ -634,12 +624,17 @@ defmodule Cinder.Filter.Helpers do
   end
 
   # Helper function to get field type information
-  defp get_field_type(resource, field_atom) do
-    case Ash.Resource.Info.attribute(resource, field_atom) do
-      %{type: field_type} -> field_type
-      nil -> :unknown
+  # Any field's type, not only an attribute's: `list` aggregates and array calculations are
+  # arrays too. A relationship path's field is resolved on the related resource.
+  defp get_field_type(resource, field) do
+    case Cinder.Field.resolve(resource, field_path_string(field)) do
+      {:ok, resolved} -> Cinder.Field.type(resolved) || :unknown
+      :error -> :unknown
     end
   end
+
+  defp field_path_string(path) when is_list(path), do: Enum.map_join(path, ".", &to_string/1)
+  defp field_path_string(field), do: to_string(field)
 
   @doc """
   Common empty value check for most filter types.

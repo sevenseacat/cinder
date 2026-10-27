@@ -27,9 +27,11 @@ defmodule Cinder.Field do
   @doc "Resolves a field in column notation, or `:error` if the resource has no such field."
   @spec resolve(module(), String.t()) :: {:ok, t()} | :error
   def resolve(resource, field) when is_atom(resource) and is_binary(field) do
-    if resource && Ash.Resource.Info.resource?(resource),
-      do: resolve_path(resource, String.split(field, "."), []),
-      else: :error
+    if resource && Ash.Resource.Info.resource?(resource) do
+      resolve_path(resource, String.split(field, "."), [])
+    else
+      :error
+    end
   end
 
   def resolve(_resource, _field), do: :error
@@ -64,13 +66,31 @@ defmodule Cinder.Field do
   """
   @spec load(t()) :: atom() | {atom(), list()} | nil
   def load(%{kind: :calculation, calculation: calculation} = field) do
-    if required_arguments(calculation) == [],
-      do: wrap(field.relationships, calculation.name)
+    if required_arguments(calculation) == [] do
+      wrap(field.relationships, calculation.name)
+    end
   end
 
   def load(%{kind: :aggregate} = field), do: wrap(field.relationships, field.name)
   def load(%{kind: :relationship} = field), do: wrap(field.relationships, {field.name, []})
   def load(field), do: wrap(field.relationships, nil)
+
+  @doc "The field's Ash type, or `nil` for a relationship or a field inside an embedded one."
+  @spec type(t()) :: Ash.Type.t() | nil
+  def type(%{kind: :attribute, resource: resource, name: name}) do
+    Ash.Resource.Info.attribute(resource, name).type
+  end
+
+  def type(%{kind: :calculation, calculation: calculation}), do: calculation.type
+
+  def type(%{kind: :aggregate, resource: resource, name: name}) do
+    case Ash.Resource.Info.aggregate_type(resource, name) do
+      {:ok, type} -> type
+      _error -> nil
+    end
+  end
+
+  def type(_field), do: nil
 
   defp resolve_path(resource, [field], relationships) do
     case String.split(field, "__") do

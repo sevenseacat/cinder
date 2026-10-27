@@ -895,8 +895,9 @@ defmodule Cinder.QueryBuilder do
     end
   end
 
-  defp ash_resource?(resource),
-    do: is_atom(resource) and resource != nil and Ash.Resource.Info.resource?(resource)
+  defp ash_resource?(resource) do
+    is_atom(resource) and resource != nil and Ash.Resource.Info.resource?(resource)
+  end
 
   @doc """
   Validates that all fields in a sort list can be sorted at the database level.

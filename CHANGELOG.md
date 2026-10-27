@@ -19,6 +19,8 @@
 
 ### Bugfixes
 
+* Multi-select filters work on `list` aggregates and array calculations, instead of crashing.
+* Multi-select filters on an array field through a relationship (like `albums.tags`) match records whose related records hold the selected values.
 * Columns on a calculation that needs arguments are no longer offered as sortable or filterable, which failed when used.
 * A collection's data load no longer copies the parent LiveView's assigns into its task once per column, which could reach gigabytes on a busy page. Thanks @DGollings! ([#250](https://github.com/sevenseacat/cinder/pull/250))
 * Text filters with `operator: :starts_with` or `:ends_with` now match only the start or end of the value, instead of anywhere in it.

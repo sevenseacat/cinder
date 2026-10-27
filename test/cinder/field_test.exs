@@ -205,6 +205,22 @@ defmodule Cinder.FieldTest do
     end
   end
 
+  describe "type/1" do
+    defp type(field) do
+      {:ok, resolved} = Field.resolve(Item, field)
+      Field.type(resolved)
+    end
+
+    test "the Ash type of attributes, calculations and aggregates, through relationships" do
+      assert type("tags") == {:array, Ash.Type.String}
+      assert type("title_lower") == Ash.Type.String
+      assert type("owner.item_count") == Ash.Type.Integer
+      assert type("owner.items.tags") == {:array, Ash.Type.String}
+      assert type("owner") == nil
+      assert type("details__label") == nil
+    end
+  end
+
   describe "load/1" do
     defp load(field) do
       {:ok, resolved} = Field.resolve(Item, field)

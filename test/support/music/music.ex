@@ -64,10 +64,13 @@ defmodule Music.Artist do
     calculate :name_with, :string, expr(name <> ^arg(:suffix)) do
       argument(:suffix, :string, allow_nil?: false)
     end
+
+    calculate(:name_words, {:array, :string}, expr(string_split(name, " ")))
   end
 
   aggregates do
     count(:album_count, :albums)
+    list(:genres, :albums, :genre, uniq?: true)
   end
 
   actions do
