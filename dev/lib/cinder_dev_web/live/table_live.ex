@@ -16,7 +16,6 @@ defmodule CinderDevWeb.TableLive do
         resource={Music.Album}
         theme={@theme}
         url_state={@url_state}
-        query_opts={[load: [:artist]]}
       >
         <:col :let={album} field="title" filter sort>{album.title}</:col>
         <:col :let={album} field="artist.name" label="Artist" filter sort>

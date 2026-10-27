@@ -34,7 +34,6 @@ defmodule CinderDevWeb.FiltersLive do
         resource={Music.Album}
         theme={@theme}
         url_state={@url_state}
-        query_opts={[load: [:artist]]}
         page_size={10}
       >
         <:col :let={album} field="title" filter={[type: :text]} search sort>

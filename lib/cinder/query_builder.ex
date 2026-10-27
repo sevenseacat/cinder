@@ -364,6 +364,81 @@ defmodule Cinder.QueryBuilder do
   defp extract_resource_for_logging(_), do: :unknown
 
   @doc """
+  The loads that showing these column fields needs, for `Ash.Query.load/2`: their
+  calculations and aggregates, and the relationships in their paths. Attributes and
+  embedded fields need none.
+
+  Fields that can't be resolved on the resource, and calculations with required
+  arguments, are skipped: a slot showing them needs an explicit `load`.
+
+  For example, `["title", "artist.name", "artist.album_count"]` on an album resource
+  gives `[artist: [:album_count]]`.
+  """
+  def infer_loads(resource, fields) do
+    fields
+    |> Enum.flat_map(fn field ->
+      case is_binary(field) && field_load(resource, String.split(field, ".")) do
+        {:ok, load} when not is_nil(load) -> [load]
+        _nothing_to_load -> []
+      end
+    end)
+    |> Enum.reduce([], &merge_load/2)
+  end
+
+  # `{:ok, load}` (`nil` when it's an attribute), or `:error` when it can't be resolved
+  defp field_load(resource, [field]) do
+    # An embedded field (`details__label`) is part of its attribute
+    case String.split(field, "__") do
+      [name] ->
+        direct_field_load(resource, name)
+
+      [name | _embedded] ->
+        if Ash.Resource.Info.attribute(resource, name), do: {:ok, nil}, else: :error
+    end
+  end
+
+  defp field_load(resource, [relationship | rest]) do
+    with %{name: name, destination: destination} <-
+           Ash.Resource.Info.relationship(resource, relationship),
+         {:ok, nested} <- field_load(destination, rest) do
+      {:ok, {name, List.wrap(nested)}}
+    else
+      _ -> :error
+    end
+  end
+
+  defp direct_field_load(resource, name) do
+    calculation = Ash.Resource.Info.calculation(resource, name)
+    aggregate = Ash.Resource.Info.aggregate(resource, name)
+
+    cond do
+      Ash.Resource.Info.attribute(resource, name) -> {:ok, nil}
+      calculation && loadable?(calculation) -> {:ok, calculation.name}
+      aggregate -> {:ok, aggregate.name}
+      true -> :error
+    end
+  end
+
+  # Calculations with required arguments can't be loaded without them
+  defp loadable?(calculation),
+    do: not Enum.any?(calculation.arguments, &(not &1.allow_nil? and is_nil(&1.default)))
+
+  # Merges one field's load into the others, keeping first-seen order
+  defp merge_load({name, nested}, loads) do
+    case List.keyfind(loads, name, 0) do
+      {^name, existing} ->
+        List.keyreplace(loads, name, 0, {name, Enum.reduce(nested, existing, &merge_load/2)})
+
+      nil ->
+        loads ++ [{name, nested}]
+    end
+  end
+
+  defp merge_load(name, loads) do
+    if name in loads, do: loads, else: loads ++ [name]
+  end
+
+  @doc """
   Applies query options like load and select to an Ash query.
 
   Warns if unsupported options are provided.

@@ -58,6 +58,14 @@ defmodule Music.Artist do
     has_many(:albums, Music.Album)
   end
 
+  calculations do
+    calculate(:name_lower, :string, expr(string_downcase(name)))
+  end
+
+  aggregates do
+    count(:album_count, :albums)
+  end
+
   actions do
     defaults([:read, :destroy])
   end
@@ -89,6 +97,14 @@ defmodule Music.Album do
 
   relationships do
     belongs_to(:artist, Music.Artist)
+  end
+
+  calculations do
+    calculate(:title_lower, :string, expr(string_downcase(title)))
+
+    calculate :title_with, :string, expr(title <> ^arg(:suffix)) do
+      argument(:suffix, :string, allow_nil?: false)
+    end
   end
 
   actions do

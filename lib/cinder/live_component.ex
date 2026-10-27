@@ -725,6 +725,11 @@ defmodule Cinder.LiveComponent do
     end)
   end
 
+  # The columns' inferred loads go in alongside any explicit ones: `Ash.Query.load/2`
+  # merges each `:load`, so neither replaces the other
+  defp with_loads(query_opts, []), do: query_opts
+  defp with_loads(query_opts, loads), do: query_opts ++ [load: loads]
+
   defp maybe_notify_query_change(socket, nil), do: socket
 
   # An async count isn't known when the page loads; a second notification carries
@@ -1039,6 +1044,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:search_term, assigns[:search_term] || "")
     |> assign(:theme, assigns[:theme] || Cinder.Theme.default())
     |> assign(:query_opts, assigns[:query_opts] || [])
+    |> assign(:inferred_loads, assigns[:inferred_loads] || [])
     |> assign(:initial_load, Map.get(assigns, :initial_load, :async))
     |> assign_new(:action, fn -> nil end)
     |> assign_new(:page, fn -> nil end)
@@ -1126,6 +1132,7 @@ defmodule Cinder.LiveComponent do
 
     Map.merge(base_state, %{
       count_mode: Map.get(assigns, :count_mode, true),
+      inferred_loads: Map.get(assigns, :inferred_loads, []),
       actor_id: normalize_auth(assigns[:actor]),
       tenant_id: normalize_auth(assigns[:tenant]),
       scope_id: normalize_scope(assigns[:scope])
@@ -1211,7 +1218,7 @@ defmodule Cinder.LiveComponent do
       tenant: tenant,
       scope: scope,
       action: action,
-      query_opts: query_opts,
+      query_opts: with_loads(query_opts, socket.assigns.inferred_loads),
       filters: filters,
       sort_by: sort_by,
       page_size: page_size,

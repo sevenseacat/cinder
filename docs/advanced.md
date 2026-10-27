@@ -80,6 +80,8 @@ Use dot notation to filter and sort by related resource fields:
 </Cinder.collection>
 ```
 
+Cinder loads what each column's `field` needs: the relationships in its path, and any calculations or aggregates. Anything else a slot shows needs `query_opts={[load: ...]}`. To filter on a field without showing it, use a filter-only `<:filter>` slot, which doesn't load it.
+
 ### Deep Relationships
 
 ```heex
@@ -401,14 +403,14 @@ When multiple states are active, they follow this display order: **loading > err
 
 ### Efficient Data Loading
 
-Use `query_opts` to load only needed data:
+Columns load what their fields need. Use `query_opts` to load anything else your slots show, or to select fewer attributes:
 
 ```heex
 <Cinder.collection
   resource={MyApp.User}
   actor={@current_user}
   query_opts={[
-    load: [:department, :manager],
+    load: [:avatar_url],
     select: [:id, :name, :email, :created_at]
   ]}
 >

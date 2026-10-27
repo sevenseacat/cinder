@@ -17,7 +17,6 @@ defmodule CinderDevWeb.ListLive do
         layout={:list}
         theme={@theme}
         url_state={@url_state}
-        query_opts={[load: [:artist]]}
       >
         <:col field="title" filter sort />
         <:col field="artist.name" label="Artist" filter sort />

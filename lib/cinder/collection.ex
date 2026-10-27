@@ -154,7 +154,8 @@ defmodule Cinder.Collection do
     default: [],
     doc:
       "Additional Ash query options: `:load`, `:select`, `:tenant`, `:timeout`, " <>
-        "`:authorize?`, `:max_concurrency` and `:tracer`. Any other key logs a warning and is ignored."
+        "`:authorize?`, `:max_concurrency` and `:tracer`. Any other key logs a warning and is ignored. " <>
+        "Columns' fields are loaded already; `:load` is for anything else slots show."
   )
 
   attr(:initial_load, :any,
@@ -471,6 +472,7 @@ defmodule Cinder.Collection do
       |> assign(:normalized_query, normalized_query)
       |> assign(:processed_columns, processed_columns)
       |> assign(:query_columns, query_columns)
+      |> assign(:inferred_loads, inferred_loads(resource, processed_columns))
       |> assign(:page_size_config, page_size_config)
       |> assign(:search_label, search_label)
       |> assign(:search_placeholder, search_placeholder)
@@ -523,6 +525,7 @@ defmodule Cinder.Collection do
         error_slot={@error_slot}
         col={@processed_columns}
         query_columns={@query_columns}
+        inferred_loads={@inferred_loads}
         row_click={@row_click}
         item_click={@item_click}
         item_class={@item_class}
@@ -927,6 +930,13 @@ defmodule Cinder.Collection do
   defp extract_resource_from_query(%Ash.Query{resource: resource}), do: resource
   defp extract_resource_from_query(resource) when is_atom(resource), do: resource
   defp extract_resource_from_query(_), do: nil
+
+  # What the displayed columns' fields need loaded (filter-only slots aren't shown)
+  defp inferred_loads(resource, columns) do
+    if resource && Ash.Resource.Info.resource?(resource),
+      do: Cinder.QueryBuilder.infer_loads(resource, Enum.map(columns, & &1.field)),
+      else: []
+  end
 
   # ============================================================================
   # PRIVATE HELPERS - Show/Hide Logic
