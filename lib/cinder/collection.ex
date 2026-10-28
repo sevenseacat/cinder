@@ -330,7 +330,6 @@ defmodule Cinder.Collection do
     attr(:labels, :map, doc: "Custom labels for boolean filter options")
     attr(:prompt, :string, doc: "Prompt text for select filters")
     attr(:match_mode, :atom, doc: "Match mode for multi-value filters (:any or :all)")
-    attr(:format, :string, doc: "Date format for date filters")
     attr(:include_time, :boolean, doc: "Whether to include time in date filters")
     attr(:step, :any, doc: "Step value for number range filters")
     attr(:min, :any, doc: "Minimum value for range filters")
@@ -685,7 +684,6 @@ defmodule Cinder.Collection do
           labels: Map.get(slot, :labels),
           prompt: Map.get(slot, :prompt),
           match_mode: Map.get(slot, :match_mode),
-          format: Map.get(slot, :format),
           include_time: Map.get(slot, :include_time),
           step: Map.get(slot, :step),
           min: Map.get(slot, :min),

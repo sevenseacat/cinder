@@ -38,6 +38,7 @@ SPDX-License-Identifier: MIT
 * Radio group and autocomplete filters on enum fields now list the enum's values when no `options` are given, like select filters already did.
 * Multi-select filters on an array of an enum (or of `one_of` values) now list its values when no `options` are given.
 * Number range filters' `min`, `max` and `step` options now apply to both inputs, where they were ignored.
+* Removed date filters' `format` option, which did nothing: browser date inputs always show dates in the user's locale.
 * A custom filter configured under a built-in filter's name logs its "Cannot override built-in filter type" warning when first used, so it no longer depends on `Cinder.setup/0`.
 * Radio group filters with non-string option values (like enum atoms) now show the chosen option as selected, instead of losing it on the first click.
 * Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.

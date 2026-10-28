@@ -117,7 +117,6 @@ defmodule Cinder.Filters.DateRange do
   @impl true
   def default_options do
     [
-      format: :date,
       include_time: false
     ]
   end

@@ -367,7 +367,6 @@ defmodule Cinder.Table.FilterSlotsTest do
           field: "created_at",
           type: :date_range,
           include_time: true,
-          format: :datetime,
           __slot__: :filter
         },
         # Number range with constraints
