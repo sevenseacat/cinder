@@ -6,71 +6,71 @@ SPDX-License-Identifier: MIT
 
 # Localization
 
-Cinder includes built-in translations for table UI elements (pagination, filtering, sorting controls).
+Cinder's own text, like pagination, filter labels and buttons, comes translated into:
 
-## How It Works
+- Brazilian Portuguese (`pt_BR`)
+- Danish (`da`)
+- Dutch (`nl`)
+- English (`en`), the default
+- French (`fr`)
+- German (`de`)
+- Norwegian (`no`)
+- Spanish (`es`)
+- Swedish (`sv`)
 
-Cinder ships with its own Gettext backend (`Cinder.Gettext`). When your Phoenix app sets a locale, Cinder automatically uses it:
+## Choosing the Language
 
-```elixir
-# In your app (e.g., in a plug or LiveView mount)
-Gettext.put_locale("nl")  # Dutch
-
-# Cinder tables automatically show Dutch UI text
-```
-
-No additional configuration needed!
-
-## Available Translations
-
-- **Brazilian Portuguese** (pt_BR)
-- **Danish** (da)
-- **Dutch** (nl)
-- **English** (en) - Default
-- **French** (fr)
-- **German** (de)
-- **Norwegian** (no)
-- **Spanish** (es)
-- **Swedish** (sv)
-
-## Phoenix LiveView Example
+Cinder uses the current Gettext locale. Set it with `Gettext.put_locale/1`, which applies to
+every Gettext backend, in the LiveView process: in `mount`, or an `on_mount` hook shared by your
+LiveViews. A locale set in a plug doesn't reach the LiveView once it connects.
 
 ```elixir
 defmodule MyAppWeb.UserLive.Index do
   use MyAppWeb, :live_view
 
-  def mount(_params, %{"locale" => locale}, socket) do
-    Gettext.put_locale(locale)  # Set locale from session
+  def mount(_params, session, socket) do
+    Gettext.put_locale(session["locale"] || "en")
     {:ok, socket}
   end
 end
 ```
 
-## Using Your App's Gettext Backend
+## Using Your Own Translations
 
-By default, Cinder uses its own built-in Gettext backend. To override labels or provide your own translations, point Cinder at your app's backend:
+To change Cinder's text, or translate it into another language, point Cinder at your app's
+Gettext backend:
 
 ```elixir
 # config/config.exs
 config :cinder, gettext_backend: MyAppWeb.Gettext
 ```
 
-Then create a `cinder.po` file in your app's gettext directory. You only need to include the strings you want to change — anything missing falls back to the default English text:
+Cinder reads this when it's compiled, so recompile it after changing it:
+
+```bash
+mix deps.compile cinder --force
+```
+
+Then add a `cinder.po` file for each language to your app's Gettext directory, with the text you
+want. `i18n/gettext/cinder.pot` in Cinder's source lists every string:
 
 ```po
 # priv/gettext/en/LC_MESSAGES/cinder.po
 msgid "Filters"
-msgstr "Filter"
+msgstr "Refine"
 
 msgid "Loading..."
 msgstr "Please wait..."
 ```
 
-For a full list of available strings, see `i18n/gettext/cinder.pot` in the Cinder source.
+Your backend replaces Cinder's, so Cinder's own translations are no longer used: any string your
+files don't translate shows in English, in every language. Copy Cinder's `.po` files for the
+languages you support as a starting point.
 
 ## Contributing Translations
 
-1. Fork Cinder
-2. Add `i18n/gettext/<locale>/LC_MESSAGES/cinder.po`
-3. Translate messages from `i18n/gettext/cinder.pot`
-4. Submit PR
+To add a language to Cinder itself:
+
+1. Copy `i18n/gettext/cinder.pot` to `i18n/gettext/<locale>/LC_MESSAGES/cinder.po`.
+2. Translate each `msgstr`.
+3. Open a pull request.

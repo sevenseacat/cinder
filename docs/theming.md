@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 
 # Theming
 
-Cinder provides a comprehensive theming system that allows complete visual customization of your tables. With 10 built-in themes and a powerful DSL for creating custom themes, you can match any design system or create unique visual experiences.
+Cinder has 8 built-in themes, and a DSL for writing your own.
 
 > **See Also**: [Theme Showcase](theme-showcase.md) - Visual examples and comparisons of all built-in themes
 
@@ -23,7 +23,7 @@ Cinder provides a comprehensive theming system that allows complete visual custo
 
 ### Using Built-in Themes
 
-The fastest way to style your table is with one of the 10 built-in themes:
+The fastest way to style your table is with one of the 8 built-in themes:
 
 ```heex
 <Cinder.collection theme="modern" resource={MyApp.User} actor={@current_user}>
@@ -65,11 +65,11 @@ Add to your `app.css`:
 @plugin "@tailwindcss/forms";
 ```
 
-**Note:** Cinder themes work without this plugin, but checkbox and radio button styling will fall back to browser defaults. If you're using DaisyUI or Flowbite, their component classes handle form input styling internally for their own components.
+**Note:** Without the plugin, checkboxes and radio buttons in the `modern`, `dark`, `retro`, `futuristic` and `compact` themes show as the browser's defaults; they still work. The `daisy_ui` theme uses daisyUI's own `checkbox` and `radio` classes, so it needs daisyUI rather than the plugin. The `flowbite` theme uses Flowbite's colour names (like `border-brand`), which only exist with Flowbite installed.
 
 ## Built-in Theme Presets
 
-Cinder includes 10 carefully crafted themes covering a wide range of design styles. Each theme provides complete coverage for all table components while maintaining a consistent visual identity.
+Cinder includes 8 themes, each styling every part of a collection.
 
 > **Visual Reference**: See the [Theme Showcase](theme-showcase.md) for detailed visual examples and feature descriptions of each theme.
 
@@ -96,7 +96,7 @@ Available themes:
 
 ### Tailwind setup
 
-`mix cinder.install` configures Tailwind for you. Behind the scenes it adds two `@import` lines to your `app.css` (or the equivalent entries to `tailwind.config.js` for Tailwind v3):
+`mix cinder.install` configures Tailwind for you. Behind the scenes it adds two `@import` lines to your `app.css`, after `@import "tailwindcss"` (or the equivalent entries to `tailwind.config.js` for Tailwind v3):
 
 ```css
 @import "tailwindcss";
@@ -104,7 +104,7 @@ Available themes:
 @import "../../deps/cinder/priv/themes/daisy_ui.css";
 ```
 
-The first line tells Tailwind to scan Cinder's structural code (filters, renderers, controls, etc.) for Tailwind classes. The second is a per-theme line that opts in to scanning one specific built-in theme.
+`cinder.css` tells Tailwind to scan Cinder's structural code (filters, renderers, controls, etc.) for Tailwind classes. The theme line opts in to scanning one specific built-in theme.
 
 **Using more than one built-in theme:** If you set `theme={...}` on individual tables to override the configured default, add an `@import` line for each built-in you use:
 

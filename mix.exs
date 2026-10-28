@@ -159,7 +159,8 @@ defmodule Cinder.MixProject do
           Cinder.FilterManager,
           Cinder.Filter.Debug,
           Cinder.PageSize,
-          Cinder.BulkActionExecutor
+          Cinder.BulkActionExecutor,
+          Cinder.Selection
         ],
         Deprecated: [
           Cinder.Table,

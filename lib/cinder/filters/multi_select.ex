@@ -4,11 +4,9 @@
 
 defmodule Cinder.Filters.MultiSelect do
   @moduledoc """
-  Multi-select tag-based filter implementation for Cinder tables.
-
-  Provides multiple selection filtering with a modern dropdown + tags interface.
-  Selected items are displayed as removable tags with a dropdown for adding new selections.
-  Uses Phoenix LiveView patterns for interactivity.
+  Multi-select filter: a dropdown of checkboxes for choosing any number of values, showing how
+  many are chosen. Takes `options` (`{label, value}` tuples), `match_mode`, and `prompt` (the
+  dropdown's text when nothing is chosen).
 
   ## Values from the client
 

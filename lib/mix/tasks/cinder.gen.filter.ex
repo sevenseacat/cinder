@@ -49,7 +49,7 @@ if Code.ensure_loaded?(Igniter) do
 
     1. Creates a custom filter module that delegates to the chosen built-in filter
     2. Automatically updates the filter type to your custom type
-    3. Generates comprehensive test file (unless --no-tests)
+    3. Generates a test file (unless --no-tests)
     4. Automatically adds the filter to your :cinder configuration
     5. Provides clear examples of how to customize the behavior
 

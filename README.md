@@ -6,11 +6,8 @@ SPDX-License-Identifier: MIT
 
 # Cinder
 
-A powerful, intelligent data collection component for Ash Framework resources in Phoenix LiveView.
-
-## What is Cinder?
-
-Cinder transforms complex data table requirements into simple, declarative markup. With automatic type inference and intelligent defaults, you can build feature-rich tables, lists, and grids with minimal configuration.
+Tables, lists and grids of Ash resources in Phoenix LiveView, with filtering, sorting, search and
+pagination.
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
@@ -21,49 +18,36 @@ Cinder transforms complex data table requirements into simple, declarative marku
 </Cinder.collection>
 ```
 
-Cinder automatically provides:
-- ✅ Intelligent filter types based on your Ash resource (enums become selects, dates become range pickers, etc.)
-- ✅ Interactive sorting with visual indicators
-- ✅ Pagination with efficient queries
-- ✅ Relationship and embedded resource support
-- ✅ URL state management for bookmarkable views
+Cinder reads your Ash resource to pick each filter's type (enums become selects, dates become
+date pickers, and so on), and loads what each column shows, including relationships,
+calculations and aggregates.
 
-## Key Features
+## Features
 
-- **📋 Multiple Layouts**: Table, List, and Grid with shared filtering, sorting, and pagination
-- **🧠 Intelligent Defaults**: Automatic filter type detection from Ash attributes
-- **🔗 URL State Management**: Filters, pagination, and sorting synchronized with browser URL
-- **🌐 Relationship Support**: Dot notation for related fields (`user.department.name`)
-- **📦 Embedded Resources**: Double underscore notation (`profile__country`) with automatic enum detection
-- **🎨 Theming**: 9 built-in themes plus DSL for custom themes
-- **🌍 Internationalization**: Built-in translations ([eight languages](https://hexdocs.pm/cinder/localization.html#available-translations) and counting!)
+- **Table, list and grid layouts**, which share filtering, sorting and pagination
+- **Filters** for text, numbers, dates, booleans, enums and arrays, plus your own
+- **Search** across any columns you choose
+- **Sorting** on one or more columns, with configurable cycles and tiebreakers
+- **Pagination**, offset or keyset, with the total counted alongside, in the background, or not at all
+- **Relationship and embedded fields**: `department.name`, `settings__country`
+- **URL sync**, so filters, sorting and pages can be bookmarked and shared
+- **Selection and bulk actions**
+- **Refreshing and updating** rows after changes, without reloading the page
+- **Themes**: 8 built in, or your own
+- **Translations** for nine languages, including English
+- **Telemetry** for every load
 
 ## Installation
 
-### Using Igniter (Recommended)
+With [Igniter](https://hexdocs.pm/igniter):
 
 ```bash
 mix igniter.install cinder
 ```
 
-### Manual Installation
-
-Add to `mix.exs`:
-
-```elixir
-def deps do
-  [{:cinder, "~> 0.17"}]
-end
-```
-
-Then run:
-
-```bash
-mix deps.get
-mix cinder.install  # Configure Tailwind CSS and LiveView hooks
-```
-
-Without Igniter, register Cinder's LiveView hooks by hand as shown in the [Upgrading Guide](https://cinder.hexdocs.pm/upgrading.html#upgrading-to-0-18-0).
+This adds the dependency, sets up Tailwind and the `daisy_ui` theme, and registers Cinder's
+LiveView hook. To install by hand, see
+[Getting Started](https://cinder.hexdocs.pm/getting-started.html#installation).
 
 ## Quick Start
 
@@ -75,7 +59,8 @@ Without Igniter, register Cinder's LiveView hooks by hand as shown in the [Upgra
 </Cinder.collection>
 ```
 
-For list or grid layouts:
+For a list or grid, describe each item with an `<:item>` slot. The `<:col>` slots then only
+configure filtering and sorting:
 
 ```heex
 <Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid} grid_columns={3}>
@@ -88,14 +73,14 @@ For list or grid layouts:
 
 ## Documentation
 
-- **[Getting Started](https://cinder.hexdocs.pm/getting-started.html)** - Basic usage, layouts, column configuration, and theming
-- **[Filters](https://cinder.hexdocs.pm/filters.html)** - Filter types, search, and custom controls layout
-- **[Sorting](https://cinder.hexdocs.pm/sorting.html)** - Sort cycles, modes, and defaults
-- **[Advanced Features](https://cinder.hexdocs.pm/advanced.html)** - URL state, relationships, refresh, performance, and bulk actions
-- **[Theming Guide](https://cinder.hexdocs.pm/theming.html)** - Built-in themes and custom theme creation
-- **[Localization Guide](https://cinder.hexdocs.pm/localization.html)** - Internationalization support
-- **[Upgrading Guide](https://cinder.hexdocs.pm/upgrading.html)** - Migration instructions from older versions
-- **[HexDocs](https://cinder.hexdocs.pm/)** - Full API reference
+- **[Getting Started](https://cinder.hexdocs.pm/getting-started.html)**: installation, layouts, columns and themes
+- **[Filters](https://cinder.hexdocs.pm/filters.html)**: filter types, search, and laying out the filters yourself
+- **[Sorting](https://cinder.hexdocs.pm/sorting.html)**: sort cycles, modes, defaults and tiebreakers
+- **[Advanced Features](https://cinder.hexdocs.pm/advanced.html)**: URL sync, relationships, refreshing, pagination, selection and bulk actions, telemetry
+- **[Theming](https://cinder.hexdocs.pm/theming.html)**: built-in themes and writing your own
+- **[Localization](https://cinder.hexdocs.pm/localization.html)**: translations and your own Gettext backend
+- **[Upgrading](https://cinder.hexdocs.pm/upgrading.html)**: what changed in each version, and how to upgrade
+- **[API reference](https://cinder.hexdocs.pm/)**
 
 ## Requirements
 

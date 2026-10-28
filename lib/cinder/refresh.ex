@@ -6,7 +6,7 @@ defmodule Cinder.Refresh do
   @moduledoc """
   Helper functions for refreshing Cinder collection data from parent LiveViews.
 
-  This module provides convenient functions to refresh collection data after
+  These functions refresh collection data after
   performing CRUD operations, ensuring the collection reflects the latest state
   without requiring a full page reload.
 
@@ -19,7 +19,7 @@ defmodule Cinder.Refresh do
         |> Ash.get!(id)
         |> Ash.destroy!()
 
-        {:noreply, refresh_table(socket, "my-table-id")}
+        {:noreply, Cinder.refresh_table(socket, "my-table-id")}
       end
 
   Or to refresh multiple collections:
@@ -27,7 +27,7 @@ defmodule Cinder.Refresh do
       def handle_event("bulk_delete", params, socket) do
         # ... perform bulk operations ...
 
-        {:noreply, refresh_tables(socket, ["users-table", "orders-table"])}
+        {:noreply, Cinder.refresh_tables(socket, ["users-table", "orders-table"])}
       end
 
   ## Refresh Behavior
@@ -78,10 +78,10 @@ defmodule Cinder.Refresh do
   ## Examples
 
       # Refresh a specific collection
-      {:noreply, refresh_table(socket, "users-table")}
+      {:noreply, Cinder.refresh_table(socket, "users-table")}
 
       # Refresh existing rows without a loading indicator
-      {:noreply, refresh_table(socket, "users-table", silent: true)}
+      {:noreply, Cinder.refresh_table(socket, "users-table", silent: true)}
 
       # In a handle_event callback
       def handle_event("delete_user", %{"id" => id}, socket) do
@@ -89,7 +89,7 @@ defmodule Cinder.Refresh do
         |> Ash.get!(id)
         |> Ash.destroy!()
 
-        {:noreply, refresh_table(socket, "users-table")}
+        {:noreply, Cinder.refresh_table(socket, "users-table")}
       end
   """
   def refresh_table(socket, collection_id, opts \\ []) when is_binary(collection_id) do
@@ -128,9 +128,9 @@ defmodule Cinder.Refresh do
 
   ## Examples
 
-      {:noreply, refresh_tables(socket, ["users-table", "orders-table"])}
+      {:noreply, Cinder.refresh_tables(socket, ["users-table", "orders-table"])}
 
-      {:noreply, refresh_tables(socket, ["users-table", "orders-table"], silent: true)}
+      {:noreply, Cinder.refresh_tables(socket, ["users-table", "orders-table"], silent: true)}
   """
   def refresh_tables(socket, collection_ids, opts \\ [])
       when is_list(collection_ids) and is_list(opts) do

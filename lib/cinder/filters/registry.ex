@@ -251,8 +251,8 @@ defmodule Cinder.Filters.Registry do
   @doc """
   Gets all filters including custom registered ones.
 
-  Custom filters take precedence over built-in filters if there's a naming conflict
-  (though registration prevents this from happening).
+  A custom filter configured under a built-in filter's name takes its place, with a warning
+  the first time.
 
   ## Returns
   Map of all filter types to their implementing modules
@@ -307,7 +307,7 @@ defmodule Cinder.Filters.Registry do
   With a custom filter that's missing a callback:
 
       Cinder.Filters.Registry.validate_custom_filters()
-      #=> {:error, ["Module MyApp.Filters.BrokenSlider does not implement required function render/4"]}
+      #=> {:error, ["Custom filter :slider - Module MyApp.Filters.BrokenSlider is missing callbacks: render/4"]}
   """
   def validate_custom_filters do
     custom_filters = list_custom_filters()
@@ -348,10 +348,9 @@ defmodule Cinder.Filters.Registry do
 
   ## Configuration
 
-      config :cinder, :filters, %{
+      config :cinder, :filters,
         slider: MyApp.Filters.Slider,
         color_picker: MyApp.Filters.ColorPicker
-      }
 
   ## Returns
   :ok if all filters registered successfully, {:error, [reasons]} if any failed

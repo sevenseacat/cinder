@@ -18,13 +18,10 @@ defmodule Cinder.Filters.Checkbox do
       # Non-boolean field - explicit value required
       <:col field="status" filter={[type: :checkbox, value: "published", label: "Show published only"]} />
 
-      # Legacy format (still supported)
-      <:col field="active" filter={:checkbox} filter_options={[value: true, label: "Active accounts only"]} />
-
   ## Filter Options
 
-  - `value` - The value to filter by when checked (defaults to `true` for boolean fields)
-  - `label` - Display text for the checkbox (required)
+  - `value` - The value to filter by when checked (defaults to `true`)
+  - `label` - Display text for the checkbox (defaults to the column's label)
   """
 
   @behaviour Cinder.Filter

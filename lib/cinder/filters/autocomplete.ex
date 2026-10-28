@@ -12,14 +12,13 @@ defmodule Cinder.Filters.Autocomplete do
 
   ## Options
 
-  - `:options` - List of `{label, value}` tuples (required for static mode)
+  - `:options` - List of `{label, value}` tuples (the enum's values on an enum field)
   - `:placeholder` - Placeholder text for the search input
   - `:max_results` - Maximum number of results to show (default: 10)
 
   ## Examples
 
-      # Static options
-      <:col field={:category_id} label="Category"
+      <:col field="category_id" label="Category"
         filter={[
           type: :autocomplete,
           options: [{"Electronics", 1}, {"Clothing", 2}, {"Books", 3}],

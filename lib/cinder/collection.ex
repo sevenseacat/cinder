@@ -4,91 +4,35 @@
 
 defmodule Cinder.Collection do
   @moduledoc """
-  Unified collection component for displaying data in table, list, or grid layouts.
+  The collection component, used as `<Cinder.collection>`. Its attributes and slots are listed
+  below.
 
-  This component provides a single API for all collection displays, with the `layout`
-  attribute selecting how items are rendered. All layouts share the same filtering,
-  sorting, pagination, and URL sync capabilities.
+  `layout` chooses how records are shown, and every layout shares filtering, sorting, search and
+  pagination:
 
-  ## Layouts
-
-  - `:table` (default) - Traditional HTML table with sortable headers
-  - `:list` - Vertical list with sort button group
-  - `:grid` - Responsive card grid with sort button group
-
-  ## Basic Usage
-
-  ### Table Layout (default)
+  - `:table` (the default): each `<:col>` is a column, and clicking a heading sorts by it.
+  - `:list` and `:grid`: an `<:item>` slot shows each record, and the `<:col>` slots only say
+    which fields can be filtered, sorted and searched. Sorting is a row of buttons above the items.
 
   ```heex
   <Cinder.collection resource={MyApp.User} actor={@current_user}>
     <:col :let={user} field="name" filter sort>{user.name}</:col>
     <:col :let={user} field="email" filter>{user.email}</:col>
   </Cinder.collection>
-  ```
 
-  ### List Layout
-
-  ```heex
-  <Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list}>
-    <:col field="name" filter sort />
-    <:col field="status" filter={:select} />
-
-    <:item :let={user}>
-      <div class="flex justify-between">
-        <span class="font-bold">{user.name}</span>
-        <span>{user.status}</span>
-      </div>
-    </:item>
-  </Cinder.collection>
-  ```
-
-  ### Grid Layout
-
-  ```heex
-  <Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid}>
+  <Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid} grid_columns={4}>
     <:col field="name" filter sort search />
-    <:col field="category" filter={:select} />
+    <:col field="category" filter />
 
     <:item :let={product}>
       <h3 class="font-bold">{product.name}</h3>
-      <p class="text-gray-600">{product.category}</p>
-      <p class="text-lg font-semibold">${product.price}</p>
+      <p>{product.category}</p>
     </:item>
   </Cinder.collection>
   ```
 
-  ## Grid Columns
-
-  Control the number of grid columns with the `grid_columns` attribute:
-
-  ```heex
-  <!-- Fixed 4 columns -->
-  <Cinder.collection resource={MyApp.Product} layout={:grid} grid_columns={4}>
-    ...
-  </Cinder.collection>
-
-  <!-- Responsive columns -->
-  <Cinder.collection resource={MyApp.Product} layout={:grid} grid_columns={[xs: 1, md: 2, lg: 3, xl: 4]}>
-    ...
-  </Cinder.collection>
-  ```
-
-  ## Layout-Specific Attributes
-
-  | Attribute | Table | List | Grid | Description |
-  |-----------|-------|------|------|-------------|
-  | `<:col>` content | ✅ Rendered | ❌ Ignored | ❌ Ignored | Cell content for table rows |
-  | `<:item>` slot | ❌ Ignored | ✅ Required | ✅ Required | Template for each item |
-  | `sort_label` | ❌ N/A | ✅ Button label | ✅ Button label | Label for sort button group |
-  | `container_class` | ❌ N/A | ✅ Override | ✅ Override | Custom container CSS |
-  | `grid_columns` | ❌ N/A | ❌ N/A | ✅ Column count | Number of grid columns |
-  | `click` | ✅ Row click | ✅ Item click | ✅ Item click | Click handler |
-
-  ## Custom Controls Layout
-
-  Use the `:controls` slot to customize how filters and search are rendered while
-  keeping Cinder's state management, URL sync, and query building intact:
+  The `:controls` slot lays out the filters and search box yourself, with the helpers in
+  `Cinder.Controls`:
 
   ```heex
   <Cinder.collection resource={MyApp.User} actor={@current_user}>
@@ -97,17 +41,22 @@ defmodule Cinder.Collection do
 
     <:controls :let={controls}>
       <Cinder.Controls.render_header {controls} />
+      <Cinder.Controls.render_search search={controls.search} theme={controls.theme} target={controls.target} />
       <div class="grid grid-cols-2 gap-4">
         <Cinder.Controls.render_filter
-          :for={filter <- controls.filters}
+          :for={{_field, filter} <- controls.filters}
           filter={filter}
+          theme={controls.theme}
+          target={controls.target}
+          raw_filter_params={controls.raw_filter_params}
         />
       </div>
     </:controls>
   </Cinder.collection>
   ```
 
-  See `Cinder.Controls` for the full API and more examples.
+  See the [Getting Started](getting-started.html), [Filters](filters.html),
+  [Sorting](sorting.html) and [Advanced Features](advanced.html) guides for each feature.
   """
 
   use Phoenix.Component
@@ -132,26 +81,36 @@ defmodule Cinder.Collection do
 
   attr(:actor, :any, default: nil, doc: "Actor for authorization")
   attr(:tenant, :any, default: nil, doc: "Tenant for multi-tenant resources")
-  attr(:scope, :any, default: nil, doc: "Ash scope containing actor and tenant")
+  attr(:scope, :any, default: nil, doc: "An Ash scope, for the actor, tenant and context")
 
   attr(:layout, :any,
     default: :table,
     doc: "Layout type: :table, :list, or :grid (also accepts strings)"
   )
 
-  attr(:id, :string, default: "cinder-collection", doc: "Unique identifier for the collection")
+  attr(:id, :string,
+    default: "cinder-collection",
+    doc: "The collection's id. Each collection on a page needs its own."
+  )
 
   attr(:page_size, :any,
     default: nil,
     doc:
-      "Number of items per page or [default: 25, options: [10, 25, 50]]. See `Cinder.PageSize` for global configuration."
+      "Records per page: a number, or `[default: 25, options: [10, 25, 50]]` to let users choose. " <>
+        "Defaults to `config :cinder, default_page_size`, or 25."
   )
 
-  attr(:theme, :any, default: "default", doc: "Theme name or theme map")
+  attr(:theme, :any,
+    default: "default",
+    doc:
+      "A built-in theme's name, or a module using `Cinder.Theme`. " <>
+        "Defaults to `config :cinder, default_theme`."
+  )
 
   attr(:url_state, :any,
     default: false,
-    doc: "URL state object from UrlSync.handle_params, or false to disable"
+    doc:
+      "`@url_state`, assigned by `use Cinder.UrlSync`, to keep the collection's state in the URL"
   )
 
   attr(:query_opts, :list,
@@ -171,7 +130,13 @@ defmodule Cinder.Collection do
         "`config :cinder, default_initial_load: :sync`."
   )
 
-  attr(:on_state_change, :any, default: nil, doc: "Custom state change handler")
+  attr(:on_state_change, :any,
+    default: nil,
+    doc:
+      "The message sent to the parent when filters, sorting or the page change, as " <>
+        "`{name, id, encoded_state}`. `Cinder.UrlSync` relies on its own, so leave this unset " <>
+        "on a URL-synced collection."
+  )
 
   attr(:on_query_change, :any,
     default: nil,
@@ -223,7 +188,10 @@ defmodule Cinder.Collection do
 
   attr(:search, :any,
     default: nil,
-    doc: "Search configuration. Auto-enables when searchable columns exist."
+    doc:
+      "The search box: shown when a column has `search`. `false` hides it, and " <>
+        "`[label: ..., placeholder: ..., fn: ...]` changes its label and placeholder, or searches " <>
+        "with your own `fn(query, searchable_columns, text)`."
   )
 
   attr(:empty_message, :string,
@@ -262,7 +230,7 @@ defmodule Cinder.Collection do
 
   attr(:id_field, :atom,
     default: :id,
-    doc: "Field to use as ID for update_if_visible operations (defaults to :id)"
+    doc: "The field identifying each record, for selection and the `Cinder.Update` functions"
   )
 
   attr(:selectable, :any,
@@ -287,10 +255,7 @@ defmodule Cinder.Collection do
       doc: "Enable filtering (true, false, filter type atom, or unified config)"
     )
 
-    attr(:filter_options, :list,
-      doc:
-        "Custom filter options - DEPRECATED: Use filter={[type: :select, options: [...]]} instead"
-    )
+    attr(:filter_options, :list, doc: false)
 
     attr(:sort, :any,
       doc:
@@ -316,9 +281,13 @@ defmodule Cinder.Collection do
       doc: "Field name to filter on"
     )
 
-    attr(:type, :atom, doc: "Filter type (:text, :select, :boolean, :date_range, etc.)")
+    attr(:type, :any,
+      doc:
+        "Filter type, as an atom or string (`:text`, `:select`, ...): from the field's type if not given"
+    )
+
     attr(:label, :string, doc: "Custom filter label")
-    attr(:options, :list, doc: "Options for select/multi_select filters")
+    attr(:options, :list, doc: "`{label, value}` tuples, for filters that list options")
     attr(:value, :any, doc: "Default or fixed value for checkbox filters")
 
     attr(:operator, :atom,
@@ -371,7 +340,7 @@ defmodule Cinder.Collection do
 
     attr(:on_error, :atom,
       doc:
-        "Message name sent to parent via handle_info on error. Payload: %{component_id, action, reason}"
+        "Message name sent to parent via handle_info on error. Payload: %{component_id, action, reason, partial}"
     )
   end
 

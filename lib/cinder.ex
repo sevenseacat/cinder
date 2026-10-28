@@ -4,11 +4,8 @@
 
 defmodule Cinder do
   @moduledoc """
-  Cinder is a powerful, intelligent data table component for Phoenix LiveView applications with seamless Ash Framework integration.
-
-  ## Quick Start
-
-  The simplest way to display a collection is with `Cinder.collection`:
+  Tables, lists and grids of Ash resources in Phoenix LiveView, with filtering, sorting, search
+  and pagination.
 
   ```heex
   <Cinder.collection resource={MyApp.User} actor={@current_user}>
@@ -17,18 +14,9 @@ defmodule Cinder do
   </Cinder.collection>
   ```
 
-  You can also use different layouts:
+  For a list or grid, describe each item with an `<:item>` slot:
 
   ```heex
-  <!-- List layout -->
-  <Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list}>
-    <:col field="name" filter sort />
-    <:item :let={user}>
-      <div class="p-4">{user.name}</div>
-    </:item>
-  </Cinder.collection>
-
-  <!-- Grid layout -->
   <Cinder.collection resource={MyApp.User} actor={@current_user} layout={:grid}>
     <:col field="name" filter sort />
     <:item :let={user}>
@@ -37,80 +25,16 @@ defmodule Cinder do
   </Cinder.collection>
   ```
 
-  Pass a `query` instead of a `resource` to start from a query of your own:
+  This module holds the component, `collection/1` (see `Cinder.Collection` for its attributes),
+  and functions for changing a collection from your LiveView:
 
-  ```heex
-  <Cinder.collection query={MyApp.User |> Ash.Query.filter(active: true)} actor={@current_user}>
-    <:col :let={user} field="name" filter sort>{user.name}</:col>
-    <:col :let={user} field="email" filter>{user.email}</:col>
-  </Cinder.collection>
-  ```
+  - `refresh_table/2,3` and `refresh_tables/2,3` re-read collections.
+  - `update_item/4`, `update_items/4`, `update_if_visible/4` and `update_items_if_visible/4` change
+    rows on screen without re-reading.
+  - `remove_item/3` and `remove_items/3` take rows off the page.
 
-  ## Custom Filters
-
-  Cinder supports custom filter types through a simple configuration-based approach:
-
-      # 1. Configure your filters in config.exs
-      config :cinder, :filters, [
-        slider: MyApp.Filters.Slider,
-        color_picker: MyApp.Filters.ColorPicker
-      ]
-
-      # 2. Create custom filters with minimal boilerplate
-      defmodule MyApp.Filters.Slider do
-        use Cinder.Filter  # Includes everything you need
-
-        @impl true
-        def render(column, current_value, theme, assigns) do
-          # Your filter implementation with HEEx templates
-        end
-
-        @impl true
-        def process(raw_value, column) do
-          # Transform form input to filter value
-        end
-
-        @impl true
-        def validate(filter_value), do: # Validate filter value
-
-        @impl true
-        def default_options, do: [min: 0, max: 100, step: 1]
-
-        @impl true
-        def empty?(value), do: # Check if filter is empty
-      end
-
-      # 3. Use in your collections
-      <:col field="price" filter={[type: :slider, min: 0, max: 1000]}>
-        ${product.price}
-      </:col>
-
-  No registration or setup needed: configure them and use them.
-
-  ## Key Features
-
-  - **Intelligent Defaults**: Automatic filter type detection from Ash resource attributes
-  - **Minimal Configuration**: 70% fewer attributes required compared to traditional table components
-  - **URL State Management**: Filters, pagination, and sorting synchronized with browser URL
-  - **Relationship Support**: Dot notation for related fields (e.g., `user.department.name`)
-  - **Custom Filters**: Pluggable filter system with configuration-based registration
-  - **Flexible Theming**: Built-in presets and full customization
-  - **Ash Integration**: Native support for Ash Framework resources and authorization
-
-  ## Main Components
-
-  - `Cinder.collection/1` - Unified collection component (table, list, or grid layouts)
-  - `Cinder.UrlSync` - URL state management helper
-  - `Cinder.Filter` - Base behavior for custom filters
-
-  ## Refreshing Collections
-
-      def handle_event("delete", %{"id" => id}, socket) do
-        # ... delete logic ...
-        {:noreply, Cinder.refresh_table(socket, "my-table")}
-      end
-
-  For comprehensive examples and documentation, see the [README](readme.html) and [Examples](examples.html).
+  See the [Getting Started](getting-started.html) guide to begin, and
+  [Custom Filters](custom-filters.html) to write your own filter types.
   """
 
   # Unified collection component

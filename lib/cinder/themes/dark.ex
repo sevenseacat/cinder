@@ -4,7 +4,7 @@
 
 defmodule Cinder.Themes.Dark do
   @moduledoc """
-  An elegant dark theme with smooth gradients and modern styling.
+  A dark theme with gradients and purple and blue accents.
 
   Features:
   - Rich dark backgrounds with subtle gradients

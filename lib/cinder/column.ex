@@ -6,7 +6,7 @@ defmodule Cinder.Column do
   @moduledoc """
   Column configuration and type inference for Cinder table components.
 
-  Provides intelligent column parsing that can automatically infer filter types,
+  Parses columns, inferring filter types,
   sort capabilities, and display options from Ash resource definitions.
   Supports relationship fields using dot notation (e.g., "user.name").
   """

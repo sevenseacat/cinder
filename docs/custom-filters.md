@@ -64,7 +64,7 @@ defmodule MyApp.Filters.CaseInsensitiveText do
 
   # Override to customize query building
   @impl true
-  def build_query(query, field, %{value: value} = filter_value) do
+  def build_query(query, field, %{value: value}) do
     field_atom = String.to_atom(field)
     # Use ilike for case-insensitive matching
     Ash.Query.filter(query, ilike(^ref(field_atom), ^"%#{value}%"))
@@ -497,8 +497,8 @@ end
 Check filter registration status:
 
 ```elixir
-# List all registered filters
-Cinder.Filters.Registry.list_filters()
+# Every filter type, built-in and custom
+Cinder.Filters.Registry.all_filters_with_custom()
 
 # Check if a filter is custom
 Cinder.Filters.Registry.custom_filter?(:slider)
@@ -541,18 +541,8 @@ end
 
 ### 3. Make Filters Configurable
 
-```elixir
-# Column definition
-%{
-  field: "score",
-  filter: :slider,
-  filter_options: [
-    min: 0,
-    max: 1000,
-    step: 10,
-    operator: :less_than_or_equal
-  ]
-}
+```heex
+<:col field="score" filter={[type: :slider, min: 0, max: 1000, step: 10, operator: :less_than_or_equal]} />
 ```
 
 ### 4. Document Your Filters
@@ -571,11 +561,7 @@ defmodule MyApp.Filters.Slider do
 
   ## Usage
 
-      %{
-        field: "price",
-        filter: :slider,
-        filter_options: [min: 0, max: 1000, step: 50, operator: :less_than_or_equal]
-      }
+      <:col field="price" filter={[type: :slider, min: 0, max: 1000, step: 50, operator: :less_than_or_equal]} />
   """
 
   use Cinder.Filter
@@ -601,7 +587,7 @@ This is the most critical callback - without it, your filter won't actually filt
 - Add logging to debug query building
 
 ### Configuration Issues
-- Check config syntax (proper map format)
+- Check config syntax (a keyword list: `config :cinder, :filters, slider: MyApp.Filters.Slider`)
 - Verify module names are correct
 - Run `Cinder.Filters.Registry.validate_custom_filters()`
 
@@ -627,8 +613,8 @@ end
 
 ```elixir
 def render(column, current_value, theme, assigns) do
-  # Access other filter values
-  category_filter = get_in(assigns, [:filters, "category"])
+  # Every filter's current value, by field
+  category_filter = assigns.filter_values["category"]
 
   # Adjust options based on other filters
   options = get_options_for_category(category_filter)

@@ -6,845 +6,580 @@ SPDX-License-Identifier: MIT
 
 # Advanced Features
 
-This guide covers URL state management, relationships, embedded resources, refresh, state slots, performance, bulk actions, and telemetry. For basic setup, see [Getting Started](getting-started.md).
+This guide covers everything beyond a first collection. For that, see
+[Getting Started](getting-started.md).
 
 ## Table of Contents
 
+- [Layout Options](#layout-options)
 - [URL State Management](#url-state-management)
 - [Relationship Fields](#relationship-fields)
 - [Embedded Resources](#embedded-resources)
-- [Collection Refresh](#collection-refresh)
+- [Pagination](#pagination)
 - [Loading, Empty & Error States](#loading-empty-error-states)
-- [Performance Optimization](#performance-optimization)
-- [Synchronous v Asynchronous Initial Data Loading](#synchronous-v-asynchronous-initial-data-loading)
+- [Initial Data Loading](#initial-data-loading)
+- [Refreshing and Updating](#refreshing-and-updating)
+- [Loading Less Data](#loading-less-data)
 - [Query Access](#query-access)
 - [Selection & Bulk Actions](#selection-bulk-actions)
 - [Telemetry & Tracing](#telemetry-tracing)
 
 **See also:** [Filters](filters.md) | [Sorting](sorting.md)
 
+## Layout Options
+
+### Grid Columns
+
+Set a grid's number of columns with `grid_columns`, as a number or by breakpoint (`xs`, `sm`,
+`md`, `lg`, `xl`, `2xl`):
+
+```heex
+<Cinder.collection resource={MyApp.Product} layout={:grid} grid_columns={4}>
+  ...
+</Cinder.collection>
+
+<Cinder.collection resource={MyApp.Product} layout={:grid} grid_columns={[xs: 1, sm: 2, md: 3, lg: 4]}>
+  ...
+</Cinder.collection>
+```
+
+Or replace the classes on the grid (or list) container entirely with `container_class`:
+
+```heex
+<Cinder.collection resource={MyApp.Product} layout={:grid} container_class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+  ...
+</Cinder.collection>
+```
+
+### Sort Buttons
+
+Lists and grids have no column headings to click, so they sort with a row of buttons above the
+items. Change its label with `sort_label`, or hide it with `show_sort={false}`:
+
+```heex
+<Cinder.collection resource={MyApp.User} layout={:list} sort_label="Order by:">
+  ...
+</Cinder.collection>
+```
+
+### Clickable Rows and Items
+
+`click` takes a function from the record to a `Phoenix.LiveView.JS` command, run when its row or
+item is clicked. Clickable rows and items get a pointer cursor:
+
+```heex
+<Cinder.collection resource={MyApp.User} click={fn user -> JS.navigate(~p"/users/#{user.id}") end}>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+</Cinder.collection>
+```
+
+Commands can be chained:
+
+```heex
+click={fn user ->
+  JS.push("select_user", value: %{id: user.id})
+  |> JS.add_class("selected", to: "#user-#{user.id}")
+end}
+```
+
+### Row and Item Classes
+
+`item_class` adds classes to each row or item, as a string or a function of the record:
+
+```heex
+<Cinder.collection resource={MyApp.User} item_class={fn user -> if user.archived, do: "opacity-50" end}>
+  ...
+</Cinder.collection>
+```
+
 ## URL State Management
 
-Synchronize collection state (filters, sorting, pagination) with the browser URL for bookmarkable, shareable views.
+URL sync keeps a collection's filters, sorting, search and page in the URL, so they can be
+bookmarked, shared, and moved through with the browser's back button.
 
 ### Setup
+
+Add `use Cinder.UrlSync` to the LiveView, after `use MyAppWeb, :live_view`, and pass the
+collection `url_state={@url_state}`:
 
 ```elixir
 defmodule MyAppWeb.UsersLive do
   use MyAppWeb, :live_view
   use Cinder.UrlSync
 
-  def mount(_params, _session, socket) do
-    {:ok, assign(socket, :current_user, get_current_user(socket))}
-  end
-
   def render(assigns) do
     ~H"""
-    <Cinder.collection
-      resource={MyApp.User}
-      actor={@current_user}
-      url_state={@url_state}
-      id="users-table"
-    >
+    <Cinder.collection id="users" resource={MyApp.User} actor={@current_user} url_state={@url_state}>
       <:col :let={user} field="name" filter sort>{user.name}</:col>
       <:col :let={user} field="email" filter>{user.email}</:col>
-      <:col :let={user} field="is_active" filter={:boolean}>
-        {if user.is_active, do: "Active", else: "Inactive"}
-      </:col>
+      <:col :let={user} field="is_active" filter>{user.is_active}</:col>
     </Cinder.collection>
     """
   end
 end
 ```
 
-`use Cinder.UrlSync` goes after `use MyAppWeb, :live_view`. Your LiveView can still have its own `handle_params/3`, and `@url_state` is assigned before it runs.
+Your LiveView can still have its own `handle_params/3`: `@url_state` is assigned before it runs.
+Only one collection on a page can sync to the URL.
 
-### URL Examples
+### The URL Format
+
+Each filter is a parameter named after its field. Values with two parts (ranges) or several
+(multi-select) are separated by commas, and either end of a range can be left empty:
 
 ```
-# Basic filtering
-/users?name=john&email=gmail
-
-# Date range
-/users?created_at_from=2024-01-01&created_at_to=2024-12-31
-
-# Pagination and sorting
-/users?page=3&sort=-created_at
-
-# Complex state
-/users?name=admin&is_active=true&page=2&sort=name
+/users?name=john                          a text filter
+/users?is_active=true                     a boolean filter
+/users?tags=admin,editor                  a multi-select filter
+/users?inserted_at=2024-01-01,2024-12-31  a date range
+/users?age=18,                            a number range with only a minimum
+/users?department.name=Sales              a relationship field
+/users?profile__country=NZ                an embedded field
+/users?search=smith                       the search box
+/users?sort=-inserted_at,name             sorted by inserted_at descending, then name
+/users?page=3&page_size=50                the page, and a page size other than the default
+/users?after=g3QAAAABZAAC...              keyset pagination's position
 ```
+
+Parameters that don't apply to the collection, like a filter on a field that isn't filterable or
+a sort on a field that isn't sortable, are ignored.
 
 ## Relationship Fields
 
-Use dot notation to filter and sort by related resource fields:
+A column's `field` can reach through relationships with dots, to show, filter and sort by a
+related record's field:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
   <:col :let={user} field="department.name" filter sort>{user.department.name}</:col>
-  <:col :let={user} field="manager.email" filter>{user.manager.email}</:col>
+  <:col :let={user} field="office.building.address" filter>{user.office.building.address}</:col>
 </Cinder.collection>
 ```
 
-Cinder loads what each column's `field` needs: the relationships in its path, and any calculations or aggregates. Anything else a slot shows needs `query_opts={[load: ...]}`. To filter on a field without showing it, use a filter-only `<:filter>` slot, which doesn't load it.
+Cinder loads what each column's `field` needs to show it: the relationships in its path, and any
+calculation or aggregate it names. Load anything else your slots show with
+`query_opts={[load: ...]}` ([Loading Less Data](#loading-less-data)). A `<:filter>` slot's field
+isn't loaded, since nothing shows it.
 
-### Deep Relationships
-
-```heex
-<:col :let={user} field="office.building.address" filter>
-  {user.office.building.address}
-</:col>
-```
-
-### Custom Options for Relationship Fields
-
-```heex
-<:col
-  :let={user}
-  field="department.name"
-  filter={[type: :select, options: @department_names]}
->
-  {user.department.name}
-</:col>
-```
+A filter on a relationship field picks its type from the related field. To give it options,
+configure it as on any other column: `filter={[type: :select, options: @department_names]}`.
 
 ## Embedded Resources
 
-Use double underscore notation (`__`) for embedded resource fields:
+Reach into an embedded resource (or a map attribute) with a double underscore:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name">{user.name}</:col>
-  <:col :let={user} field="profile__bio" filter>{user.profile.bio}</:col>
-  <:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
+  <:col :let={user} field="profile__country" filter sort>{user.profile.country}</:col>
+  <:col :let={user} field="settings__address__city" filter>{user.settings.address.city}</:col>
 </Cinder.collection>
 ```
 
-### Nested Embedded Fields
+Embedded fields filter and sort like any other: an embedded enum gets a select filter with its
+values. To sort by one by default, see [Sorting](sorting.md#default-sort).
+
+## Pagination
+
+Collections show 25 records a page. Change it with `page_size`, or let users choose from a list:
 
 ```heex
-<:col :let={user} field="settings__address__city" filter>
-  {user.settings.address.city}
-</:col>
-```
+<Cinder.collection resource={MyApp.User} page_size={50}>
+  ...
+</Cinder.collection>
 
-### Sorting Embedded Fields
-
-Embedded fields support sorting just like regular fields:
-
-```heex
-<:col :let={user} field="profile__last_name" sort>{user.profile.last_name}</:col>
-```
-
-For default sorting on embedded fields, use `Cinder.QueryBuilder.apply_sorting/2`:
-
-```heex
-<Cinder.collection
-  query={MyApp.User |> Cinder.QueryBuilder.apply_sorting([{"profile__last_name", :asc}])}
-  actor={@current_user}
->
-  <:col :let={user} field="profile__last_name" sort>{user.profile.last_name}</:col>
+<Cinder.collection resource={MyApp.User} page_size={[default: 25, options: [10, 25, 50, 100]]}>
+  ...
 </Cinder.collection>
 ```
 
-### Automatic Enum Detection
+Set the default for every collection, in either form, in your config:
 
-Embedded enum fields are automatically detected and rendered as select filters with the enum values:
+```elixir
+config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
+```
+
+### Counting Records
+
+Each page read also counts the matching records, for the "Page 2 of 10" and "showing 11-20 of
+100" footer. On large tables that count can cost more than the page itself, so change it with
+`pagination`'s `count` option:
+
+- `count: true` (the default): counted with each page.
+- `count: :async`: counted in the background after the page loads. The last total stays on screen
+  until the new one arrives.
+- `count: false`: never counted. Users can only move to the previous and next pages.
 
 ```heex
-<!-- If profile.country is an Ash.Type.Enum, options are auto-populated -->
-<:col :let={user} field="profile__country" filter>{user.profile.country}</:col>
+<Cinder.collection resource={MyApp.Event} pagination={[count: :async]}>
+  ...
+</Cinder.collection>
 ```
 
-## Collection Refresh
+### Keyset Pagination
 
-After CRUD operations, refresh collection data while preserving filters, sorting, and pagination:
+By default, pages are numbered, and users can jump to any page. That gets slower the further in
+the page is, since the data layer reads past every record before it. Keyset pagination only
+moves to the previous and next pages, but each is as fast as the first:
 
-```elixir
-defmodule MyAppWeb.UsersLive do
-  use MyAppWeb, :live_view
-  import Cinder.Refresh
+```heex
+<Cinder.collection resource={MyApp.Event} pagination={:keyset}>
+  ...
+</Cinder.collection>
 
-  def render(assigns) do
-    ~H"""
-    <Cinder.collection id="users-table" resource={MyApp.User} actor={@current_user}>
-      <:col :let={user} field="name" filter sort>{user.name}</:col>
-      <:col :let={user} label="Actions">
-        <button phx-click="delete_user" phx-value-id={user.id}>Delete</button>
-      </:col>
-    </Cinder.collection>
-    """
-  end
-
-  def handle_event("delete_user", %{"id" => id}, socket) do
-    MyApp.User
-    |> Ash.get!(id, actor: socket.assigns.current_user)
-    |> Ash.destroy!(actor: socket.assigns.current_user)
-
-    # Refresh maintains current filters, sorting, and page
-    {:noreply, refresh_table(socket, "users-table")}
-  end
-end
+<Cinder.collection resource={MyApp.Event} pagination={[mode: :keyset, count: false]}>
+  ...
+</Cinder.collection>
 ```
 
-### Multiple Collections
+### Paginating the Action
+
+Give the read action pagination, so pages are read from the data layer. Without it, the whole
+collection is loaded at once, with no pages (and a warning if you've set a `page_size`). With the
+default `count: true`, it must be `countable`:
 
 ```elixir
-{:noreply, refresh_tables(socket, ["users-table", "audit-logs-table"])}
-```
-
-### In-Memory Updates
-
-For PubSub-driven updates where you already have the new data, use in-memory updates instead of re-querying the entire table:
-
-```elixir
-defmodule MyAppWeb.UsersLive do
-  use MyAppWeb, :live_view
-  import Cinder.Update
-
-  def mount(_params, _session, socket) do
-    if connected?(socket), do: MyApp.PubSub.subscribe("users")
-    {:ok, socket}
-  end
-
-  # Update a single item by ID
-  def handle_info({:user_status_changed, user_id, new_status}, socket) do
-    {:noreply, update_item(socket, "users-table", user_id, fn user ->
-      %{user | status: new_status}
-    end)}
-  end
-
-  # Update multiple items
-  def handle_info({:users_deactivated, user_ids}, socket) do
-    {:noreply, update_items(socket, "users-table", user_ids, fn user ->
-      %{user | active: false}
-    end)}
-  end
-
-  # Remove deleted items immediately
-  def handle_info({:user_deleted, user_id}, socket) do
-    {:noreply, remove_item(socket, "users-table", user_id)}
+actions do
+  read :read do
+    pagination offset?: true, keyset?: true, countable: true, default_limit: 25
   end
 end
 ```
-
-#### Removing Items
-
-Use `remove_item/3` or `remove_items/3` when the application knows that records no
-longer belong in the collection (for example after a delete broadcast). Cinder
-removes the matching rows, drops their IDs from the collection selection (sending
-`on_selection_change` with `action: :remove` if the selection changed), and keeps
-the pagination footer in step by decreasing the total count by the number of rows
-actually removed:
-
-```elixir
-def handle_info({:users_deleted, user_ids}, socket) do
-  {:noreply, remove_items(socket, "users-table", user_ids)}
-end
-```
-
-Rows from the next page do not move up to fill the gap, and aggregates and ordering
-are not recalculated. Follow the removal with `refresh_table/2` when the query must
-be reconciled. The exception is a removal that empties the page: the collection then
-reads that page again, or the previous one if the emptied page was the last.
-
-#### Lazy Loading with `update_if_visible`
-
-When PubSub delivers bare records without associations, use `update_if_visible` to only load data for items currently displayed:
-
-```elixir
-# Only loads associations if the user is on the current page
-def handle_info({:user_updated, raw_user}, socket) do
-  {:noreply, update_if_visible(socket, "users-table", raw_user, fn raw ->
-    {:ok, loaded} = Ash.load(raw, [:department, :manager])
-    loaded
-  end)}
-end
-
-# Batch version - loads associations for all visible items at once
-def handle_info({:users_updated, raw_users}, socket) do
-  {:noreply, update_items_if_visible(socket, "users-table", raw_users, fn visible ->
-    {:ok, loaded} = Ash.load(visible, [:department, :manager])
-    loaded
-  end)}
-end
-```
-
-The `*_if_visible` variants never call your function if the item isn't displayed, avoiding wasted database calls.
-
-#### Caveats
-
-- These functions modify in-memory data only. Computed fields, aggregates, and calculations from the database will NOT be recalculated.
-- Removing items does not backfill the page; rows from the next page move up on the next refresh. A removal that empties the page reads it again.
-- For changes that affect derived data, use `refresh_table/2` instead.
-- If the item is not found in the current page, the update is silently ignored.
-
-For notification-driven changes that require a full requery, keep the current
-rows visible while their replacement loads with a silent asynchronous refresh:
-
-```elixir
-def handle_info(%Ash.Notifier.Notification{}, socket) do
-  {:noreply, refresh_table(socket, "users-table", silent: true)}
-end
-```
-
-A silent refresh keeps the collection marked as loading internally but hides the
-visual loading state. If it fails, the
-error is logged and the current data stays visible without an error indicator.
-Collections without existing rows use normal loading and error behavior, even
-when `silent: true` is requested. Omitting `:silent` or passing `false` keeps the
-normal refresh behavior.
-
-The option also applies to multiple collections:
-
-```elixir
-{:noreply, refresh_tables(socket, ["users-table", "audit-logs-table"], silent: true)}
-```
-
-Both `refresh_table/3` and `refresh_tables/3` require `:silent` to be a boolean;
-other values, such as `"true"`, raise `ArgumentError`.
 
 ## Loading, Empty & Error States
 
-Customize the loading spinner, empty message, and error display using slots. These replace the default string messages with rich content.
-
-### Custom Loading State
+Change the text shown while loading, when nothing matches, and when the read fails:
 
 ```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-
-  <:loading>
-    <div class="flex items-center gap-2 p-8 justify-center">
-      <MyAppWeb.Components.spinner />
-      <span>Fetching users...</span>
-    </div>
-  </:loading>
+<Cinder.collection
+  resource={MyApp.User}
+  loading_message="Fetching users..."
+  empty_message="No users yet"
+  error_message="Users couldn't be loaded"
+>
+  <:col :let={user} field="name">{user.name}</:col>
 </Cinder.collection>
 ```
 
-### Custom Empty State
+Or replace them with your own content, using the `<:loading>`, `<:empty>` and `<:error>` slots,
+which take precedence over the messages:
 
 ```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-
-  <:empty>
-    <div class="text-center p-8">
-      <img src="/images/no-results.svg" class="mx-auto w-32" />
-      <p class="mt-4 text-gray-500">No users found</p>
-    </div>
-  </:empty>
-</Cinder.collection>
-```
-
-#### Empty Slot Context
-
-The `<:empty>` slot receives context via `:let` to distinguish between "no records exist" and "filters returned no results":
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user}>
+<Cinder.collection id="users" resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort search>{user.name}</:col>
 
+  <:loading>
+    <div class="flex justify-center p-8">Fetching users...</div>
+  </:loading>
+
   <:empty :let={context}>
-    <%= if context.filtered? do %>
-      <div class="text-center p-8">
-        <p>No users match your filters.</p>
-        <p class="text-sm text-gray-500">Try adjusting your search or filters.</p>
-      </div>
-    <% else %>
-      <div class="text-center p-8">
-        <p>No users yet.</p>
-        <.link navigate={~p"/users/new"} class="text-blue-600 underline">Create one</.link>
-      </div>
-    <% end %>
+    <p :if={context.filtered?}>No users match your filters.</p>
+    <p :if={!context.filtered?}>No users yet. <.link navigate={~p"/users/new"}>Add one</.link></p>
   </:empty>
-</Cinder.collection>
-```
-
-The context map contains:
-
-- `filtered?` — `true` when any filter has a meaningful value or a search term is active
-- `filters` — the full filters map (e.g. `%{"name" => %{type: :text, value: "bob", ...}}`)
-- `search_term` — the current search string
-
-### Custom Error State
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
 
   <:error>
-    <div class="text-center p-8 text-red-600">
-      <p>Something went wrong loading users.</p>
-      <button phx-click="retry" class="mt-2 underline">Try again</button>
-    </div>
+    <p>Users couldn't be loaded.</p>
+    <button type="button" phx-click="retry">Try again</button>
   </:error>
 </Cinder.collection>
 ```
 
-### String Message Attributes
-
-For simple text customization without slots, use the message attributes:
-
-```heex
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  loading_message="Fetching users..."
-  empty_message="No users yet"
-  error_message="Failed to load users"
->
-  <:col :let={user} field="name">{user.name}</:col>
-</Cinder.collection>
-```
-
-Slots take precedence over message attributes when both are provided.
-
-### State Precedence
-
-When multiple states are active, they follow this display order: **loading > error > empty > data**. Error state hides any stale data rows, and loading overlays the entire content area.
-
-## Performance Optimization
-
-### Efficient Data Loading
-
-Columns load what their fields need. Use `query_opts` to load anything else your slots show, or to select fewer attributes:
-
-```heex
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  query_opts={[
-    load: [:avatar_url],
-    select: [:id, :name, :email, :created_at]
-  ]}
->
-  ...
-</Cinder.collection>
-```
-
-### Pagination
-
-```heex
-<!-- Fixed page size -->
-<Cinder.collection resource={MyApp.User} actor={@current_user} page_size={50}>
-  ...
-</Cinder.collection>
-
-<!-- User-selectable page size -->
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  page_size={[default: 25, options: [10, 25, 50, 100]]}
->
-  ...
-</Cinder.collection>
-
-<!-- Keyset pagination for large datasets -->
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  pagination={:keyset}
->
-  ...
-</Cinder.collection>
-```
-
-**Global Default Page Size:**
-
-Set a default page size for all collections in your config:
-
 ```elixir
-# config/config.exs
-config :cinder, default_page_size: 50
-
-# Or with user-selectable options
-config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
-```
-
-Individual collections can still override with the `page_size` attribute.
-
-**Counting Records:**
-
-By default every page read also counts the matching records, which powers the "Page 2 of 10" and "showing 11-20 of 100" footer. On large tables that count can cost more than the page itself, so it can be changed with the `count` option of `pagination`:
-
-- `count: true` (default): counts as part of each page read.
-- `count: :async`: reads the page first and counts in the background, so the total appears when it is ready. The previous total stays on screen until the new one arrives. `on_query_change` is notified twice: once when the page loads, with a `nil` count, and again with the count once it arrives.
-- `count: false`: never counts. Pagination shows only previous/next navigation, and the `on_query_change` payload and controls slot have a `nil` total.
-
-```heex
-<Cinder.collection resource={MyApp.Event} actor={@current_user} pagination={[mode: :keyset, count: false]}>
-  ...
-</Cinder.collection>
-```
-
-**Keyset vs Offset Pagination:**
-
-- **Offset** (default): Traditional page numbers, allows jumping to any page. Can be slow on large datasets.
-- **Keyset**: Cursor-based prev/next navigation. Much faster on large datasets but cannot jump to arbitrary pages.
-
-Use keyset pagination when you have large tables (10k+ rows) where offset queries become slow.
-
-**Important:** Ensure your Ash action has pagination configured to prevent loading all records into memory:
-
-```elixir
-# In your resource
-actions do
-  read :read do
-    pagination offset?: true, keyset?: true, default_limit: 25
-  end
+def handle_event("retry", _params, socket) do
+  {:noreply, Cinder.refresh_table(socket, "users")}
 end
 ```
 
-### Query Timeout
+The `<:empty>` slot receives:
 
-For slow queries, configure a timeout:
+- `filtered?`: whether a filter or search is in use, to tell "nothing matches" from "nothing yet"
+- `filters`: the filters in use, by field
+- `search_term`: the search box's text
+
+While loading, the current rows stay on screen under the loading state. An error replaces them.
+
+## Initial Data Loading
+
+A collection reads its data after the page renders, so the first HTML has the table but not its
+rows. With `initial_load={:sync}`, it reads its first page before rendering instead, so the rows
+are in the server-rendered HTML, for pages that need to be crawlable or readable without
+JavaScript:
 
 ```heex
-<Cinder.collection
-  resource={MyApp.LargeDataset}
-  actor={@current_user}
-  query_opts={[timeout: 30_000]}
->
-  ...
+<Cinder.collection resource={MyApp.Article} initial_load={:sync}>
+  <:col :let={article} field="title">{article.title}</:col>
 </Cinder.collection>
 ```
 
-## Query Access
-
-Access the built Ash query whenever filters, sorting, or search change. This is useful for exporting data, persisting filter state, or modifying the query with additional UI elements.
-
-### `on_query_change` Callback
-
-Add `on_query_change` to receive the query in your parent LiveView via `handle_info`:
-
-```heex
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  on_query_change={:query_changed}
-  id="users-table"
->
-  <:col :let={user} field="name" filter sort search>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-</Cinder.collection>
-```
-
-```elixir
-def handle_info({:query_changed, %{query: query, count: count, id: "users-table"}}, socket) do
-  # Store the query for later use (e.g., export), and the total for display
-  {:noreply, assign(socket, current_query: query, total: count)}
-end
-```
-
-The callback fires on initial load and whenever filters, sorting, or search change. The received query includes all filters and sorts but no pagination, so you can use it directly for exports.
-
-When you pass a `resource={...}` (or a query without an `action`), Cinder prepares it via `Ash.Query.for_read/4`, so the exposed query has `:scope`, `:actor`, `:tenant`, and scope-supplied `:context` (e.g. timezone) already baked on. The actor lives at the canonical `query.context.private.actor` location. When you pass a pre-prepared `query={Ash.Query.for_read(...)}`, Cinder leaves your auth setup untouched — the exposed query reflects exactly what you handed in, with Cinder's filters/sorts added on top.
-
-### Displaying the total elsewhere
-
-`count` is the total number of matching records — the same number the pagination footer shows. Cinder already asked Ash for it when it loaded the page, so rendering a total outside the collection (in a page header, say) costs no extra query:
-
-```heex
-<h1>Users <span :if={@total}>({@total})</span></h1>
-```
-
-An action without pagination reports the number of records it loaded instead. Any read where the data layer returns no count reports `nil`.
-
-### Export Example
-
-```elixir
-def handle_event("export_csv", _params, socket) do
-  query = socket.assigns.current_query
-
-  # Read all matching records (no pagination). Pass the same scope/actor you
-  # gave to <Cinder.collection> — Ash resolves precedence with whatever the
-  # query already has baked on.
-  {:ok, records} = Ash.read(query, scope: socket.assigns.current_scope)
-
-  # Generate CSV from records...
-  {:noreply, push_download(socket, content: csv_data, filename: "export.csv")}
-end
-```
-
-## Selection & Bulk Actions
-
-Enable row/item selection with checkboxes and execute bulk operations on selected records.
-
-### Enabling Selection
-
-Add `selectable` to enable checkboxes:
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email">{user.email}</:col>
-</Cinder.collection>
-```
-
-### Per-Row Selectability
-
-`selectable` also accepts a predicate `fn item -> boolean end` to control which rows/items can be selected. Non-selectable rows still render a checkbox, but **disabled**, so they cannot be toggled. "Select all" only selects the selectable rows.
-
-A row that is already selected but later becomes non-selectable keeps an enabled
-checkbox so it can still be deselected. The predicate is also enforced
-server-side, so tampering with the disabled checkboxes in the browser has no
-effect.
-
-```heex
-<!-- Only active users can be selected -->
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  selectable={&(&1.status == :active)}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="status">{user.status}</:col>
-</Cinder.collection>
-```
-
-### Bulk Action Slots
-
-Define bulk actions using the `bulk_action` slot. There are two ways to render bulk action buttons:
-
-#### Themed Buttons (Recommended)
-
-Use `label` and `variant` for automatically styled buttons that match your theme:
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-
-  <!-- Themed buttons: automatically styled based on theme -->
-  <:bulk_action action={:archive} label="Archive ({count})" variant={:primary} />
-  <:bulk_action action={:export} label="Export" variant={:secondary} />
-  <:bulk_action action={:destroy} label="Delete" variant={:danger} confirm="Delete {count} users?" />
-</Cinder.collection>
-```
-
-Available variants:
-- `:primary` (default) - Solid/filled button for primary actions
-- `:secondary` - Outline/ghost style for secondary actions
-- `:danger` - Destructive action style (typically red)
-
-The `{count}` placeholder in labels is interpolated with the current selection count. Buttons are automatically disabled when no items are selected.
-
-Themed buttons use these theme properties:
-- `button_class` - Base styles (padding, font, border-radius)
-- `button_primary_class`, `button_secondary_class`, `button_danger_class` - Variant styles
-- `button_disabled_class` - Disabled state styles
-- `bulk_actions_container_class` - Container styling (matches card/list item aesthetic)
-
-#### Custom Buttons
-
-For full control over button rendering, provide inner content instead of `label`:
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-
-  <:bulk_action action={:archive} :let={context}>
-    <button class="btn" disabled={context.selected_count == 0}>Archive Selected</button>
-  </:bulk_action>
-
-  <:bulk_action action={:destroy} confirm="Delete {count} users?">
-    <button class="btn btn-danger">Delete Selected</button>
-  </:bulk_action>
-</Cinder.collection>
-```
-
-### Action Types
-
-**Atom actions** call Ash bulk operations directly. The action type (update/destroy) is introspected from the resource:
-
-```heex
-<!-- Calls Ash.bulk_update with the :archive action -->
-<:bulk_action action={:archive}>Archive</:bulk_action>
-
-<!-- Calls Ash.bulk_destroy with the :destroy action -->
-<:bulk_action action={:destroy}>Delete</:bulk_action>
-```
-
-**Function actions** receive a pre-filtered query matching code interface signatures:
-
-```heex
-<:bulk_action action={&MyApp.Users.archive/2}>Archive</:bulk_action>
-```
-
-### Which Records an Action Can Touch
-
-A bulk action runs on the selected records that are still in the collection's scope: the
-query is built from your `query` (with its filters, tenant and read action), filtered to the
-selected IDs. So a collection given `query={Ash.Query.filter(MyApp.Post, org_id == ^@org.id)}`
-never acts on another org's posts, even if a selected post has moved since. Only records the
-collection has shown can be selected, and changing its `query`, `actor`, `tenant` or `scope`
-clears the selection.
-
-Whether the actor may run the action at all is up to your Ash policies (and tenant), as for
-any other Ash call: Cinder doesn't add authorization of its own.
-
-### Confirmation Dialogs
-
-Add `confirm` to show a browser confirmation dialog. Use `{count}` to interpolate the selection count.
-It's a prompt for the user, checked only in the browser, not a security check: anyone allowed to
-run the action can run it without confirming, so keep that decision in your Ash policies.
-
-```heex
-<:bulk_action action={:destroy} confirm="Are you sure you want to delete {count} records?">
-  Delete Selected
-</:bulk_action>
-```
-
-### Success and Error Callbacks
-
-Handle action results in your parent LiveView:
-
-```heex
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  selectable
->
-  <:bulk_action
-    action={:archive}
-    on_success={:users_archived}
-    on_error={:archive_failed}
-  >
-    Archive Selected
-  </:bulk_action>
-</Cinder.collection>
-```
-
-```elixir
-def handle_info({:users_archived, payload}, socket) do
-  # payload contains: %{component_id, action, count, result}
-  {:noreply, put_flash(socket, :info, "Archived #{payload.count} users")}
-end
-
-def handle_info({:archive_failed, payload}, socket) do
-  # payload contains: %{component_id, action, reason, partial}
-  {:noreply, put_flash(socket, :error, "Archive failed: #{inspect(payload.reason)}")}
-end
-```
-
-If some records were changed and some failed (Ash's `:partial_success`), `on_error` fires with
-`partial: true` and the errors as `reason`, and the selection is cleared, since the records
-that succeeded have changed. For an atom action Cinder asks Ash to return the errors
-(`return_errors?: true`); pass `action_opts={[return_errors?: false]}` to skip that for very
-large selections.
-
-### Action Options
-
-Pass additional Ash bulk options via `action_opts`:
-
-```heex
-<:bulk_action action={:archive} action_opts={[return_records?: true, notify?: true]}>
-  Archive Selected
-</:bulk_action>
-```
-
-### Selection Change Notifications
-
-You can also track selection state in your parent LiveView. This is not necessary to do, Cinder will track the IDs of selected records internally, but if you want to know about the selections yourself as well, this is how:
-
-```heex
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  selectable
-  on_selection_change={:selection_changed}
->
-  ...
-</Cinder.collection>
-```
-
-```elixir
-def handle_info({:selection_changed, payload}, socket) do
-  # payload contains: %{selected_ids, selected_count, component_id, action}
-  # action is one of: :select, :deselect, :select_all, :clear, :remove
-  {:noreply, assign(socket, :selected_count, payload.selected_count)}
-end
-```
-
-### Accessing Selection Context
-
-The bulk action slot receives selection context:
-
-```heex
-<:bulk_action :let={selection} action={:archive}>
-  <button class="btn">
-    Archive {selection.selected_count} users
-  </button>
-</:bulk_action>
-```
-
-Available in `selection`:
-
-- `selected_count` - Number of selected items
-- `selected_ids` - MapSet of selected record IDs
-
-### Click-to-Select
-
-When `selectable` is enabled without a `click` handler, clicking rows/items toggles selection:
-
-```heex
-<!-- Clicking a row toggles its selection -->
-<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
-  ...
-</Cinder.collection>
-
-<!-- With a click handler, only checkboxes toggle selection -->
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  selectable
-  click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
->
-  ...
-</Cinder.collection>
-```
-
-## Synchronous v Asynchronous Initial Data Loading
-
-Cinder runs a collection's first query after the page renders, so the initial
-HTML contains the table but not yet its rows. Set `initial_load={:sync}` to run
-that query first instead, putting the first page of data in the server-rendered
-HTML — useful for pages that need to be crawlable, or readable without JS:
-
-```heex
-<Cinder.collection resource={MyApp.User} initial_load={:sync}>
-  <:col :let={user} field="name">{user.name}</:col>
-</Cinder.collection>
-```
-
-Only the first load changes. Filtering, sorting, pagination, and refreshes stay
-asynchronous, and any state in the URL — filters, sort, page — is applied to
-that first render.
-
-The cost is latency. A synchronous load blocks both the initial HTTP response
-and the connected LiveView mount, so the query runs before either can complete
-and a slow one delays the page appearing and then delays it becoming
-interactive. That is the trade: rows in the first paint, in exchange for waiting
-on the query twice.
-
-You can change the default for every collection in the app, and override it per
-collection:
+Only the first load changes: filtering, sorting, paging and refreshing stay asynchronous. Any
+state in the URL applies to the first render.
+
+The cost is waiting for the query twice, once before the page is sent and again before it
+connects, so a slow query delays the page appearing and then becoming interactive. You can change
+the default for every collection, but it's usually better to use it only where it's needed:
 
 ```elixir
 config :cinder, default_initial_load: :sync
 ```
 
+## Refreshing and Updating
+
+### Refreshing
+
+After changing records, re-read a collection with `refresh_table/2`. It keeps the current
+filters, sorting and page:
+
+```elixir
+def handle_event("delete_user", %{"id" => id}, socket) do
+  MyApp.User
+  |> Ash.get!(id, actor: socket.assigns.current_user)
+  |> Ash.destroy!(actor: socket.assigns.current_user)
+
+  {:noreply, Cinder.refresh_table(socket, "users")}
+end
+```
+
+Refresh several at once with `refresh_tables(socket, ["users", "audit-log"])`.
+
+Normally a refresh shows the loading state. With `silent: true`, the current rows stay as they
+are until the new ones arrive, with no loading indicator, and if the refresh fails, the current
+rows stay and the error is only logged. That suits refreshing whenever a PubSub notification
+arrives:
+
+```elixir
+def handle_info(%Ash.Notifier.Notification{}, socket) do
+  {:noreply, Cinder.refresh_table(socket, "users", silent: true)}
+end
+```
+
+### Updating Rows in Place
+
+When you already have the changed data, like from a PubSub message, change the rows on screen
+without re-reading the collection:
+
+```elixir
+def mount(_params, _session, socket) do
+  if connected?(socket), do: Phoenix.PubSub.subscribe(MyApp.PubSub, "users")
+  {:ok, socket}
+end
+
+def handle_info({:user_status_changed, user_id, new_status}, socket) do
+  {:noreply, Cinder.update_item(socket, "users", user_id, &%{&1 | status: new_status})}
+end
+
+def handle_info({:users_deactivated, user_ids}, socket) do
+  {:noreply, Cinder.update_items(socket, "users", user_ids, &%{&1 | active: false})}
+end
+```
+
+When the message carries bare records, missing the relationships or calculations the collection
+shows, use `update_if_visible/4` or `update_items_if_visible/4`. Your function is only called for
+records on the current page, so you only load what's shown:
+
+```elixir
+def handle_info({:user_updated, user}, socket) do
+  {:noreply,
+   Cinder.update_if_visible(socket, "users", user, fn user ->
+     Ash.load!(user, [:department, :manager])
+   end)}
+end
+```
+
+The new record replaces the one on screen, so it needs everything the columns show loaded, as
+the collection would have.
+
+### Removing Rows
+
+`remove_item/3` and `remove_items/3` take rows off the page, like after a delete. They also leave
+the selection, and the total count goes down by the number removed:
+
+```elixir
+def handle_info({:users_deleted, user_ids}, socket) do
+  {:noreply, Cinder.remove_items(socket, "users", user_ids)}
+end
+```
+
+Rows from the next page don't move up to fill the gap. If the page ends up empty, the collection
+reads it again (or the page before, if it was the last).
+
+### What Updates Don't Do
+
+Updating and removing rows only changes what's on screen. To get any of these, use
+`refresh_table/2` instead:
+
+- Calculations and aggregates aren't recalculated.
+- Rows aren't re-sorted, so a row whose sorted field changes stays where it is.
+- Filters and search aren't re-applied, so a row that no longer matches stays.
+- Rows can't be added: new records only appear on a refresh.
+
+Updates for records that aren't on the current page are ignored.
+
+## Loading Less Data
+
+Columns load what their fields need. To load anything else your slots show, or to read only some
+attributes, use `query_opts`:
+
 ```heex
-<Cinder.collection resource={MyApp.AuditLog} initial_load={:async}>
+<Cinder.collection
+  resource={MyApp.User}
+  query_opts={[load: [:avatar_url], select: [:id, :name, :email, :inserted_at]]}
+>
   ...
 </Cinder.collection>
 ```
 
-Setting the global default applies the latency cost everywhere, including pages
-behind a login where nothing benefits from it, so it is usually better to opt in
-the specific collections that need it.
+`select` must list every attribute your columns and slots show, and the primary key: attributes
+left out are `nil`.
+
+Give slow queries more time with `query_opts={[timeout: 30_000]}`.
+
+## Query Access
+
+`on_query_change` sends your LiveView the collection's query after each load, with its filters,
+search and sorting but no pagination, for exporting the same records, say:
+
+```heex
+<Cinder.collection id="users" resource={MyApp.User} actor={@current_user} on_query_change={:users_query}>
+  <:col :let={user} field="name" filter sort search>{user.name}</:col>
+</Cinder.collection>
+```
+
+```elixir
+def handle_info({:users_query, %{query: query, count: count, id: "users"}}, socket) do
+  {:noreply, assign(socket, users_query: query, users_count: count)}
+end
+
+def handle_event("export", _params, socket) do
+  users = Ash.read!(socket.assigns.users_query, actor: socket.assigns.current_user)
+  # ...turn them into a CSV and send it to the user
+  {:noreply, socket}
+end
+```
+
+Read it with the same `actor`, `tenant` or `scope` you gave the collection. `count` is the total
+that the footer shows, so showing it elsewhere costs no extra query:
+
+```heex
+<h1>Users <span :if={@users_count}>({@users_count})</span></h1>
+```
+
+It's `nil` when nothing is counted. With `count: :async`, the message is sent twice: once when the
+page loads, with a `nil` count, and again when the count arrives.
+
+## Selection & Bulk Actions
+
+### Selecting Records
+
+`selectable` adds a checkbox to each row or item, and a "select all" for the page:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+</Cinder.collection>
+```
+
+Without a `click` handler, clicking a row or item also selects it.
+
+To make only some records selectable, pass a function instead of `true`. The others get a
+disabled checkbox, and "select all" skips them. This is checked on the server too:
+
+```heex
+<Cinder.collection resource={MyApp.User} selectable={&(&1.status == :active)}>
+  ...
+</Cinder.collection>
+```
+
+Cinder keeps track of the selection itself. To know about it as well, use
+`on_selection_change`:
+
+```heex
+<Cinder.collection resource={MyApp.User} selectable on_selection_change={:selection_changed}>
+  ...
+</Cinder.collection>
+```
+
+```elixir
+def handle_info({:selection_changed, %{selected_ids: ids, selected_count: count}}, socket) do
+  {:noreply, assign(socket, :selected_count, count)}
+end
+```
+
+The message also has the collection's `component_id`, and an `action`: `:select`, `:deselect`,
+`:select_all`, `:clear` or `:remove`.
+
+### Bulk Actions
+
+A `<:bulk_action>` slot is a button that runs an action on the selected records. With `label` and
+`variant` (`:primary`, `:secondary` or `:danger`), it's styled by the theme:
+
+```heex
+<Cinder.collection resource={MyApp.User} actor={@current_user} selectable>
+  <:col :let={user} field="name" filter sort>{user.name}</:col>
+
+  <:bulk_action action={:archive} label="Archive ({count})" />
+  <:bulk_action action={:destroy} label="Delete" variant={:danger} confirm="Delete {count} users?" />
+</Cinder.collection>
+```
+
+`{count}` in the label or confirmation is the number selected. Buttons are disabled when nothing
+is selected. `confirm` asks in the browser before running: it's a prompt for the user, not a
+security check.
+
+For your own button, put it in the slot instead of a `label`. The slot receives the
+`selected_count` and `selected_ids`:
+
+```heex
+<:bulk_action :let={selection} action={:archive}>
+  <button class="btn" disabled={selection.selected_count == 0}>Archive selected</button>
+</:bulk_action>
+```
+
+### What Actions Run
+
+An atom is an action on the resource, run with `Ash.bulk_update` or `Ash.bulk_destroy`, depending
+on its type. Pass more options to it with `action_opts`:
+
+```heex
+<:bulk_action action={:archive} label="Archive" action_opts={[notify?: true]} />
+```
+
+A function is called with a query for the selected records, and options with the collection's
+`actor`, `tenant` and `scope`, like a code interface function:
+
+```heex
+<:bulk_action action={&MyApp.Accounts.archive_users/2} label="Archive" />
+```
+
+Either way, the action only reaches selected records that are still in the collection's `query`,
+with its filters, tenant and read action. Changing the collection's `query`, `actor`, `tenant` or
+`scope` clears the selection. Whether the actor may run the action is up to your Ash policies:
+Cinder adds no authorization of its own.
+
+### After an Action
+
+When an action succeeds, the selection is cleared and the collection re-read. To act on the
+result, name messages to send your LiveView:
+
+```heex
+<:bulk_action action={:archive} label="Archive" on_success={:users_archived} on_error={:archive_failed} />
+```
+
+```elixir
+def handle_info({:users_archived, %{count: count}}, socket) do
+  {:noreply, put_flash(socket, :info, "Archived #{count} users")}
+end
+
+def handle_info({:archive_failed, %{reason: reason}}, socket) do
+  {:noreply, put_flash(socket, :error, "Archiving failed: #{inspect(reason)}")}
+end
+```
+
+`on_success` gets the `component_id`, `action`, `count` and Ash's `result`. `on_error` gets the
+`component_id`, `action`, `reason`, and `partial`. If some records were changed and some failed,
+`on_error` is sent with `partial: true` and the errors as `reason`, and the selection is cleared,
+since the changed records are no longer what was selected. For atom actions, Cinder asks Ash for
+the errors (`return_errors?: true`); pass `action_opts={[return_errors?: false]}` to skip that
+for very large selections.
 
 ## Telemetry & Tracing
 

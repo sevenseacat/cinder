@@ -266,14 +266,8 @@ defmodule Cinder.Update do
 
       # Lazy batch loading - only loads visible items
       def handle_info(%{payload: %{data: data}}, socket) do
-        items = List.wrap(data)
-        ids = Enum.map(items, & &1.id)
-        raw_by_id = Map.new(items, &{&1.id, &1})
-
-        {:noreply, update_items_if_visible(socket, "table", ids, fn visible_items ->
-          to_load = Enum.map(visible_items, &raw_by_id[&1.id])
-          {:ok, loaded} = Ash.load(to_load, [:relations], opts)
-          loaded
+        {:noreply, update_items_if_visible(socket, "table", List.wrap(data), fn visible_items ->
+          Ash.load!(visible_items, [:relations])
         end)}
       end
   """

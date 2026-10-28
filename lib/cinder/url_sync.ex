@@ -4,17 +4,13 @@
 
 defmodule Cinder.UrlSync do
   @moduledoc """
-  Simple URL synchronization helper for collection components.
-
-  This module provides an easy way to enable URL state synchronization
-  for Cinder collection components with minimal setup.
+  Keeps a collection's filters, sorting, search and page in the URL.
 
   ## Usage
 
   1. Add `use Cinder.UrlSync` to your LiveView, after `use MyAppWeb, :live_view`
-     (or `use Phoenix.LiveView`)
-  2. Pass `url_state={@url_state}` to your collection component
-  3. That's it! The helper handles all URL updates automatically.
+     (or `use Phoenix.LiveView`).
+  2. Pass `url_state={@url_state}` to your collection.
 
   ## Example
 
@@ -244,19 +240,11 @@ defmodule Cinder.UrlSync do
   end
 
   @doc """
-  Extracts complete URL state from URL parameters for use with collection components.
+  Decodes URL parameters into a collection's state: its `:filters`, `:current_page`,
+  `:sort_by`, `:page_size`, `:search_term`, and keyset `:after` and `:before`.
 
-  This function can be used in `handle_params/3` to initialize
-  URL state for collection components.
-
-  ## Example
-
-      def handle_params(params, _uri, socket) do
-        url_state = Cinder.UrlSync.extract_url_state(params)
-        socket = assign(socket, :url_state, url_state)
-        {:noreply, socket}
-      end
-
+  Without the collection's columns, filters are only partly decoded and the sort isn't
+  checked. This isn't what `url_state` takes: `use Cinder.UrlSync` builds that for you.
   """
   def extract_url_state(params) when is_map(params) do
     # Handle case where sort_by might be an empty list (causing UrlManager error)
@@ -274,19 +262,7 @@ defmodule Cinder.UrlSync do
   end
 
   @doc """
-  Extracts collection state from URL parameters using empty columns list.
-
-  This function provides a simplified extraction that works without column
-  metadata. It preserves page and sort information but may not fully decode
-  filters (which is why we also preserve raw params in handle_params).
-
-  ## Parameters
-
-  - `params` - URL parameters map
-
-  ## Returns
-
-  Map with `:filters`, `:current_page`, and `:sort_by` keys
+  The same as `extract_url_state/1`.
   """
   def extract_collection_state(params) when is_map(params) do
     # Handle case where sort_by might be an empty list (causing UrlManager error)
@@ -325,10 +301,8 @@ defmodule Cinder.UrlSync do
   end
 
   @doc """
-  Helper function to handle collection state in LiveView handle_params.
-
-  This function extracts URL parameters and creates a URL state object that
-  can be passed to collection components. `use Cinder.UrlSync` calls it for you.
+  Assigns `@url_state` from the URL parameters. `use Cinder.UrlSync` calls it for you, before
+  your own `handle_params/3`, so you don't need to.
 
   ## Parameters
 
@@ -344,26 +318,6 @@ defmodule Cinder.UrlSync do
   - `sort_by` - Sort configuration
   - `uri` - Current URI for URL generation
 
-  ## Example
-
-      def handle_params(params, uri, socket) do
-        socket = Cinder.UrlSync.handle_params(params, uri, socket)
-        {:noreply, socket}
-      end
-
-      def render(assigns) do
-        ~H\"\"\"
-        <Cinder.collection
-          resource={MyApp.User}
-          actor={@current_user}
-          url_state={@url_state}
-        >
-          <:col :let={user} field="name" filter sort>{user.name}</:col>
-        </Cinder.collection>
-        \"\"\"
-      end
-
-  The `@url_state` assign will be available for use with the collection component.
   """
   def handle_params(params, uri \\ nil, socket) do
     collection_state = extract_collection_state(params)
@@ -380,27 +334,11 @@ defmodule Cinder.UrlSync do
   end
 
   @doc """
-  Helper to get the URL state for passing to collection components.
+  Returns `@url_state` from a socket's assigns, or `nil`:
 
-  Use this to get the URL state object created by `handle_params/3`.
+      Cinder.UrlSync.get_url_state(socket.assigns)
 
-  ## Example
-
-      def render(assigns) do
-        ~H\"\"\"
-        <Cinder.collection
-          resource={Album}
-          actor={@current_user}
-          url_state={@url_state}
-          theme="minimal"
-        >
-          <:col :let={album} field="name" filter="text">{album.name}</:col>
-          <:col :let={album} field="artist.name" filter="text">{album.artist.name}</:col>
-        </Cinder.collection>
-        \"\"\"
-      end
-
-  The URL state object contains:
+  It contains:
   - filters: Raw URL parameters for proper filter decoding
   - current_page: Current page number
   - sort_by: Sort configuration

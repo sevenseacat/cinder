@@ -11,7 +11,7 @@ defmodule Cinder.Filter do
 
   ## Quick Start
 
-  The most convenient way to create a custom filter is to use this module:
+  Create a custom filter by using this module:
 
       defmodule MyApp.Filters.Slider do
         use Cinder.Filter
@@ -21,7 +21,7 @@ defmodule Cinder.Filter do
           filter_options = Map.get(column, :filter_options, [])
           min_value = get_option(filter_options, :min, 0)
           max_value = get_option(filter_options, :max, 100)
-          current = current_value || min_value
+          current = if current_value in [nil, ""], do: min_value, else: current_value
 
           assigns = %{
             column: column,
@@ -88,9 +88,7 @@ defmodule Cinder.Filter do
 
   Then register it in your configuration:
 
-      config :cinder, :filters, %{
-        slider: MyApp.Filters.Slider
-      }
+      config :cinder, :filters, slider: MyApp.Filters.Slider
 
   This automatically:
   - Adds the `@behaviour Cinder.Filter` declaration
@@ -108,7 +106,7 @@ defmodule Cinder.Filter do
       @callback render(column :: map(), current_value :: any(), theme :: map(), assigns :: map()) :: Phoenix.LiveView.Rendered.t()
 
   - `column`: Column configuration with `field`, `label`, `filter_options`
-  - `current_value`: Current filter value (nil if no filter applied)
+  - `current_value`: The `:value` from `process/2`, or an empty value (like `""`) when the filter isn't in use
   - `theme`: Theme configuration with CSS classes
   - `assigns`: Additional assigns from the parent component
 
@@ -140,7 +138,7 @@ defmodule Cinder.Filter do
 
   ### build_query/3
 
-  **Critical for functionality!** Builds the Ash query for this filter.
+  Adds the filter to the Ash query. This is what filters the records.
 
       @callback build_query(query :: Ash.Query.t(), field :: String.t(), filter_value :: map()) :: Ash.Query.t()
 

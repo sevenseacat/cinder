@@ -6,28 +6,67 @@ SPDX-License-Identifier: MIT
 
 # Getting Started
 
-This guide covers the fundamentals of building collections with Cinder. For a quick start, see the [README](../README.md).
+This guide covers installing Cinder and building your first collections. Upgrading from an
+older version? See the [Upgrading Guide](upgrading.md).
 
-> **Note:** This documentation uses the unified `Cinder.collection` API. If you're upgrading from an older version, see the [Upgrading Guide](upgrading.md) for migration instructions.
+## Installation
 
-## Table of Contents
+### With Igniter
 
-- [Basic Usage](#basic-usage)
-- [Layouts](#layouts)
-- [Resource vs Query](#resource-vs-query)
-- [Column Configuration](#column-configuration)
-- [Action Columns](#action-columns)
-- [Theming](#theming)
-- [Localization](#localization)
-- [Testing](#testing)
+```bash
+mix igniter.install cinder
+```
 
-**See also:** [Filters](filters.md) | [Sorting](sorting.md) | [Advanced Features](advanced.md)
+This adds Cinder to your dependencies, sets up Tailwind with Cinder's CSS and the `daisy_ui`
+theme, and registers Cinder's LiveView hook in `assets/js/app.js`. If it can't make a change
+itself, it prints the steps to do by hand.
 
-## Basic Usage
+### By hand
 
-### Minimal Collection
+1. Add Cinder to your dependencies in `mix.exs`, and run `mix deps.get`:
 
-The simplest possible collection displays data in a table (the default layout):
+   ```elixir
+   def deps do
+     [{:cinder, "~> 0.18"}]
+   end
+   ```
+
+2. Import Cinder's CSS, and the CSS of each built-in theme you use, in `assets/css/app.css`
+   (Tailwind v4):
+
+   ```css
+   @import "tailwindcss";
+   @import "../../deps/cinder/priv/cinder.css";
+   @import "../../deps/cinder/priv/themes/daisy_ui.css";
+   ```
+
+   With Tailwind v3, add `"../deps/cinder/lib/**/*.*ex"` to the `content` list in
+   `assets/tailwind.config.js` instead.
+
+3. Register Cinder's hooks with your `LiveSocket` in `assets/js/app.js`:
+
+   ```javascript
+   import {hooks as cinderHooks} from "phoenix-colocated/cinder"
+
+   const liveSocket = new LiveSocket("/live", Socket, {
+     hooks: {...cinderHooks, ...colocatedHooks},
+     // ...
+   })
+   ```
+
+   The hook clears partly typed date and number filters. Apps generated with Phoenix 1.8
+   already resolve `phoenix-colocated`; otherwise see the
+   [0.18 upgrade notes](upgrading.md#upgrading-to-0-18-0).
+
+4. Set the theme to use by default, in `config/config.exs`:
+
+   ```elixir
+   config :cinder, default_theme: "daisy_ui"
+   ```
+
+## Your First Collection
+
+A collection reads an Ash resource and shows its records, in a table by default:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
@@ -36,385 +75,130 @@ The simplest possible collection displays data in a table (the default layout):
 </Cinder.collection>
 ```
 
-### With Filtering and Sorting
-
-Add `filter` and `sort` attributes to enable interactive filtering and sorting:
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-  <:col :let={user} field="created_at" sort>{user.created_at}</:col>
-</Cinder.collection>
-```
-
-Cinder automatically detects the appropriate filter type based on your Ash resource's field types:
-
-- String fields → text filter
-- Boolean fields → boolean filter (radio buttons)
-- Date/datetime fields → date range filter
-- Integer/decimal fields → number range filter
-- Enum fields → select filter with options from the enum
-
-## Layouts
-
-Cinder supports three layouts: **table** (default), **list**, and **grid**. All layouts share the same filtering, sorting, search, and pagination functionality.
-
-### Table Layout
-
-Traditional HTML table with sortable column headers. This is the default when no `layout` is specified:
+Add `filter` and `sort` to a column to filter and sort by it, and `search` to include it in the
+search box:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
+  <:col :let={user} field="name" filter sort search>{user.name}</:col>
+  <:col :let={user} field="email" filter search>{user.email}</:col>
+  <:col :let={user} field="inserted_at" sort>{user.inserted_at}</:col>
 </Cinder.collection>
 ```
 
-### List Layout
+Cinder picks each filter's type from the field's Ash type:
 
-Vertical list for custom item rendering. Requires an `<:item>` slot to define how each record is displayed:
+| Field type | Filter |
+|---|---|
+| String | Text |
+| Boolean | True / false radio buttons |
+| Date, datetime, time | Date range |
+| Integer, decimal, float | Number range |
+| Enum, or `one_of` constraint | Select, listing its values |
+| Array | Multi-select (listing its values for an array of an enum) |
+| Anything else | Text |
 
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list}>
-  <:col field="name" filter sort search />
-  <:col field="email" filter />
-  <:col field="status" filter={:select} />
+A column's `field` can reach through relationships (`department.name`) and into embedded
+resources (`settings__country`), and Cinder loads whatever the column needs to show it,
+including calculations and aggregates.
 
-  <:item :let={user}>
-    <div class="flex items-center justify-between p-4 border-b">
-      <div>
-        <h3 class="font-bold">{user.name}</h3>
-        <p class="text-gray-600">{user.email}</p>
-      </div>
-      <span class="px-2 py-1 text-sm bg-gray-100 rounded">{user.status}</span>
-    </div>
-  </:item>
-</Cinder.collection>
-```
-
-In list and grid layouts, `<:col>` slots define which fields can be filtered, sorted, and searched—they don't render visible content. The `<:item>` slot controls the visual presentation of each record.
-
-Since lists and grids don't have table headers, **sort controls render as a button group above the content**. Customize the label with `sort_label`:
+Each collection on a page needs its own `id`:
 
 ```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user} layout={:list} sort_label="Order by:">
+<Cinder.collection id="active-users" resource={MyApp.User} action={:active}>
   ...
 </Cinder.collection>
 ```
 
-### Grid Layout
+## Layouts
 
-Responsive card grid for visual layouts like product catalogs:
+Cinder has three layouts: **table** (the default), **list** and **grid**. They share filtering,
+sorting, search and pagination.
+
+In a table, each `<:col>` is a column, as above. In a list or grid, an `<:item>` slot shows
+each record, and the `<:col>` slots only say which fields can be filtered, sorted and searched:
 
 ```heex
 <Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid}>
   <:col field="name" filter sort search />
-  <:col field="category" filter={:select} />
+  <:col field="category" filter />
   <:col field="price" sort />
 
   <:item :let={product}>
     <div class="p-4 border rounded-lg">
-      <h3 class="font-bold text-lg">{product.name}</h3>
-      <p class="text-gray-600">{product.category}</p>
-      <p class="text-xl font-semibold mt-2">${product.price}</p>
+      <h3 class="font-bold">{product.name}</h3>
+      <p>${product.price}</p>
     </div>
   </:item>
 </Cinder.collection>
 ```
 
-### Grid Columns
+`layout={:list}` works the same way, with the items one under another. See
+[Layout Options](advanced.md#layout-options) for grid columns, clickable rows and more.
 
-Control the number of columns with `grid_columns`:
+## Columns
 
-```heex
-<!-- Fixed 4 columns -->
-<Cinder.collection resource={MyApp.Product} actor={@current_user} layout={:grid} grid_columns={4}>
-  ...
-</Cinder.collection>
+| Attribute | |
+|---|---|
+| `field` | The field to show, filter, sort or search by. |
+| `label` | The column's heading. Defaults to one made from the field: `email_address` is "Email Address", `department.name` is "Department > Name". |
+| `filter` | Filter by this column: `true`, a filter type like `:select`, or a list of options. See [Filters](filters.md). |
+| `sort` | Sort by this column: `true`, or a list of options. See [Sorting](sorting.md). |
+| `search` | Include this column in the search box. |
+| `class` | Classes for this column's cells. |
 
-<!-- Responsive columns -->
-<Cinder.collection
-  resource={MyApp.Product}
-  actor={@current_user}
-  layout={:grid}
-  grid_columns={[xs: 1, sm: 2, md: 3, lg: 4]}
->
-  ...
-</Cinder.collection>
-```
-
-Available breakpoints: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`
-
-### Custom Container Class
-
-For full control over the container styling, use `container_class`:
+A column with no `field` shows whatever you put in it, like buttons for each record:
 
 ```heex
-<Cinder.collection
-  resource={MyApp.Product}
-  actor={@current_user}
-  layout={:grid}
-  container_class="grid grid-cols-2 lg:grid-cols-4 gap-8"
->
-  ...
-</Cinder.collection>
-```
-
-### Click Handlers
-
-Make rows (table) or items (list/grid) clickable with the `click` attribute:
-
-```heex
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  click={fn user -> JS.navigate(~p"/users/#{user.id}") end}
->
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email">{user.email}</:col>
-</Cinder.collection>
-```
-
-The `click` function receives the record and should return a `Phoenix.LiveView.JS` command. Rows/items with click handlers automatically get hover effects and pointer cursor styling.
-
-For more complex interactions:
-
-```heex
-<Cinder.collection
-  resource={MyApp.User}
-  actor={@current_user}
-  click={fn user ->
-    JS.push("select_user", value: %{id: user.id})
-    |> JS.add_class("selected", to: "#user-#{user.id}")
-  end}
->
-  ...
-</Cinder.collection>
-```
-
-## Resource vs Query
-
-Cinder supports two ways to specify data: `resource` for simple cases, `query` for advanced requirements.
-
-### When to Use Resource
-
-Use `resource` for straightforward collections:
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-</Cinder.collection>
-```
-
-### When to Use Query
-
-Use `query` when you need custom read actions, base filters, or tenant isolation:
-
-```heex
-<!-- Custom read action -->
-<Cinder.collection
-  query={Ash.Query.for_read(MyApp.User, :active_users)}
-  actor={@current_user}
->
-  ...
-</Cinder.collection>
-
-<!-- Pre-filtered data (filters are additive with user filters) -->
-<Cinder.collection
-  query={MyApp.User |> Ash.Query.filter(department: "Engineering")}
-  actor={@current_user}
->
-  ...
-</Cinder.collection>
-
-<!-- Multi-tenant admin interface -->
-<Cinder.collection
-  query={Ash.Query.for_read(MyApp.User, :admin_read)}
-  actor={@current_user}
-  tenant={@tenant}
->
-  ...
-</Cinder.collection>
-```
-
-**Important:** Query filters act as hidden base filters—user filters from the UI are added on top. If you filter by `department: "Engineering"` in the query and the user selects "Sales" in a department filter, the result will be empty (both conditions must match).
-
-### Automatic Label Generation
-
-Column labels are automatically generated from field names:
-
-- `name` → "Name"
-- `email_address` → "Email Address"
-- `user.name` → "User Name"
-- `created_at` → "Created At"
-
-Override with `label`:
-
-```heex
-<:col :let={user} field="name" label="Full Name">{user.name}</:col>
-```
-
-## Column Configuration
-
-### All Column Attributes
-
-```heex
-<:col
-  :let={item}
-  field="field_name"           # Field name (required for filter/sort)
-  label="Custom Label"         # Override auto-generated label
-  filter                       # Enable filtering (true, type atom, or config)
-  sort                         # Enable sorting (true or config)
-  search                       # Include in global search
-  class="custom-class"         # CSS class for table cells
->
-  {item.field_name}
+<:col :let={user} label="Actions">
+  <.link navigate={~p"/users/#{user.id}/edit"}>Edit</.link>
 </:col>
 ```
 
-### Filter Configuration Formats
+## Resource or Query
 
-```heex
-<!-- Auto-detect filter type from Ash field type -->
-<:col field="status" filter />
+Give a collection a `resource` to read it with its primary read action, or name another action
+with `action`. Pass `actor`, `tenant`, or an Ash `scope`, as you would to `Ash.read`.
 
-<!-- Explicit filter type -->
-<:col field="status" filter={:select} />
-
-<!-- Full configuration with options -->
-<:col field="status" filter={[type: :select, options: [{"Active", "active"}, {"Inactive", "inactive"}]]} />
-```
-
-### Sort Configuration
-
-```heex
-<!-- Basic sorting (cycle: nil → asc → desc → nil) -->
-<:col field="name" sort />
-
-<!-- No neutral state (always sorted) -->
-<:col field="name" sort={[cycle: [:asc, :desc]]} />
-
-<!-- Start with descending -->
-<:col field="created_at" sort={[cycle: [:desc, :asc, nil]]} />
-```
-
-## Action Columns
-
-Add columns without a `field` attribute for custom actions:
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-
-  <!-- Action column: no field, just custom content -->
-  <:col :let={user} label="Actions">
-    <div class="flex gap-2">
-      <.link navigate={~p"/users/#{user.id}"} class="text-blue-600 hover:underline">
-        View
-      </.link>
-      <.link navigate={~p"/users/#{user.id}/edit"} class="text-green-600 hover:underline">
-        Edit
-      </.link>
-      <button phx-click="delete" phx-value-id={user.id} class="text-red-600 hover:underline">
-        Delete
-      </button>
-    </div>
-  </:col>
-</Cinder.collection>
-```
-
-Action columns cannot have `filter` or `sort` since they don't correspond to data fields.
-
-## Theming
-
-### Built-in Themes
-
-Cinder includes 9 built-in themes:
-
-```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user} theme="modern">
-  ...
-</Cinder.collection>
-```
-
-Available themes:
-
-- `"default"` - Clean, minimal styling
-- `"modern"` - Contemporary look with shadows and rounded corners
-- `"compact"` - Dense layout for data-heavy views
-- `"dark"` - Dark mode styling
-- `"retro"` - Nostalgic cyberpunk aesthetic
-- `"futuristic"` - Bold, tech-forward design
-- `"flowbite"` - Flowbite-compatible styling
-- `"daisy_ui"` - DaisyUI-compatible styling
-
-Set a default theme in your config:
+To start from a query of your own, like one with a filter every user should have, pass `query`
+instead. Users' filters narrow it further. Build it in `mount`, so it isn't rebuilt on every
+render:
 
 ```elixir
-# config/config.exs
-config :cinder, default_theme: "modern"
-```
-
-### Custom Themes
-
-Create reusable custom themes as modules:
-
-```elixir
-defmodule MyApp.Theme.Corporate do
-  use Cinder.Theme
-
-  # Table
-  set :container_class, "bg-white shadow-lg rounded-lg border border-gray-200"
-  set :th_class, "px-6 py-4 bg-blue-50 text-left font-semibold text-blue-900"
-  set :td_class, "px-6 py-4 border-b border-gray-100"
-  set :row_class, "hover:bg-blue-50 transition-colors"
-
-  # Filters
-  set :filter_container_class, "bg-gray-50 p-4 rounded-lg mb-4"
-  set :filter_text_input_class, "w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-
-  # Pagination
-  set :pagination_button_class, "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+def mount(_params, _session, socket) do
+  require Ash.Query
+  {:ok, assign(socket, :engineers, Ash.Query.filter(MyApp.User, department == "Engineering"))}
 end
 ```
 
-Use your custom theme:
-
 ```heex
-<Cinder.collection resource={MyApp.User} actor={@current_user} theme={MyApp.Theme.Corporate}>
+<Cinder.collection query={@engineers} actor={@current_user}>
   ...
 </Cinder.collection>
 ```
-
-See [Theming Guide](theming.md) for complete theme customization options and all available theme properties.
-
-## Localization
-
-Cinder automatically uses your Phoenix app's locale for UI elements (pagination, filter labels, buttons, etc.). See the [Localization Guide](localization.md) for complete internationalization support.
-
-```elixir
-# Set locale in mount or plug
-Gettext.put_locale("nl")
-
-# Cinder UI automatically shows Dutch text
-```
-
-Available languages: Brazilian Portuguese (pt_BR), Danish (da), Dutch (nl), English (en), French (fr), German (de), Norwegian (no), Spanish (es), Swedish (sv).
 
 ## Testing
 
-Use `render_async/1` to wait for async data loading in tests:
+Collections load their data after the page renders, so wait for it with `render_async/1`:
 
 ```elixir
-test "lists all users", %{conn: conn} do
+test "lists users", %{conn: conn} do
   user = insert(:user)
 
-  {:ok, index_live, html} = live(conn, ~p"/users")
+  {:ok, view, _html} = live(conn, ~p"/users")
 
-  assert html =~ "Loading..."
-  assert render_async(index_live) =~ user.name
+  assert render_async(view) =~ user.name
 end
 ```
+
+With `initial_load={:sync}` (or `config :cinder, default_initial_load: :sync`), the data is
+already in the first render.
+
+## Next Steps
+
+- [Filters](filters.md): every filter type and its options, search, and laying out the filters yourself
+- [Sorting](sorting.md): sort cycles, default sorts and tiebreakers
+- [Advanced Features](advanced.md): pagination, keeping state in the URL, loading and empty
+  states, refreshing, selection and bulk actions, telemetry
+- [Theming](theming.md): the built-in themes and writing your own
+- [Localization](localization.md): translations

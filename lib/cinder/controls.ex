@@ -277,6 +277,7 @@ defmodule Cinder.Controls do
   - `filter_mode` — display mode (true, :toggle, :toggle_open)
   - `target` — LiveComponent target
   - `theme` — theme map
+  - `has_filters` — whether to show the "Clear all" button (default true)
   """
   attr :table_id, :string, required: true
   attr :filters_label, :string, required: true

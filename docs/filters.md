@@ -6,497 +6,385 @@ SPDX-License-Identifier: MIT
 
 # Filters
 
-This guide covers all filter types, search, and controls customization. For basic setup, see [Getting Started](getting-started.md).
+This guide covers every filter type, filters without a column, search, and laying out the filters
+yourself. For a first collection, see [Getting Started](getting-started.md).
 
 ## Table of Contents
 
+- [Choosing a Filter Type](#choosing-a-filter-type)
 - [Filter Types](#filter-types)
-- [Filter-Only Slots](#filter-only-slots)
+- [What Can Be Filtered](#what-can-be-filtered)
+- [Filters Without a Column](#filters-without-a-column)
 - [Collapsible Filters](#collapsible-filters)
-- [Global Search](#global-search)
+- [Search](#search)
 - [Custom Filter Functions](#custom-filter-functions)
-- [Custom Controls Layout](#custom-controls-layout)
+- [Laying Out the Filters Yourself](#laying-out-the-filters-yourself)
 
 **See also:** [Sorting](sorting.md) | [Custom Filters](custom-filters.md)
 
-## Filter Types
+## Choosing a Filter Type
 
-Cinder automatically detects the appropriate filter type based on your Ash resource's field types. You can also explicitly specify filter types when needed.
+`filter` on its own picks the filter type from the field's Ash type:
 
-### Automatic Type Detection
+| Ash type | Filter type |
+|---|---|
+| `:string`, `:ci_string` | `:text` |
+| `:boolean` | `:boolean` |
+| `:date`, `:datetime`, `:utc_datetime`, `:naive_datetime`, `:time` | `:date_range` |
+| `:integer`, `:decimal`, `:float` | `:number_range` |
+| An `Ash.Type.Enum`, or a `one_of` constraint | `:select` |
+| `{:array, _}` | `:multi_select` |
+| Anything else | `:text` |
 
-When you use `filter` without specifying a type, Cinder inspects your Ash resource:
-
-| Ash Field Type                        | Filter Type     | UI Component                    |
-| ------------------------------------- | --------------- | ------------------------------- |
-| `:string`, `:ci_string`               | `:text`         | Text input with contains search |
-| `:boolean`                            | `:boolean`      | Radio buttons (Yes/No)          |
-| `:date`, `:datetime`, `:utc_datetime` | `:date_range`   | From/To date pickers            |
-| `:integer`, `:decimal`, `:float`      | `:number_range` | Min/Max number inputs           |
-| `Ash.Type.Enum`                       | `:select`       | Dropdown with enum values       |
-| `{:array, _}`                         | `:multi_select` | Multi-select for array fields   |
-
-### Text Filter
-
-Default for string fields. Performs case-insensitive contains search:
+To choose the type, give it instead of `true`, as an atom or a string:
 
 ```heex
-<!-- Basic text filter (auto-detected for string fields) -->
-<:col :let={article} field="title" filter>{article.title}</:col>
+<:col :let={user} field="status" filter={:radio_group}>{user.status}</:col>
+```
 
-<!-- With custom placeholder -->
-<:col
-  :let={article}
-  field="content"
-  filter={[type: :text, placeholder: "Search content..."]}
->
-  {String.slice(article.content, 0, 100)}...
-</:col>
+To give options as well, pass a keyword list with the type under `type`:
 
-<!-- Case-sensitive search -->
-<:col
-  :let={article}
-  field="author_name"
-  filter={[type: :text, case_sensitive: true]}
->
-  {article.author_name}
-</:col>
-
-<!-- Match the start of the value instead of anywhere in it -->
-<:col :let={article} field="slug" filter={[type: :text, operator: :starts_with]}>
-  {article.slug}
+```heex
+<:col :let={user} field="status" filter={[type: :select, options: [{"Active", "active"}, {"Suspended", "suspended"}]]}>
+  {user.status}
 </:col>
 ```
 
-The `operator` option can be `:contains` (the default), `:starts_with`, `:ends_with` or `:equals`.
+Every filter takes a `label` option, which changes the filter's label without changing the
+column's heading: `filter={[type: :text, label: "Title contains"]}`.
 
-### Select Filter
+Filters that offer a list of options (select, multi-select, multi-checkboxes, radio group and
+autocomplete) take them as `{label, value}` tuples. On an enum field, or an array of one, they
+list the enum's values when you don't give `options`.
 
-Dropdown for single-value selection. **Automatically populated for Ash enum fields:**
+## Filter Types
+
+### Text
+
+Matches values containing the text, ignoring case:
 
 ```heex
-<!-- Enum field: options auto-populated from MyApp.UserRole enum -->
+<:col :let={article} field="title" filter>{article.title}</:col>
+
+<:col :let={article} field="content" filter={[type: :text, placeholder: "Search content..."]}>
+  {article.content}
+</:col>
+```
+
+| Option | |
+|---|---|
+| `operator` | `:contains` (default), `:starts_with`, `:ends_with` or `:equals` |
+| `case_sensitive` | `true` to match case (default `false`) |
+| `placeholder` | The input's placeholder text |
+
+### Select
+
+A dropdown for choosing one value:
+
+```heex
 <:col :let={user} field="role" filter>{user.role}</:col>
 
-<!-- Explicit options for non-enum fields -->
-<:col
-  :let={user}
-  field="status"
-  filter={[type: :select, options: [
-    {"Active", "active"},
-    {"Pending", "pending"},
-    {"Suspended", "suspended"}
-  ]]}
->
-  {user.status}
-</:col>
-
-<!-- With custom prompt text -->
-<:col
-  :let={user}
-  field="department"
-  filter={[type: :select, options: @departments, prompt: "All Departments"]}
->
+<:col :let={user} field="department" filter={[type: :select, options: @departments, prompt: "All departments"]}>
   {user.department}
 </:col>
 ```
 
-### Multi-Select Filter
+| Option | |
+|---|---|
+| `options` | `{label, value}` tuples (the enum's values on an enum field) |
+| `prompt` | The text for "no value chosen" (default "All *label*") |
 
-For filtering by multiple values. Two UI styles available:
+### Multi-Select and Multi-Checkboxes
 
-**Tag-based dropdown (`:multi_select`):**
+Both choose any number of values: `:multi_select` as a dropdown of checkboxes, and
+`:multi_checkboxes` as a list of checkboxes.
 
 ```heex
-<:col
-  :let={product}
-  field="tags"
-  filter={[type: :multi_select, options: @available_tags]}
->
+<:col :let={product} field="tags" filter={[type: :multi_select, options: @tags]}>
   {Enum.join(product.tags, ", ")}
 </:col>
-```
 
-**Checkbox list (`:multi_checkboxes`):**
-
-```heex
-<:col
-  :let={user}
-  field="roles"
-  filter={[type: :multi_checkboxes, options: [
-    {"Admin", "admin"},
-    {"Editor", "editor"},
-    {"Viewer", "viewer"}
-  ]]}
->
-  {Enum.join(user.roles, ", ")}
+<:col :let={user} field="role" filter={[type: :multi_checkboxes, options: [{"Admin", "admin"}, {"Editor", "editor"}]]}>
+  {user.role}
 </:col>
 ```
 
-**Match Mode:** Control AND vs OR logic for multiple selections:
+On a single-value field, a record matches if its value is one of those chosen. On an array field
+(including a `list` aggregate, or an array through a relationship like `albums.tags`), a record
+matches if its array holds any of them, or all of them with `match_mode: :all`:
 
 ```heex
-<!-- Match ANY selected value (default) - records with tag A OR tag B -->
-<:col field="tags" filter={[type: :multi_select, options: @tags, match_mode: :any]} />
-
-<!-- Match ALL selected values - records with tag A AND tag B -->
 <:col field="tags" filter={[type: :multi_select, options: @tags, match_mode: :all]} />
 ```
 
-### Boolean Filter
+| Option | |
+|---|---|
+| `options` | `{label, value}` tuples |
+| `match_mode` | For arrays: `:any` (default) or `:all` of the chosen values |
+| `prompt` | The dropdown's text when nothing is chosen (`:multi_select` only) |
 
-Radio buttons for true/false filtering:
+### Boolean
+
+Radio buttons for true and false. With neither chosen, records aren't filtered by it:
 
 ```heex
-<!-- Basic boolean filter -->
-<:col :let={user} field="is_active" filter={:boolean}>
-  {if user.is_active, do: "Active", else: "Inactive"}
-</:col>
-
-<!-- Custom labels -->
-<:col
-  :let={user}
-  field="verified"
-  filter={[type: :boolean, labels: %{true: "Verified", false: "Unverified"}]}
->
-  {if user.verified, do: "✓", else: "✗"}
+<:col :let={user} field="verified" filter={[type: :boolean, labels: %{true: "Verified", false: "Unverified"}]}>
+  {user.verified}
 </:col>
 ```
 
-### Radio Group Filter
+| Option | |
+|---|---|
+| `labels` | The text for each button: a map with `true` and `false` keys (default "True" and "False") |
 
-Radio buttons for selecting one value from a set of mutually exclusive options. Unlike boolean (which is limited to true/false), radio group supports arbitrary options:
+### Radio Group
+
+Radio buttons for choosing one value from a short list:
 
 ```heex
-<!-- Status filter with custom options -->
-<:col
-  :let={order}
-  field="status"
-  filter={[type: :radio_group, options: [
-    {"Pending", "pending"},
-    {"Shipped", "shipped"},
-    {"Delivered", "delivered"}
-  ]]}
->
+<:col :let={order} field="status" filter={[type: :radio_group, options: [{"Pending", "pending"}, {"Shipped", "shipped"}, {"Delivered", "delivered"}]]}>
   {order.status}
 </:col>
 ```
 
-The boolean filter delegates to radio group internally — use `:boolean` for true/false fields and `:radio_group` when you need custom options.
+| Option | |
+|---|---|
+| `options` | `{label, value}` tuples (the enum's values on an enum field) |
 
-### Checkbox Filter
+### Checkbox
 
-Single checkbox for "show only X" filtering:
+A single checkbox, for "only show these":
 
 ```heex
-<!-- Boolean field: filters for true when checked -->
+<!-- On a boolean field, checking it shows the true ones -->
 <:col :let={article} field="published" filter={[type: :checkbox, label: "Published only"]}>
-  {if article.published, do: "✓", else: "✗"}
+  {article.published}
 </:col>
 
-<!-- Non-boolean field: filters for specific value when checked -->
+<!-- On any other field, checking it shows those with the value -->
 <:col :let={article} field="priority" filter={[type: :checkbox, value: "high", label: "High priority only"]}>
   {article.priority}
 </:col>
 ```
 
-### Date Filter
+| Option | |
+|---|---|
+| `label` | The checkbox's text, and the filter's label (default the column's label) |
+| `value` | The value to match when checked (default `true`) |
 
-A single date picker matching one calendar day. For `:date` fields it matches
-exactly; for datetime fields it matches the whole day. Not auto-detected (date
-and datetime fields default to `:date_range`), so request it explicitly:
+### Date
+
+A single date picker that matches one day: the whole day, on a datetime field. Date and datetime
+fields get a date range by default, so choose this one:
 
 ```heex
-<:col :let={order} field="delivered_on" filter={[type: :date]}>
-  {order.delivered_on}
-</:col>
+<:col :let={order} field="delivered_on" filter={:date}>{order.delivered_on}</:col>
 ```
 
-### Date Range Filter
+### Date Range
 
-From/To date pickers for date filtering:
+From and to date pickers. Either can be left empty for an open-ended range:
 
 ```heex
-<!-- Auto-detected for date/datetime fields -->
-<:col :let={order} field="created_at" filter sort>{order.created_at}</:col>
-
-<!-- Include time selection -->
-<:col
-  :let={order}
-  field="shipped_at"
-  filter={[type: :date_range, include_time: true]}
->
+<:col :let={order} field="shipped_at" filter={[type: :date_range, include_time: true]}>
   {order.shipped_at}
 </:col>
 ```
 
-### Number Range Filter
+| Option | |
+|---|---|
+| `include_time` | `true` to pick a time as well as a date |
 
-Min/Max inputs for numeric filtering:
+### Number Range
+
+Minimum and maximum inputs. Either can be left empty:
 
 ```heex
-<!-- Auto-detected for integer/decimal fields -->
-<:col :let={product} field="price" filter sort>{product.price}</:col>
-
-<!-- With constraints -->
-<:col
-  :let={product}
-  field="quantity"
-  filter={[type: :number_range, min: 0, max: 10000, step: 10]}
->
+<:col :let={product} field="quantity" filter={[type: :number_range, min: 0, max: 10000, step: 10]}>
   {product.quantity}
 </:col>
 ```
 
-### Autocomplete Filter
+| Option | |
+|---|---|
+| `min`, `max`, `step` | Limits for both inputs, for the browser's number input to enforce |
 
-Searchable dropdown for fields with many options. Options are filtered server-side as you type:
+### Autocomplete
+
+A text box that lists matching options as you type, for when there are too many for a dropdown:
 
 ```heex
-<!-- Basic autocomplete with static options -->
-<:col
-  :let={order}
-  field="customer_id"
-  filter={[type: :autocomplete, options: @customers]}
->
+<:col :let={order} field="customer_id" filter={[type: :autocomplete, options: @customers, max_results: 15]}>
   {order.customer.name}
-</:col>
-
-<!-- With custom placeholder and result limit -->
-<:col
-  :let={order}
-  field="product_id"
-  filter={[
-    type: :autocomplete,
-    options: @products,
-    placeholder: "Search products...",
-    max_results: 15
-  ]}
->
-  {order.product.name}
 </:col>
 ```
 
-Options are `{label, value}` tuples, same as the select filter. The `max_results` option (default: 10) limits how many matching options are shown at once.
+| Option | |
+|---|---|
+| `options` | `{label, value}` tuples (the enum's values on an enum field) |
+| `placeholder` | The input's placeholder text |
+| `max_results` | How many matching options to list (default 10) |
 
-## Filter-Only Slots
+## What Can Be Filtered
 
-Add filtering capability for fields without displaying them as columns. Useful for filtering by metadata or keeping tables focused:
+A column can filter by an attribute, a field through relationships (`artist.name`), a field of an
+embedded resource (`profile__country`), an aggregate, or a calculation the data layer can run (an
+expression calculation). See [Advanced Features](advanced.md#relationship-fields) for more on
+relationship and embedded fields.
+
+A column with `filter` on a field that can't be filtered by gets no filter, and logs a warning.
+That's a field that doesn't exist, a calculation run in Elixir rather than the data layer, or a
+calculation that needs arguments. In 1.0 this raises.
+
+Values that don't fit a filter are ignored rather than used, like a date that isn't a date in a
+hand-edited URL, or a choice that isn't one of the filter's options. Multi-select filters with no
+options keep at most 100 values.
+
+## Filters Without a Column
+
+A `<:filter>` slot adds a filter for a field that has no column, like a date you filter by but
+don't show:
 
 ```heex
 <Cinder.collection resource={MyApp.Order} actor={@current_user}>
   <:col :let={order} field="order_number">{order.order_number}</:col>
-  <:col :let={order} field="total">${order.total}</:col>
+  <:col :let={order} field="total">{order.total}</:col>
 
-  <!-- Filter-only slots: filter UI appears, but no column in table -->
-  <:filter field="created_at" type="date_range" label="Order Date" />
-  <:filter field="status" type="select" options={["pending", "shipped", "delivered"]} />
-  <:filter field="customer_name" type="text" placeholder="Customer name..." />
+  <:filter field="inserted_at" type={:date_range} label="Order date" />
+  <:filter field="status" type={:select} options={[{"Pending", "pending"}, {"Shipped", "shipped"}]} />
+  <:filter field="customer_name" placeholder="Customer name..." />
 </Cinder.collection>
 ```
 
-### Filter Slot Attributes
+A field can't have both a `<:filter>` slot and a column with `filter`.
 
-```heex
-<:filter
-  field="field_name"           # Required
-  type="filter_type"           # Optional, auto-detected if not provided
-  label="Custom Label"         # Optional
-  options={[...]}              # For select/multi-select
-  placeholder="..."            # For text filters
-  operator={:contains}         # For text filters
-  case_sensitive={true}        # For text filters
-  match_mode={:any}            # For multi-select
-  min={0}                      # For number range
-  max={100}                    # For number range
-  step={1}                     # For number range
-  include_time={true}          # For date range
-  fn={&custom_filter/2}        # Custom filter function
-/>
-```
+| Attribute | |
+|---|---|
+| `field` | The field to filter by (required) |
+| `type` | The filter type (picked from the field's type if not given) |
+| `label` | The filter's label |
+| `fn` | A [custom filter function](#custom-filter-functions) |
 
-### When to Use Filter-Only Slots
-
-- Filter by metadata (created_at, updated_at) without cluttering the display
-- Add filters for fields shown elsewhere on the page
-- Create admin interfaces with many filter options
-- Keep tables focused on essential information
+It also takes any of the filter types' options as attributes: `options`, `prompt`, `operator`,
+`case_sensitive`, `placeholder`, `labels`, `value`, `match_mode`, `include_time`, `min`, `max`,
+`step` and `max_results`.
 
 ## Collapsible Filters
 
-For tables with many filters, you can make the filter section collapsible. The filter header (label, active count, "Clear all") stays visible while the filter inputs toggle on click—entirely client-side with no server round-trip.
-
-### Per-Component
+With many filters, the filter inputs can start hidden. The header, with the active filter count
+and "Clear all", stays visible, with a button that shows and hides the inputs without a trip to
+the server:
 
 ```heex
-<!-- Filters start collapsed -->
+<!-- Starts hidden -->
 <Cinder.collection resource={MyApp.User} actor={@current_user} show_filters={:toggle}>
-  <:col :let={user} field="name" filter sort>{user.name}</:col>
-  <:col :let={user} field="email" filter>{user.email}</:col>
-  <:col :let={user} field="status" filter={:select}>{user.status}</:col>
+  ...
 </Cinder.collection>
 
-<!-- Filters start expanded (with toggle button to collapse) -->
+<!-- Starts shown -->
 <Cinder.collection resource={MyApp.User} actor={@current_user} show_filters={:toggle_open}>
   ...
 </Cinder.collection>
 ```
 
-String values `"toggle"` and `"toggle_open"` are also accepted.
+| `show_filters` | |
+|---|---|
+| `nil` (default) | Shown when there are filters or search |
+| `true` | Always shown |
+| `false` | Never shown |
+| `:toggle` | Can be hidden, and starts hidden |
+| `:toggle_open` | Can be hidden, and starts shown |
 
-### Global Default
-
-Set the default for all collections in your config, so you don't have to add `show_filters` to every component:
+String values (`"toggle"`) work too. Set the default for every collection in your config:
 
 ```elixir
-# config/config.exs
 config :cinder, show_filters: :toggle
 ```
 
-Individual collections can still override:
+## Search
 
-```heex
-<!-- This collection always shows filters (overrides global :toggle) -->
-<Cinder.collection resource={MyApp.User} actor={@current_user} show_filters={true}>
-  ...
-</Cinder.collection>
-```
-
-### All `show_filters` Values
-
-| Value | Behaviour |
-|-------|-----------|
-| `nil` (default) | Auto-detect: show if filterable columns or search exist |
-| `true` | Always show filters |
-| `false` | Never show filters |
-| `:toggle` / `"toggle"` | Collapsible, starts collapsed |
-| `:toggle_open` / `"toggle_open"` | Collapsible, starts expanded |
-
-## Global Search
-
-Search provides a single text input that filters across multiple columns simultaneously. This is different from individual column filters—search queries all marked columns at once using OR logic.
-
-### How Search Works
-
-When a user types in the search box, Cinder filters records where **any** of the searchable columns contain the search term. For example, searching "smith" might match:
-
-- A user named "John Smith"
-- A user with email "smith@example.com"
-- A user in the "Blacksmith" department
-
-### Enabling Search
-
-Search automatically appears when any column has the `search` attribute:
+The search box filters across every column with `search` at once, showing records where any of
+them contains the text, ignoring case:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
-  <!-- These columns are searchable -->
   <:col :let={user} field="name" filter search>{user.name}</:col>
   <:col :let={user} field="email" filter search>{user.email}</:col>
-
-  <!-- This column is filterable but NOT searchable -->
   <:col :let={user} field="role" filter>{user.role}</:col>
 </Cinder.collection>
 ```
 
-### Custom Search Configuration
-
-Customize the search UI:
+The search box appears when a column has `search`. Change its label and placeholder, or turn it
+off, with the collection's `search` attribute:
 
 ```heex
-<Cinder.collection
-  resource={MyApp.Album}
-  actor={@current_user}
-  search={[label: "Find Albums", placeholder: "Search by title or artist..."]}
->
+<Cinder.collection resource={MyApp.Album} search={[label: "Find albums", placeholder: "Title or artist..."]}>
   <:col :let={album} field="title" search>{album.title}</:col>
   <:col :let={album} field="artist.name" search>{album.artist.name}</:col>
 </Cinder.collection>
-```
 
-### Disable Search
-
-Even if columns have `search`, you can disable the search UI:
-
-```heex
-<Cinder.collection resource={MyApp.Album} actor={@current_user} search={false}>
-  <:col :let={album} field="title" search>{album.title}</:col>
-</Cinder.collection>
-```
-
-### Custom Search Function
-
-For advanced search logic (fuzzy matching, weighted results, etc.):
-
-```heex
-<Cinder.collection
-  resource={MyApp.Album}
-  actor={@current_user}
-  search={[fn: &MyApp.CustomSearch.advanced_search/3]}
->
+<Cinder.collection resource={MyApp.Album} search={false}>
   ...
 </Cinder.collection>
 ```
 
+A column with `search` on a field that can't be searched logs a warning, like `filter` does.
+
+### Custom Search
+
+To search your own way, pass a function as `fn`. It receives the query, the columns with
+`search`, and the text, and returns the query with your filter. It's only called when at least
+one column has `search`:
+
+```heex
+<Cinder.collection resource={MyApp.Album} search={[fn: &MyApp.AlbumSearch.search/3]}>
+  <:col :let={album} field="title" search>{album.title}</:col>
+</Cinder.collection>
+```
+
 ```elixir
-defmodule MyApp.CustomSearch do
+defmodule MyApp.AlbumSearch do
   require Ash.Query
 
-  def advanced_search(query, searchable_columns, search_term) do
-    # searchable_columns is a list of column configs with :field keys
-    # Return a modified Ash.Query
-    Ash.Query.filter(query, fragment("? ILIKE ?", name, ^"%#{search_term}%"))
+  # An exact catalogue number, or part of the title
+  def search(query, _columns, text) do
+    Ash.Query.filter(query, catalogue_number == ^text or contains(title, ^text))
   end
 end
 ```
 
 ## Custom Filter Functions
 
-For complex filtering logic that goes beyond simple field matching:
+To filter in a way the built-in filters can't, give a filter a `fn`. It receives the query and
+the filter's value, and returns the query with your filter:
 
 ```heex
-<Cinder.collection resource={MyApp.Invoice} actor={@current_user}>
-  <:col
-    :let={invoice}
-    field="status"
-    filter={[type: :select, options: @statuses, fn: &filter_invoice_status/2]}
-  >
-    {invoice.status}
-  </:col>
-</Cinder.collection>
+<:col :let={invoice} field="status" filter={[type: :select, options: @statuses, fn: &filter_status/2]}>
+  {invoice.status}
+</:col>
 ```
 
 ```elixir
 require Ash.Query
 
-def filter_invoice_status(query, %{value: "overdue"}) do
-  # Custom business logic: "overdue" means pending AND past due date
+# "Overdue" isn't a status: it's a pending invoice past its due date
+def filter_status(query, %{value: "overdue"}) do
   today = Date.utc_today()
   Ash.Query.filter(query, status == "pending" and due_date < ^today)
 end
 
-def filter_invoice_status(query, %{value: status}) do
-  # Standard equality for other values
+def filter_status(query, %{value: status}) do
   Ash.Query.filter(query, status == ^status)
 end
 ```
 
-### Function Signature
+The value is a map with the filter's `:type`, `:value` and `:operator`, plus `:case_sensitive`
+for text filters and `:match_mode` for multi-value ones.
 
-Custom filter functions receive:
+## Laying Out the Filters Yourself
 
-1. `query` - The current `Ash.Query`
-2. `filter_config` - Map containing `:value` and other filter options
-
-Return a modified `Ash.Query`.
-
-## Custom Controls Layout
-
-The `:controls` slot lets you customize how filters and search are rendered while keeping Cinder's state management, URL sync, and query building intact. This is useful when you need to reorder filters, add custom content between them, or use a completely different layout.
-
-### Basic Usage
-
-The slot receives a controls data map via `:let`:
+The `:controls` slot replaces how the filters and search box are laid out, while Cinder still
+handles their state, the URL, and the query:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
@@ -505,85 +393,32 @@ The slot receives a controls data map via `:let`:
 
   <:controls :let={controls}>
     <div class="flex items-center gap-4 mb-4">
-      <Cinder.Controls.render_search
-        search={controls.search}
-        theme={controls.theme}
-        target={controls.target}
-      />
-      <button phx-click="export">Export</button>
+      <Cinder.Controls.render_search search={controls.search} theme={controls.theme} target={controls.target} />
+      <button type="button" phx-click="export">Export</button>
     </div>
     <div class="grid grid-cols-2 gap-4">
       <Cinder.Controls.render_filter
-        :for={{_name, filter} <- controls.filters}
+        :for={{_field, filter} <- controls.filters}
         filter={filter}
         theme={controls.theme}
         target={controls.target}
+        raw_filter_params={controls.raw_filter_params}
       />
     </div>
   </:controls>
 </Cinder.collection>
 ```
 
-### Available Helpers
-
-- `Cinder.Controls.render_filter/1` — renders a single filter (label + input + clear button)
-- `Cinder.Controls.render_search/1` — renders the search input
-- `Cinder.Controls.render_header/1` — renders the default header (title, active count, clear all, toggle)
-
-### Controls Data Map
-
-The `:let` binding provides:
-
-| Key | Type | Description |
-|-----|------|-------------|
-| `filters` | keyword list | Filters keyed by field atom, preserving column order. Access by name: `controls.filters[:status]` |
-| `search` | map or nil | Search input data (value, name, label, placeholder, id), or nil when disabled |
-| `active_filter_count` | integer | Number of currently active filters |
-| `target` | any | LiveComponent target for `phx-target` |
-| `theme` | map | Resolved theme map |
-| `table_id` | string | DOM ID prefix |
-| `filters_label` | string | Translated label for filters section |
-| `filter_mode` | any | Current filter display mode |
-| `filter_values` | map | Shared filter values (for render helpers) |
-| `raw_filter_params` | map | Raw form params (for autocomplete filters) |
-
-### Selective Rendering
-
-Filters is a keyword list, so you can access individual filters directly by field name:
-
-```heex
-<:controls :let={controls}>
-  <Cinder.Controls.render_header {controls} />
-  <div class="flex gap-2">
-    <Cinder.Controls.render_filter
-      filter={controls.filters[:status]}
-      theme={controls.theme}
-      target={controls.target}
-    />
-    <Cinder.Controls.render_filter
-      filter={controls.filters[:name]}
-      theme={controls.theme}
-      target={controls.target}
-    />
-  </div>
-</:controls>
-```
-
-### Mixing Custom and Default Rendering
-
-You can use the render helpers for some filters and your own markup for others. As long as your custom inputs use the correct `name` attribute (e.g., `name="filters[status]"` for a field called "status"), Cinder's form handling picks them up automatically:
+Cinder wraps the slot in its filter form, so inputs named like Cinder's own
+(`filters[status]` for a field called `status`) work without anything else. That means you can
+mix the helpers with your own inputs:
 
 ```heex
 <:controls :let={controls}>
   <Cinder.Controls.render_header {controls} />
   <div class="flex gap-4">
-    <Cinder.Controls.render_filter
-      filter={controls.filters[:name]}
-      theme={controls.theme}
-      target={controls.target}
-    />
-    <%!-- Custom select with your own component --%>
-    <.my_custom_select
+    <Cinder.Controls.render_filter filter={controls.filters[:name]} theme={controls.theme} target={controls.target} />
+    <.my_select
       name="filters[status]"
       value={controls.filters[:status].value}
       options={[{"Active", "active"}, {"Inactive", "inactive"}]}
@@ -592,6 +427,25 @@ You can use the render helpers for some filters and your own markup for others. 
 </:controls>
 ```
 
-### How It Works
+### Helpers
 
-The `:controls` slot replaces the entire controls section (header + filter inputs) but **not** the form wrapper. Cinder automatically wraps your slot content in a `<form>` with `phx-change="filter_change"`, so filter state, URL sync, and query building continue to work without any extra setup.
+- `Cinder.Controls.render_filter/1`: one filter, with its label, input and clear button. Pass
+  `raw_filter_params` for autocomplete filters, so they keep what's been typed.
+- `Cinder.Controls.render_search/1`: the search box.
+- `Cinder.Controls.render_header/1`: the header, with the label, active filter count, "Clear all"
+  and the show/hide toggle.
+
+### What the Slot Receives
+
+| Key | |
+|---|---|
+| `filters` | Each filter, in column order, as a keyword list keyed by field (`controls.filters[:status]`; a relationship field is `controls.filters[:"artist.name"]`). Each holds its `field`, `label`, `type`, `value`, `options`, input `name` and `id`. |
+| `search` | The search box's `value`, `name`, `label`, `placeholder` and `id`, or `nil` when there's no search |
+| `active_filter_count` | How many filters are in use |
+| `target` | The collection, for `phx-target` |
+| `theme` | The theme |
+| `table_id` | The collection's DOM id |
+| `filters_label` | The filters section's label |
+| `filter_mode` | The `show_filters` setting |
+| `filter_values` | Every filter's current value |
+| `raw_filter_params` | The form's raw values, for autocomplete filters |
