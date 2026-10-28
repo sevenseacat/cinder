@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 
 * Cinder now requires `phoenix_live_view ~> 1.1`, and ships a colocated hook that your `app.js` must register. Run `mix cinder.upgrade 0.17.0 0.18.0`, or see the [upgrading guide](docs/upgrading.md).
 * Cinder now requires Ash 3.24.5 or later, and `ash_sql` 0.6.3 or later in apps that use it.
+* A filter that fails to build now shows the collection's error state, instead of quietly showing unfiltered results. If a collection shows its error state after upgrading, check your logs for the filter that failed.
 
 ### Features
 
@@ -52,7 +53,6 @@ SPDX-License-Identifier: MIT
 * A bulk action that partly fails now fires `on_error` instead of `on_success`.
 * Invalid bulk action events are ignored instead of crashing the collection.
 * Filter values that can't be used, like an invalid date in the URL, are ignored instead of breaking the collection.
-* A filter that fails to build now shows the error state, instead of showing unfiltered results.
 
 ### Deprecations
 
