@@ -5,7 +5,7 @@
 defmodule Cinder.MixProject do
   use Mix.Project
 
-  @version "0.17.0"
+  @version "0.18.0"
   @source_url "https://github.com/sevenseacat/cinder"
 
   def project do
@@ -82,7 +82,7 @@ defmodule Cinder.MixProject do
   end
 
   defp description do
-    "A powerful, intelligent data table component for Phoenix LiveView applications with seamless Ash Framework integration."
+    "Tables, lists and grids of Ash resources in Phoenix LiveView, with filtering, sorting, search and pagination."
   end
 
   defp package do
@@ -92,7 +92,7 @@ defmodule Cinder.MixProject do
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url, "Website" => "https://cinder.sevenseacat.net"},
       files:
-        ~w(lib priv/cinder.css priv/themes i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE LICENSES usage-rules.md)
+        ~w(lib priv/cinder.css priv/themes i18n .formatter.exs mix.exs README.md CHANGELOG.md LICENSE LICENSES REUSE.toml usage-rules.md)
     ]
   end
 

@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
-## Unreleased
+## v0.18.0 (2026-10-28)
 
 ### Breaking changes
 
