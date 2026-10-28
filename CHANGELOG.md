@@ -36,6 +36,7 @@ SPDX-License-Identifier: MIT
 * Typing in an autocomplete filter's search box no longer reloads the collection on every keystroke. Thanks @Alt-iOS! ([#246](https://github.com/sevenseacat/cinder/pull/246))
 * Clearing a date or number filter now also clears a partially typed value, and the filter's × and "Clear all" show while one is typed.
 * Radio group and autocomplete filters on enum fields now list the enum's values when no `options` are given, like select filters already did.
+* Multi-select filters on an array of an enum (or of `one_of` values) now list its values when no `options` are given.
 * Radio group filters with non-string option values (like enum atoms) now show the chosen option as selected, instead of losing it on the first click.
 * Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
 * Keyset pagination's "Next" button reads "Weiter", "Volgende" and "Nästa" in German, Dutch and Swedish, instead of "Next page".

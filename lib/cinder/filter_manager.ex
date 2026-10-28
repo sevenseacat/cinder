@@ -893,6 +893,12 @@ defmodule Cinder.FilterManager do
   """
   def extract_enum_options(nil), do: []
 
+  # An array's options are its items', and its items' constraints are under `:items`
+  def extract_enum_options(%{type: {:array, type}, constraints: constraints}) do
+    items = if Keyword.keyword?(constraints), do: Keyword.get(constraints, :items, []), else: []
+    extract_enum_options(%{type: type, constraints: items})
+  end
+
   def extract_enum_options(%{type: type, constraints: constraints}) do
     cond do
       # Handle constraint-based enums (new Ash format) - constraints can be a map or keyword list

@@ -615,6 +615,22 @@ defmodule Cinder.FilterManagerRuntimeTest do
 
       assert config.filter_options[:options] == [{"Just rock", :rock}]
     end
+
+    test "an array of an enum gets the enum's options" do
+      slot = %{filterable: true, filter_options: []}
+
+      config = FilterManager.infer_filter_config("tags", TestResourceForInference, slot)
+
+      assert config.filter_type == :multi_select
+      assert Enum.map(config.filter_options[:options], &elem(&1, 1)) == [:tag1, :tag2, :tag3]
+    end
+
+    test "an array constrained to one_of gets those options" do
+      attribute = %{type: {:array, :atom}, constraints: [items: [one_of: [:draft, :published]]]}
+
+      assert FilterManager.extract_enum_options(attribute) ==
+               [{"Draft", :draft}, {"Published", :published}]
+    end
   end
 
   describe "filter label accessibility" do
