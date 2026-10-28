@@ -378,13 +378,21 @@ defmodule Cinder.Table.FilterSlotsTest do
           value: "yes",
           label: "Featured Only",
           __slot__: :filter
+        },
+        # Autocomplete with a result limit
+        %{
+          field: "role",
+          type: :autocomplete,
+          options: [{"Admin", "admin"}],
+          max_results: 5,
+          __slot__: :filter
         }
       ]
 
       processed = Cinder.Collection.process_filter_slots(filter_slots, TestUser)
 
       # Verify all slots processed correctly
-      assert length(processed) == 7
+      assert length(processed) == 8
 
       # Check specific option extraction
       text_filter = Enum.find(processed, &(&1.field == "name"))
@@ -407,6 +415,22 @@ defmodule Cinder.Table.FilterSlotsTest do
 
       checkbox_filter = Enum.find(processed, &(&1.field == "featured"))
       assert checkbox_filter.filter_type == :checkbox
+
+      # Each option reaches the filter
+      options = Map.new(processed, &{&1.field, &1.filter_options})
+
+      assert options["name"][:operator] == :starts_with
+      assert options["name"][:case_sensitive] == true
+      assert options["name"][:placeholder] == "Enter name..."
+      assert options["active"][:labels] == %{true: "Active Only", false: "Inactive Only"}
+      assert options["status"][:prompt] == "Choose status..."
+      assert options["tags"][:match_mode] == :all
+      assert options["created_at"][:include_time] == true
+
+      assert Map.new(Keyword.take(options["price"], [:min, :max, :step])) ==
+               %{min: 0, max: 1000, step: 10}
+
+      assert options["role"][:max_results] == 5
     end
 
     test "passes filter options through to filter system" do

@@ -334,6 +334,7 @@ defmodule Cinder.Collection do
     attr(:step, :any, doc: "Step value for number range filters")
     attr(:min, :any, doc: "Minimum value for range filters")
     attr(:max, :any, doc: "Maximum value for range filters")
+    attr(:max_results, :integer, doc: "Maximum number of options an autocomplete filter shows")
     attr(:fn, :fun, doc: "Custom filter function (fn query, filter_config -> query)")
   end
 
@@ -688,6 +689,7 @@ defmodule Cinder.Collection do
           step: Map.get(slot, :step),
           min: Map.get(slot, :min),
           max: Map.get(slot, :max),
+          max_results: Map.get(slot, :max_results),
           options: filter_options,
           fn: Map.get(slot, :fn)
         ]
