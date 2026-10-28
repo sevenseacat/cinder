@@ -38,6 +38,7 @@ SPDX-License-Identifier: MIT
 * Radio group and autocomplete filters on enum fields now list the enum's values when no `options` are given, like select filters already did.
 * Radio group filters with non-string option values (like enum atoms) now show the chosen option as selected, instead of losing it on the first click.
 * Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
+* Keyset pagination's "Next" button reads "Weiter", "Volgende" and "Nästa" in German, Dutch and Swedish, instead of "Next page".
 * Sort keys sent by the client are now ignored unless they're a declared sortable column, so they can no longer create atoms or sort by fields that weren't defined as sortable.
 * Self-closing `<:col field="..." />` columns now render their field's value in table layouts, instead of crashing.
 * Page numbers from the URL are capped at 1,000,000, and multi-select values from the URL or a form are trimmed to the filter's options (or to 100 when it has none), so they can't make a query do unbounded work.

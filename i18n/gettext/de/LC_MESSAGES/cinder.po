@@ -72,9 +72,9 @@ msgid "%{total} items"
 msgstr "%{total} Elemente"
 
 #: lib/cinder/renderers/pagination.ex
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "Next"
-msgstr "Nächste Seite"
+msgstr "Weiter"
 
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen, elixir-format
