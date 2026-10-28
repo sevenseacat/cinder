@@ -381,7 +381,7 @@ defmodule Cinder.Table.FilterSlotsTest do
         },
         # Autocomplete with a result limit
         %{
-          field: "role",
+          field: "department",
           type: :autocomplete,
           options: [{"Admin", "admin"}],
           max_results: 5,
@@ -430,7 +430,7 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert Map.new(Keyword.take(options["price"], [:min, :max, :step])) ==
                %{min: 0, max: 1000, step: 10}
 
-      assert options["role"][:max_results] == 5
+      assert options["department"][:max_results] == 5
     end
 
     test "passes filter options through to filter system" do
