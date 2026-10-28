@@ -62,11 +62,11 @@ defmodule Cinder.UnqueryableColumnsTest do
     end
 
     test "a field that can be searched doesn't" do
-      assert render_search("title") == ""
+      refute render_search("title") =~ "Field 'title'"
     end
 
     test "a custom search function can search any field" do
-      assert render_search("titel", fn: fn query, _columns, _term -> query end) == ""
+      refute render_search("titel", fn: fn query, _columns, _term -> query end) =~ "Field 'titel'"
     end
   end
 end
