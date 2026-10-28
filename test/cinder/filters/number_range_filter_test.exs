@@ -3,6 +3,53 @@ defmodule Cinder.QueryBuilder.NumberRangeFilterTest do
 
   # Note: QueryBuilder alias not used directly in tests since we're testing behavior, not calling functions
 
+  describe "min, max and step" do
+    import Phoenix.LiveViewTest, only: [render_component: 2]
+
+    test "go on both inputs, from a column or a filter slot" do
+      for slots <- [
+            [
+              col: [
+                %{
+                  field: "price",
+                  filter: [type: :number_range, min: 0, max: 1000, step: 10],
+                  __slot__: :col
+                }
+              ]
+            ],
+            [
+              col: [%{field: "title", __slot__: :col}],
+              filter: [
+                %{
+                  field: "price",
+                  type: :number_range,
+                  min: 0,
+                  max: 1000,
+                  step: 10,
+                  __slot__: :filter
+                }
+              ]
+            ]
+          ] do
+        html =
+          render_component(
+            &Cinder.collection/1,
+            Map.new([id: "albums", resource: Music.Album] ++ slots)
+          )
+
+        inputs = html |> LazyHTML.from_fragment() |> LazyHTML.query(~s(input[type="number"]))
+
+        assert Enum.count(inputs) == 2
+
+        for input <- inputs do
+          assert LazyHTML.attribute(input, "min") == ["0"]
+          assert LazyHTML.attribute(input, "max") == ["1000"]
+          assert LazyHTML.attribute(input, "step") == ["10"]
+        end
+      end
+    end
+  end
+
   describe "Number Range Filter Query Building" do
     # Note: These tests focus on the logic flow and error handling
     # rather than actual Ash query execution, since that would require

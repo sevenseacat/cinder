@@ -20,11 +20,14 @@ defmodule Cinder.Filters.NumberRange do
     min_value = get_in(current_value, [:min]) || ""
     max_value = get_in(current_value, [:max]) || ""
     table_id = Map.get(assigns, :table_id)
+    options = Map.get(column, :filter_options, [])
 
     assigns = %{
       column: column,
       min_value: min_value,
       max_value: max_value,
+      # The field's bounds, so both ends of the range take them
+      bounds: [min: options[:min], max: options[:max], step: options[:step]],
       theme: theme,
       min_id: table_id && filter_id(table_id, column.field, "min"),
       max_id: table_id && filter_id(table_id, column.field, "max")
@@ -38,6 +41,7 @@ defmodule Cinder.Filters.NumberRange do
           id={@min_id}
           name={field_name(@column.field, "min")}
           value={@min_value}
+          {@bounds}
           placeholder={dgettext("cinder", "Min")}
           phx-debounce="300"
           class={@theme.filter_number_input_class}
@@ -53,6 +57,7 @@ defmodule Cinder.Filters.NumberRange do
           id={@max_id}
           name={field_name(@column.field, "max")}
           value={@max_value}
+          {@bounds}
           placeholder={dgettext("cinder", "Max")}
           phx-debounce="300"
           class={@theme.filter_number_input_class}
