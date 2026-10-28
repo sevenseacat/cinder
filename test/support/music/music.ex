@@ -36,6 +36,28 @@ defmodule Music do
   resources do
     resource(Music.Artist)
     resource(Music.Album)
+    resource(Music.User)
+  end
+end
+
+defmodule Music.User do
+  @moduledoc false
+  use Ash.Resource,
+    domain: Music,
+    data_layer: Ash.DataLayer.Ets
+
+  ets do
+    private?(false)
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+    attribute(:name, :string)
+    attribute(:email, :string, sensitive?: true)
+  end
+
+  actions do
+    defaults([:read, :destroy])
   end
 end
 

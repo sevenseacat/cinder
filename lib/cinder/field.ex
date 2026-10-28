@@ -96,6 +96,20 @@ defmodule Cinder.Field do
 
   def type(_field), do: nil
 
+  @doc "Whether the field is marked `sensitive?`, so its values are redacted where Ash's would be."
+  @spec sensitive?(t()) :: boolean()
+  def sensitive?(%{kind: kind, resource: resource, name: name})
+      when kind in [:attribute, :embedded] do
+    Ash.Resource.Info.attribute(resource, name).sensitive?
+  end
+
+  def sensitive?(%{kind: :aggregate, resource: resource, name: name}) do
+    Ash.Resource.Info.aggregate(resource, name).sensitive?
+  end
+
+  def sensitive?(%{kind: :calculation, calculation: calculation}), do: calculation.sensitive?
+  def sensitive?(_field), do: false
+
   defp resolve_path(resource, [field], relationships) do
     case String.split(field, "__") do
       [name] -> resolve_direct(resource, name, relationships)

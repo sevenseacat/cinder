@@ -23,6 +23,7 @@ SPDX-License-Identifier: MIT
 * `use Cinder.UrlSync` is now all a LiveView needs for URL sync, without a `handle_params/3` calling `Cinder.UrlSync.handle_params/3`.
 * Columns load what their fields need (relationships in the path, calculations and aggregates), so they no longer need `query_opts={[load: ...]}`. ([#122](https://github.com/sevenseacat/cinder/issues/122))
 * A column's `sort` option accepts `then`, tiebreaker fields sorted after all of the user's sorts, eg. `sort={[then: ["inserted_at"]]}`. Thanks @DGollings! ([#251](https://github.com/sevenseacat/cinder/pull/251))
+* Collections emit `[:cinder, :query]` and `[:cinder, :count]` telemetry spans, and `Ash.Tracer` spans that Ash's own nest inside, saying which collection loaded and with what filters. See the [advanced guide](docs/advanced.md).
 
 ### Bugfixes
 

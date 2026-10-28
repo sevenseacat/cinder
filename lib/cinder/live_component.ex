@@ -1225,6 +1225,7 @@ defmodule Cinder.LiveComponent do
     action = Map.get(socket.assigns, :action)
 
     options = [
+      id: socket.assigns.id,
       actor: actor,
       tenant: tenant,
       scope: scope,
@@ -1321,12 +1322,17 @@ defmodule Cinder.LiveComponent do
     assign(socket, total_count: nil, count_failed?: true)
   end
 
+  # The query is already built: the rest is for the count's telemetry
   defp count_query_options(socket) do
     [
+      id: socket.assigns.id,
       actor: socket.assigns.actor,
       tenant: socket.assigns.tenant,
       scope: Map.get(socket.assigns, :scope),
-      query_opts: socket.assigns.query_opts
+      query_opts: socket.assigns.query_opts,
+      filters: socket.assigns.filters,
+      search_term: socket.assigns.search_term,
+      columns: Map.get(socket.assigns, :query_columns, socket.assigns.columns)
     ]
   end
 end

@@ -167,6 +167,12 @@ defmodule Cinder.QueryBuilder do
   # `Ash.read` — Ash handles precedence between opts and what's already on
   # the query (per `Ash.Actions.Helpers.set_context_and_get_opts`).
   def execute(%Ash.Query{} = prepared_query, options) do
+    Cinder.Telemetry.span(:query, prepared_query, options, fn ->
+      execute_query(prepared_query, options)
+    end)
+  end
+
+  defp execute_query(prepared_query, options) do
     raw_page_size = Keyword.get(options, :page_size, 25)
     # Strip negative page sizes - use default instead
     page_size = if raw_page_size > 0, do: raw_page_size, else: 25
@@ -231,7 +237,9 @@ defmodule Cinder.QueryBuilder do
 
   @doc false
   def count(%Ash.Query{} = prepared_query, options) do
-    Ash.count(prepared_query, build_read_opts(options))
+    Cinder.Telemetry.span(:count, prepared_query, options, fn ->
+      Ash.count(prepared_query, build_read_opts(options))
+    end)
   end
 
   # Prepare the query for execution by ensuring it has an action set.

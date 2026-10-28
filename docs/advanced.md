@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 
 # Advanced Features
 
-This guide covers URL state management, relationships, embedded resources, refresh, state slots, performance, and bulk actions. For basic setup, see [Getting Started](getting-started.md).
+This guide covers URL state management, relationships, embedded resources, refresh, state slots, performance, bulk actions, and telemetry. For basic setup, see [Getting Started](getting-started.md).
 
 ## Table of Contents
 
@@ -18,7 +18,8 @@ This guide covers URL state management, relationships, embedded resources, refre
 - [Performance Optimization](#performance-optimization)
 - [Synchronous v Asynchronous Initial Data Loading](#synchronous-v-asynchronous-initial-data-loading)
 - [Query Access](#query-access)
-- [Selection & Bulk Actions](#selection--bulk-actions)
+- [Selection & Bulk Actions](#selection-bulk-actions)
+- [Telemetry & Tracing](#telemetry-tracing)
 
 **See also:** [Filters](filters.md) | [Sorting](sorting.md)
 
@@ -844,3 +845,50 @@ config :cinder, default_initial_load: :sync
 Setting the global default applies the latency cost everywhere, including pages
 behind a login where nothing benefits from it, so it is usually better to opt in
 the specific collections that need it.
+
+## Telemetry & Tracing
+
+Each time a collection loads its data, Cinder emits a [`:telemetry`](https://hexdocs.pm/telemetry) span, so you can see which collection is slow, and with what filters:
+
+- `[:cinder, :query, :start | :stop | :exception]` around reading a page of data
+- `[:cinder, :count, :start | :stop | :exception]` around the separate count query of `pagination={[count: :async]}`
+
+Measurements are the standard span ones: `system_time` and `monotonic_time` on start, and `duration` (in native time units) on stop.
+
+Metadata:
+
+- `id` - the collection's `id`
+- `resource`, `action` - what was read
+- `filters` - the applied filters, by field
+- `search_term` - the search box's value
+- `sort_by`, `page_size`, `current_page`, `pagination_mode` - on `:query` events only
+- `result` - on stop, `:ok` or `:error` (a failed read is a stop, not an exception)
+
+Ash's own `[:ash, ...]` events still fire for each read inside these spans, so you can attach to whichever you need. For example, to log slow loads:
+
+```elixir
+defmodule MyApp.SlowCollections do
+  require Logger
+
+  # Call from your application's start/2
+  def attach do
+    :telemetry.attach("slow-collections", [:cinder, :query, :stop], &__MODULE__.handle_event/4, nil)
+  end
+
+  def handle_event(_event, %{duration: duration}, metadata, _config) do
+    ms = System.convert_time_unit(duration, :native, :millisecond)
+
+    if ms > 500 do
+      Logger.warning("#{metadata.id} took #{ms}ms with filters #{inspect(metadata.filters)}")
+    end
+  end
+end
+```
+
+### Sensitive fields
+
+Filter values and search terms are things your users typed. As Ash does for errors, a filter on a field marked `sensitive?: true` (an attribute, calculation or aggregate, including through relationships) has its value replaced with `"**redacted**"`, and so does the search term when any searchable column is sensitive. Set `config :ash, :show_sensitive?, true` to see them, in development for example.
+
+### Tracing
+
+Cinder also opens an [`Ash.Tracer`](https://hexdocs.pm/ash/Ash.Tracer.html) span around each load, named `cinder:<id>:query` (or `:count`), using the same tracers as Ash: `config :ash, :tracer`, and any `tracer:` in `query_opts`. With a tracer like [`opentelemetry_ash`](https://hexdocs.pm/opentelemetry_ash), Ash's spans for the read appear nested inside Cinder's, so a trace shows which collection a query belongs to.
