@@ -510,7 +510,7 @@ defmodule Cinder.LiveComponent do
         term -> term
       end
 
-    url_sync_enabled = !!socket.assigns[:on_state_change]
+    url_sync_enabled = socket.assigns[:url_sync] == true
 
     changed? = new_filters != socket.assigns.filters or search_term != socket.assigns.search_term
 
@@ -557,7 +557,7 @@ defmodule Cinder.LiveComponent do
       )
 
     # Check if URL sync is enabled
-    url_sync_enabled = !!socket.assigns[:on_state_change]
+    url_sync_enabled = socket.assigns[:url_sync] == true
 
     socket =
       socket

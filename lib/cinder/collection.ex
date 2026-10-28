@@ -484,6 +484,7 @@ defmodule Cinder.Collection do
         page_size_config={@page_size_config}
         theme={@resolved_theme}
         url_raw_params={get_raw_url_params(@url_state)}
+        url_sync={is_map(@url_state)}
         query_opts={@query_opts}
         initial_load={@initial_load}
         on_state_change={get_state_change_handler(@url_state, @on_state_change, @id)}
