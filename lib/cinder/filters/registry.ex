@@ -10,6 +10,8 @@ defmodule Cinder.Filters.Registry do
   along with default filter type inference based on data types.
   """
 
+  require Logger
+
   @doc """
   Returns a map of all registered filter types to their implementing modules.
   """
@@ -264,9 +266,28 @@ defmodule Cinder.Filters.Registry do
   """
   def all_filters_with_custom do
     config_filters = get_config_filters()
+    built_ins = all_filters()
 
-    all_filters()
-    |> Map.merge(config_filters)
+    for {type, module} <- config_filters, Map.has_key?(built_ins, type) do
+      warn_built_in_clash(type, module)
+    end
+
+    Map.merge(built_ins, config_filters)
+  end
+
+  # The custom filter still wins, as it did when this warning came from `Cinder.setup/0`.
+  # Once per filter, as this runs on every filter lookup
+  defp warn_built_in_clash(type, module) do
+    key = {__MODULE__, :built_in_clash, type, module}
+
+    unless :persistent_term.get(key, false) do
+      :persistent_term.put(key, true)
+
+      Logger.warning(
+        "Cannot override built-in filter type :#{type}: #{inspect(module)} is used instead of " <>
+          "the built-in. Rename it in `config :cinder, :filters` to use both."
+      )
+    end
   end
 
   @doc """

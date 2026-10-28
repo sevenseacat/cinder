@@ -37,6 +37,7 @@ SPDX-License-Identifier: MIT
 * Clearing a date or number filter now also clears a partially typed value, and the filter's × and "Clear all" show while one is typed.
 * Radio group and autocomplete filters on enum fields now list the enum's values when no `options` are given, like select filters already did.
 * Multi-select filters on an array of an enum (or of `one_of` values) now list its values when no `options` are given.
+* A custom filter configured under a built-in filter's name logs its "Cannot override built-in filter type" warning when first used, so it no longer depends on `Cinder.setup/0`.
 * Radio group filters with non-string option values (like enum atoms) now show the chosen option as selected, instead of losing it on the first click.
 * Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
 * Keyset pagination's "Next" button reads "Weiter", "Volgende" and "Nästa" in German, Dutch and Swedish, instead of "Next page".
