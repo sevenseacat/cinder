@@ -115,16 +115,18 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   describe "a custom filter named like a built-in" do
-    # A module no other test configures, as the warning is logged once per module
-    @clashing Cinder.Filters.RegistryTest.ClashingDateFilter
-
     test "takes precedence, with a warning the first time" do
-      put_app_env(:filters, date: @clashing)
+      # A module name nothing else has used, even in an earlier run in this VM, as the
+      # warning is logged once per module
+      clashing =
+        Module.concat(__MODULE__, "ClashingDateFilter#{System.unique_integer([:positive])}")
+
+      put_app_env(:filters, date: clashing)
 
       log =
         capture_log(fn ->
-          assert Registry.get_filter(:date) == @clashing
-          assert Registry.get_filter(:date) == @clashing
+          assert Registry.get_filter(:date) == clashing
+          assert Registry.get_filter(:date) == clashing
         end)
 
       assert [_once] = Regex.scan(~r/Cannot override built-in filter type :date/, log)

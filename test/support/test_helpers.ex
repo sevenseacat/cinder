@@ -78,4 +78,17 @@ defmodule Cinder.TestHelpers do
       end
     end)
   end
+
+  @doc """
+  Compiles `source` with `Code.compile_string/1`, then unloads the modules it defined, so
+  compiling it again (in a repeated run, say) doesn't warn about redefining them.
+  """
+  def compile_and_unload(source) do
+    for {module, _binary} <- Code.compile_string(source) do
+      :code.delete(module)
+      :code.purge(module)
+    end
+
+    :ok
+  end
 end

@@ -2,6 +2,7 @@ defmodule Cinder.Integration.SortModeTest do
   use Cinder.ConnCase, async: false
 
   import ExUnit.CaptureIO
+  import Cinder.TestHelpers, only: [compile_and_unload: 1]
   import Phoenix.ConnTest, only: [get: 2]
   import Phoenix.LiveViewTest, only: [live: 2, element: 2, render_click: 1, assert_patch: 1]
 
@@ -44,7 +45,7 @@ defmodule Cinder.Integration.SortModeTest do
   test "sort_mode is a declared attribute, so calling the component directly doesn't warn" do
     warnings =
       capture_io(:stderr, fn ->
-        Code.compile_string("""
+        compile_and_unload("""
         defmodule Cinder.Integration.SortModeTest.DirectCall do
           use Phoenix.Component
 

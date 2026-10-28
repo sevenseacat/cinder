@@ -6,6 +6,7 @@ defmodule Cinder.DeprecationsTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
+  import Cinder.TestHelpers, only: [compile_and_unload: 1]
 
   @deprecated_calls [
     "Cinder.Table.table/1",
@@ -32,7 +33,7 @@ defmodule Cinder.DeprecationsTest do
   test "compiling a call to anything deprecated warns" do
     warnings =
       capture_io(:stderr, fn ->
-        Code.compile_string("""
+        compile_and_unload("""
         defmodule Cinder.DeprecationsTest.App do
           use Phoenix.Component
 
@@ -73,7 +74,7 @@ defmodule Cinder.DeprecationsTest do
   test "a theme's component/2 block warns" do
     warnings =
       capture_io(:stderr, fn ->
-        Code.compile_string("""
+        compile_and_unload("""
         defmodule Cinder.DeprecationsTest.Theme do
           use Cinder.Theme
 
