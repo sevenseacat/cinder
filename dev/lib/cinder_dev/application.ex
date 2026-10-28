@@ -8,6 +8,7 @@ defmodule CinderDev.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      CinderDevWeb.Telemetry,
       {Phoenix.PubSub, name: CinderDev.PubSub},
       # Start a worker by calling: CinderDev.Worker.start_link(arg)
       # {CinderDev.Worker, arg},

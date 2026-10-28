@@ -1,8 +1,8 @@
 defmodule CinderDevWeb.PaginationLive do
   @moduledoc """
-  Offset pagination with a page-size selector, and keyset pagination. Only the
-  first is URL-synced, because two URL-synced collections on one page aren't
-  supported yet.
+  Offset pagination with a page-size selector, keyset pagination, and a count run in
+  the background. Only the first is URL-synced, because two URL-synced collections on
+  one page aren't supported yet.
   """
   use CinderDevWeb, :live_view
   use Cinder.UrlSync
@@ -35,6 +35,18 @@ defmodule CinderDevWeb.PaginationLive do
         action={:paginated}
         theme={@theme}
         pagination={[mode: :keyset]}
+        page_size={10}
+      >
+        <:col :let={album} field="title" sort>{album.title}</:col>
+        <:col :let={album} field="release_date" sort>{album.release_date}</:col>
+      </Cinder.collection>
+
+      <h2 class="mt-10 text-lg font-semibold">Offset, counted in the background (not URL-synced)</h2>
+      <Cinder.collection
+        id="albums-async-count"
+        resource={Music.Album}
+        theme={@theme}
+        pagination={[count: :async]}
         page_size={10}
       >
         <:col :let={album} field="title" sort>{album.title}</:col>

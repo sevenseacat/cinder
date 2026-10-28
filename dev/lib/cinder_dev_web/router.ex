@@ -24,4 +24,15 @@ defmodule CinderDevWeb.Router do
       live "/states", StatesLive
     end
   end
+
+  # Enable LiveDashboard in development
+  if Application.compile_env(:cinder_dev, :dev_routes) do
+    import Phoenix.LiveDashboard.Router
+
+    scope "/dev" do
+      pipe_through :browser
+
+      live_dashboard "/dashboard", metrics: CinderDevWeb.Telemetry
+    end
+  end
 end
