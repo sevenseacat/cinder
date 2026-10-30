@@ -101,6 +101,7 @@ defmodule Cinder.MixProject do
       main: "readme",
       source_ref: "v#{@version}",
       source_url: @source_url,
+      logo: "logos/buddy-icon.png",
       extras: [
         "README.md",
         "docs/getting-started.md",
