@@ -101,7 +101,12 @@ defmodule Cinder.Column do
       # Create column struct
       %__MODULE__{
         field: field,
-        label: Map.get(merged_config, :label, humanize_key(field)),
+        label:
+          Map.get(
+            merged_config,
+            :label,
+            Cinder.Filter.Helpers.humanize_embedded_field(to_string(field))
+          ),
         sortable: sortable,
         filterable: filterable,
         filter_type: Map.get(merged_config, :filter_type, :text),
@@ -233,16 +238,6 @@ defmodule Cinder.Column do
       searchable: false
     }
   end
-
-  defp humanize_key(field) when is_binary(field) do
-    field
-    |> String.replace("_", " ")
-    |> String.replace(".", " > ")
-    |> String.split()
-    |> Enum.map_join(" ", &String.capitalize/1)
-  end
-
-  defp humanize_key(field), do: humanize_key(to_string(field))
 
   # Extracts the resource from either an Ash.Query struct or a resource module.
   # This allows the column parsing to work with both queries and resource modules.

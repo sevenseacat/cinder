@@ -11,6 +11,8 @@ SPDX-License-Identifier: MIT
 ### Bug fixes
 
 * The DaisyUI theme's table card now clips its rows, so a striped last row no longer spills past the rounded corners, and wide tables scroll inside the card.
+* Default column labels for embedded fields now separate each step with `>`, as relationship labels do
+* The DaisyUI theme's list and grid items now have a border, like its table, so they stand out from the page in dark themes where their shadow doesn't show
 
 ## v0.18.0 (2026-10-28)
 

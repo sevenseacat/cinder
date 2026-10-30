@@ -195,6 +195,14 @@ defmodule Cinder.ColumnTest do
 
       assert column.label == "User > Profile > Avatar"
     end
+
+    test "generates the same arrowed label for embedded fields" do
+      assert Column.parse_column(%{field: "dimensions__weight_g"}, nil).label ==
+               "Dimensions > Weight G"
+
+      assert Column.parse_column(%{field: "room.dimensions__weight_g"}, nil).label ==
+               "Room > Dimensions > Weight G"
+    end
   end
 
   describe "type inference without Ash resource" do
