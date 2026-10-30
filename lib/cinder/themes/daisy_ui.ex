@@ -18,21 +18,21 @@ defmodule Cinder.Themes.DaisyUI do
 
   # Table
   set :container_class, ""
-  set :controls_class, "card card-border shadow-sm bg-base-100 mb-4"
+  set :controls_class, "card card-body card-border shadow-sm bg-base-100 mb-4"
   set :table_wrapper_class, "card card-border shadow-sm bg-base-100 overflow-x-auto"
   set :table_class, "table table-zebra w-full"
   set :thead_class, ""
   set :tbody_class, ""
   set :header_row_class, ""
   set :row_class, ""
-  set :th_class, "text-left font-semibold whitespace-nowrap"
-  set :td_class, ""
+  set :th_class, "text-left font-semibold whitespace-nowrap px-6"
+  set :td_class, "px-6"
   set :empty_class, "text-center py-8 text-base-content/60"
   set :error_container_class, "alert alert-error"
   set :error_message_class, ""
 
   # Filters
-  set :filter_container_class, "card-body"
+  set :filter_container_class, ""
   set :filter_header_class, "card-title justify-between"
   set :filter_title_class, "flex items-center gap-2"
   set :filter_count_class, "badge badge-primary badge-sm"
@@ -99,7 +99,7 @@ defmodule Cinder.Themes.DaisyUI do
       "flex items-center px-1 text-sm font-medium text-base-content/60"
 
   # Pagination
-  set :pagination_wrapper_class, "p-4"
+  set :pagination_wrapper_class, "px-6 py-4"
   set :pagination_container_class, "flex items-center justify-between"
   set :pagination_info_class, "text-sm"
   set :pagination_count_class, "text-base-content/50 text-xs ml-2"
@@ -150,7 +150,7 @@ defmodule Cinder.Themes.DaisyUI do
   # Sort container - card-like panel matching filter styling
   set :sort_container_class, "card bg-base-100"
   # Sort controls - inner flex layout (card-body for consistent padding)
-  set :sort_controls_class, "card-body py-4 flex flex-row items-center gap-3"
+  set :sort_controls_class, "pt-4 flex flex-row items-center gap-3"
   set :sort_controls_label_class, "text-sm font-medium"
   set :sort_buttons_class, "flex gap-2"
   set :sort_button_class, "btn btn-sm"
