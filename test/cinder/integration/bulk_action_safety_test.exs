@@ -9,7 +9,14 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
   import Phoenix.ConnTest, only: [get: 2]
 
   import Phoenix.LiveViewTest,
-    only: [live: 2, render: 1, render_async: 1, render_click: 3, with_target: 2]
+    only: [
+      has_element?: 2,
+      live: 2,
+      render: 1,
+      render_async: 1,
+      render_click: 3,
+      with_target: 2
+    ]
 
   alias Cinder.TestLive.Fixture
 
@@ -36,13 +43,16 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
     path =
       Fixture.register(
         fn assigns ->
-          assigns = assign(assigns, :base_query, assigns[:base_query] || base_query)
+          assigns =
+            assigns
+            |> assign(:base_query, assigns[:base_query] || base_query)
+            |> assign(:selectable, Map.get(assigns, :selectable, true))
 
           ~H"""
           <Cinder.collection
             id="albums"
             query={@base_query}
-            selectable
+            selectable={@selectable}
             on_selection_change={:selection_changed}
           >
             <:col :let={album} field="title">{album.title}</:col>
@@ -105,6 +115,25 @@ defmodule Cinder.Integration.BulkActionSafetyTest do
     render_async(view)
 
     assert_receive {:selection_changed, %{selected_count: 0, action: :clear}}, 1000
+    event(view, "bulk_action_execute", %{"index" => 0})
+    refute remastered?(albums["Alpha"])
+  end
+
+  test "turning selection off clears it, so it doesn't come back when turned on", %{
+    conn: conn,
+    albums: albums
+  } do
+    view = mount(conn, Music.Album)
+    selected_row = ~s([data-item-id="#{albums["Alpha"].id}"].bg-blue-50)
+    select(view, albums["Alpha"])
+    assert_receive {:selection_changed, %{selected_count: 1}}, 1000
+    assert has_element?(view, selected_row)
+
+    Fixture.run(view, &assign(&1, :selectable, false))
+    assert_receive {:selection_changed, %{selected_count: 0, action: :clear}}, 1000
+    refute has_element?(view, selected_row)
+
+    Fixture.run(view, &assign(&1, :selectable, true))
     event(view, "bulk_action_execute", %{"index" => 0})
     refute remastered?(albums["Alpha"])
   end

@@ -152,7 +152,7 @@ defmodule Cinder.LiveComponent do
       |> assign_column_definitions()
       |> decode_url_state(assigns)
       |> load_data_if_needed(prev_state)
-      |> clear_selection_if_scope_changed(prev_state)
+      |> clear_stale_selection(prev_state)
 
     {:ok, socket}
   end
@@ -163,11 +163,16 @@ defmodule Cinder.LiveComponent do
   # selection made in the old one is cleared: otherwise it would count records the
   # bulk actions can no longer reach. The user's own filters, sort and page are left
   # alone, since a selection is meant to survive those.
-  defp clear_selection_if_scope_changed(socket, prev_state) do
+  #
+  # Turning selection off clears it too: otherwise the rows still show as
+  # selected, and the old selection comes back if it's turned on again.
+  defp clear_stale_selection(socket, prev_state) do
     scope_changed? =
       Map.take(data_state(socket.assigns), @scope_keys) != Map.take(prev_state, @scope_keys)
 
-    if scope_changed? and MapSet.size(socket.assigns[:selected_ids] || MapSet.new()) > 0 do
+    clear? = scope_changed? or not Cinder.Selection.enabled?(socket.assigns[:selectable])
+
+    if clear? and MapSet.size(socket.assigns[:selected_ids] || MapSet.new()) > 0 do
       socket
       |> assign(:selected_ids, MapSet.new())
       |> notify_selection_change(:clear)
