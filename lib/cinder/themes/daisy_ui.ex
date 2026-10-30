@@ -18,7 +18,7 @@ defmodule Cinder.Themes.DaisyUI do
 
   # Table
   set :container_class, ""
-  set :controls_class, "card card-sm card-border bg-base-100 mb-4"
+  set :controls_class, "card card-border shadow-sm bg-base-100 mb-4"
   set :table_wrapper_class, "card card-border bg-base-100 overflow-x-auto"
   set :table_class, "table table-zebra w-full"
   set :thead_class, ""
@@ -139,8 +139,8 @@ defmodule Cinder.Themes.DaisyUI do
   set :loading_spinner_path_class, ""
 
   # List
-  set :list_container_class, "space-y-4 px-4"
-  set :list_item_class, "card card-body bg-base-100 shadow-md text-base-content"
+  set :list_container_class, "space-y-4"
+  set :list_item_class, "card card-border card-body bg-base-100 shadow-sm text-base-content"
 
   set :list_item_clickable_class,
       "cursor-pointer hover:shadow-lg transition-shadow"
@@ -156,8 +156,8 @@ defmodule Cinder.Themes.DaisyUI do
   set :sort_button_inactive_class, "btn-ghost"
 
   # Grid
-  set :grid_container_class, "grid gap-4 px-4"
-  set :grid_item_class, "card card-body bg-base-100 shadow-md text-base-content"
+  set :grid_container_class, "grid gap-4"
+  set :grid_item_class, "card card-border card-body bg-base-100 shadow-sm text-base-content"
 
   set :grid_item_clickable_class,
       "cursor-pointer hover:shadow-lg transition-shadow"
