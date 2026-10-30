@@ -159,6 +159,18 @@ defmodule Cinder.ThemeVerificationTest do
     end
   end
 
+  describe "table wrapper styling" do
+    # Without overflow, striped or hovered rows paint past a rounded wrapper's
+    # corners, and wide tables spill out of it.
+    for theme_module <- @themes do
+      test "#{theme_module} table wrapper clips and scrolls its table" do
+        theme = unquote(theme_module).resolve_theme()
+
+        assert theme[:table_wrapper_class] =~ ~r/\boverflow-x-auto\b/
+      end
+    end
+  end
+
   describe "pagination wrapper styling" do
     for theme_module <- @themes do
       test "#{theme_module} pagination wrapper is minimal and clean" do

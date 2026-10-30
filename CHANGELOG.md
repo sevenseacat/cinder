@@ -6,6 +6,12 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* The DaisyUI theme's table card now clips its rows, so a striped last row no longer spills past the rounded corners, and wide tables scroll inside the card.
+
 ## v0.18.0 (2026-10-28)
 
 ### Breaking changes

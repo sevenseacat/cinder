@@ -19,7 +19,7 @@ defmodule Cinder.Themes.DaisyUI do
   # Table
   set :container_class, ""
   set :controls_class, "card card-sm card-border bg-base-100 mb-4"
-  set :table_wrapper_class, "card card-border bg-base-100"
+  set :table_wrapper_class, "card card-border bg-base-100 overflow-x-auto"
   set :table_class, "table table-zebra w-full"
   set :thead_class, ""
   set :tbody_class, ""
