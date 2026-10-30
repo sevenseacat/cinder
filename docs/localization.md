@@ -35,6 +35,21 @@ defmodule MyAppWeb.UserLive.Index do
 end
 ```
 
+## Changing the Language on a Mounted Page
+
+Cinder translates its text as it renders, and LiveView only re-renders what depends on changed
+assigns, so after a locale change on a mounted page some of Cinder's text stays in the old
+language. Give the collection a new `id` when the locale changes, so it starts afresh:
+
+```heex
+<Cinder.collection id={"users-#{@locale}"} resource={MyApp.User}>
+  <:col :let={user} field="name">{user.name}</:col>
+</Cinder.collection>
+```
+
+The new collection starts on its first page with no filters, unless it uses URL sync, which
+restores them from the URL.
+
 ## Using Your Own Translations
 
 To change Cinder's text, or translate it into another language, point Cinder at your app's
