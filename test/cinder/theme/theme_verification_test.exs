@@ -203,6 +203,7 @@ defmodule Cinder.ThemeVerificationTest do
 
         # Should have padding for spacing
         assert String.contains?(pagination_wrapper, "p-") or
+                 String.contains?(pagination_wrapper, "px-") or
                  String.contains?(pagination_wrapper, "padding"),
                "#{unquote(theme_module)} pagination wrapper should include padding for proper spacing"
       end

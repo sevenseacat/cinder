@@ -122,7 +122,7 @@ defmodule Cinder.Themes.DaisyUI do
 
   # Search
   set :search_input_class,
-      "input input-bordered w-full pl-10"
+      "input input-bordered w-48 pl-10"
 
   set :search_icon_class, "w-4 h-4"
 
