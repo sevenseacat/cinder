@@ -19,7 +19,7 @@ defmodule Cinder.Themes.DaisyUI do
   # Table
   set :container_class, ""
   set :controls_class, "card card-border shadow-sm bg-base-100 mb-4"
-  set :table_wrapper_class, "card card-border bg-base-100 overflow-x-auto"
+  set :table_wrapper_class, "card card-border shadow-sm bg-base-100 overflow-x-auto"
   set :table_class, "table table-zebra w-full"
   set :thead_class, ""
   set :tbody_class, ""
@@ -108,13 +108,15 @@ defmodule Cinder.Themes.DaisyUI do
   set :pagination_current_class, "btn btn-primary btn-sm"
   set :page_size_container_class, "flex items-center space-x-2"
   set :page_size_label_class, "text-base-content/70 text-sm"
-  set :page_size_dropdown_class, "btn btn-sm btn-outline flex items-center cursor-pointer"
+
+  set :page_size_dropdown_class,
+      "select select-bordered select-sm flex items-center cursor-pointer [&_svg]:hidden"
 
   set :page_size_dropdown_container_class,
-      "bg-base-100 border border-base-300 rounded-box shadow-lg"
+      "bg-base-100 border border-base-300 rounded-box shadow-lg overflow-hidden"
 
   set :page_size_option_class,
-      "w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer"
+      "w-full text-left px-3 py-2 text-sm hover:bg-base-200 hover:text-base-content cursor-pointer"
 
   set :page_size_selected_class, "bg-primary text-primary-content"
 

@@ -172,7 +172,7 @@ defmodule Cinder.Themes.Futuristic do
       "flex items-center px-3 py-1 text-sm font-light text-blue-100 bg-slate-900/60 border border-blue-500/40 rounded hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:border-green-400/60 hover:shadow-lg hover:shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition-all duration-300 cursor-pointer tracking-wide backdrop-blur-sm"
 
   set :page_size_dropdown_container_class,
-      "bg-slate-950 border border-blue-500/60 rounded shadow-xl shadow-blue-500/30 backdrop-blur-sm"
+      "bg-slate-950 border border-blue-500/60 rounded shadow-xl shadow-blue-500/30 backdrop-blur-sm overflow-hidden"
 
   set :page_size_option_class,
       "w-full text-left px-3 py-2 text-sm font-light text-blue-100 hover:bg-gradient-to-r hover:from-blue-900/60 hover:to-green-900/60 hover:text-green-400 cursor-pointer tracking-wide"

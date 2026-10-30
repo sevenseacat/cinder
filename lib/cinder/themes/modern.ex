@@ -149,7 +149,8 @@ defmodule Cinder.Themes.Modern do
   set :page_size_dropdown_class,
       "flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-150 cursor-pointer"
 
-  set :page_size_dropdown_container_class, "bg-white border border-gray-300 rounded shadow-lg"
+  set :page_size_dropdown_container_class,
+      "bg-white border border-gray-300 rounded shadow-lg overflow-hidden"
 
   set :page_size_option_class,
       "w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"

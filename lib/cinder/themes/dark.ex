@@ -158,7 +158,7 @@ defmodule Cinder.Themes.Dark do
       "flex items-center px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded hover:bg-gray-700 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 cursor-pointer"
 
   set :page_size_dropdown_container_class,
-      "bg-gray-800 border border-gray-600 rounded shadow-lg"
+      "bg-gray-800 border border-gray-600 rounded shadow-lg overflow-hidden"
 
   set :page_size_option_class,
       "w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer"

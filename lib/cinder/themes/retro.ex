@@ -173,7 +173,7 @@ defmodule Cinder.Themes.Retro do
       "flex items-center px-4 py-2 text-sm font-bold text-cyan-100 bg-gray-800 border-2 border-cyan-400 rounded hover:bg-fuchsia-800 hover:border-fuchsia-400 hover:shadow-lg hover:shadow-fuchsia-400/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 cursor-pointer uppercase tracking-wide"
 
   set :page_size_dropdown_container_class,
-      "bg-gray-800 border-2 border-cyan-400 rounded shadow-lg shadow-cyan-400/20"
+      "bg-gray-800 border-2 border-cyan-400 rounded shadow-lg shadow-cyan-400/20 overflow-hidden"
 
   set :page_size_option_class,
       "w-full text-left px-4 py-2 text-sm font-bold text-cyan-100 hover:bg-fuchsia-800 hover:border-fuchsia-400 hover:text-yellow-400 cursor-pointer uppercase tracking-wide"

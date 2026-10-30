@@ -168,6 +168,20 @@ defmodule Cinder.ThemeVerificationTest do
 
         assert theme[:table_wrapper_class] =~ ~r/\boverflow-x-auto\b/
       end
+
+      test "#{theme_module} page size dropdown clips its options to its corners" do
+        theme = unquote(theme_module).resolve_theme()
+
+        assert theme[:page_size_dropdown_container_class] =~ ~r/\boverflow-(hidden|auto)\b/
+      end
+    end
+
+    # The selected option's text colour is meant for its own background, and the
+    # hover background replaces that
+    test "DaisyUI page size options reset their text colour on hover" do
+      theme = Cinder.Themes.DaisyUI.resolve_theme()
+
+      assert theme[:page_size_option_class] =~ ~r/\bhover:text-/
     end
   end
 
