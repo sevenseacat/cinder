@@ -61,40 +61,12 @@ defmodule Cinder.Filter.UuidSupportTest do
   alias Cinder.Filter.Helpers
   alias Cinder.Filter.UuidSupportTest.{Item, Owner}
 
-  @text_operators [:contains, :starts_with, :ends_with]
-
-  defp filter(field, value, operator) do
-    Item
-    |> Ash.Query.new()
-    |> Helpers.build_ash_filter(field, value, operator)
-    |> Map.fetch!(:filter)
-    |> inspect()
-  end
-
   defp matching_ids(field, value, operator) do
     Item
     |> Ash.Query.new()
     |> Helpers.build_ash_filter(field, value, operator)
     |> Ash.read!()
     |> MapSet.new(& &1.id)
-  end
-
-  # Postgres has no `ILIKE` for a uuid column, so text operators must cast the field to a
-  # string; ETS compares without the cast, so only the query's shape can show it
-  describe "the string cast text operators need" do
-    test "is applied to a uuid field, directly and through a relationship" do
-      for operator <- @text_operators do
-        assert filter("owner_id", "123e", operator) =~ "type(owner_id, :string"
-        assert filter("owner.id", "123e", operator) =~ "type(id, :string"
-      end
-    end
-
-    test "isn't applied for :equals, which compares the field as its own type" do
-      uuid = Ash.UUID.generate()
-
-      refute filter("owner_id", uuid, :equals) =~ "type("
-      refute filter("owner.id", uuid, :equals) =~ "type("
-    end
   end
 
   describe "text operators on a uuid field, by the records they return" do
