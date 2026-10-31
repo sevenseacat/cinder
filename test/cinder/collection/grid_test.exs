@@ -205,19 +205,6 @@ defmodule Cinder.Collection.GridTest do
   end
 
   describe "layout string support" do
-    test "layout=\"table\" works" do
-      assigns = %{
-        resource: TestProduct,
-        actor: nil,
-        layout: "table",
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      assert html =~ "cinder-table"
-    end
-
     test "layout=\"list\" works" do
       assigns = %{
         resource: TestProduct,

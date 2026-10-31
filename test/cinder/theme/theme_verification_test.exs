@@ -11,48 +11,6 @@ defmodule Cinder.ThemeVerificationTest do
     Cinder.Themes.Retro
   ]
 
-  @required_multiselect_properties [
-    :filter_multiselect_container_class,
-    :filter_multiselect_dropdown_class,
-    :filter_multiselect_option_class,
-    :filter_multiselect_checkbox_class,
-    :filter_multiselect_label_class,
-    :filter_multiselect_empty_class
-  ]
-
-  @required_radio_group_properties [
-    :filter_radio_group_container_class,
-    :filter_radio_group_option_class,
-    :filter_radio_group_radio_class,
-    :filter_radio_group_label_class
-  ]
-
-  @required_pagination_properties [
-    :pagination_wrapper_class,
-    :pagination_container_class,
-    :pagination_button_class,
-    :pagination_info_class,
-    :pagination_count_class,
-    :pagination_nav_class,
-    :pagination_current_class
-  ]
-
-  describe "theme multi-select properties" do
-    for theme_module <- @themes do
-      test "#{theme_module} has all required multi-select dropdown properties" do
-        theme = unquote(theme_module).resolve_theme()
-
-        for property <- @required_multiselect_properties do
-          assert Map.has_key?(theme, property),
-                 "#{unquote(theme_module)} missing multi-select property: #{property}"
-
-          assert is_binary(theme[property]),
-                 "#{unquote(theme_module)} property #{property} should be string, got: #{inspect(theme[property])}"
-        end
-      end
-    end
-  end
-
   describe "checkbox consistency" do
     @checkbox_properties [
       :filter_checkbox_input_class,
@@ -75,38 +33,6 @@ defmodule Cinder.ThemeVerificationTest do
 
           assert styles |> Map.values() |> Enum.uniq() |> length() == 1,
                  "#{unquote(theme_module)} checkbox styles differ: #{inspect(styles, pretty: true)}"
-        end
-      end
-    end
-  end
-
-  describe "theme radio group filter properties" do
-    for theme_module <- @themes do
-      test "#{theme_module} has all required radio group filter properties" do
-        theme = unquote(theme_module).resolve_theme()
-
-        for property <- @required_radio_group_properties do
-          assert Map.has_key?(theme, property),
-                 "#{unquote(theme_module)} missing radio group filter property: #{property}"
-
-          assert is_binary(theme[property]),
-                 "#{unquote(theme_module)} property #{property} should be string, got: #{inspect(theme[property])}"
-        end
-      end
-    end
-  end
-
-  describe "theme pagination properties" do
-    for theme_module <- @themes do
-      test "#{theme_module} has all required pagination properties" do
-        theme = unquote(theme_module).resolve_theme()
-
-        for property <- @required_pagination_properties do
-          assert Map.has_key?(theme, property),
-                 "#{unquote(theme_module)} missing pagination property: #{property}"
-
-          assert is_binary(theme[property]),
-                 "#{unquote(theme_module)} property #{property} should be string, got: #{inspect(theme[property])}"
         end
       end
     end

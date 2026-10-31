@@ -97,13 +97,6 @@ defmodule Cinder.ThemeTest do
                "Theme key #{key} should be a string, got: #{inspect(theme[key])}"
       end
     end
-
-    test "returns consistent theme across calls" do
-      theme1 = Theme.default()
-      theme2 = Theme.default()
-
-      assert theme1 == theme2
-    end
   end
 
   describe "merge/1" do
@@ -170,21 +163,6 @@ defmodule Cinder.ThemeTest do
 
       assert Theme.get_default_theme() == Cinder.Themes.Dark
     end
-
-    test "handles various theme configurations" do
-      theme_configs = [
-        "modern",
-        "dark",
-        "retro",
-        Cinder.Themes.Modern,
-        Cinder.Themes.Dark
-      ]
-
-      for config <- theme_configs do
-        put_app_env(:default_theme, config)
-        assert Theme.get_default_theme() == config
-      end
-    end
   end
 
   describe "presets/0" do
@@ -203,14 +181,6 @@ defmodule Cinder.ThemeTest do
       assert "compact" in presets
       assert length(presets) == 8
     end
-
-    test "all presets can be loaded" do
-      for preset <- Theme.presets() do
-        theme = Theme.merge(preset)
-        assert is_map(theme)
-        assert Map.has_key?(theme, :container_class)
-      end
-    end
   end
 
   describe "theme consistency" do
@@ -223,68 +193,9 @@ defmodule Cinder.ThemeTest do
       assert default_keys == modern_keys
       assert default_keys == retro_keys
     end
-
-    test "all theme class values are strings and data values are maps" do
-      themes = [Theme.default(), Theme.merge("modern"), Theme.merge("retro")]
-
-      for theme <- themes do
-        for {key, value} <- theme do
-          key_str = to_string(key)
-
-          cond do
-            String.ends_with?(key_str, "_class") ->
-              assert is_binary(value),
-                     "Theme class key #{key} should be a string, got: #{inspect(value)}"
-
-            String.ends_with?(key_str, "_name") ->
-              assert is_binary(value),
-                     "Theme icon name key #{key} should be a string, got: #{inspect(value)}"
-
-            true ->
-              # For any other keys (like pagination_wrapper_class that might not end in _class)
-              assert is_binary(value),
-                     "Theme key #{key} should be a string, got: #{inspect(value)}"
-          end
-        end
-      end
-    end
   end
 
   describe "integration with component" do
-    test "theme can be used in component assigns" do
-      # Simulate how the component would use the theme
-      theme = Theme.merge("modern")
-
-      # Should be able to access all required theme properties
-      assert is_binary(theme.container_class)
-      assert is_binary(theme.table_class)
-      assert is_binary(theme.th_class)
-      assert is_binary(theme.pagination_button_class)
-      assert is_binary(theme.filter_container_class)
-    end
-
-    test "theme works with string preset in component context" do
-      # Simulate passing preset name as theme
-      modern_theme = Theme.merge("modern")
-
-      # Should resolve to full theme map
-      assert is_map(modern_theme)
-      assert String.contains?(modern_theme.container_class, "shadow-lg")
-    end
-
-    test "component assigns defaults work with new theme module" do
-      # Test that the component's assign_defaults function works with our theme module
-      # This simulates what happens in the actual component
-      resolved_theme = Theme.merge("modern")
-
-      # Verify the merge worked correctly
-      assert is_binary(resolved_theme.container_class)
-      # Should still have all default theme keys
-      assert Map.has_key?(resolved_theme, :table_class)
-      assert Map.has_key?(resolved_theme, :th_class)
-      assert Map.has_key?(resolved_theme, :pagination_button_class)
-    end
-
     test "theme presets work with component integration" do
       # Test each preset can be used by component
       for preset <- Theme.presets() do

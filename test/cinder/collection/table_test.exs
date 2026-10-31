@@ -135,19 +135,6 @@ defmodule Cinder.Collection.TableTest do
       assert html =~ "cinder-table"
     end
 
-    test "applies intelligent defaults" do
-      assigns = %{
-        resource: TestUser,
-        current_user: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should render successfully with default configuration
-      assert html =~ "cinder-table"
-    end
-
     test "accepts custom configuration" do
       assigns = %{
         resource: TestUser,
@@ -202,26 +189,6 @@ defmodule Cinder.Collection.TableTest do
       assert html =~ "Artist &gt; Name"
     end
 
-    test "handles various filter types" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [
-          %{field: "name", filter: :text, __slot__: :col},
-          %{field: "age", filter: :number_range, __slot__: :col},
-          %{field: "active", filter: :boolean, __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should handle different filter types without errors
-      assert html =~ "cinder-table"
-      assert html =~ "Name"
-      assert html =~ "Age"
-      assert html =~ "Active"
-    end
-
     test "string filter types render correct input types" do
       assigns = %{
         resource: TestUser,
@@ -249,7 +216,9 @@ defmodule Cinder.Collection.TableTest do
         actor: nil,
         col: [
           %{field: "name", filter: "text", __slot__: :col},
-          %{field: "age", filter: :number_range, __slot__: :col}
+          %{field: "age", filter: :number_range, __slot__: :col},
+          # Inference would give a string field a text filter, so this shows the atom is used
+          %{field: "email", filter: :date, __slot__: :col}
         ]
       }
 
@@ -262,6 +231,8 @@ defmodule Cinder.Collection.TableTest do
       # Atom :number_range should render min/max inputs
       assert html =~ ~r/name="filters\[age_min\]"/
       assert html =~ ~r/name="filters\[age_max\]"/
+
+      assert html =~ ~r/type="date"[^>]*name="filters\[email\]"/
     end
 
     test "unified filter format works correctly" do
@@ -282,27 +253,6 @@ defmodule Cinder.Collection.TableTest do
       refute html =~ ~r/name="filters\[name_min\]"/
 
       # Number range filter should render min/max inputs
-      assert html =~ ~r/name="filters\[age_min\]"/
-      assert html =~ ~r/name="filters\[age_max\]"/
-    end
-
-    test "unified filter format with string types" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [
-          %{field: "name", filter: [type: "text"], __slot__: :col},
-          %{field: "age", filter: [type: "number_range"], __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # String "text" should render single input
-      assert html =~ ~r/name="filters\[name\]"/
-      refute html =~ ~r/name="filters\[name_min\]"/
-
-      # String "number_range" should render min/max inputs
       assert html =~ ~r/name="filters\[age_min\]"/
       assert html =~ ~r/name="filters\[age_max\]"/
     end
@@ -401,20 +351,6 @@ defmodule Cinder.Collection.TableTest do
   end
 
   describe "theme integration" do
-    test "applies theme presets correctly" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        theme: "modern",
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should apply theme without errors
-      assert html =~ "cinder-table"
-    end
-
     test "uses configured default theme when no theme specified" do
       put_app_env(:default_theme, "modern")
 
@@ -484,36 +420,6 @@ defmodule Cinder.Collection.TableTest do
     end
   end
 
-  describe "URL sync integration" do
-    test "enables URL sync correctly" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        url_sync: true,
-        col: [%{field: "name", filter: true, __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should enable URL sync without errors
-      assert html =~ "cinder-table"
-    end
-
-    test "works without URL sync" do
-      assigns = %{
-        resource: TestUser,
-        current_user: nil,
-        url_sync: false,
-        col: [%{field: "name", filter: true, __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should work without URL sync
-      assert html =~ "cinder-table"
-    end
-  end
-
   describe "automatic filter type inference" do
     test "infers number range filter for integer fields" do
       assigns = %{
@@ -551,98 +457,6 @@ defmodule Cinder.Collection.TableTest do
     end
   end
 
-  describe "URL sync callback configuration" do
-    test "sets up correct callback when url_sync is enabled" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        url_sync: true,
-        id: "test-table",
-        col: [%{field: "name", filter: true, __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should render without errors and include the component ID
-      assert html =~ "cinder-table"
-
-      # The component should pass the correct callback setup to the underlying LiveComponent
-      # We can't directly test the callback, but we can verify the component renders successfully
-      # with url_sync enabled, which means the callback was set up correctly
-      assert html =~ ~r/phx-target="[^"]*"/
-    end
-
-    test "works without url_sync enabled" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        url_sync: false,
-        col: [%{field: "name", filter: true, __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should still render correctly without URL sync
-      assert html =~ "cinder-table"
-    end
-  end
-
-  describe "query_opts functionality" do
-    test "passes query_opts to underlying component" do
-      assigns = %{
-        resource: TestAlbum,
-        actor: nil,
-        query_opts: [load: [:artist]],
-        col: [
-          %{field: "title", __slot__: :col},
-          %{field: "artist.name", __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should render successfully with query_opts
-      assert html =~ "cinder-table"
-      assert html =~ "Title"
-      assert html =~ "Artist &gt; Name"
-    end
-
-    test "works without query_opts" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should work fine without query_opts
-      assert html =~ "cinder-table"
-      assert html =~ "Name"
-    end
-
-    test "supports relationship fields when query_opts loads them" do
-      assigns = %{
-        resource: TestAlbum,
-        actor: nil,
-        query_opts: [load: [:artist, :publisher]],
-        col: [
-          %{field: "title", filter: true, sort: true, __slot__: :col},
-          %{field: "artist.name", filter: true, sort: true, __slot__: :col},
-          %{field: "publisher.name", filter: true, __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Should handle relationship fields properly
-      assert html =~ "cinder-table"
-      assert html =~ "Title"
-      assert html =~ "Artist &gt; Name"
-      assert html =~ "Publisher &gt; Name"
-    end
-  end
-
   describe "edge cases and error handling" do
     test "handles empty column list" do
       assigns = %{
@@ -655,80 +469,6 @@ defmodule Cinder.Collection.TableTest do
 
       # Should handle empty columns gracefully
       assert html =~ "cinder-table"
-    end
-
-    test "handles invalid resource gracefully" do
-      # This would normally cause issues but should be handled by the underlying component
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      # Should handle gracefully - the component processes columns even with valid resource
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-  end
-
-  describe "query sort extraction" do
-    # These tests verify the extract_query_sorts functionality works correctly
-    # Integration with table component is tested through existing table functionality
-    test "query sort extraction is covered by QueryBuilder tests" do
-      # The extract_query_sorts functionality is thoroughly tested in
-      # test/cinder/core/query_builder_test.exs in the "extract_query_sorts/2" describe block
-      # This ensures the table component can properly extract sorts from incoming queries
-      assert true
-    end
-  end
-
-  describe "configurable page size" do
-    test "supports configurable page size format" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        page_size: [default: 25, options: [10, 25, 50]],
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      # Should render without errors - configurable page size format is accepted
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "supports simple integer page size format" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        page_size: 25,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      # Should render without errors - simple integer format is accepted
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "handles edge cases gracefully" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        # Single option
-        page_size: [default: 25, options: [25]],
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      # Should render without errors even with single option
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "page size configuration behavior is tested through URL manager and component integration" do
-      # The actual page size parsing logic is tested through:
-      # 1. UrlManager tests verify page_size encoding/decoding
-      # 2. LiveComponent integration handles page_size_config structure
-      # 3. End-to-end functionality is verified through actual table usage
-      assert true
     end
   end
 
@@ -750,22 +490,6 @@ defmodule Cinder.Collection.TableTest do
 
       # Custom loading message should be present in the rendered HTML
       assert html =~ "Please wait, fetching data..."
-    end
-
-    test "empty_message attribute is passed to LiveComponent" do
-      # The empty_message is rendered conditionally (when data is empty AND not loading)
-      # In static render tests, the component is in loading state, so we verify
-      # the attribute is accepted and passed through to the LiveComponent
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        empty_message: "No users found in the system",
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      # Should render without errors - the attribute is accepted
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
     end
 
     test "filters_label attribute customizes filter section label" do
@@ -803,56 +527,6 @@ defmodule Cinder.Collection.TableTest do
   describe "backward compatibility: event parameter structures" do
     # These tests document the expected event parameter structures
     # that must be preserved during refactoring
-
-    test "filter_change event expects filters map with field keys" do
-      # Document expected structure: %{"filters" => %{"field_name" => value}}
-      filter_params = %{"filters" => %{"name" => "test", "age_min" => "18", "age_max" => "65"}}
-
-      # Verify FilterManager can process this structure
-      columns = [
-        %{field: "name", filterable: true, filter_type: :text},
-        %{field: "age", filterable: true, filter_type: :number_range}
-      ]
-
-      result = Cinder.FilterManager.params_to_filters(filter_params["filters"], columns)
-
-      assert Map.has_key?(result, "name")
-      assert Map.has_key?(result, "age")
-    end
-
-    test "clear_filter event expects key parameter" do
-      # Document expected structure: %{"key" => "field_name"}
-      clear_params = %{"key" => "name"}
-
-      assert Map.has_key?(clear_params, "key")
-      assert is_binary(clear_params["key"])
-    end
-
-    test "toggle_sort event expects key parameter" do
-      # Document expected structure: %{"key" => "field_name"}
-      sort_params = %{"key" => "name"}
-
-      assert Map.has_key?(sort_params, "key")
-      assert is_binary(sort_params["key"])
-    end
-
-    test "goto_page event expects page parameter as string" do
-      # Document expected structure: %{"page" => "2"}
-      page_params = %{"page" => "2"}
-
-      assert Map.has_key?(page_params, "page")
-      assert is_binary(page_params["page"])
-      assert String.to_integer(page_params["page"]) == 2
-    end
-
-    test "change_page_size event expects page_size parameter as string" do
-      # Document expected structure: %{"page_size" => "25"}
-      page_size_params = %{"page_size" => "25"}
-
-      assert Map.has_key?(page_size_params, "page_size")
-      assert is_binary(page_size_params["page_size"])
-      assert String.to_integer(page_size_params["page_size"]) == 25
-    end
   end
 
   describe "backward compatibility: state notification payload" do

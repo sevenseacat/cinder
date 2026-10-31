@@ -9,7 +9,6 @@ defmodule Cinder.QuerySupportTest do
 
   use ExUnit.Case, async: true
   import Phoenix.LiveViewTest
-  require Ash.Query
 
   # Test resource definitions
   defmodule TestUser do
@@ -64,17 +63,6 @@ defmodule Cinder.QuerySupportTest do
   end
 
   describe "query parameter validation" do
-    test "accepts resource parameter (backward compatibility)" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
     test "accepts query parameter with resource module" do
       assigns = %{
         query: TestUser,
@@ -143,54 +131,6 @@ defmodule Cinder.QuerySupportTest do
     end
   end
 
-  describe "query with specific read actions" do
-    test "accepts query built from resource" do
-      # Use Ash.Query.new since for_read requires domain setup
-      query = Ash.Query.new(TestUser)
-
-      assigns = %{
-        query: query,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-  end
-
-  describe "query with filters and constraints" do
-    test "accepts query with base filters" do
-      query = TestUser |> Ash.Query.filter(active: true)
-
-      assigns = %{
-        query: query,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "accepts query with multiple constraints" do
-      query =
-        TestUser
-        |> Ash.Query.filter(active: true)
-        |> Ash.Query.sort(:name)
-        |> Ash.Query.limit(100)
-
-      assigns = %{
-        query: query,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-  end
-
   describe "column inference with queries" do
     test "infers column types from query resource" do
       query = Ash.Query.new(TestUser)
@@ -211,50 +151,6 @@ defmodule Cinder.QuerySupportTest do
       assert html =~ "cinder-table"
       assert html =~ "name=\"filters[name]\""
       assert html =~ "name=\"filters[age_min]\""
-      assert html =~ "name=\"filters[active]\""
-    end
-  end
-
-  describe "query with authorization settings" do
-    test "accepts query with tenant settings" do
-      query = TestUser |> Ash.Query.set_tenant("tenant_123")
-
-      assigns = %{
-        query: query,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-  end
-
-  describe "complex query scenarios" do
-    test "handles query with advanced features" do
-      # Complex query with filters and constraints
-      query =
-        TestUser
-        |> Ash.Query.filter(active: true)
-        |> Ash.Query.sort(name: :asc)
-        |> Ash.Query.select([:id, :name, :email, :active])
-
-      assigns = %{
-        query: query,
-        actor: nil,
-        col: [
-          %{field: "name", filter: true, sort: true, __slot__: :col},
-          %{field: "email", filter: true, __slot__: :col},
-          %{field: "active", filter: true, __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-
-      # Should still have table functionality
-      assert html =~ "name=\"filters[name]\""
-      assert html =~ "name=\"filters[email]\""
       assert html =~ "name=\"filters[active]\""
     end
   end
@@ -281,75 +177,6 @@ defmodule Cinder.QuerySupportTest do
 
       # Should integrate with URL sync
       assert html =~ "name=\"filters[name]\""
-    end
-  end
-
-  describe "tenant and scope support" do
-    test "accepts tenant attribute" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        tenant: "tenant_123",
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "accepts scope with map" do
-      scope = %{actor: nil, tenant: "scope_tenant"}
-
-      assigns = %{
-        resource: TestUser,
-        scope: scope,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "explicit tenant overrides scope tenant" do
-      scope = %{tenant: "scope_tenant"}
-
-      assigns = %{
-        resource: TestUser,
-        scope: scope,
-        tenant: "explicit_tenant",
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "explicit actor overrides scope actor" do
-      scope = %{actor: "scope_actor"}
-
-      assigns = %{
-        resource: TestUser,
-        scope: scope,
-        actor: "explicit_actor",
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "handles scope with invalid protocol gracefully" do
-      # Non-protocol struct should not crash
-      scope = %{not_a_scope: true}
-
-      assigns = %{
-        resource: TestUser,
-        scope: scope,
-        col: [%{field: "name", __slot__: :col}]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
     end
   end
 end

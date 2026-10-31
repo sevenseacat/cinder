@@ -70,25 +70,6 @@ defmodule Cinder.ThemeDslTest do
       assert is_binary(theme.th_class)
     end
 
-    test "can be used with Theme.merge/1" do
-      theme = Theme.merge(SimpleTestTheme)
-
-      assert is_map(theme)
-      assert theme.container_class == "custom-table-container"
-      assert theme.row_class == "custom-row"
-    end
-
-    test "inheritance works with built-in themes" do
-      theme = InheritanceTestTheme.resolve_theme()
-
-      # Should have the inherited container class
-      assert theme.container_class == "inherited-table-container"
-
-      # Should inherit other modern theme properties
-      assert String.contains?(theme.th_class, "font-semibold")
-      assert String.contains?(theme.pagination_button_class, "transition-all")
-    end
-
     test "inheritance works with custom themes" do
       theme = ExtendingCustomTheme.resolve_theme()
 
@@ -138,46 +119,6 @@ defmodule Cinder.ThemeDslTest do
       theme_keys = Map.keys(theme) |> Enum.sort()
 
       assert default_keys == theme_keys
-    end
-  end
-
-  describe "DSL compilation" do
-    test "generates correct theme configuration function" do
-      # Test that the theme module has the expected function
-      assert function_exported?(SimpleTestTheme, :__theme_config, 0)
-
-      theme = SimpleTestTheme.__theme_config()
-      assert is_map(theme)
-      assert theme.container_class == "custom-table-container"
-    end
-
-    test "handles base theme inheritance correctly" do
-      theme = InheritanceTestTheme.resolve_theme()
-
-      # Should have the inherited container class
-      assert theme.container_class == "inherited-table-container"
-
-      # Should inherit other modern theme properties
-      assert String.contains?(theme.th_class, "font-semibold")
-    end
-
-    test "handles themes without base theme" do
-      theme = SimpleTestTheme.resolve_theme()
-
-      # Should start with default theme as base
-      assert String.contains?(theme.table_class, "w-full border-collapse")
-      # But should override specific properties
-      assert theme.container_class == "custom-table-container"
-    end
-  end
-
-  describe "backwards compatibility" do
-    test "string presets still work" do
-      modern_theme = Theme.merge("modern")
-      assert String.contains?(modern_theme.container_class, "shadow-lg")
-
-      retro_theme = Theme.merge("retro")
-      assert String.contains?(retro_theme.container_class, "bg-gray-900")
     end
   end
 

@@ -118,32 +118,6 @@ defmodule Cinder.SortIconAlignmentTest do
       assert default_theme.sort_desc_icon_class == "w-3 h-3"
       assert default_theme.sort_none_icon_class == "w-3 h-3 opacity-50"
     end
-
-    test "no themes reference vintage theme" do
-      # Ensure vintage theme is completely removed
-      themes = Cinder.Theme.presets()
-      refute "vintage" in themes, "Vintage theme should be completely removed"
-
-      # Test that we can't merge vintage theme
-      assert_raise ArgumentError, ~r/Unknown theme preset: vintage/, fn ->
-        Cinder.Theme.merge("vintage")
-      end
-    end
-
-    test "sort icons render with improved alignment" do
-      # Verify the theme properties the SortIcon component renders with
-      theme = Cinder.Theme.merge("modern")
-
-      # We can't easily test the actual rendering without a full LiveView setup,
-      # but we can verify the theme properties that will be used
-      assert theme.sort_indicator_class =~ "align-baseline"
-      assert theme.sort_arrow_wrapper_class == "inline-flex items-center"
-
-      # Icons should be smaller and better proportioned
-      assert theme.sort_asc_icon_class =~ "w-3 h-3"
-      assert theme.sort_desc_icon_class =~ "w-3 h-3"
-      assert theme.sort_none_icon_class =~ "w-3 h-3"
-    end
   end
 
   describe "Theme Consistency" do
@@ -183,19 +157,6 @@ defmodule Cinder.SortIconAlignmentTest do
                  "#{theme_name} icons should use consistent w-3 h-3 sizing"
         end
       end
-    end
-
-    test "compact theme uses appropriate sizing" do
-      # Compact theme should still maintain readability while being smaller
-      compact = Cinder.Theme.merge("compact")
-
-      # Should use same icon size as other themes for consistency
-      assert compact.sort_asc_icon_class =~ "w-3 h-3"
-      assert compact.sort_desc_icon_class =~ "w-3 h-3"
-      assert compact.sort_none_icon_class =~ "w-3 h-3"
-
-      # Should have same alignment improvements
-      assert compact.sort_indicator_class =~ "align-baseline"
     end
   end
 end

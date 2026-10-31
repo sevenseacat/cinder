@@ -2,17 +2,9 @@ defmodule Cinder.FilterStylingTest do
   use ExUnit.Case, async: true
 
   describe "Number Input Spinner Removal" do
-    test "number input class includes spinner removal CSS for default theme" do
-      theme = Cinder.Theme.merge("default")
-
-      # Check that the default theme includes spinner removal CSS
-      assert theme.filter_number_input_class =~ "[&::-webkit-outer-spin-button]:appearance-none"
-      assert theme.filter_number_input_class =~ "[&::-webkit-inner-spin-button]:appearance-none"
-      assert theme.filter_number_input_class =~ "[-moz-appearance:textfield]"
-    end
-
     test "number input class includes spinner removal CSS for all themes" do
       themes = [
+        "default",
         "modern",
         "dark",
         "compact",
@@ -58,34 +50,6 @@ defmodule Cinder.FilterStylingTest do
   end
 
   describe "Range Filter Separator Styling" do
-    test "all themes include range separator class" do
-      themes = [
-        "default",
-        "modern",
-        "dark",
-        "compact",
-        "daisy_ui",
-        "flowbite",
-        "futuristic",
-        "retro"
-      ]
-
-      for theme_name <- themes do
-        theme = Cinder.Theme.merge(theme_name)
-
-        # Each theme should have the separator class defined
-        assert Map.has_key?(theme, :filter_range_separator_class),
-               "Theme #{theme_name} missing filter_range_separator_class"
-
-        # Should include flex and items-center for vertical alignment
-        assert theme.filter_range_separator_class =~ "flex",
-               "Theme #{theme_name} separator missing flex class"
-
-        assert theme.filter_range_separator_class =~ "items-center",
-               "Theme #{theme_name} separator missing items-center class"
-      end
-    end
-
     test "NumberRange filter renders styled separator" do
       alias Cinder.Filters.NumberRange
 
@@ -151,28 +115,6 @@ defmodule Cinder.FilterStylingTest do
     end
   end
 
-  describe "Backward Compatibility" do
-    test "existing filter functionality unchanged" do
-      alias Cinder.Filters.NumberRange
-
-      # Test that core filter functionality still works
-      column = %{field: "value"}
-
-      # Test process function still works
-      result = NumberRange.process(%{min: "10", max: "100"}, column)
-      assert result.type == :number_range
-      assert result.value == %{min: "10", max: "100"}
-      assert result.operator == :between
-
-      # Test validation still works
-      assert NumberRange.validate(result) == true
-
-      # Test empty check still works
-      assert NumberRange.empty?(%{min: "", max: ""}) == true
-      assert NumberRange.empty?(%{min: "10", max: "100"}) == false
-    end
-  end
-
   describe "CSS Class Structure" do
     test "separator classes have consistent structure across themes" do
       themes = [
@@ -206,24 +148,6 @@ defmodule Cinder.FilterStylingTest do
         assert separator_class =~ ~r/text-(xs|sm|base)/,
                "#{theme_name} separator missing text size"
       end
-    end
-
-    test "spinner removal CSS is properly formatted" do
-      theme = Cinder.Theme.merge("modern")
-      number_class = theme.filter_number_input_class
-
-      # Should contain all three spinner removal rules
-      webkit_outer = "[&::-webkit-outer-spin-button]:appearance-none"
-      webkit_inner = "[&::-webkit-inner-spin-button]:appearance-none"
-      firefox = "[-moz-appearance:textfield]"
-
-      assert number_class =~ webkit_outer
-      assert number_class =~ webkit_inner
-      assert number_class =~ firefox
-
-      # Should not interfere with other classes
-      assert number_class =~ "border"
-      assert number_class =~ "focus:"
     end
   end
 end

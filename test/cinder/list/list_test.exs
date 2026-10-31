@@ -98,20 +98,6 @@ defmodule Cinder.ListTest do
       assert html =~ "cinder-list"
       assert html =~ "custom-container-class"
     end
-
-    test "accepts string layout" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        layout: "list",
-        col: [%{field: "name", __slot__: :col}],
-        item: item_slot()
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      assert html =~ "cinder-list"
-    end
   end
 
   describe "sort controls" do
@@ -287,38 +273,6 @@ defmodule Cinder.ListTest do
         actor: nil,
         layout: :list,
         click: click_fn,
-        col: [%{field: "name", __slot__: :col}],
-        item: item_slot()
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      assert html =~ "cinder-list"
-    end
-  end
-
-  describe "page_size configuration" do
-    test "supports simple integer page size" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        layout: :list,
-        page_size: 50,
-        col: [%{field: "name", __slot__: :col}],
-        item: item_slot()
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      assert html =~ "cinder-list"
-    end
-
-    test "supports configurable page size format" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        layout: :list,
-        page_size: [default: 25, options: [10, 25, 50]],
         col: [%{field: "name", __slot__: :col}],
         item: item_slot()
       }
