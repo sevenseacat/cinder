@@ -71,7 +71,7 @@ defmodule Cinder.Filters.Date do
   @impl true
   def build_query(query, field, %{value: value}) when value not in ["", nil] do
     case Date.from_iso8601(value) do
-      {:ok, date} -> Helpers.build_date_filter(query, field, date, date)
+      {:ok, date} -> Helpers.build_range_filter(query, field, date, date)
       {:error, _} -> query
     end
   end

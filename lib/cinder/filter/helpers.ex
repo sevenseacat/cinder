@@ -415,21 +415,23 @@ defmodule Cinder.Filter.Helpers do
     end
   end
 
-  # Filters a field to a range of days, or of times. Each bound is `nil` (open), a `Date`
-  # (the whole day is in the range) or a value with a time, compared as given.
+  # Filters a field to a range. Each bound is `nil` (open), a `Date` (that whole day is in
+  # the range), or any other value (a number, a datetime), compared as given.
+  #
+  # Both bounds go in one condition, so through a to-many relationship one related record
+  # has to be in the range, not one above the lower bound and another below the upper.
   #
   # A date compares the field against midnights as a half-open range (`>= d 00:00`,
   # `< d+1 00:00`), rather than casting the field to a date, so a plain index on the column
   # still works. Ash casts the `NaiveDateTime` midnights to the field's own type (a `Date`
-  # for a date field), so nothing needs to know it. Both bounds go in one condition, so
-  # through a to-many relationship one related record has to be in the range.
+  # for a date field), so nothing needs to know it.
   @doc false
-  def build_date_filter(query, field, from, to) do
+  def build_range_filter(query, field, from, to) do
     require Ash.Query
     import Ash.Expr
 
-    with {rel_path, value} <- date_field(field),
-         condition when not is_nil(condition) <- date_condition(value, from, to) do
+    with {rel_path, value} <- range_field(field),
+         condition when not is_nil(condition) <- range_condition(value, from, to) do
       case rel_path do
         [] -> Ash.Query.filter(query, ^condition)
         rel_path -> Ash.Query.filter(query, exists(^rel_path, ^condition))
@@ -439,7 +441,7 @@ defmodule Cinder.Filter.Helpers do
     end
   end
 
-  defp date_condition(value, from, to) do
+  defp range_condition(value, from, to) do
     import Ash.Expr
 
     case {lower(value, from), upper(value, to)} do
@@ -451,9 +453,9 @@ defmodule Cinder.Filter.Helpers do
   end
 
   # The relationship path to the field, and the field: `{:field, ref}`, or `{:embedded, path}`
-  # for a value inside an embedded attribute, which Ash can't type, so dates are compared by
-  # casting it instead
-  defp date_field(field) do
+  # for a value inside an embedded attribute, which Ash can't type, so a `Date` bound is
+  # compared by casting it instead
+  defp range_field(field) do
     import Ash.Expr
 
     case parse_field_notation(field) do
@@ -500,9 +502,9 @@ defmodule Cinder.Filter.Helpers do
     expr(^value >= ^NaiveDateTime.new!(date, ~T[00:00:00]))
   end
 
-  defp lower({_kind, value}, time) do
+  defp lower({_kind, value}, bound) do
     import Ash.Expr
-    expr(^value >= ^time)
+    expr(^value >= ^bound)
   end
 
   defp upper(_value, nil), do: nil
@@ -517,9 +519,9 @@ defmodule Cinder.Filter.Helpers do
     expr(^value < ^NaiveDateTime.new!(Date.add(date, 1), ~T[00:00:00]))
   end
 
-  defp upper({_kind, value}, time) do
+  defp upper({_kind, value}, bound) do
     import Ash.Expr
-    expr(^value <= ^time)
+    expr(^value <= ^bound)
   end
 
   defp apply_operator_to_relationship(query, rel_path, field_atom, value, operator, opts) do

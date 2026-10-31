@@ -214,7 +214,7 @@ defmodule Cinder.Filters.DateRange do
 
   @impl true
   def build_query(query, field, %{value: %{from: from, to: to}}) do
-    Helpers.build_date_filter(query, field, bound(from), bound(to))
+    Helpers.build_range_filter(query, field, bound(from), bound(to))
   end
 
   # A date-only bound covers that whole day; a bound with a time (from `include_time`) is

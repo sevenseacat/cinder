@@ -147,35 +147,16 @@ defmodule Cinder.Filters.NumberRange do
   defp valid_number?(_), do: false
 
   @impl true
-  def build_query(query, field, filter_value) do
-    %{value: %{min: min, max: max}} = filter_value
-
-    case {min, max} do
-      {min_val, max_val} when min_val != "" and max_val != "" ->
-        min_num = parse_number(min_val)
-        max_num = parse_number(max_val)
-
-        # Apply both min and max filters using the centralized helper
-        query
-        |> Cinder.Filter.Helpers.build_ash_filter(field, min_num, :greater_than_or_equal)
-        |> Cinder.Filter.Helpers.build_ash_filter(field, max_num, :less_than_or_equal)
-
-      {min_val, ""} when min_val != "" ->
-        min_num = parse_number(min_val)
-        Cinder.Filter.Helpers.build_ash_filter(query, field, min_num, :greater_than_or_equal)
-
-      {"", max_val} when max_val != "" ->
-        max_num = parse_number(max_val)
-        Cinder.Filter.Helpers.build_ash_filter(query, field, max_num, :less_than_or_equal)
-
-      _ ->
-        query
-    end
+  def build_query(query, field, %{value: %{min: min, max: max}}) do
+    Cinder.Filter.Helpers.build_range_filter(query, field, bound(min), bound(max))
   rescue
     ArgumentError ->
       # Invalid number format, skip filter
       query
   end
+
+  defp bound(value) when value in ["", nil], do: nil
+  defp bound(value), do: parse_number(value)
 
   # Helper function to parse numbers, trying integer first, then float
   defp parse_number(str) when is_binary(str) do

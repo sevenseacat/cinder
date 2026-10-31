@@ -16,6 +16,7 @@ SPDX-License-Identifier: MIT
 * Turning `selectable` off now clears the selected items.
 * Date range filters on relationship and embedded fields now find matching records, and include the whole of the end date; through a to-many relationship, one related record has to fall inside the range.
 * Date and date range filters compare the field directly instead of casting it to a date, so a database index on the field can be used.
+* Number range filters through a to-many relationship now need one related record inside the range, rather than one above the minimum and another below the maximum.
 
 ## v0.18.0 (2026-10-28)
 
