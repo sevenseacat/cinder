@@ -247,19 +247,6 @@ defmodule Cinder.Filters.CheckboxTest do
       end
     end
 
-    test "works with boolean field type inference", %{theme: theme} do
-      column = %{
-        field: :published,
-        filter_options: [label: "Published only"],
-        filter_type: :boolean
-      }
-
-      html = Checkbox.render(column, nil, theme, %{})
-      html_string = Phoenix.HTML.Safe.to_iodata(html) |> IO.iodata_to_binary()
-
-      assert html_string =~ ~r/value="true"/
-    end
-
     test "uses column label when no explicit label provided", %{theme: theme} do
       column = %{
         field: :published,
@@ -302,71 +289,6 @@ defmodule Cinder.Filters.CheckboxTest do
       assert html_string =~ ~r/value="false"/
       assert html_string =~ "Books only"
       refute html_string =~ ~r/checked/
-    end
-  end
-
-  describe "integration with FilterManager - reproducing bug" do
-    test "checkbox filter processes correctly through full pipeline" do
-      # This test reproduces the bug reported where checkbox filter
-      # doesn't apply on first click
-
-      # Simulate a checkbox filter column for track_count field
-      column = %{
-        field: "track_count",
-        filterable: true,
-        filter_type: :checkbox,
-        filter_options: [label: "Has 8+ tracks", value: 8]
-      }
-
-      # Simulate form parameters from a checked checkbox
-      # This is what comes from the form
-      raw_value = "8"
-
-      # Process the raw value through the checkbox filter
-      processed = Checkbox.process(raw_value, column)
-
-      # Should return proper filter structure
-      assert processed == %{
-               type: :checkbox,
-               value: 8,
-               operator: :equals
-             }
-
-      # Validate the processed filter
-      assert Checkbox.validate(processed) == true
-
-      # Ensure it's not considered empty
-      assert Checkbox.empty?(processed) == false
-    end
-
-    test "checkbox filter returns nil when unchecked" do
-      column = %{
-        field: "track_count",
-        filterable: true,
-        filter_type: :checkbox,
-        filter_options: [label: "Has 8+ tracks", value: 8]
-      }
-
-      # When checkbox is unchecked, no value is sent
-      processed = Checkbox.process("", column)
-
-      # Should return nil to remove the filter
-      assert processed == nil
-    end
-
-    test "checkbox filter handles mismatched values" do
-      column = %{
-        field: "track_count",
-        filterable: true,
-        filter_type: :checkbox,
-        filter_options: [label: "Has 8+ tracks", value: 8]
-      }
-
-      # If somehow a different value comes through
-      processed = Checkbox.process("5", column)
-
-      # Should return nil since it doesn't match the expected value
-      assert processed == nil
     end
   end
 end

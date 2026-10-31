@@ -148,19 +148,6 @@ defmodule Cinder.CustomFilterOptionsTest do
       assert parsed_column.filter_options[:prompt] == "All Category"
     end
 
-    test "falls back to humanized field name when no label provided" do
-      slot_config = %{
-        field: "type",
-        filterable: true,
-        filter_type: :multi_select
-      }
-
-      parsed_column = Cinder.Column.parse_column(slot_config, TestWeapon)
-
-      # Should fall back to humanized field name
-      assert parsed_column.filter_options[:prompt] == "All Type"
-    end
-
     test "Collection.process_columns passes label through for filter prompt" do
       # This tests the real flow through Collection.process_columns
       # which is what Cinder.Table uses

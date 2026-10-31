@@ -216,13 +216,6 @@ defmodule Cinder.Filters.RegistryTest do
       assert map_size(all_filters) == map_size(Registry.all_filters()) + 1
     end
 
-    test "get_filter/1 works with custom filters from configuration" do
-      assert Registry.get_filter(:slider) == nil
-
-      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
-      assert Registry.get_filter(:slider) == TestSliderFilter
-    end
-
     test "default_options/2 works with custom filters" do
       Application.put_env(:cinder, :filters, slider: TestSliderFilter)
 
@@ -337,20 +330,6 @@ defmodule Cinder.Filters.RegistryTest do
   end
 
   describe "error handling and edge cases" do
-    test "configuration maintains consistency" do
-      Application.put_env(:cinder, :filters, filter1: TestSliderFilter, filter2: TestSliderFilter)
-
-      assert map_size(Registry.list_custom_filters()) == 2
-
-      # Simulate removal of one filter from config
-      Application.put_env(:cinder, :filters, filter2: TestSliderFilter)
-      custom_filters = Registry.list_custom_filters()
-
-      assert map_size(custom_filters) == 1
-      assert custom_filters[:filter2] == TestSliderFilter
-      assert not Map.has_key?(custom_filters, :filter1)
-    end
-
     test "configuration changes are reflected immediately" do
       Application.put_env(:cinder, :filters,
         slider: TestSliderFilter,

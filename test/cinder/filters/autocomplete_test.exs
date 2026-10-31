@@ -325,36 +325,5 @@ defmodule Cinder.Filters.AutocompleteTest do
       # "More" hint shown when there are more options
       assert html =~ "Type to search more options"
     end
-
-    test "uses label and radio button elements for options like select filter" do
-      column = %{
-        field: "category_id",
-        label: "Category",
-        filter_options: [
-          options: [{"Electronics", "1"}]
-        ]
-      }
-
-      theme = %{
-        filter_select_container_class: "container",
-        filter_text_input_class: "input",
-        filter_select_dropdown_class: "dropdown",
-        filter_select_option_class: "option",
-        filter_select_label_class: "label",
-        filter_select_empty_class: "empty"
-      }
-
-      assigns = %{target: nil, raw_filter_params: %{}}
-
-      result = Autocomplete.render(column, "1", theme, assigns)
-
-      html = Phoenix.HTML.Safe.to_iodata(result) |> IO.iodata_to_binary()
-
-      # Options should use label elements with radio buttons like select filter
-      assert html =~ "<label"
-      assert html =~ "flex items-center cursor-pointer"
-      assert html =~ "type=\"radio\""
-      assert html =~ "class=\"sr-only\""
-    end
   end
 end

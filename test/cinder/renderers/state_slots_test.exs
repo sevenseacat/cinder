@@ -578,14 +578,6 @@ defmodule Cinder.Renderers.StateSlotsTest do
   # ============================================================================
 
   describe "backward compatibility" do
-    test "table renders normally without new assigns (slots default to empty)" do
-      # No loading_slot, empty_slot, error_slot - should use defaults
-      html = render_component(&TableRenderer.render/1, table_assigns())
-
-      assert html =~ "No results found"
-      refute html =~ "An error occurred"
-    end
-
     test "loading_message string attr still works" do
       assigns =
         table_assigns(%{

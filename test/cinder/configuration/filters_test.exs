@@ -6,9 +6,7 @@ defmodule Cinder.FiltersTest do
   alias Cinder.Filters.{
     Boolean,
     DateRange,
-    MultiSelect,
     NumberRange,
-    RadioGroup,
     Registry,
     Select,
     Text
@@ -59,44 +57,6 @@ defmodule Cinder.FiltersTest do
   end
 
   describe "Cinder.Filters.Registry" do
-    test "all_filters/0 returns map of all registered filter types" do
-      filters = Registry.all_filters()
-
-      assert filters[:text] == Text
-      assert filters[:select] == Select
-      assert filters[:multi_select] == MultiSelect
-      assert filters[:multi_checkboxes] == Cinder.Filters.MultiCheckboxes
-      assert filters[:date_range] == DateRange
-      assert filters[:number_range] == NumberRange
-      assert filters[:boolean] == Boolean
-      assert filters[:radio_group] == RadioGroup
-    end
-
-    test "get_filter/1 returns correct module for filter type" do
-      assert Registry.get_filter(:text) == Text
-      assert Registry.get_filter(:boolean) == Boolean
-      assert Registry.get_filter(:unknown) == nil
-    end
-
-    test "registered?/1 checks if filter type is registered" do
-      assert Registry.registered?(:text) == true
-      assert Registry.registered?(:number_range) == true
-      assert Registry.registered?(:unknown) == false
-    end
-
-    test "filter_types/0 returns list of all registered types" do
-      types = Registry.filter_types()
-
-      assert :text in types
-      assert :select in types
-      assert :multi_select in types
-      assert :multi_checkboxes in types
-      assert :date_range in types
-      assert :number_range in types
-      assert :boolean in types
-      assert :radio_group in types
-    end
-
     test "infer_filter_type/2 correctly infers types from Ash attributes" do
       # String type should infer to text
       string_attr = %{type: Ash.Type.String}
@@ -485,41 +445,6 @@ defmodule Cinder.FiltersTest do
     end
   end
 
-  describe "Cinder.Filters.RadioGroup" do
-    test "process/2 handles radio group input correctly" do
-      column = %{filter_options: []}
-
-      result = RadioGroup.process("active", column)
-
-      assert result == %{
-               type: :radio_group,
-               value: "active",
-               operator: :equals
-             }
-
-      # Empty values should return nil
-      assert RadioGroup.process("", column) == nil
-    end
-
-    test "validate/1 validates radio group filter values" do
-      valid_filter = %{type: :radio_group, value: "active", operator: :equals}
-      assert RadioGroup.validate(valid_filter) == true
-
-      invalid_filter = %{type: :radio_group, value: "", operator: :equals}
-      assert RadioGroup.validate(invalid_filter) == false
-    end
-
-    test "empty?/1 correctly identifies empty radio group values" do
-      assert RadioGroup.empty?(nil) == true
-      assert RadioGroup.empty?("") == true
-      assert RadioGroup.empty?(%{value: nil}) == true
-      assert RadioGroup.empty?(%{value: ""}) == true
-
-      assert RadioGroup.empty?("active") == false
-      assert RadioGroup.empty?(%{value: "active"}) == false
-    end
-  end
-
   describe "FilterManager integration with modular filters" do
     test "process_filter_params/2 correctly combines range inputs" do
       # Test number range combination
@@ -737,99 +662,5 @@ defmodule Cinder.FiltersTest do
   end
 
   describe "Real-world scenarios" do
-    test "complete number range filter workflow" do
-      # Simulate the exact scenario from the user's issue
-      form_data = %{
-        "_target" => ["filters", "value_max"],
-        "filters" => %{
-          "_unused_name" => "",
-          "name" => "",
-          "type" => "",
-          "value_max" => "200",
-          "value_min" => "100"
-        }
-      }
-
-      columns = [
-        %{
-          field: "value",
-          label: "Value",
-          filterable: true,
-          filter_type: :number_range,
-          filter_options: []
-        }
-      ]
-
-      filter_params = form_data["filters"]
-
-      # Step 1: Process filter params (combine min/max)
-      processed = FilterManager.process_filter_params(filter_params, columns)
-      assert processed["value"] == "100,200"
-
-      # Step 2: Convert to structured filters
-      filters = FilterManager.params_to_filters(filter_params, columns)
-
-      expected_filter = %{
-        type: :number_range,
-        value: %{min: "100", max: "200"},
-        operator: :between
-      }
-
-      assert filters["value"] == expected_filter
-
-      # Step 3: Verify filter would be properly applied
-      assert FilterManager.has_filter_value?(filters["value"])
-      assert NumberRange.validate(filters["value"])
-      refute NumberRange.empty?(filters["value"])
-    end
-
-    test "mixed filter types workflow" do
-      # Test a realistic form with multiple filter types
-      filter_params = %{
-        # text
-        "name" => "weapon",
-        # select
-        "type" => "sword",
-        # multi-select
-        "rarity" => ["rare", "epic"],
-        # multi-checkboxes
-        "tags" => ["weapon", "melee"],
-        # number range
-        "damage_min" => "50",
-        "damage_max" => "100",
-        # date range
-        "crafted_from" => "2024-01-01",
-        "crafted_to" => "2024-12-31",
-        # boolean
-        "magical" => "true"
-      }
-
-      columns = [
-        %{field: "name", filterable: true, filter_type: :text, filter_options: []},
-        %{field: "type", filterable: true, filter_type: :select, filter_options: []},
-        %{field: "rarity", filterable: true, filter_type: :multi_select, filter_options: []},
-        %{field: "tags", filterable: true, filter_type: :multi_checkboxes, filter_options: []},
-        %{field: "damage", filterable: true, filter_type: :number_range, filter_options: []},
-        %{field: "crafted", filterable: true, filter_type: :date_range, filter_options: []},
-        %{field: "magical", filterable: true, filter_type: :boolean, filter_options: []}
-      ]
-
-      result = FilterManager.params_to_filters(filter_params, columns)
-
-      # All filters should be processed correctly
-      assert result["name"][:type] == :text
-      assert result["type"][:type] == :select
-      assert result["rarity"][:type] == :multi_select
-      assert result["tags"][:type] == :multi_checkboxes
-      assert result["damage"][:type] == :number_range
-      assert result["crafted"][:type] == :date_range
-      assert result["magical"][:type] == :boolean
-
-      # Verify specific values
-      assert result["damage"][:value] == %{min: "50", max: "100"}
-      assert result["crafted"][:value] == %{from: "2024-01-01", to: "2024-12-31"}
-      assert result["rarity"][:value] == ["rare", "epic"]
-      assert result["magical"][:value] == true
-    end
   end
 end

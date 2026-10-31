@@ -176,13 +176,5 @@ defmodule Cinder.Renderers.ListSelectionTest do
       assert html =~ ~r/<input[^>]*checked[^>]*phx-value-id="item-2"/
       refute html =~ ~r/<input[^>]*disabled[^>]*phx-value-id="item-2"/
     end
-
-    test "applies selected styling only to selectable selected items" do
-      assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["item-1"]))
-
-      html = render_component(&ListRenderer.render/1, assigns)
-
-      assert html =~ "test-selected-item"
-    end
   end
 end

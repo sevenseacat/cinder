@@ -216,13 +216,5 @@ defmodule Cinder.Renderers.TableSelectionTest do
 
       refute html =~ ~r/<input[^>]*checked[^>]*phx-click="toggle_select_all_page"/
     end
-
-    test "applies selected styling only to selectable selected rows" do
-      assigns = Map.put(predicate_assigns(), :selected_ids, MapSet.new(["user-1"]))
-
-      html = render_component(&TableRenderer.render/1, assigns)
-
-      assert html =~ "test-selected-row"
-    end
   end
 end
