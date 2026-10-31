@@ -202,12 +202,8 @@ defmodule Cinder.UrlStateRestorationTest do
           current_page: 2,
           sort_by: [{"title", :desc}]
         })
-
-      # Add page and sort manually since encode_state might not include them
-      encoded_params =
-        encoded_params
-        |> Map.put("page", "2")
-        |> Map.put("sort", "-title")
+        # Params come back from the URL with string keys
+        |> Map.new(fn {key, value} -> {to_string(key), value} end)
 
       # Decode back with proper columns
       columns = [

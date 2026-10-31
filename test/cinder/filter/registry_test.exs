@@ -105,11 +105,8 @@ defmodule Cinder.Filters.RegistryTest do
     end
 
     test "default_options/2 returns correct options for built-in filters" do
-      text_options = Registry.default_options(:text)
-      assert is_list(text_options)
-
-      select_options = Registry.default_options(:select)
-      assert is_list(select_options)
+      assert Registry.default_options(:text) == Cinder.Filters.Text.default_options()
+      assert Registry.default_options(:select) == Cinder.Filters.Select.default_options()
 
       unknown_options = Registry.default_options(:unknown)
       assert unknown_options == []
@@ -228,6 +225,8 @@ defmodule Cinder.Filters.RegistryTest do
 
   describe "custom filter validation" do
     test "validate_custom_filters/0 returns :ok when all filters are valid" do
+      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
+
       assert Registry.validate_custom_filters() == :ok
     end
 

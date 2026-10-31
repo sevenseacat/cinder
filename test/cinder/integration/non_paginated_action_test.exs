@@ -77,10 +77,10 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
 
       {:ok, page} = QueryBuilder.build_and_execute(TestUser, options)
 
-      # Should work with default paginated action - returns Ash.Page.Offset
+      # A page of page_size records, counting all three
       assert %Ash.Page.Offset{} = page
-      assert is_list(page.results)
-      assert is_integer(page.count)
+      assert length(page.results) == 2
+      assert page.count == 3
     end
 
     test "handles pre-built query with action that has arguments - the main fix" do
@@ -121,9 +121,10 @@ defmodule Cinder.Integration.NonPaginatedActionTest do
 
       {:ok, page} = QueryBuilder.build_and_execute(query, options)
 
-      # Should use normal pagination - returns Ash.Page.Offset
+      # Paginated as usual: a page of page_size records, with more after it
       assert %Ash.Page.Offset{} = page
-      assert is_list(page.results)
+      assert length(page.results) == 2
+      assert page.more?
     end
 
     test "handles empty results from argument-based action" do

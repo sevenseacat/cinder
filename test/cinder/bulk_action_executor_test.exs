@@ -33,17 +33,17 @@ defmodule Cinder.BulkActionExecutorTest do
   end
 
   describe "build_query/3" do
-    test "builds a query filtered by id", %{ids: ids} do
+    test "builds a query for exactly the given ids", %{ids: ids} do
       query = BulkActionExecutor.build_query(SearchTestResource, ids)
 
-      assert %Ash.Query{} = query
-      assert query.resource == SearchTestResource
+      assert query |> Ash.read!() |> MapSet.new(& &1.id) == MapSet.new(ids)
     end
 
-    test "supports custom id_field", %{ids: ids} do
-      query = BulkActionExecutor.build_query(SearchTestResource, ids, :id)
+    test "matches on a custom id_field", %{record1: record1, record3: record3} do
+      query =
+        BulkActionExecutor.build_query(SearchTestResource, ["Record 1", "Record 3"], :title)
 
-      assert %Ash.Query{} = query
+      assert query |> Ash.read!() |> MapSet.new(& &1.id) == MapSet.new([record1.id, record3.id])
     end
   end
 

@@ -608,21 +608,18 @@ defmodule Cinder.FiltersTest do
       assert result["empty_field"] == ""
     end
 
-    test "infer_filter_config/3 uses Registry for type inference" do
-      # Mock an Ash resource attribute
-      key = "price"
-      # We'll simulate this
-      resource = nil
-      slot = %{filterable: true}
+    test "infer_filter_config/3 infers the type from the attribute, unless one is given" do
+      # A decimal infers a number range
+      result = FilterManager.infer_filter_config("price", Music.Album, %{filterable: true})
+      assert result.filter_type == :number_range
 
-      # Test with explicit filter type (should not infer)
-      slot_with_type = Map.put(slot, :filter_type, :text)
-      result = FilterManager.infer_filter_config(key, resource, slot_with_type)
-      assert result.filter_type == :text
+      # An explicit type wins over inference
+      slot = %{filterable: true, filter_type: :select}
+      result = FilterManager.infer_filter_config("price", Music.Album, slot)
+      assert result.filter_type == :select
 
-      # Test with non-filterable (should return defaults)
-      non_filterable_slot = %{filterable: false}
-      result = FilterManager.infer_filter_config(key, resource, non_filterable_slot)
+      # Not filterable: the defaults, whatever the attribute
+      result = FilterManager.infer_filter_config("price", Music.Album, %{filterable: false})
       assert result.filter_type == :text
     end
 
