@@ -2,6 +2,7 @@ defmodule Cinder.Filters.SelectTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Filters.Select
+  alias Cinder.Test.FilterRecord
   alias TestResourceForInference
 
   describe "Select filter build_query/3 for array fields" do
@@ -10,26 +11,20 @@ defmodule Cinder.Filters.SelectTest do
       %{query: query}
     end
 
-    test "creates containment filter for array fields", %{query: query} do
-      filter_value = %{
-        type: :select,
-        value: "tag1",
-        operator: :equals
-      }
+    test "matches records whose array contains the value" do
+      hit = FilterRecord.seed(tags: ["tag1", "tag2"])
+      _miss = FilterRecord.seed(tags: ["tag2"])
+      filter_value = %{type: :select, value: "tag1", operator: :equals}
 
-      result_query = Select.build_query(query, "tags", filter_value)
+      assert FilterRecord.matching_ids(Select, "tags", filter_value) == MapSet.new([hit.id])
+    end
 
-      # Should create: "tag1" in tags (not tags == "tag1")
-      assert match?(
-               %Ash.Filter{
-                 expression: %Ash.Query.Operator.In{
-                   left: :tag1,
-                   operator: :in,
-                   right: %{attribute: %{name: :tags}}
-                 }
-               },
-               result_query.filter
-             )
+    test "matches a plain field by equality" do
+      hit = FilterRecord.seed(name: "tag1")
+      _miss = FilterRecord.seed(name: "tag10")
+      filter_value = %{type: :select, value: "tag1", operator: :equals}
+
+      assert FilterRecord.matching_ids(Select, "name", filter_value) == MapSet.new([hit.id])
     end
 
     test "returns unchanged query for empty values on array fields", %{query: query} do

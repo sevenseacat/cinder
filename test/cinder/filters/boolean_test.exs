@@ -2,7 +2,10 @@ defmodule Cinder.Filters.BooleanTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Filters.Boolean
+  alias Cinder.Test.FilterRecord
   alias TestResourceForInference
+
+  defp filter(value), do: %{type: :boolean, value: value, operator: :equals}
 
   describe "render/4 delegates to RadioGroup" do
     test "renders true/false radio buttons" do
@@ -65,48 +68,27 @@ defmodule Cinder.Filters.BooleanTest do
       %{query: query}
     end
 
-    test "creates containment filter for boolean array fields", %{query: query} do
-      filter_value = %{
-        type: :boolean,
-        value: true,
-        operator: :equals
-      }
+    test "matches records whose array contains true, or false" do
+      with_true = FilterRecord.seed(flags: [true])
+      with_false = FilterRecord.seed(flags: [false])
+      with_both = FilterRecord.seed(flags: [true, false])
+      _empty = FilterRecord.seed(flags: [])
 
-      result_query = Boolean.build_query(query, "flags", filter_value)
+      assert FilterRecord.matching_ids(Boolean, "flags", filter(true)) ==
+               MapSet.new([with_true.id, with_both.id])
 
-      # Should create: true in flags (not flags == true)
-      assert match?(
-               %Ash.Filter{
-                 expression: %Ash.Query.Operator.In{
-                   left: true,
-                   operator: :in,
-                   right: %{attribute: %{name: :flags}}
-                 }
-               },
-               result_query.filter
-             )
+      assert FilterRecord.matching_ids(Boolean, "flags", filter(false)) ==
+               MapSet.new([with_false.id, with_both.id])
     end
 
-    test "handles false values in array fields", %{query: query} do
-      filter_value = %{
-        type: :boolean,
-        value: false,
-        operator: :equals
-      }
+    test "matches a plain boolean field by equality" do
+      active = FilterRecord.seed(active: true)
+      inactive = FilterRecord.seed(active: false)
 
-      result_query = Boolean.build_query(query, "flags", filter_value)
+      assert FilterRecord.matching_ids(Boolean, "active", filter(true)) == MapSet.new([active.id])
 
-      # Should create: false in flags (not flags == false)
-      assert match?(
-               %Ash.Filter{
-                 expression: %Ash.Query.Operator.In{
-                   left: false,
-                   operator: :in,
-                   right: %{attribute: %{name: :flags}}
-                 }
-               },
-               result_query.filter
-             )
+      assert FilterRecord.matching_ids(Boolean, "active", filter(false)) ==
+               MapSet.new([inactive.id])
     end
 
     test "returns unchanged query for empty values on array fields", %{query: query} do

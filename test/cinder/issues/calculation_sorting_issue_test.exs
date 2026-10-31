@@ -519,11 +519,7 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     ]
 
     assert {:ok, filtered_page} = QueryBuilder.build_and_execute(TestUser, filter_options)
-
-    if filtered_page.results != [] do
-      full_names = Enum.map(filtered_page.results, & &1.full_name_expr)
-      assert Enum.all?(full_names, &String.contains?(&1, "Alice"))
-    end
+    assert Enum.map(filtered_page.results, & &1.full_name_expr) == ["Alice Smith"]
   end
 
   test "URL parameter filtering silently removes invalid sort fields" do
@@ -583,11 +579,7 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
            ]
   end
 
-  test "invalid field names in query building are handled gracefully" do
-    # This test checks what happens when completely invalid field names
-    # reach the query building stage (not from URLs)
-
-    # Test with a completely invalid field name
+  test "a sort on a field that doesn't exist is an error, not a crash" do
     options = [
       actor: nil,
       filters: %{},
@@ -598,21 +590,9 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
       query_opts: []
     ]
 
-    result = QueryBuilder.build_and_execute(TestUser, options)
-
-    # Should either succeed (if Ash handles it) or return a proper error
-    # Should NOT crash with UndefinedFunctionError
-    case result do
-      {:ok, _} ->
-        # Succeeded - field was ignored or handled gracefully
-        :ok
-
-      {:error, error} ->
-        # Failed with proper error - also acceptable
-        # Ash returns error structs, not strings
-        assert is_binary(error)
-        assert error =~ "field does not exist"
-    end
+    assert {:error, message} = QueryBuilder.build_and_execute(TestUser, options)
+    assert message =~ "completely_invalid_field_name"
+    assert message =~ "field does not exist"
   end
 
   @tag :capture_log

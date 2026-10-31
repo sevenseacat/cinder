@@ -2,6 +2,7 @@ defmodule Cinder.Filters.RadioGroupTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Filters.RadioGroup
+  alias Cinder.Test.FilterRecord
   alias TestResourceForInference
 
   describe "process/2" do
@@ -96,27 +97,20 @@ defmodule Cinder.Filters.RadioGroupTest do
       %{query: query}
     end
 
-    test "builds equality filter for direct fields", %{query: query} do
+    test "matches a plain field by equality" do
+      hit = FilterRecord.seed(name: "active")
+      _miss = FilterRecord.seed(name: "inactive")
       filter_value = %{type: :radio_group, value: "active", operator: :equals}
-      result = RadioGroup.build_query(query, "name", filter_value)
-      assert result.filter != nil
+
+      assert FilterRecord.matching_ids(RadioGroup, "name", filter_value) == MapSet.new([hit.id])
     end
 
-    test "builds filter for array fields", %{query: query} do
+    test "matches records whose array contains the value" do
+      hit = FilterRecord.seed(tags: ["tag1", "tag2"])
+      _miss = FilterRecord.seed(tags: ["tag2"])
       filter_value = %{type: :radio_group, value: "tag1", operator: :equals}
-      result = RadioGroup.build_query(query, "tags", filter_value)
 
-      # Array fields use containment
-      assert match?(
-               %Ash.Filter{
-                 expression: %Ash.Query.Operator.In{
-                   left: :tag1,
-                   operator: :in,
-                   right: %{attribute: %{name: :tags}}
-                 }
-               },
-               result.filter
-             )
+      assert FilterRecord.matching_ids(RadioGroup, "tags", filter_value) == MapSet.new([hit.id])
     end
 
     test "returns unchanged query for nil value", %{query: query} do

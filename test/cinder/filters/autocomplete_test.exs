@@ -117,46 +117,13 @@ defmodule Cinder.Filters.AutocompleteTest do
   end
 
   describe "build_query/3" do
-    defmodule TestResource do
-      use Ash.Resource,
-        domain: Cinder.Filters.AutocompleteTest.TestDomain,
-        data_layer: Ash.DataLayer.Ets
-
-      attributes do
-        uuid_primary_key(:id)
-        attribute(:category_id, :string, public?: true)
-        attribute(:name, :string, public?: true)
-      end
-
-      actions do
-        defaults([:read, create: [:category_id, :name]])
-      end
-    end
-
-    defmodule TestDomain do
-      use Ash.Domain, validate_config_inclusion?: false
-
-      resources do
-        resource(TestResource)
-      end
-    end
-
-    test "builds equals filter for simple field" do
-      query = Ash.Query.new(TestResource)
+    test "matches the chosen option by equality" do
+      hit = Cinder.Test.FilterRecord.seed(name: "electronics")
+      _partial = Cinder.Test.FilterRecord.seed(name: "consumer electronics")
       filter_value = %{type: :autocomplete, value: "electronics", operator: :equals}
 
-      result = Autocomplete.build_query(query, "category_id", filter_value)
-
-      assert %Ash.Query{} = result
-    end
-
-    test "handles string field names" do
-      query = Ash.Query.new(TestResource)
-      filter_value = %{type: :autocomplete, value: "123", operator: :equals}
-
-      result = Autocomplete.build_query(query, "category_id", filter_value)
-
-      assert %Ash.Query{} = result
+      assert Cinder.Test.FilterRecord.matching_ids(Autocomplete, "name", filter_value) ==
+               MapSet.new([hit.id])
     end
   end
 
