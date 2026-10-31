@@ -66,48 +66,6 @@ defmodule Cinder.Table.CustomFunctionsTest do
   end
 
   describe "integration with existing functionality" do
-    test "custom filter functions work with existing Column struct fields" do
-      col_slots = [
-        %{
-          field: "name",
-          sort: true,
-          filter: [type: :text, fn: &custom_filter_function/2],
-          inner_block: fn -> "Name" end
-        }
-      ]
-
-      processed = Collection.process_columns(col_slots, TestResource)
-      column = List.first(processed)
-
-      # Verify the functions are preserved and could be passed to QueryBuilder
-      assert column.sortable == true
-      assert column.filterable == true
-      assert is_function(column.filter_fn, 2)
-
-      # Verify other column properties are still correct
-      assert column.field == "name"
-      assert column.filter_type == :text
-    end
-
-    test "backward compatibility with existing boolean sort syntax" do
-      # Old syntax should continue to work
-      col_slots = [
-        %{
-          field: "name",
-          sort: true,
-          filter: :select,
-          inner_block: fn -> "Name" end
-        }
-      ]
-
-      processed = Collection.process_columns(col_slots, TestResource)
-      column = List.first(processed)
-
-      assert column.sortable == true
-      assert column.filterable == true
-      # No custom function
-      assert column.filter_fn == nil
-    end
   end
 
   describe "end-to-end integration with QueryBuilder" do

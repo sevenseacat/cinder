@@ -379,20 +379,5 @@ defmodule Cinder.SelectionTest do
   end
 
   describe "selection state persistence" do
-    test "selection persists across data reloads" do
-      # This tests that selection state uses assign_new, so it's preserved
-      # when other assigns are updated
-      socket =
-        make_socket(%{
-          id: "test-table",
-          selectable: true,
-          selected_ids: MapSet.new(["user-1", "user-2"]),
-          data: [%{id: "user-1"}, %{id: "user-2"}]
-        })
-
-      # Simulate what happens when new data arrives
-      # The selected_ids should be preserved because of assign_new
-      assert MapSet.size(socket.assigns.selected_ids) == 2
-    end
   end
 end

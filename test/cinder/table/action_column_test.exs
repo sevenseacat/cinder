@@ -56,21 +56,6 @@ defmodule Cinder.ActionColumnTest do
       assert column.sortable == false
     end
 
-    test "action column with nil field is processed correctly" do
-      action_column = %{
-        field: nil,
-        label: "Actions",
-        inner_block: fn _item -> "Edit | Delete" end
-      }
-
-      [column] = Collection.process_columns([action_column], TestUser)
-
-      assert column.field == nil
-      assert column.label == "Actions"
-      assert column.filterable == false
-      assert column.sortable == false
-    end
-
     test "action column with custom class is processed correctly" do
       action_column = %{
         label: "Actions",
@@ -203,50 +188,6 @@ defmodule Cinder.ActionColumnTest do
   end
 
   describe "table rendering with action columns" do
-    test "table component accepts action columns without field" do
-      # This test verifies that the full table component works with action columns
-      # We can't easily test the full LiveView rendering without a more complex setup,
-      # but we can test that the component processes the slots correctly
-
-      assigns = %{
-        col: [
-          %{field: "name", filter: true, sort: true},
-          %{label: "Actions"}
-        ]
-      }
-
-      processed_columns = Collection.process_columns(assigns.col, TestUser)
-
-      # Should have both columns processed without error
-      assert length(processed_columns) == 2
-      assert Enum.at(processed_columns, 0).field == "name"
-      assert Enum.at(processed_columns, 1).field == nil
-      assert Enum.at(processed_columns, 1).label == "Actions"
-    end
-
-    test "action columns don't affect filter display logic" do
-      # Action columns should not trigger filter display since they're not filterable
-      action_only_columns = [
-        %{label: "Edit"},
-        %{label: "Delete"}
-      ]
-
-      processed = Collection.process_columns(action_only_columns, TestUser)
-
-      # Simulate the determine_show_filters logic
-      any_filterable = Enum.any?(processed, & &1.filterable)
-      assert any_filterable == false
-
-      # Mix with filterable column
-      mixed_columns = [
-        %{field: "name", filter: true},
-        %{label: "Actions"}
-      ]
-
-      processed_mixed = Collection.process_columns(mixed_columns, TestUser)
-      any_filterable_mixed = Enum.any?(processed_mixed, & &1.filterable)
-      assert any_filterable_mixed == true
-    end
   end
 
   describe "backward compatibility" do

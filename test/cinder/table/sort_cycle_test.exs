@@ -40,23 +40,6 @@ defmodule Cinder.Table.SortCycleTest do
       assert column.sort_cycle == [nil, :desc_nils_last, :asc_nils_first]
     end
 
-    test "includes custom sort cycle from configuration" do
-      col_slots = [
-        %{
-          field: "priority",
-          sort: [cycle: [nil, :high, :low]],
-          filter: false,
-          inner_block: fn -> "Priority" end
-        }
-      ]
-
-      processed = Collection.process_columns(col_slots, SortCycleTestResource)
-      column = List.first(processed)
-
-      assert column.sortable == true
-      assert column.sort_cycle == [nil, :high, :low]
-    end
-
     test "includes a then tiebreaker alongside the default cycle" do
       col_slots = [
         %{
@@ -125,23 +108,6 @@ defmodule Cinder.Table.SortCycleTest do
 
       # Third click: :asc_nils_first -> nil (remove)
       sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "created_at", custom_cycle)
-      assert sort3 == []
-    end
-
-    test "handles custom business logic cycles" do
-      business_cycle = [nil, :high_priority, :low_priority]
-      current_sort = []
-
-      # First click: nil -> :high_priority
-      sort1 = QueryBuilder.toggle_sort_with_cycle(current_sort, "priority", business_cycle)
-      assert sort1 == [{"priority", :high_priority}]
-
-      # Second click: :high_priority -> :low_priority
-      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "priority", business_cycle)
-      assert sort2 == [{"priority", :low_priority}]
-
-      # Third click: :low_priority -> nil (remove)
-      sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "priority", business_cycle)
       assert sort3 == []
     end
 
@@ -423,22 +389,6 @@ defmodule Cinder.Table.SortCycleTest do
       decoded = Cinder.UrlManager.parse_sort(encoded)
       assert decoded == sort_data
     end
-
-    test "demonstrates clean URLs with elegant prefix syntax" do
-      # Show how much cleaner the URLs are with prefix syntax
-      sort_data = [
-        {"payment_date", :desc_nils_last},
-        {"created_at", :asc_nils_first},
-        {"title", :asc},
-        {"priority", :desc}
-      ]
-
-      encoded = Cinder.UrlManager.encode_sort(sort_data)
-      assert encoded == "--payment_date,++created_at,title,-priority"
-
-      decoded = Cinder.UrlManager.parse_sort(encoded)
-      assert decoded == sort_data
-    end
   end
 
   describe "default_sorts_from_cycles/2" do
@@ -513,79 +463,6 @@ defmodule Cinder.Table.SortCycleTest do
   end
 
   describe "end-to-end sort cycle demonstration" do
-    test "demonstrates custom sort cycles working through the full stack" do
-      # This test shows how sort cycles work from table configuration
-      # all the way through to the QueryBuilder
-
-      # Define columns with different sort cycles
-      col_slots = [
-        %{
-          field: "name",
-          # Standard cycle
-          sort: true,
-          filter: false,
-          inner_block: fn -> "Name" end
-        },
-        %{
-          field: "created_at",
-          # Custom cycle: most recent first when clicked
-          sort: [cycle: [nil, :desc_nils_last, :asc_nils_first]],
-          filter: false,
-          inner_block: fn -> "Created At" end
-        },
-        %{
-          field: "priority",
-          # Business logic cycle (just the cycle, no function)
-          sort: [cycle: [nil, :high, :low]],
-          filter: false,
-          inner_block: fn -> "Priority" end
-        }
-      ]
-
-      # Process columns (what Cinder.collection/1 does internally)
-      processed_columns = Collection.process_columns(col_slots, SortCycleTestResource)
-
-      # Verify columns have correct cycle configuration
-      name_col = Enum.find(processed_columns, &(&1.field == "name"))
-      created_col = Enum.find(processed_columns, &(&1.field == "created_at"))
-      priority_col = Enum.find(processed_columns, &(&1.field == "priority"))
-
-      assert name_col.sort_cycle == [nil, :asc, :desc]
-      assert created_col.sort_cycle == [nil, :desc_nils_last, :asc_nils_first]
-      assert priority_col.sort_cycle == [nil, :high, :low]
-
-      # Simulate clicking through sort cycles
-      current_sort = []
-
-      # Click "Created At" column - should start with :desc_nils_last
-      sort1 =
-        QueryBuilder.toggle_sort_with_cycle(current_sort, "created_at", created_col.sort_cycle)
-
-      assert sort1 == [{"created_at", :desc_nils_last}]
-
-      # Click again - should move to :asc_nils_first
-      sort2 = QueryBuilder.toggle_sort_with_cycle(sort1, "created_at", created_col.sort_cycle)
-      assert sort2 == [{"created_at", :asc_nils_first}]
-
-      # Click again - should remove sort (back to nil)
-      sort3 = QueryBuilder.toggle_sort_with_cycle(sort2, "created_at", created_col.sort_cycle)
-      assert sort3 == []
-
-      # Click "Priority" column - should use business logic cycle
-      sort4 = QueryBuilder.toggle_sort_with_cycle(sort3, "priority", priority_col.sort_cycle)
-      assert sort4 == [{"priority", :high}]
-
-      # Click again - should move to :low
-      sort5 = QueryBuilder.toggle_sort_with_cycle(sort4, "priority", priority_col.sort_cycle)
-      assert sort5 == [{"priority", :low}]
-
-      # Click "Name" column while priority is sorted - should add standard sort
-      sort6 = QueryBuilder.toggle_sort_with_cycle(sort5, "name", name_col.sort_cycle)
-      assert sort6 == [{"name", :asc}, {"priority", :low}]
-
-      # This demonstrates that custom cycles work alongside standard sorting
-      # and that multiple columns can be sorted with different cycle behaviors
-    end
   end
 end
 

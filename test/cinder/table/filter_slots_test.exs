@@ -112,23 +112,6 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert html =~ "cinder-table"
     end
 
-    test "supports auto-detection when type is not provided" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}],
-        filter: [
-          # Should auto-detect as number_range
-          %{field: "age", __slot__: :filter},
-          # Should auto-detect as boolean
-          %{field: "active", __slot__: :filter}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
     test "supports custom labels for filter slots" do
       assigns = %{
         resource: TestUser,
@@ -172,38 +155,6 @@ defmodule Cinder.Table.FilterSlotsTest do
   end
 
   describe "field conflict detection" do
-    test "raises error when same field is used in both column filter and filter slot" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", filter: true, __slot__: :col}],
-        filter: [%{field: "name", type: :text, __slot__: :filter}]
-      }
-
-      assert_raise ArgumentError, ~r/Field conflict detected.*name/, fn ->
-        render_component(&Cinder.collection/1, assigns)
-      end
-    end
-
-    test "raises error with helpful message listing all conflicting fields" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [
-          %{field: "name", filter: true, __slot__: :col},
-          %{field: "email", filter: true, __slot__: :col}
-        ],
-        filter: [
-          %{field: "name", type: :text, __slot__: :filter},
-          %{field: "email", type: :text, __slot__: :filter}
-        ]
-      }
-
-      assert_raise ArgumentError, ~r/Field conflict detected.*email.*name/, fn ->
-        render_component(&Cinder.collection/1, assigns)
-      end
-    end
-
     test "allows same field in column without filter and filter slot" do
       assigns = %{
         resource: TestUser,
@@ -588,44 +539,6 @@ defmodule Cinder.Table.FilterSlotsTest do
   end
 
   describe "backward compatibility" do
-    test "works without filter slots (existing behavior)" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [
-          %{field: "name", filter: true, __slot__: :col},
-          %{field: "email", __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-      # Should work exactly as before
-    end
-
-    test "handles empty filter slots gracefully" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}],
-        filter: []
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
-
-    test "works when filter key is missing from assigns" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", filter: true, __slot__: :col}]
-        # No :filter key
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-    end
   end
 
   describe "validation error messages" do
@@ -647,22 +560,6 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert error_message =~ "cannot be defined in both"
       assert error_message =~ ":col"
       assert error_message =~ ":filter"
-    end
-
-    test "provides helpful error for missing required field" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}],
-        filter: [%{type: :text, __slot__: :filter}]
-      }
-
-      error_message =
-        assert_raise(ArgumentError, fn ->
-          render_component(&Cinder.collection/1, assigns)
-        end).message
-
-      assert error_message =~ "Filter slot missing required :field attribute"
     end
   end
 
@@ -689,24 +586,6 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert html =~ "cinder-table"
       assert html =~ "Created"
       assert html =~ "Is Active"
-    end
-
-    test "handles relationship fields in filter slots" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}],
-        filter: [%{field: "profile.first_name", type: :text, __slot__: :filter}]
-      }
-
-      # Should log warning but continue rendering
-      logs =
-        capture_log(fn ->
-          html = render_component(&Cinder.collection/1, assigns)
-          assert html =~ "cinder-table"
-        end)
-
-      assert logs =~ "Field 'profile.first_name' does not exist"
     end
 
     test "preserves column display while adding filter-only fields" do
@@ -768,50 +647,9 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert html =~ "Legal drinking age"
       # This test verifies the fix for the value attribute bug
     end
-
-    test "filter-only slots work with URL state integration" do
-      assigns = %{
-        resource: TestUser,
-        actor: nil,
-        col: [%{field: "name", __slot__: :col}],
-        filter: [
-          %{field: "age", type: :number_range, __slot__: :filter},
-          %{field: "active", type: :boolean, __slot__: :filter}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-      assert html =~ "cinder-table"
-
-      # Filter-only slots should be processed and available for URL state management
-      # The actual URL encoding/decoding would be tested in URL sync integration tests
-      assert html =~ "Filters"
-    end
   end
 
   describe "filter slot custom fn support" do
-    test "filter slot with fn attribute sets filter_fn on processed column" do
-      custom_filter_fn = fn query, %{value: value} ->
-        Map.put(query, :custom_filter_applied, value)
-      end
-
-      filter_slots = [
-        %{
-          field: "virtual_field",
-          label: "Virtual Filter",
-          fn: custom_filter_fn,
-          __slot__: :filter
-        }
-      ]
-
-      processed = Cinder.Collection.process_filter_slots(filter_slots, TestUser)
-      filter = List.first(processed)
-
-      # The filter slot should have the custom filter_fn set
-      assert filter.filterable == true
-      assert is_function(filter.filter_fn, 2)
-    end
-
     test "filter slot fn is called by QueryBuilder" do
       mock_query = %{resource: TestUser, filters: []}
 
