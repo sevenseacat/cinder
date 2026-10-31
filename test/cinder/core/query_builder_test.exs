@@ -1457,19 +1457,11 @@ defmodule Cinder.QueryBuilderTest do
       assert result == query
     end
 
-    test "applies default search across single searchable column" do
-      query = Ash.Query.for_read(SearchTestResource, :read)
-      columns = [%{field: "title", searchable: true}]
-
-      result = QueryBuilder.apply_search(query, "widget", columns, nil)
-
-      # Should have applied a filter
-      assert result != query
-      assert result.filter != nil
-    end
-
-    test "applies default search across multiple searchable columns" do
-      query = Ash.Query.for_read(SearchTestResource, :read)
+    test "matches the term in any searchable column, and not in other columns" do
+      title = seed_search_record(title: "Blue widget")
+      description = seed_search_record(description: "a widget for the kitchen")
+      _status_only = seed_search_record(status: "widget")
+      _neither = seed_search_record(title: "Red gadget")
 
       columns = [
         %{field: "title", searchable: true},
@@ -1477,69 +1469,22 @@ defmodule Cinder.QueryBuilderTest do
         %{field: "status", searchable: false}
       ]
 
-      result = QueryBuilder.apply_search(query, "widget", columns, nil)
-
-      # Should have applied a filter combining title and description (but not status)
-      assert result != query
-      assert result.filter != nil
-
-      # Verify the query can actually be executed without errors
-      assert {:ok, _results} = Ash.read(result)
+      assert search_ids("widget", columns) == MapSet.new([title.id, description.id])
     end
 
-    test "multiple searchable columns create proper OR logic with query execution verification" do
-      query = Ash.Query.for_read(SearchTestResource, :read)
+    test "calls a custom search function instead of the default search" do
+      custom = seed_search_record(title: "custom match")
+      _default_match = seed_search_record(title: "widget")
 
-      # Test 2 columns
-      two_columns = [
-        %{field: "title", searchable: true},
-        %{field: "description", searchable: true}
-      ]
-
-      two_result = QueryBuilder.apply_search(query, "test", two_columns, nil)
-      assert two_result != query
-      assert two_result.filter != nil
-      assert {:ok, _results} = Ash.read(two_result)
-
-      # Test 3 columns for more complex OR logic
-      three_columns = [
-        %{field: "title", searchable: true},
-        %{field: "description", searchable: true},
-        %{field: "status", searchable: true}
-      ]
-
-      three_result = QueryBuilder.apply_search(query, "test", three_columns, nil)
-      assert three_result != query
-      assert three_result.filter != nil
-      assert {:ok, _results} = Ash.read(three_result)
-
-      # Verify single vs multiple field queries produce different filters
-      single_result =
-        QueryBuilder.apply_search(query, "test", [%{field: "title", searchable: true}], nil)
-
-      assert single_result.filter != two_result.filter
-      assert two_result.filter != three_result.filter
-    end
-
-    test "calls custom search function when provided" do
-      query = Ash.Query.for_read(SearchTestResource, :read)
-      columns = [%{field: "title", searchable: true}]
-
-      # Mock custom search function
       custom_search_fn = fn query, searchable_columns, search_term ->
-        assert search_term == "widget"
-        assert length(searchable_columns) == 1
-        assert hd(searchable_columns).field == "title"
-
-        # Return modified query for verification
-        Ash.Query.filter(query, title == "custom_search_applied")
+        send(self(), {:searched, Enum.map(searchable_columns, & &1.field), search_term})
+        Ash.Query.filter(query, title == "custom match")
       end
 
-      result = QueryBuilder.apply_search(query, "widget", columns, custom_search_fn)
+      columns = [%{field: "title", searchable: true}, %{field: "status", searchable: false}]
 
-      # Should have applied custom search function
-      assert result != query
-      assert result.filter != nil
+      assert search_ids("widget", columns, custom_search_fn) == MapSet.new([custom.id])
+      assert_received {:searched, ["title"], "widget"}
     end
 
     @tag :capture_log
@@ -1547,11 +1492,7 @@ defmodule Cinder.QueryBuilderTest do
       query = Ash.Query.for_read(SearchTestResource, :read)
       columns = [%{field: "user__profile__name", searchable: true}]
 
-      # Should not crash even with complex field notation
-      result = QueryBuilder.apply_search(query, "test", columns, nil)
-
-      # The function should handle this gracefully (even if it doesn't work perfectly)
-      assert result != nil
+      assert QueryBuilder.apply_search(query, "test", columns, nil) == query
     end
 
     @tag :capture_log
@@ -1566,29 +1507,25 @@ defmodule Cinder.QueryBuilderTest do
       assert result == query
     end
 
-    test "handles mixed valid and invalid fields correctly" do
-      query = Ash.Query.for_read(SearchTestResource, :read)
+    @tag :capture_log
+    test "searches the fields the resource has, skipping the ones it doesn't" do
+      title = seed_search_record(title: "test title")
+      description = seed_search_record(description: "a test")
+      _neither = seed_search_record(title: "other")
 
       columns = [
-        # Valid field
         %{field: "title", searchable: true},
-        # Invalid field
         %{field: "nonexistent_field", searchable: true},
-        # Valid field
         %{field: "description", searchable: true}
       ]
 
-      result = QueryBuilder.apply_search(query, "test", columns, nil)
-
-      # Should create a search query using only the valid fields
-      assert result != query
-      assert result.filter != nil
-
-      # Should execute successfully (invalid field filtered out)
-      assert {:ok, _results} = Ash.read(result)
+      assert search_ids("test", columns) == MapSet.new([title.id, description.id])
     end
 
-    test "preserves existing query filters when applying search" do
+    test "keeps the query's existing filters" do
+      active = seed_search_record(title: "widget", status: "active")
+      _inactive = seed_search_record(title: "widget", status: "inactive")
+
       query =
         SearchTestResource
         |> Ash.Query.for_read(:read)
@@ -1596,13 +1533,21 @@ defmodule Cinder.QueryBuilderTest do
 
       columns = [%{field: "title", searchable: true}]
 
-      result = QueryBuilder.apply_search(query, "widget", columns, nil)
-
-      # Should have both the original filter and the new search filter
-      assert result != query
-      assert result.filter != nil
-      assert result.filter != query.filter
+      assert query
+             |> QueryBuilder.apply_search("widget", columns, nil)
+             |> Ash.read!()
+             |> MapSet.new(& &1.id) == MapSet.new([active.id])
     end
+  end
+
+  defp seed_search_record(attrs), do: Ash.Seed.seed!(SearchTestResource, Map.new(attrs))
+
+  defp search_ids(term, columns, search_fn \\ nil) do
+    SearchTestResource
+    |> Ash.Query.for_read(:read)
+    |> QueryBuilder.apply_search(term, columns, search_fn)
+    |> Ash.read!()
+    |> MapSet.new(& &1.id)
   end
 
   describe "scope, actor, and tenant — unprepared query (resource module)" do

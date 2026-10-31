@@ -116,36 +116,6 @@ defmodule Cinder.Table.SearchTest do
     end
   end
 
-  describe "search with custom search functions" do
-    test "custom search function receives correct parameters" do
-      query = Ash.Query.for_read(SearchTestResource, :read)
-
-      columns = [
-        %{field: "title", searchable: true},
-        %{field: "description", searchable: true}
-      ]
-
-      search_term = "widget"
-
-      # Custom search function that validates parameters
-      custom_search_fn = fn received_query, received_columns, received_term ->
-        assert received_query == query
-        assert length(received_columns) == 2
-        assert received_term == "widget"
-
-        # Return modified query
-        require Ash.Query
-        Ash.Query.filter(received_query, title == "custom")
-      end
-
-      result = Cinder.QueryBuilder.apply_search(query, search_term, columns, custom_search_fn)
-
-      # Should have been modified by custom function
-      assert result != query
-      assert result.filter != nil
-    end
-  end
-
   describe "search error handling" do
     @tag :capture_log
     test "search with non-existent fields is handled gracefully" do

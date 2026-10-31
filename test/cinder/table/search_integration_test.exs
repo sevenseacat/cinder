@@ -88,33 +88,6 @@ defmodule Cinder.Table.SearchIntegrationTest do
       assert Enum.map(Ash.read!(query), & &1.id) == [widget.id]
     end
 
-    test "end-to-end search flow with column processing and query execution" do
-      # Full integration: slot -> column -> query -> execution
-      col_slots = [
-        %{field: "title", search: true, label: "Title"},
-        %{field: "description", search: true, label: "Description"},
-        %{field: "status", search: false, label: "Status"}
-      ]
-
-      # Process through full pipeline
-      processed_columns = Cinder.Collection.process_columns(col_slots, SearchTestResource)
-      query = Ash.Query.for_read(SearchTestResource, :read)
-
-      # Apply search and verify end-to-end flow
-      search_result =
-        Cinder.QueryBuilder.apply_search(query, "integration test", processed_columns, nil)
-
-      assert search_result != query
-      assert search_result.filter != nil
-      assert {:ok, _results} = Ash.read(search_result)
-
-      # Verify only searchable columns were included
-      searchable_fields = Enum.filter(processed_columns, & &1.searchable) |> Enum.map(& &1.field)
-      assert "title" in searchable_fields
-      assert "description" in searchable_fields
-      refute "status" in searchable_fields
-    end
-
     test "search works with mixed search and filter attributes" do
       col_slots = [
         %{field: "title", search: true, filter: true, label: "Title"},
