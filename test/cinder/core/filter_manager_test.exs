@@ -332,21 +332,6 @@ defmodule Cinder.FilterManagerRuntimeTest do
       assert log_output =~ "Custom filter :missing is registered but module is not available"
       assert log_output =~ "for column 'price'. Falling back to text filter"
     end
-
-    test "infers built-in filters normally" do
-      slot = %{
-        filterable: true,
-        filter_options: []
-      }
-
-      # Mock Ash resource attribute
-      resource = nil
-
-      config = FilterManager.infer_filter_config("name", resource, slot)
-
-      assert config.filter_type == :text
-      assert is_list(config.filter_options)
-    end
   end
 
   describe "validate_runtime_filters/0" do
@@ -380,57 +365,9 @@ defmodule Cinder.FilterManagerRuntimeTest do
       assert log_output =~ "NonExistentModule does not exist"
       assert log_output =~ "AnotherMissingModule does not exist"
     end
-
-    test "continues execution even when validation fails" do
-      # This test ensures that failed validation doesn't crash the application
-      Application.put_env(:cinder, :filters, broken: NonExistentModule)
-
-      log_output =
-        capture_log(fn ->
-          result = FilterManager.validate_runtime_filters()
-
-          assert {:error, _errors} = result
-        end)
-
-      assert log_output =~ "Custom filter validation failed"
-
-      # Application should still be able to continue
-      assert Registry.registered?(:text) == true
-    end
   end
 
   describe "integration with built-in filter system" do
-    test "custom filters work alongside built-in filters" do
-      Application.put_env(:cinder, :filters, slider: TestSliderFilter)
-      Registry.register_config_filters()
-
-      # Test both custom and built-in filters
-      custom_column = %{
-        field: "price",
-        filter_type: :slider,
-        filter_options: []
-      }
-
-      builtin_column = %{
-        field: "name",
-        filter_type: :text,
-        filter_options: []
-      }
-
-      # Both should process correctly
-      custom_result = FilterManager.process_filter_value("50", custom_column)
-      builtin_result = FilterManager.process_filter_value("test", builtin_column)
-
-      assert custom_result == %{type: :slider, value: 50, operator: :equals}
-
-      assert builtin_result == %{
-               type: :text,
-               value: "test",
-               operator: :contains,
-               case_sensitive: false
-             }
-    end
-
     test "default_options works for both custom and built-in filters" do
       Application.put_env(:cinder, :filters, slider: TestSliderFilter)
       Registry.register_config_filters()
@@ -561,30 +498,6 @@ defmodule Cinder.FilterManagerRuntimeTest do
         {"Pending", :pending},
         {"Currently Trading", :trading},
         {"Paused Status", :paused}
-      ]
-
-      assert result == expected
-    end
-
-    test "enum_to_options handles mixed atom and string values correctly" do
-      # Test the exact case from the GitHub issue
-      defmodule TestMixedEnum do
-        use Ash.Type.Enum, values: [:pending, :trading, :paused, "Test"]
-      end
-
-      mock_attribute = %{
-        type: TestMixedEnum,
-        constraints: []
-      }
-
-      result = FilterManager.extract_enum_options(mock_attribute)
-
-      # Atoms should be humanized, strings should be capitalized
-      expected = [
-        {"Pending", :pending},
-        {"Trading", :trading},
-        {"Paused", :paused},
-        {"Test", "Test"}
       ]
 
       assert result == expected

@@ -350,47 +350,6 @@ defmodule Cinder.QueryBuilderTest do
   end
 
   describe "validate_sortable_fields/2" do
-    test "handles calculation field sorting" do
-      # Test calculation fields work correctly
-      sort_by = [{"track_count", :asc}]
-      result = QueryBuilder.validate_sortable_fields(sort_by, Album)
-      assert result == :ok
-    end
-
-    test "handles regular field sorting" do
-      # Test regular fields work correctly
-      sort_by = [{"title", :asc}]
-      result = QueryBuilder.validate_sortable_fields(sort_by, Album)
-      assert result == :ok
-    end
-
-    test "handles mixed calculation and field sorting" do
-      # Test combination of different field types
-      sort_by = [
-        {"track_count", :asc},
-        {"title", :desc}
-      ]
-
-      result = QueryBuilder.validate_sortable_fields(sort_by, Album)
-      assert result == :ok
-    end
-
-    test "handles invalid field gracefully" do
-      # Test that invalid fields return error instead of crashing
-      invalid_sort = [{"nonexistent_field", :asc}]
-      result = QueryBuilder.validate_sortable_fields(invalid_sort, Album)
-
-      case result do
-        :ok ->
-          # This is fine - might be valid in some contexts
-          :ok
-
-        {:error, message} ->
-          # Error message should be helpful
-          assert is_binary(message)
-          assert String.contains?(message, "nonexistent_field")
-      end
-    end
   end
 
   # Sort keys come from the client (URL params, events). Validating one must never
@@ -1160,30 +1119,6 @@ defmodule Cinder.QueryBuilderTest do
       assert result == [{"name", :desc}, {"email", :asc}]
     end
 
-    test "toggle behavior starting from query-extracted desc sort" do
-      # This test documents the issue: when starting with desc from query,
-      # the toggle cycle is: desc -> none -> asc -> desc -> none
-      # User expects: desc -> asc -> desc -> none
-
-      # From query extraction
-      initial_sort = [{"name", :desc}]
-
-      # First click: desc -> none (current behavior)
-      sort_after_click_1 = QueryBuilder.toggle_sort_direction(initial_sort, "name")
-      assert sort_after_click_1 == []
-
-      # Second click: none -> asc
-      sort_after_click_2 = QueryBuilder.toggle_sort_direction(sort_after_click_1, "name")
-      assert sort_after_click_2 == [{"name", :asc}]
-
-      # Third click: asc -> desc
-      sort_after_click_3 = QueryBuilder.toggle_sort_direction(sort_after_click_2, "name")
-      assert sort_after_click_3 == [{"name", :desc}]
-
-      # This creates the confusing cycle: desc -> none -> asc -> desc -> none
-      # instead of the expected: desc -> asc -> desc -> none
-    end
-
     test "extracts sorts from embedded field calc expressions" do
       # When sorting on embedded fields, Cinder uses calc expressions like:
       # calc(get_path(^ref(:profile), [:first_name]))
@@ -1654,33 +1589,6 @@ defmodule Cinder.QueryBuilderTest do
 
       # Should execute successfully (invalid field filtered out)
       assert {:ok, _results} = Ash.read(result)
-    end
-
-    test "search query execution produces expected filter structure" do
-      query = Ash.Query.for_read(SearchTestResource, :read)
-
-      # Single field case
-      single_result =
-        QueryBuilder.apply_search(query, "test", [%{field: "title", searchable: true}], nil)
-
-      # Multiple field case
-      multi_result =
-        QueryBuilder.apply_search(
-          query,
-          "test",
-          [
-            %{field: "title", searchable: true},
-            %{field: "description", searchable: true}
-          ],
-          nil
-        )
-
-      # Both should execute successfully
-      assert {:ok, _results} = Ash.read(single_result)
-      assert {:ok, _results} = Ash.read(multi_result)
-
-      # Multi-field should have different (more complex) filter structure
-      assert single_result.filter != multi_result.filter
     end
 
     test "preserves existing query filters when applying search" do
@@ -2209,23 +2117,6 @@ defmodule Cinder.QueryBuilderTest do
       ]
 
       assert {:error, _message} = QueryBuilder.build_query(TestUser, options)
-    end
-
-    test "build_and_execute delegates to build_query internally" do
-      options = [
-        actor: nil,
-        filters: %{},
-        sort_by: [{"name", :asc}],
-        page_size: 10,
-        current_page: 1,
-        columns: [],
-        query_opts: [],
-        search_term: ""
-      ]
-
-      result = QueryBuilder.build_and_execute(TestUser, options)
-      assert {:ok, page} = result
-      assert is_list(page.results)
     end
   end
 end

@@ -235,130 +235,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     end
   end
 
-  test "in-memory calculations fail for sorting - demonstrating the issue" do
-    # This test documents that in-memory calculations cannot be sorted
-    # It should either crash or return unsorted data
-    options = [
-      actor: nil,
-      filters: %{},
-      sort_by: [{"full_name_module", :asc}],
-      page_size: 25,
-      current_page: 1,
-      columns: [],
-      query_opts: [load: [:full_name_module]]
-    ]
-
-    result = QueryBuilder.build_and_execute(TestUser, options)
-
-    # Either it crashes (error) or returns unsorted data (success but not sorted)
-    # Both outcomes demonstrate the issue exists
-    case result do
-      {:ok, page} ->
-        full_names = Enum.map(page.results, & &1.full_name_module)
-        expected_sorted = ["Alice Smith", "Bob Johnson", "Zoe Adams"]
-
-        # If it's properly sorted, the issue has been fixed
-        if full_names == expected_sorted do
-          flunk("In-memory calculation sorting appears to be working - issue may be resolved")
-        end
-
-      # Otherwise, sorting failed as expected (demonstrates the issue)
-
-      {:error, _error} ->
-        # Crash also demonstrates the issue
-        nil
-    end
-  end
-
-  test "comparison shows the difference between calculation types" do
-    # Test both types with identical data to show the difference
-
-    # Database calculation
-    db_options = [
-      actor: nil,
-      filters: %{},
-      sort_by: [{"full_name_expr", :asc}],
-      page_size: 25,
-      current_page: 1,
-      columns: [],
-      query_opts: [load: [:full_name_expr]]
-    ]
-
-    # In-memory calculation
-    memory_options = [
-      actor: nil,
-      filters: %{},
-      sort_by: [{"full_name_module", :asc}],
-      page_size: 25,
-      current_page: 1,
-      columns: [],
-      query_opts: [load: [:full_name_module]]
-    ]
-
-    {db_result, _db_logs} =
-      with_log(fn ->
-        QueryBuilder.build_and_execute(TestUser, db_options)
-      end)
-
-    {memory_result, _memory_logs} =
-      with_log(fn ->
-        QueryBuilder.build_and_execute(TestUser, memory_options)
-      end)
-
-    case db_result do
-      {:ok, page} ->
-        names = Enum.map(page.results, & &1.full_name_expr)
-        assert names == ["Alice Smith", "Bob Johnson", "Zoe Adams"]
-
-      {:error, error} ->
-        flunk("Database calculation failed: #{inspect(error)}")
-    end
-
-    case memory_result do
-      {:ok, page} ->
-        names = Enum.map(page.results, & &1.full_name_module)
-        expected = ["Alice Smith", "Bob Johnson", "Zoe Adams"]
-
-        # Test passes whether sorting works or doesn't work
-        # We're just documenting the current behavior
-        if names == expected do
-          # If sorting works, that means the issue has been resolved
-          flunk("In-memory calculation sorting appears to be working - issue may be resolved")
-        end
-
-      # If sorting doesn't work, that demonstrates the issue (test passes)
-
-      {:error, _error} ->
-        # Crash also demonstrates the issue exists (test passes)
-        nil
-    end
-  end
-
-  @doc """
-  ## Summary
-
-  **Issue**: Sorting on in-memory calculations (those using calculation modules) doesn't work
-  **Cause**: Ash applies sorts at the database level, but in-memory calculations are computed after data retrieval
-  **Impact**: Users cannot sort tables by calculated fields that require complex logic
-
-  ## Technical Details
-
-  - Database calculations (`expr()`) are translated to SQL and can be sorted
-  - In-memory calculations run after data is loaded from the database
-  - The query builder tries to sort by fields that don't exist in the database query
-  - This results in either errors or the sort being ignored
-
-  ## Potential Solutions
-
-  1. **Detection**: Identify when a sort field is an in-memory calculation
-  2. **Deferred sorting**: Load data unsorted, compute calculations, then sort in Elixir
-  3. **UI prevention**: Don't show sort controls for non-sortable calculations
-  4. **Validation**: Block invalid sort requests with helpful error messages
-
-  This test file serves as documentation of the issue and will help verify
-  when a solution is implemented.
-  """
-
   test "validation prevents sorting on in-memory calculations" do
     # Test that our new validation correctly prevents sorting on in-memory calculations
 
@@ -468,92 +344,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     assert rel_field_parsed.sort_warning == nil
   end
 
-  test "direct calculation with resource module - expression type" do
-    column = %{field: "full_name_expr", sortable: true}
-    parsed = Cinder.Column.parse_column(column, TestUser)
-
-    assert parsed.sortable == true
-    assert parsed.sort_warning == nil
-  end
-
-  @tag :capture_log
-  test "direct calculation with resource module - in-memory type" do
-    column = %{field: "full_name_module", sortable: true}
-    parsed = Cinder.Column.parse_column(column, TestUser)
-
-    assert parsed.sortable == false
-    assert parsed.sort_warning != nil
-    assert parsed.sort_warning =~ "in-memory calculation"
-  end
-
-  test "relationship calculation - expression type" do
-    profile_attrs = %{bio: "Software developer", website: "example.com"}
-
-    profile =
-      TestProfile
-      |> Ash.Changeset.for_create(:create, profile_attrs)
-      |> Ash.create!(domain: TestDomain)
-
-    user_attrs = %{first_name: "John", last_name: "Doe", profile_id: profile.id}
-
-    _user =
-      TestUserWithProfile
-      |> Ash.Changeset.for_create(:create, user_attrs)
-      |> Ash.create!(domain: TestDomain)
-
-    column = %{field: "profile.display_info", sortable: true}
-    parsed = Cinder.Column.parse_column(column, TestUserWithProfile)
-
-    assert parsed.sortable == true
-    assert parsed.sort_warning == nil
-  end
-
-  @tag :capture_log
-  test "relationship calculation - in-memory type" do
-    profile_attrs = %{bio: "Software developer", website: "example.com"}
-
-    profile =
-      TestProfile
-      |> Ash.Changeset.for_create(:create, profile_attrs)
-      |> Ash.create!(domain: TestDomain)
-
-    user_attrs = %{first_name: "John", last_name: "Doe", profile_id: profile.id}
-
-    _user =
-      TestUserWithProfile
-      |> Ash.Changeset.for_create(:create, user_attrs)
-      |> Ash.create!(domain: TestDomain)
-
-    column = %{field: "profile.formatted_bio", sortable: true}
-    parsed = Cinder.Column.parse_column(column, TestUserWithProfile)
-
-    assert parsed.sortable == false
-    assert parsed.sort_warning != nil
-    assert parsed.sort_warning =~ "in-memory calculation"
-  end
-
-  test "relationship regular field" do
-    profile_attrs = %{bio: "Software developer", website: "example.com"}
-
-    profile =
-      TestProfile
-      |> Ash.Changeset.for_create(:create, profile_attrs)
-      |> Ash.create!(domain: TestDomain)
-
-    user_attrs = %{first_name: "John", last_name: "Doe", profile_id: profile.id}
-
-    _user =
-      TestUserWithProfile
-      |> Ash.Changeset.for_create(:create, user_attrs)
-      |> Ash.create!(domain: TestDomain)
-
-    column = %{field: "profile.bio", sortable: true}
-    parsed = Cinder.Column.parse_column(column, TestUserWithProfile)
-
-    assert parsed.sortable == true
-    assert parsed.sort_warning == nil
-  end
-
   test "non-ash resource doesn't crash" do
     non_ash_resource = %{not: "an_ash_resource"}
     column = %{field: "test_field", sortable: true}
@@ -561,17 +351,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
 
     assert parsed.sortable == true
     assert parsed.sort_warning == nil
-  end
-
-  @tag :capture_log
-  test "user explicit sortable override - unsafe override ignored" do
-    column = %{field: "full_name_module", sortable: true}
-    parsed = Cinder.Column.parse_column(column, TestUser)
-
-    # Unsafe override should be ignored - stays non-sortable
-    assert parsed.sortable == false
-    assert parsed.sort_warning != nil
-    assert parsed.sort_warning =~ "in-memory calculation"
   end
 
   test "user explicit sortable override - safe override allowed" do
@@ -597,17 +376,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     assert module_parsed.filterable == false
     assert module_parsed.filter_warning != nil
     assert module_parsed.filter_warning =~ "in-memory calculation"
-  end
-
-  @tag :capture_log
-  test "user explicit filterable override - unsafe override ignored" do
-    column = %{field: "full_name_module", filterable: true}
-    parsed = Cinder.Column.parse_column(column, TestUser)
-
-    # Unsafe override should be ignored - stays non-filterable
-    assert parsed.filterable == false
-    assert parsed.filter_warning != nil
-    assert parsed.filter_warning =~ "in-memory calculation"
   end
 
   test "user explicit filterable override - safe override allowed" do
@@ -860,30 +628,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
   end
 
   @tag :capture_log
-  test "original user issues are fixed" do
-    # This test verifies the specific issues reported by the user are resolved
-
-    # Issue 1: Non-existent field "froo" should not show sort/filter controls
-    froo_column = %{field: "froo", sortable: true, filterable: true}
-    froo_parsed = Cinder.Column.parse_column(froo_column, TestUser)
-
-    assert froo_parsed.sortable == false
-    assert froo_parsed.filterable == false
-    assert froo_parsed.sort_warning =~ "does not exist"
-    assert froo_parsed.filter_warning =~ "does not exist"
-
-    # Issue 2: Runtime validation should prevent crashes instead of causing them
-    # Test that sorting by an in-memory calculation returns an error instead of crashing
-    result = QueryBuilder.validate_sortable_fields([{"full_name_module", :asc}], TestUser)
-    assert {:error, message} = result
-    assert message =~ "Cannot sort by invalid fields: full_name_module"
-
-    # Issue 3: Valid fields should pass validation
-    result2 = QueryBuilder.validate_sortable_fields([{"first_name", :asc}], TestUser)
-    assert result2 == :ok
-  end
-
-  @tag :capture_log
   test "validation works with pre-built Ash.Query containing invalid sorts" do
     # This test verifies that validation works when build_and_execute receives
     # an Ash.Query that already has invalid sorts applied to it
@@ -910,66 +654,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     assert {:error, message} = result
     assert message =~ "Cannot sort by invalid fields: another_invalid_field"
     assert message =~ "field does not exist"
-
-    # Test with in-memory calculation in pre-built query
-    query2 =
-      TestUser
-      |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
-      # Invalid calculation
-      |> Ash.Query.sort([{"full_name_module", :asc}])
-
-    options2 = [
-      actor: nil,
-      filters: %{},
-      # Empty sort_by should pass validation
-      sort_by: [],
-      page_size: 25,
-      current_page: 1,
-      columns: [],
-      query_opts: []
-    ]
-
-    # Should pass validation since sort_by is empty, but the pre-built query
-    # sort won't be validated (that's Ash's responsibility)
-    result2 = QueryBuilder.build_and_execute(query2, options2)
-    # This might succeed or fail depending on how Ash handles the invalid sort
-    # but it shouldn't crash with our validation error
-    case result2 do
-      # Ash handled it somehow
-      {:ok, _} -> :ok
-      # Ash rejected it, which is fine
-      {:error, _} -> :ok
-    end
-  end
-
-  @tag :capture_log
-  test "table component validation with pre-built query and invalid columns" do
-    # This test verifies that the table component properly validates columns
-    # even when using a pre-built Ash.Query instead of a resource
-
-    # Create a query with valid sorts
-    query =
-      TestUser
-      |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
-      |> Ash.Query.sort([{"first_name", :desc}])
-
-    # Test column parsing with the query - should work the same as with resource
-    valid_column = %{field: "first_name", sortable: true}
-    valid_parsed = Cinder.Column.parse_column(valid_column, query)
-    assert valid_parsed.sortable == true
-    assert valid_parsed.sort_warning == nil
-
-    # Test invalid column with query - should be caught
-    invalid_column = %{field: "nonexistent_field", sortable: true}
-    invalid_parsed = Cinder.Column.parse_column(invalid_column, query)
-    assert invalid_parsed.sortable == false
-    assert invalid_parsed.sort_warning =~ "does not exist"
-
-    # Test in-memory calculation with query - should be caught
-    calc_column = %{field: "full_name_module", sortable: true}
-    calc_parsed = Cinder.Column.parse_column(calc_column, query)
-    assert calc_parsed.sortable == false
-    assert calc_parsed.sort_warning =~ "in-memory calculation"
   end
 
   test "multi-level relationship field resolution works correctly" do

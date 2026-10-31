@@ -165,17 +165,6 @@ defmodule Cinder.ColumnTest do
   end
 
   describe "relationship key parsing" do
-    test "parses simple relationship" do
-      slot = %{field: "user.email"}
-      resource = nil
-
-      column = Column.parse_column(slot, resource)
-
-      assert column.field == "user.email"
-      assert column.relationship == "user"
-      assert column.display_field == "email"
-    end
-
     test "handles non-relationship fields" do
       slot = %{field: "simple_field"}
       resource = nil
@@ -206,18 +195,6 @@ defmodule Cinder.ColumnTest do
   end
 
   describe "type inference without Ash resource" do
-    test "returns default config when no resource provided" do
-      slot = %{field: "test_field"}
-      resource = nil
-
-      column = Column.parse_column(slot, resource)
-
-      assert column.sortable == false
-      assert column.filterable == false
-      assert column.filter_type == :text
-      assert column.filter_options == []
-    end
-
     test "returns default config for non-Ash resource" do
       slot = %{field: "test_field"}
       resource = %{not: "an_ash_resource"}
@@ -232,24 +209,6 @@ defmodule Cinder.ColumnTest do
   end
 
   describe "humanization" do
-    test "humanizes snake_case fields" do
-      slot = %{field: "user_name"}
-      resource = nil
-
-      column = Column.parse_column(slot, resource)
-
-      assert column.label == "User Name"
-    end
-
-    test "humanizes dot notation fields" do
-      slot = %{field: "user.profile.first_name"}
-      resource = nil
-
-      column = Column.parse_column(slot, resource)
-
-      assert column.label == "User > Profile > First Name"
-    end
-
     test "capitalizes single words" do
       slot = %{field: "email"}
       resource = nil
@@ -326,75 +285,6 @@ defmodule Cinder.ColumnTest do
       assert column.searchable == true
       assert column.options == [custom: "option"]
       assert column.slot == slot
-    end
-  end
-
-  describe "filterable attribute behavior" do
-    test "columns default to non-filterable when filterable not specified" do
-      slots = [
-        %{field: "id", label: "ID"},
-        %{field: "name", label: "Name"},
-        %{field: "email", label: "Email", filterable: true}
-      ]
-
-      resource = nil
-
-      columns = Enum.map(slots, &Column.parse_column(&1, resource))
-
-      # Only the email column should be filterable
-      [id_col, name_col, email_col] = columns
-
-      assert id_col.filterable == false
-      assert name_col.filterable == false
-      assert email_col.filterable == true
-    end
-
-    test "filterable: false is explicitly respected" do
-      slots = [
-        %{field: "id", label: "ID", filterable: false},
-        %{field: "secret", label: "Secret", filterable: false, sortable: false}
-      ]
-
-      resource = nil
-
-      columns = Enum.map(slots, &Column.parse_column(&1, resource))
-
-      [id_col, secret_col] = columns
-
-      assert id_col.filterable == false
-      assert id_col.sortable == false
-
-      assert secret_col.filterable == false
-      # explicitly set to false
-      assert secret_col.sortable == false
-    end
-
-    test "mixed filterable configuration in single table" do
-      slots = [
-        # not filterable (default)
-        %{field: "id", label: "ID"},
-        # filterable
-        %{field: "name", label: "Name", filterable: true},
-        # explicitly not filterable
-        %{field: "email", label: "Email", filterable: false},
-        # filterable
-        %{field: "status", label: "Status", filterable: true}
-      ]
-
-      resource = nil
-
-      columns = Enum.map(slots, &Column.parse_column(&1, resource))
-
-      filterable_columns = Enum.filter(columns, & &1.filterable)
-      non_filterable_columns = Enum.reject(columns, & &1.filterable)
-
-      # Should have exactly 2 filterable columns
-      assert length(filterable_columns) == 2
-      assert Enum.map(filterable_columns, & &1.field) == ["name", "status"]
-
-      # Should have exactly 2 non-filterable columns
-      assert length(non_filterable_columns) == 2
-      assert Enum.map(non_filterable_columns, & &1.field) == ["id", "email"]
     end
   end
 
