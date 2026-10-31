@@ -266,6 +266,7 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     regular_parsed = Cinder.Column.parse_column(regular_column, TestUser)
 
     assert expr_parsed.sortable == true
+    assert expr_parsed.sort_warning == nil
     assert module_parsed.sortable == false
     assert regular_parsed.sortable == true
 

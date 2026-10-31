@@ -76,6 +76,8 @@ defmodule Cinder.Filters.RegistryTest do
 
       assert filters[:text] == Cinder.Filters.Text
       assert filters[:select] == Cinder.Filters.Select
+      assert filters[:radio_group] == Cinder.Filters.RadioGroup
+      assert filters[:multi_checkboxes] == Cinder.Filters.MultiCheckboxes
     end
 
     test "get_filter/1 returns correct module for built-in types" do

@@ -197,8 +197,10 @@ defmodule Cinder.Filters.AutocompleteTest do
       # Check for JS commands for dropdown show/hide
       assert html =~ "phx-focus"
       assert html =~ "phx-click-away"
-      # Check for radio button inputs (like select filter)
+      # Options are visually hidden radios inside clickable labels, like the select filter's
       assert html =~ "type=\"radio\""
+      assert html =~ "<label"
+      assert html =~ "class=\"sr-only\""
     end
 
     test "renders with current value showing label" do

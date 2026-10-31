@@ -377,7 +377,4 @@ defmodule Cinder.SelectionTest do
                        }}
     end
   end
-
-  describe "selection state persistence" do
-  end
 end

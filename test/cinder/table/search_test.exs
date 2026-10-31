@@ -3,12 +3,6 @@ defmodule Cinder.Table.SearchTest do
 
   alias Cinder.Support.SearchTestResource
 
-  describe "search parameter validation" do
-  end
-
-  describe "search state management" do
-  end
-
   describe "search column configuration" do
     test "search attribute processing in column parsing" do
       # Test that search=true gets converted to searchable: true
@@ -120,9 +114,6 @@ defmodule Cinder.Table.SearchTest do
       assert search_fn == custom_search_fn
       assert is_function(search_fn, 3)
     end
-  end
-
-  describe "search URL parameter handling" do
   end
 
   describe "search with custom search functions" do

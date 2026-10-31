@@ -660,7 +660,4 @@ defmodule Cinder.FiltersTest do
       assert result == 3
     end
   end
-
-  describe "Real-world scenarios" do
-  end
 end

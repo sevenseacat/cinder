@@ -95,7 +95,4 @@ defmodule Cinder.AggregateFilteringTest do
              "Expected numeric filter type for aggregate, got #{filter_config.filter_type}"
     end
   end
-
-  describe "manual filter testing" do
-  end
 end

@@ -499,7 +499,4 @@ defmodule Cinder.Integration.UpdateItemTest do
       assert updated_socket.assigns.data == [%{id: 1, value: "test"}]
     end
   end
-
-  describe "update function behavior" do
-  end
 end

@@ -171,9 +171,6 @@ defmodule Cinder.ConfigRegistrationTest do
     end
   end
 
-  describe "__using__ macro functionality" do
-  end
-
   describe "edge cases and error handling" do
     test "empty configuration handling" do
       Application.put_env(:cinder, :filters, [])

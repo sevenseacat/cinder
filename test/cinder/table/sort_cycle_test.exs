@@ -461,9 +461,6 @@ defmodule Cinder.Table.SortCycleTest do
       assert result == []
     end
   end
-
-  describe "end-to-end sort cycle demonstration" do
-  end
 end
 
 # Mock test resource

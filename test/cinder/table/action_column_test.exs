@@ -187,9 +187,6 @@ defmodule Cinder.ActionColumnTest do
     end
   end
 
-  describe "table rendering with action columns" do
-  end
-
   describe "backward compatibility" do
     test "existing data columns continue to work unchanged" do
       data_column = %{

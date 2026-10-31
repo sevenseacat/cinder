@@ -186,9 +186,6 @@ defmodule Cinder.UrlStateRestorationTest do
     end
   end
 
-  describe "component URL state restoration" do
-  end
-
   describe "URL encoding and decoding roundtrip" do
     test "filters survive encode -> decode cycle when columns are preserved" do
       # Start with filter state
@@ -290,11 +287,5 @@ defmodule Cinder.UrlStateRestorationTest do
       assert decoded_state.filters["artist.name"].value == "Z"
       assert decoded_state.filters["artist.founded_year"].value == %{min: "1960", max: "1970"}
     end
-  end
-
-  describe "URL restoration fix verification" do
-  end
-
-  describe "the actual broken flow" do
   end
 end

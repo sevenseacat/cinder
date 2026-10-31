@@ -65,9 +65,6 @@ defmodule Cinder.Table.CustomFunctionsTest do
     end
   end
 
-  describe "integration with existing functionality" do
-  end
-
   describe "end-to-end integration with QueryBuilder" do
     test "custom filter functions are called by QueryBuilder" do
       # Mock query that tracks when custom filter is applied

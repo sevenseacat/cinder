@@ -375,6 +375,16 @@ defmodule Cinder.RangeFilterIntegrationTest do
       result = FilterManager.params_to_filters(partial_params["filters"], columns)
       assert result["value"].value == %{min: "100", max: ""}
 
+      # Only max provided
+      partial_params = %{"filters" => %{"value_min" => "", "value_max" => "200"}}
+      result = FilterManager.params_to_filters(partial_params["filters"], columns)
+      assert result["value"].value == %{min: "", max: "200"}
+
+      # Negative and zero bounds
+      signed_params = %{"filters" => %{"value_min" => "-10", "value_max" => "0"}}
+      result = FilterManager.params_to_filters(signed_params["filters"], columns)
+      assert result["value"].value == %{min: "-10", max: "0"}
+
       # Test 3: Invalid/whitespace values
       whitespace_params = %{"filters" => %{"value_min" => "  ", "value_max" => "  "}}
       result = FilterManager.params_to_filters(whitespace_params["filters"], columns)

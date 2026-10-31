@@ -349,9 +349,6 @@ defmodule Cinder.QueryBuilderTest do
     end
   end
 
-  describe "validate_sortable_fields/2" do
-  end
-
   # Sort keys come from the client (URL params, events). Validating one must never
   # create an atom, or a client sending distinct keys could fill the atom table.
   describe "sort field validation with client-supplied names" do

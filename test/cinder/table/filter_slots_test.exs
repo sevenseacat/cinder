@@ -458,14 +458,17 @@ defmodule Cinder.Table.FilterSlotsTest do
 
     test "detects conflicts between column filters and filter slots" do
       processed_columns = [
+        %{field: "email", filterable: true, filter_type: :text, __slot__: :col},
         %{field: "name", filterable: true, filter_type: :text, __slot__: :col}
       ]
 
       processed_filter_slots = [
+        %{field: "email", filterable: true, filter_type: :text, __slot__: :filter},
         %{field: "name", filterable: true, filter_type: :text, __slot__: :filter}
       ]
 
-      assert_raise ArgumentError, ~r/Field conflict detected.*name/, fn ->
+      # Every conflicting field is named, not just the first
+      assert_raise ArgumentError, ~r/Field conflict detected.*email.*name/, fn ->
         Cinder.Collection.build_query_columns(processed_columns, processed_filter_slots)
       end
     end
@@ -536,9 +539,6 @@ defmodule Cinder.Table.FilterSlotsTest do
       assert html =~ "cinder-table"
       # More specific assertions would require testing the actual filter HTML structure
     end
-  end
-
-  describe "backward compatibility" do
   end
 
   describe "validation error messages" do
