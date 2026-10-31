@@ -16,6 +16,8 @@ defmodule Cinder.Filters.DateRange do
   import Cinder.Filter, only: [field_name: 2, filter_id: 3]
   use Cinder.Messages
 
+  alias Cinder.Filter.Helpers
+
   @impl true
   def render(column, current_value, theme, assigns) do
     from_value = get_in(current_value, [:from]) || ""
@@ -210,127 +212,19 @@ defmodule Cinder.Filters.DateRange do
 
   defp format_value_for_input(value, _), do: value
 
-  # Get the resource from the query to detect field types
-  defp get_resource(query) do
-    case query do
-      %Ash.Query{resource: resource} -> resource
-      _ -> nil
-    end
-  end
-
-  # Get field type from resource
-  defp get_field_type(resource, field) when is_atom(resource) and is_atom(field) do
-    case Ash.Resource.Info.attribute(resource, field) do
-      %{type: Ash.Type.Date} -> :date
-      %{type: Ash.Type.NaiveDatetime} -> :naive_datetime
-      %{type: Ash.Type.UtcDatetime} -> :utc_datetime
-      %{type: Ash.Type.UtcDatetimeUsec} -> :utc_datetime
-      %{type: Ash.Type.DateTime} -> :utc_datetime
-      _ -> :unknown
-    end
-  end
-
-  defp get_field_type(_, _), do: :unknown
-
-  # Convert date string to datetime string for datetime fields
-  defp convert_date_for_field(value, _field_type) when value in ["", nil], do: value
-
-  defp convert_date_for_field(value, field_type)
-       when field_type in [:naive_datetime, :utc_datetime] and is_binary(value) do
-    cond do
-      # Already a datetime string
-      String.contains?(value, "T") ->
-        value
-
-      # Date string - convert to datetime
-      String.match?(value, ~r/^\d{4}-\d{2}-\d{2}$/) ->
-        "#{value}T00:00:00"
-
-      # Unknown format
-      true ->
-        value
-    end
-  end
-
-  defp convert_date_for_field(value, _field_type), do: value
-
-  # Convert date string to end-of-day datetime for range end values
-  defp convert_date_for_field_end(value, _field_type) when value in ["", nil], do: value
-
-  defp convert_date_for_field_end(value, field_type)
-       when field_type in [:naive_datetime, :utc_datetime] and is_binary(value) do
-    cond do
-      # Already a datetime string
-      String.contains?(value, "T") ->
-        value
-
-      # Date string - convert to end of day datetime
-      String.match?(value, ~r/^\d{4}-\d{2}-\d{2}$/) ->
-        "#{value}T23:59:59"
-
-      # Unknown format
-      true ->
-        value
-    end
-  end
-
-  defp convert_date_for_field_end(value, _field_type), do: value
-
   @impl true
-  def build_query(query, field, filter_value) do
-    %{value: %{from: from, to: to}} = filter_value
+  def build_query(query, field, %{value: %{from: from, to: to}}) do
+    Helpers.build_date_filter(query, field, bound(from), bound(to))
+  end
 
-    # Get resource and field type for proper conversion
-    resource = get_resource(query)
+  # A date-only bound covers that whole day; a bound with a time (from `include_time`) is
+  # compared as given
+  defp bound(value) when value in ["", nil], do: nil
 
-    # For embedded fields, we need to handle field type detection differently
-    field_type =
-      case Cinder.Filter.Helpers.parse_field_notation(field) do
-        {:direct, field_name} ->
-          field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
-          get_field_type(resource, field_atom)
-
-        {:relationship, _rel_path, field_name} ->
-          field_atom = Cinder.Filter.Helpers.declared_field_atom(field_name)
-          get_field_type(resource, field_atom)
-
-        {:embedded, _embed_field, _field_name} ->
-          # For embedded fields, assume :naive_datetime for now
-          # This could be enhanced with embedded field type detection
-          :naive_datetime
-
-        {:nested_embedded, _embed_field, _field_path} ->
-          :naive_datetime
-
-        {:relationship_embedded, _rel_path, _embed_field, _field_name} ->
-          :naive_datetime
-
-        {:relationship_nested_embedded, _rel_path, _embed_field, _field_path} ->
-          :naive_datetime
-
-        {:invalid, _} ->
-          :date
-      end
-
-    # Convert values based on field type
-    from_converted = convert_date_for_field(from, field_type)
-    to_converted = convert_date_for_field_end(to, field_type)
-
-    case {from_converted, to_converted} do
-      {from_val, to_val} when from_val != "" and to_val != "" ->
-        # Apply both from and to filters using the centralized helper
-        query
-        |> Cinder.Filter.Helpers.build_ash_filter(field, from_val, :greater_than_or_equal)
-        |> Cinder.Filter.Helpers.build_ash_filter(field, to_val, :less_than_or_equal)
-
-      {from_val, ""} when from_val != "" ->
-        Cinder.Filter.Helpers.build_ash_filter(query, field, from_val, :greater_than_or_equal)
-
-      {"", to_val} when to_val != "" ->
-        Cinder.Filter.Helpers.build_ash_filter(query, field, to_val, :less_than_or_equal)
-
-      _ ->
-        query
+  defp bound(value) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> date
+      {:error, _} -> value
     end
   end
 end

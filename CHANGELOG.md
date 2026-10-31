@@ -14,6 +14,8 @@ SPDX-License-Identifier: MIT
 * The page size dropdown now clips its options to its rounded corners in every theme.
 * Default column labels for embedded fields now separate each step with `>`, as relationship labels do.
 * Turning `selectable` off now clears the selected items.
+* Date range filters on relationship and embedded fields now find matching records, and include the whole of the end date; through a to-many relationship, one related record has to fall inside the range.
+* Date and date range filters compare the field directly instead of casting it to a date, so a database index on the field can be used.
 
 ## v0.18.0 (2026-10-28)
 

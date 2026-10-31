@@ -71,6 +71,17 @@ defmodule CinderDevWeb.FiltersLive do
         <:col :let={album} field="added_at" filter={[type: :date_range]}>
           {album.added_at}
         </:col>
+        <:col
+          :let={album}
+          field="artist.debuted_at"
+          label="Artist debuted"
+          filter={[type: :date_range]}
+        >
+          {album.artist.debuted_at}
+        </:col>
+        <:col :let={album} field="details__recorded_on" label="Recorded" filter={[type: :date_range]}>
+          {album.details.recorded_on}
+        </:col>
         <:col :let={album} field="is_remastered" label="Remastered" filter={[type: :boolean]}>
           {album.is_remastered}
         </:col>
@@ -95,6 +106,9 @@ defmodule CinderDevWeb.FiltersLive do
         </:col>
         <:col :let={album} field="release_date" filter={[type: :date]}>
           {album.release_date}
+        </:col>
+        <:col :let={album} field="added_at" label="Added on" filter={[type: :date]}>
+          {album.added_at}
         </:col>
         <:col
           :let={album}

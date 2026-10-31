@@ -415,6 +415,113 @@ defmodule Cinder.Filter.Helpers do
     end
   end
 
+  # Filters a field to a range of days, or of times. Each bound is `nil` (open), a `Date`
+  # (the whole day is in the range) or a value with a time, compared as given.
+  #
+  # A date compares the field against midnights as a half-open range (`>= d 00:00`,
+  # `< d+1 00:00`), rather than casting the field to a date, so a plain index on the column
+  # still works. Ash casts the `NaiveDateTime` midnights to the field's own type (a `Date`
+  # for a date field), so nothing needs to know it. Both bounds go in one condition, so
+  # through a to-many relationship one related record has to be in the range.
+  @doc false
+  def build_date_filter(query, field, from, to) do
+    require Ash.Query
+    import Ash.Expr
+
+    with {rel_path, value} <- date_field(field),
+         condition when not is_nil(condition) <- date_condition(value, from, to) do
+      case rel_path do
+        [] -> Ash.Query.filter(query, ^condition)
+        rel_path -> Ash.Query.filter(query, exists(^rel_path, ^condition))
+      end
+    else
+      _ -> query
+    end
+  end
+
+  defp date_condition(value, from, to) do
+    import Ash.Expr
+
+    case {lower(value, from), upper(value, to)} do
+      {nil, nil} -> nil
+      {lower, nil} -> lower
+      {nil, upper} -> upper
+      {lower, upper} -> expr(^lower and ^upper)
+    end
+  end
+
+  # The relationship path to the field, and the field: `{:field, ref}`, or `{:embedded, path}`
+  # for a value inside an embedded attribute, which Ash can't type, so dates are compared by
+  # casting it instead
+  defp date_field(field) do
+    import Ash.Expr
+
+    case parse_field_notation(field) do
+      {:direct, name} ->
+        {[], {:field, expr(^ref(declared_field_atom(name)))}}
+
+      {:relationship, rel_path, name} ->
+        {Enum.map(rel_path, &declared_field_atom/1),
+         {:field, expr(^ref(declared_field_atom(name)))}}
+
+      {:embedded, embed, name} ->
+        {[], embedded_value(embed, [name])}
+
+      {:nested_embedded, embed, path} ->
+        {[], embedded_value(embed, path)}
+
+      {:relationship_embedded, rel_path, embed, name} ->
+        {Enum.map(rel_path, &declared_field_atom/1), embedded_value(embed, [name])}
+
+      {:relationship_nested_embedded, rel_path, embed, path} ->
+        {Enum.map(rel_path, &declared_field_atom/1), embedded_value(embed, path)}
+
+      {:invalid, _} ->
+        :invalid
+    end
+  end
+
+  defp embedded_value(embed, path) do
+    import Ash.Expr
+
+    path = Enum.map(path, &declared_field_atom/1)
+    {:embedded, expr(get_path(^ref(declared_field_atom(embed)), ^path))}
+  end
+
+  defp lower(_value, nil), do: nil
+
+  defp lower({:embedded, value}, %Date{} = date) do
+    import Ash.Expr
+    expr(type(^value, :date) >= ^date)
+  end
+
+  defp lower({_kind, value}, %Date{} = date) do
+    import Ash.Expr
+    expr(^value >= ^NaiveDateTime.new!(date, ~T[00:00:00]))
+  end
+
+  defp lower({_kind, value}, time) do
+    import Ash.Expr
+    expr(^value >= ^time)
+  end
+
+  defp upper(_value, nil), do: nil
+
+  defp upper({:embedded, value}, %Date{} = date) do
+    import Ash.Expr
+    expr(type(^value, :date) <= ^date)
+  end
+
+  defp upper({_kind, value}, %Date{} = date) do
+    import Ash.Expr
+    expr(^value < ^NaiveDateTime.new!(Date.add(date, 1), ~T[00:00:00]))
+  end
+
+  defp upper({_kind, value}, time) do
+    import Ash.Expr
+    expr(^value <= ^time)
+  end
+
   defp apply_operator_to_relationship(query, rel_path, field_atom, value, operator, opts) do
     require Ash.Query
     import Ash.Expr

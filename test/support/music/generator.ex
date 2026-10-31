@@ -9,6 +9,7 @@ defmodule Cinder.Generator do
   ## Options
 
   - `:name` - Override the artist name
+  - `:debuted_at` - When the artist debuted (NaiveDateTime)
   """
   def artist(opts \\ []) do
     seed_generator(

@@ -1,353 +1,198 @@
+defmodule Cinder.Filters.DateRangeFieldConversionTest.Domain do
+  @moduledoc false
+  use Ash.Domain, validate_config_inclusion?: false
+
+  resources do
+    resource(Cinder.Filters.DateRangeFieldConversionTest.Event)
+    resource(Cinder.Filters.DateRangeFieldConversionTest.Venue)
+  end
+end
+
+defmodule Cinder.Filters.DateRangeFieldConversionTest.Venue do
+  @moduledoc false
+  use Ash.Resource,
+    domain: Cinder.Filters.DateRangeFieldConversionTest.Domain,
+    data_layer: Ash.DataLayer.Ets,
+    validate_domain_inclusion?: false
+
+  ets do
+    private?(true)
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+    attribute(:opened_at, :naive_datetime, public?: true)
+  end
+
+  actions do
+    defaults([:read, create: [:opened_at]])
+  end
+
+  relationships do
+    has_many(:events, Cinder.Filters.DateRangeFieldConversionTest.Event)
+  end
+end
+
+defmodule Cinder.Filters.DateRangeFieldConversionTest.Meta do
+  @moduledoc false
+  use Ash.Resource, data_layer: :embedded
+
+  attributes do
+    attribute(:recorded_on, :date, public?: true)
+    attribute(:recorded_at, :naive_datetime, public?: true)
+  end
+end
+
+defmodule Cinder.Filters.DateRangeFieldConversionTest.Event do
+  @moduledoc false
+  use Ash.Resource,
+    domain: Cinder.Filters.DateRangeFieldConversionTest.Domain,
+    data_layer: Ash.DataLayer.Ets,
+    validate_domain_inclusion?: false
+
+  ets do
+    private?(true)
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+    attribute(:on_date, :date, public?: true)
+    attribute(:at_naive, :naive_datetime, public?: true)
+    attribute(:at_utc, :utc_datetime, public?: true)
+    attribute(:at_usec, :utc_datetime_usec, public?: true)
+    attribute(:meta, Cinder.Filters.DateRangeFieldConversionTest.Meta, public?: true)
+  end
+
+  actions do
+    defaults([:read, create: [:on_date, :at_naive, :at_utc, :at_usec, :meta, :venue_id]])
+  end
+
+  relationships do
+    belongs_to :venue, Cinder.Filters.DateRangeFieldConversionTest.Venue do
+      public?(true)
+      attribute_writable?(true)
+    end
+  end
+end
+
 defmodule Cinder.Filters.DateRangeFieldConversionTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Filters.DateRange
+  alias Cinder.Filters.DateRangeFieldConversionTest.{Event, Venue}
 
-  # Mock resource for testing field type detection
-  defmodule TestResource do
-    use Ash.Resource, domain: nil
-
-    attributes do
-      uuid_primary_key(:id)
-      attribute(:created_at, :naive_datetime)
-      attribute(:updated_at, :utc_datetime)
-      attribute(:updated_at_usec, :utc_datetime_usec)
-      attribute(:birth_date, :date)
-      attribute(:name, :string)
-    end
+  defp matching_ids(resource \\ Event, field, from, to) do
+    resource
+    |> filtered(field, from, to)
+    |> Ash.read!()
+    |> MapSet.new(& &1.id)
   end
 
-  describe "NaiveDatetime field conversion" do
-    setup do
-      query = Ash.Query.new(TestResource)
-      {:ok, query: query}
-    end
-
-    test "converts date strings to datetime format for naive_datetime fields", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09", to: "2024-10-10"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # The query should be modified (not the same as input)
-      assert result_query != query
-
-      # Check that the filter was applied with datetime conversion
-      %{filter: filter} = result_query
-      assert filter != nil
-    end
-
-    test "handles single date value for naive_datetime fields", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09", to: ""},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # Query should be modified
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-    end
-
-    test "preserves datetime strings for naive_datetime fields", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09T10:30:00", to: "2024-10-10T15:45:00"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # Query should be modified
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-    end
-
-    test "works normally with utc_datetime fields", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09", to: "2024-10-10"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "updated_at", filter_value)
-
-      # Query should be modified
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-    end
-
-    test "works normally with date fields", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09", to: "2024-10-10"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "birth_date", filter_value)
-
-      # Query should be modified
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-    end
-
-    test "handles unknown field types gracefully", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09", to: "2024-10-10"},
-        operator: :between
-      }
-
-      # Test with a string field (unknown type for date filtering)
-      result_query = DateRange.build_query(query, "name", filter_value)
-
-      # Query should still be modified (filter applied as-is)
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-    end
-
-    test "handles empty values correctly", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "", to: ""},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # Query should not be modified for empty values
-      assert result_query == query
-    end
-
-    test "handles nil values correctly", %{query: query} do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: nil, to: nil},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # Query should not be modified when both values are nil - graceful handling means no-op
-      assert result_query == query
-    end
-
-    test "handles mixed empty and date values", %{query: query} do
-      # Only from value provided
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09", to: ""},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # Query should be modified
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-
-      # Only to value provided
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "", to: "2024-10-10"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # Query should be modified
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-    end
-
-    test "datetime fields convert date-only 'to' value to end-of-day (23:59:59)", %{
-      query: query
-    } do
-      # When filtering a naive_datetime field with date-only values, the 'to' date should be
-      # converted to end-of-day (23:59:59) to include all records created on that date
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2025-09-26", to: "2025-09-29"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      # Verify the filter was applied
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-
-      # The filter should convert to end-of-day for the 'to' date
-      filter_string = inspect(filter)
-
-      # Must contain the end-of-day time for the 'to' date (NaiveDateTime format uses space not T)
-      assert String.contains?(filter_string, "2025-09-29 23:59:59"),
-             "Expected filter to convert 'to' date to end-of-day (23:59:59), but got: #{filter_string}"
-    end
-
-    test "utc_datetime fields also convert date-only 'to' value to end-of-day", %{
-      query: query
-    } do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2025-09-26", to: "2025-09-29"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "updated_at", filter_value)
-
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-
-      filter_string = inspect(filter)
-
-      # Must contain the end-of-day time for the 'to' date
-      assert String.contains?(filter_string, "2025-09-29 23:59:59"),
-             "Expected filter to convert 'to' date to end-of-day (23:59:59) for utc_datetime field, but got: #{filter_string}"
-    end
-
-    test "utc_datetime_usec fields also convert date-only 'to' value to end-of-day", %{
-      query: query
-    } do
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2025-09-26", to: "2025-09-29"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "updated_at_usec", filter_value)
-
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-
-      filter_string = inspect(filter)
-
-      # Must contain the end-of-day time for the 'to' date
-      assert String.contains?(filter_string, "2025-09-29 23:59:59"),
-             "Expected filter to convert 'to' date to end-of-day (23:59:59) for utc_datetime_usec field, but got: #{filter_string}"
-    end
+  defp filtered(resource, field, from, to) do
+    filter_value = %{type: :date_range, value: %{from: from, to: to}, operator: :between}
+    DateRange.build_query(Ash.Query.new(resource), field, filter_value)
   end
 
-  describe "relationship field conversion" do
-    test "handles relationship fields with dot notation gracefully" do
-      # Since we can't easily create full relationship tests in unit tests,
-      # we'll just verify the field detection logic doesn't crash
-      query = Ash.Query.new(TestResource)
+  describe "build_query/3, by the records it returns" do
+    test "covers the whole first and last days on date and datetime fields" do
+      for {field, day_before, first, last, day_after} <- [
+            {:on_date, ~D[2026-06-09], ~D[2026-06-10], ~D[2026-06-12], ~D[2026-06-13]},
+            {:at_naive, ~N[2026-06-09 23:59:59], ~N[2026-06-10 00:00:00], ~N[2026-06-12 23:59:59],
+             ~N[2026-06-13 00:00:00]},
+            {:at_utc, ~U[2026-06-09 23:59:59Z], ~U[2026-06-10 00:00:00Z],
+             ~U[2026-06-12 23:59:59Z], ~U[2026-06-13 00:00:00Z]}
+          ] do
+        hits = for value <- [first, last], do: Ash.create!(Event, %{field => value}).id
+        for value <- [day_before, day_after], do: Ash.create!(Event, %{field => value})
 
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2024-10-09", to: "2024-10-10"},
-        operator: :between
-      }
-
-      # This will fail with our test resource since the relationship doesn't exist,
-      # but we can verify the code path is attempted
-      assert_raise RuntimeError, ~r/Could not determine related resource/, fn ->
-        DateRange.build_query(query, "user.created_at", filter_value)
+        assert matching_ids("#{field}", "2026-06-10", "2026-06-12") == MapSet.new(hits),
+               "for #{field}"
       end
     end
-  end
 
-  describe "field type detection helpers" do
-    test "date field (non-datetime) should not convert dates to timestamps" do
-      query = Ash.Query.new(TestResource)
+    test "leaves a range open on a side with no bound" do
+      early = Ash.create!(Event, %{at_naive: ~N[2026-06-01 12:00:00]})
+      late = Ash.create!(Event, %{at_naive: ~N[2026-06-20 12:00:00]})
 
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2025-09-26", to: "2025-09-29"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "birth_date", filter_value)
-
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-
-      filter_string = inspect(filter)
-
-      # For :date fields, should NOT add time component
-      refute String.contains?(filter_string, "23:59:59"),
-             "Date fields should not have time component added, but got: #{filter_string}"
-
-      # Should contain just the date
-      assert String.contains?(filter_string, "2025-09-26")
-      assert String.contains?(filter_string, "2025-09-29")
+      assert matching_ids("at_naive", "2026-06-10", "") == MapSet.new([late.id])
+      assert matching_ids("at_naive", "", "2026-06-10") == MapSet.new([early.id])
+      assert matching_ids("at_naive", "", "") == MapSet.new([early.id, late.id])
+      assert matching_ids("at_naive", nil, nil) == MapSet.new([early.id, late.id])
     end
 
-    test "when user provides explicit datetime in 'to', it should be preserved" do
-      query = Ash.Query.new(TestResource)
+    test "mixes a date bound with a bound that has a time" do
+      hit = Ash.create!(Event, %{at_usec: ~U[2026-06-12 12:00:00.000000Z]})
+      _late = Ash.create!(Event, %{at_usec: ~U[2026-06-12 18:00:00.000000Z]})
+      _early = Ash.create!(Event, %{at_usec: ~U[2026-06-09 12:00:00.000000Z]})
 
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2025-09-26T09:00:00", to: "2025-09-29T17:30:00"},
-        operator: :between
-      }
-
-      result_query = DateRange.build_query(query, "created_at", filter_value)
-
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
-
-      # Should preserve the explicit time provided by user, not convert to 23:59:59
-      filter_string = inspect(filter)
-      assert String.contains?(filter_string, "09:00:00")
-      assert String.contains?(filter_string, "17:30:00")
-      refute String.contains?(filter_string, "23:59:59")
+      assert matching_ids("at_usec", "2026-06-10", "2026-06-12T17:00") == MapSet.new([hit.id])
     end
 
-    test "mixed date and datetime values are handled correctly" do
-      query = Ash.Query.new(TestResource)
+    test "through a to-many relationship, needs one related record inside the range" do
+      inside = Ash.create!(Venue, %{})
+      Ash.create!(Event, %{venue_id: inside.id, at_naive: ~N[2026-06-11 12:00:00]})
 
-      # From is date-only, to is datetime
-      filter_value = %{
-        type: :date_range,
-        value: %{from: "2025-09-26", to: "2025-09-29T17:30:00"},
-        operator: :between
-      }
+      # One event before the range and one after: each passes one bound, neither is in it
+      outside = Ash.create!(Venue, %{})
+      Ash.create!(Event, %{venue_id: outside.id, at_naive: ~N[2026-06-01 12:00:00]})
+      Ash.create!(Event, %{venue_id: outside.id, at_naive: ~N[2026-06-20 12:00:00]})
 
-      result_query = DateRange.build_query(query, "created_at", filter_value)
+      assert matching_ids(Venue, "events.at_naive", "2026-06-10", "2026-06-12") ==
+               MapSet.new([inside.id])
+    end
 
-      assert result_query != query
-      %{filter: filter} = result_query
-      assert filter != nil
+    # Casting the column (`at_naive::date` in Postgres) would stop a plain index on it being
+    # used, and ETS can't show that
+    test "compares a date bound against the field itself, not the field cast to a date" do
+      filter = inspect(filtered(Event, "at_naive", "2026-06-10", "2026-06-12").filter)
 
-      filter_string = inspect(filter)
-      # From should be converted to start of day
-      assert String.contains?(filter_string, "2025-09-26 00:00:00")
-      # To should preserve explicit time
-      assert String.contains?(filter_string, "17:30:00")
+      refute filter =~ "type("
+      assert filter =~ "at_naive >= ~N[2026-06-10 00:00:00]"
+      assert filter =~ "at_naive < ~N[2026-06-13 00:00:00]"
+    end
 
-      # From is datetime, to is date-only
-      filter_value2 = %{
-        type: :date_range,
-        value: %{from: "2025-09-26T09:00:00", to: "2025-09-29"},
-        operator: :between
-      }
+    test "includes the whole end date of a naive datetime field through a relationship" do
+      hit =
+        Ash.create!(Event, %{
+          venue_id: Ash.create!(Venue, %{opened_at: ~N[2026-06-12 18:00:00]}).id
+        })
 
-      result_query2 = DateRange.build_query(query, "created_at", filter_value2)
+      _miss =
+        Ash.create!(Event, %{
+          venue_id: Ash.create!(Venue, %{opened_at: ~N[2026-06-13 00:00:00]}).id
+        })
 
-      filter_string2 = inspect(result_query2.filter)
-      # From should preserve explicit time
-      assert String.contains?(filter_string2, "09:00:00")
-      # To should be converted to end of day
-      assert String.contains?(filter_string2, "2025-09-29 23:59:59")
+      assert matching_ids("venue.opened_at", "2026-06-10", "2026-06-12") == MapSet.new([hit.id])
+    end
+
+    test "matches a date field in an embedded resource" do
+      hit = Ash.create!(Event, %{meta: %{recorded_on: ~D[2026-06-12]}})
+      _miss = Ash.create!(Event, %{meta: %{recorded_on: ~D[2026-06-13]}})
+
+      assert matching_ids("meta__recorded_on", "2026-06-10", "2026-06-12") == MapSet.new([hit.id])
+    end
+
+    test "includes the whole end date of a naive datetime field in an embedded resource" do
+      hit = Ash.create!(Event, %{meta: %{recorded_at: ~N[2026-06-12 18:00:00]}})
+      _miss = Ash.create!(Event, %{meta: %{recorded_at: ~N[2026-06-13 00:00:00]}})
+
+      assert matching_ids("meta__recorded_at", "2026-06-10", "2026-06-12") == MapSet.new([hit.id])
+    end
+
+    test "includes the last second of the end date" do
+      hit = Ash.create!(Event, %{at_usec: ~U[2026-06-12 23:59:59.500000Z]})
+      _miss = Ash.create!(Event, %{at_usec: ~U[2026-06-13 00:00:00.000000Z]})
+
+      assert matching_ids("at_usec", "2026-06-10", "2026-06-12") == MapSet.new([hit.id])
+    end
+
+    test "compares times when the bounds include them" do
+      hit = Ash.create!(Event, %{at_usec: ~U[2026-06-12 12:00:00.000000Z]})
+      _early = Ash.create!(Event, %{at_usec: ~U[2026-06-12 08:00:00.000000Z]})
+      _late = Ash.create!(Event, %{at_usec: ~U[2026-06-12 18:00:00.000000Z]})
+
+      assert matching_ids("at_usec", "2026-06-12T09:00", "2026-06-12T17:00") ==
+               MapSet.new([hit.id])
     end
   end
 

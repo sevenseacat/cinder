@@ -21,7 +21,11 @@ defmodule CinderDev.Seeds do
     # between restarts.
     :rand.seed(:default, 42)
 
-    artists = for _ <- 1..@artist_count, do: generate(Cinder.Generator.artist())
+    artists =
+      for _ <- 1..@artist_count do
+        debuted_at = NaiveDateTime.add(~N[1955-01-01 00:00:00], Enum.random(0..1_500_000_000))
+        generate(Cinder.Generator.artist(debuted_at: debuted_at))
+      end
 
     for n <- 1..@album_count do
       generate(
@@ -36,7 +40,8 @@ defmodule CinderDev.Seeds do
           tags: Enum.take_random(@tags, Enum.random(0..3)),
           details: %Music.AlbumDetails{
             label: Enum.random(@labels),
-            catalog_number: "CAT-#{String.pad_leading("#{n}", 4, "0")}"
+            catalog_number: "CAT-#{String.pad_leading("#{n}", 4, "0")}",
+            recorded_on: Date.add(~D[1960-01-01], Enum.random(0..23_000))
           }
         )
       )

@@ -163,6 +163,21 @@ defmodule Cinder.Filters.DateTest do
                MapSet.new([midnight.id, end_of_day.id])
     end
 
+    # Casting the column (`at_datetime::date` in Postgres) would stop a plain index on it
+    # being used, and ETS can't show that
+    test "compares against the field itself, not the field cast to a date" do
+      filter =
+        Event
+        |> Ash.Query.new()
+        |> DateFilter.build_query("at_datetime", filter_value("2026-06-12"))
+        |> Map.fetch!(:filter)
+        |> inspect()
+
+      refute filter =~ "type("
+      assert filter =~ "at_datetime >= ~U[2026-06-12 00:00:00.000000Z]"
+      assert filter =~ "at_datetime < ~U[2026-06-13 00:00:00.000000Z]"
+    end
+
     test "leaves the query unchanged for a non-date value" do
       a = Ash.create!(Event, %{on_date: ~D[2026-06-12]})
       b = Ash.create!(Event, %{on_date: ~D[2026-06-13]})

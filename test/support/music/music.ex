@@ -26,6 +26,7 @@ defmodule Music.AlbumDetails do
   attributes do
     attribute(:label, :string, public?: true)
     attribute(:catalog_number, :string, public?: true)
+    attribute(:recorded_on, :date, public?: true)
   end
 end
 
@@ -74,6 +75,7 @@ defmodule Music.Artist do
   attributes do
     uuid_primary_key(:id)
     attribute(:name, :string)
+    attribute(:debuted_at, :naive_datetime)
   end
 
   relationships do
