@@ -20,6 +20,13 @@ defmodule Cinder.UrlSyncTest do
       assert state.current_page == 1
     end
 
+    test "falls back to the first page and no sort for malformed params" do
+      state = UrlSync.extract_collection_state(%{"page" => "invalid", "sort" => ["a", "b"]})
+
+      assert state.current_page == 1
+      assert state.sort_by == []
+    end
+
     test "extracts page state from params" do
       params = %{"page" => "3"}
       state = UrlSync.extract_collection_state(params)

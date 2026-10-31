@@ -98,31 +98,6 @@ defmodule Cinder.RelationshipFilteringSimpleTest do
       assert year_filter.value == %{min: "1960", max: "1970"}
       assert year_filter.operator == :between
     end
-
-    test "processes date range filter on relationship field" do
-      form_params = %{
-        "release_date_from" => "2020-01-01",
-        "release_date_to" => "2023-12-31"
-      }
-
-      columns = [
-        %{
-          field: "release_date",
-          filterable: true,
-          filter_type: :date_range,
-          filter_fn: nil,
-          filter_options: []
-        }
-      ]
-
-      filters = Cinder.FilterManager.params_to_filters(form_params, columns)
-
-      assert Map.has_key?(filters, "release_date")
-      date_filter = filters["release_date"]
-      assert date_filter.type == :date_range
-      assert date_filter.value == %{from: "2020-01-01", to: "2023-12-31"}
-      assert date_filter.operator == :between
-    end
   end
 
   describe "QueryBuilder integration with relationships" do

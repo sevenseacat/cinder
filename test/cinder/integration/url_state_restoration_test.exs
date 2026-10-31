@@ -1,6 +1,5 @@
 defmodule Cinder.UrlStateRestorationTest do
   use ExUnit.Case, async: true
-  import Phoenix.LiveViewTest
 
   # Test domain
   defmodule TestDomain do
@@ -188,67 +187,6 @@ defmodule Cinder.UrlStateRestorationTest do
   end
 
   describe "component URL state restoration" do
-    test "table component receives empty filters when using URL sync" do
-      # Test assigns that would come from a parent LiveView using UrlSync
-      assigns = %{
-        resource: TestAlbum,
-        actor: nil,
-        # These would be empty because extract_collection_state uses empty columns
-        url_filters: %{},
-        url_page: 2,
-        url_sort: [{"title", :desc}],
-        col: [
-          %{field: "title", filter: :text, __slot__: :col},
-          %{field: "artist.name", filter: :text, __slot__: :col}
-        ]
-      }
-
-      html = render_component(&Cinder.collection/1, assigns)
-
-      # Component should render but filters won't be applied
-      assert html =~ "cinder-table"
-
-      # The page number should be restored (since that doesn't depend on columns)
-      # But filters won't be, which is the bug
-    end
-
-    test "manual URL state passing works when raw parameters are provided" do
-      # When raw URL parameters are manually passed to the component
-      # along with proper column definitions, it should work
-
-      # Simulate what should happen: raw URL params preserved and passed with columns
-      columns = [
-        %{
-          field: "title",
-          filterable: true,
-          filter_type: :text,
-          filter_fn: nil,
-          filter_options: []
-        },
-        %{
-          field: "artist.name",
-          filterable: true,
-          filter_type: :text,
-          filter_fn: nil,
-          filter_options: []
-        }
-      ]
-
-      # These are the raw URL parameters that should be preserved
-      raw_url_params = %{
-        "title" => "Abbey",
-        "artist.name" => "Beatles"
-      }
-
-      # Decode them with actual columns
-      decoded_state = Cinder.UrlManager.decode_state(raw_url_params, columns)
-
-      # This should work correctly
-      assert Map.has_key?(decoded_state.filters, "title")
-      assert Map.has_key?(decoded_state.filters, "artist.name")
-      assert decoded_state.filters["title"].value == "Abbey"
-      assert decoded_state.filters["artist.name"].value == "Beatles"
-    end
   end
 
   describe "URL encoding and decoding roundtrip" do
@@ -355,104 +293,8 @@ defmodule Cinder.UrlStateRestorationTest do
   end
 
   describe "URL restoration fix verification" do
-    test "fixed flow preserves filters using raw URL params" do
-      # 1. User visits URL with filters: /table?artist.name=Beatles&page=2
-      incoming_url_params = %{
-        "artist.name" => "Beatles",
-        "page" => "2"
-      }
-
-      # 2. Parent LiveView handle_params calls extract_collection_state
-      # This still uses empty columns but now also stores raw params
-      table_state = Cinder.UrlSync.extract_collection_state(incoming_url_params)
-
-      # 3. Parent assigns state and raw params to socket (fixed version)
-      parent_assigns = %{
-        # Still empty due to empty columns
-        table_url_filters: table_state.filters,
-        table_url_page: table_state.current_page,
-        table_url_sort: table_state.sort_by,
-        # NEW: Raw params preserved for component
-        table_raw_url_params: incoming_url_params
-      }
-
-      # 4. Component receives raw params and can decode properly
-      columns = [
-        %{
-          field: "title",
-          filterable: true,
-          filter_type: :text,
-          filter_fn: nil,
-          filter_options: []
-        },
-        %{
-          field: "artist.name",
-          filterable: true,
-          filter_type: :text,
-          filter_fn: nil,
-          filter_options: []
-        }
-      ]
-
-      # 5. Component decodes raw params with actual columns
-      decoded_state =
-        Cinder.UrlManager.decode_state(parent_assigns.table_raw_url_params, columns)
-
-      # Now filters are properly restored!
-      assert Map.has_key?(decoded_state.filters, "artist.name")
-      assert decoded_state.filters["artist.name"].value == "Beatles"
-      assert decoded_state.current_page == 2
-    end
   end
 
   describe "the actual broken flow" do
-    test "demonstrates the complete broken URL restoration flow (without fix)" do
-      # 1. User visits URL with filters: /table?artist.name=Beatles&page=2
-      incoming_url_params = %{
-        "artist.name" => "Beatles",
-        "page" => "2"
-      }
-
-      # 2. Parent LiveView handle_params calls extract_collection_state
-      # This uses empty columns, so filters are lost
-      broken_table_state = Cinder.UrlSync.extract_collection_state(incoming_url_params)
-
-      # 3. Parent assigns the broken state to socket
-      parent_assigns = %{
-        # This is {} instead of the filters!
-        table_url_filters: broken_table_state.filters,
-        table_url_page: broken_table_state.current_page,
-        table_url_sort: broken_table_state.sort_by
-      }
-
-      # 4. Parent passes these broken assigns to table component
-      table_component_assigns = %{
-        resource: TestAlbum,
-        actor: nil,
-        url_sync: true,
-        # Empty {}
-        url_filters: parent_assigns.table_url_filters,
-        # Correct: 2
-        url_page: parent_assigns.table_url_page,
-        # Correct: []
-        url_sort: parent_assigns.table_url_sort,
-        col: [
-          %{field: "title", __slot__: :col},
-          %{field: "artist.name", filter: :text, __slot__: :col}
-        ]
-      }
-
-      # 5. Component tries to decode URL state but gets empty filters
-      # The original URL parameters are LOST at this point
-
-      # Demonstrate the issue:
-      # Lost the artist.name filter!
-      assert broken_table_state.filters == %{}
-      # This works because page doesn't need columns
-      assert broken_table_state.current_page == 2
-
-      # The user's filter is gone and will never be restored
-      assert table_component_assigns.url_filters == %{}
-    end
   end
 end

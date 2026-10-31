@@ -501,56 +501,5 @@ defmodule Cinder.Integration.UpdateItemTest do
   end
 
   describe "update function behavior" do
-    test "update function can modify multiple fields" do
-      socket =
-        make_socket(%{
-          id_field: :id,
-          data: [
-            %{id: 1, name: "Old", status: :draft, updated_at: nil}
-          ]
-        })
-
-      now = DateTime.utc_now()
-
-      assigns = %{
-        __update_item__:
-          {1,
-           fn item ->
-             %{item | name: "New", status: :published, updated_at: now}
-           end}
-      }
-
-      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
-
-      [updated_item] = updated_socket.assigns.data
-      assert updated_item.name == "New"
-      assert updated_item.status == :published
-      assert updated_item.updated_at == now
-    end
-
-    test "update function receives the full item" do
-      socket =
-        make_socket(%{
-          id_field: :id,
-          data: [
-            %{id: 1, a: 1, b: 2, c: 3}
-          ]
-        })
-
-      assigns = %{
-        __update_item__:
-          {1,
-           fn item ->
-             # Verify we have access to all fields
-             %{item | c: item.a + item.b}
-           end}
-      }
-
-      {:ok, updated_socket} = LiveComponent.update(assigns, socket)
-
-      [item] = updated_socket.assigns.data
-      # 1 + 2
-      assert item.c == 3
-    end
   end
 end

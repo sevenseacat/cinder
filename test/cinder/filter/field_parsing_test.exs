@@ -101,6 +101,12 @@ defmodule Cinder.Filter.FieldParsingTest do
       # Invalid characters
       assert Cinder.Filter.Helpers.parse_field_notation("profile[:first-name]") ==
                {:invalid, "profile[:first-name]"}
+
+      # Incomplete or backwards brackets
+      assert Cinder.Filter.Helpers.parse_field_notation("profile[") == {:invalid, "profile["}
+
+      assert Cinder.Filter.Helpers.parse_field_notation("]invalid[:") ==
+               {:invalid, "]invalid[:"}
     end
 
     @tag capture_log: true

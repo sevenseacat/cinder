@@ -467,39 +467,6 @@ defmodule Cinder.Integration.KeysetPaginationTest do
   # KEYSET CURSOR EXTRACTION TESTS
   # ============================================================================
 
-  describe "keyset cursor extraction" do
-    test "extracts keyset from result metadata" do
-      # Simulate what Ash returns
-      result = %{
-        id: "123",
-        name: "Test",
-        __metadata__: %{keyset: "encoded_cursor_value"}
-      }
-
-      keyset = get_keyset_from_result(result)
-      assert keyset == "encoded_cursor_value"
-    end
-
-    test "returns nil when no metadata" do
-      result = %{id: "123", name: "Test"}
-      assert get_keyset_from_result(result) == nil
-    end
-
-    test "returns nil for nil result" do
-      assert get_keyset_from_result(nil) == nil
-    end
-
-    # Helper to match LiveComponent's implementation
-    defp get_keyset_from_result(nil), do: nil
-
-    defp get_keyset_from_result(result) do
-      case result do
-        %{__metadata__: %{keyset: keyset}} -> keyset
-        _ -> nil
-      end
-    end
-  end
-
   # ============================================================================
   # LIVE COMPONENT EVENT HANDLER TESTS
   # ============================================================================

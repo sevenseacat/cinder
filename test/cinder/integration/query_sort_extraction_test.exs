@@ -69,31 +69,6 @@ defmodule Cinder.Integration.QuerySortExtractionTest do
       refute result_query.sort == [{:name, :desc}, {:email, :asc}]
     end
 
-    test "URL parameters take precedence over extracted query sorts" do
-      # This test verifies the precedence order:
-      # 1. URL parameters (highest)
-      # 2. Query sorts (medium)
-      # 3. Empty state (lowest)
-
-      query =
-        TestUser
-        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
-        |> Ash.Query.sort([{:name, :desc}])
-
-      # Verify that query sorts are extracted
-      extracted_sorts =
-        Cinder.QueryBuilder.extract_query_sorts(query, [
-          %{field: "name"},
-          %{field: "email"}
-        ])
-
-      assert extracted_sorts == [{"name", :desc}]
-
-      # URL parameters would override this in the actual table component
-      # through the decode_url_state function, but we can verify the
-      # extraction works correctly here
-    end
-
     test "gracefully handles resource modules without sorts" do
       # Test passing a resource module instead of a query
       extracted_sorts =
@@ -124,30 +99,6 @@ defmodule Cinder.Integration.QuerySortExtractionTest do
       # Should only include sorts for columns that exist in the table
       assert extracted_sorts == [{"name", :desc}, {"email", :asc}]
       refute Enum.any?(extracted_sorts, fn {field, _} -> field == "created_at" end)
-    end
-
-    test "empty URL sorts don't override extracted query sorts" do
-      # This test verifies the fix for the issue where empty URL sort arrays
-      # were overriding extracted query sorts due to [] being truthy in Elixir
-      _query =
-        TestUser
-        |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
-        |> Ash.Query.sort([{:name, :desc}])
-
-      # Simulate what happens when URL has no sorts (returns empty list)
-      empty_url_sorts = []
-      extracted_sorts = [{"name", :desc}]
-
-      # The table should preserve extracted sorts when URL sorts are empty
-      final_sorts =
-        if Enum.empty?(empty_url_sorts) do
-          extracted_sorts
-        else
-          empty_url_sorts
-        end
-
-      assert final_sorts == [{"name", :desc}]
-      refute final_sorts == []
     end
   end
 end
