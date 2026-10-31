@@ -419,21 +419,21 @@ defmodule Cinder.QueryBuilderTest do
   end
 
   describe "string-based sorting integration" do
-    test "build_and_execute handles string-based field sorting" do
-      # Integration test for string-based sorting (both regular and relationship fields)
+    test "build_and_execute sorts by string field names, in order" do
+      for {name, email} <- [{"b", "x"}, {"a", "y"}, {"b", "z"}, {"a", "w"}] do
+        Ash.Seed.seed!(TestUser, %{name: name, email: email})
+      end
+
       columns = [
-        %{field: "title", label: "Title", sortable: true},
-        %{field: "track_count", label: "Track Count", sortable: true}
+        %{field: "name", label: "Name", sortable: true},
+        %{field: "email", label: "Email", sortable: true}
       ]
 
-      sort_by = [{"title", :asc}, {"track_count", :desc}]
-
-      # This should work with string-based sorting
-      result =
+      {:ok, page} =
         QueryBuilder.build_and_execute(
-          Album,
+          TestUser,
           filters: %{},
-          sort_by: sort_by,
+          sort_by: [{"name", :asc}, {"email", :desc}],
           current_page: 1,
           page_size: 10,
           columns: columns,
@@ -442,8 +442,8 @@ defmodule Cinder.QueryBuilderTest do
           query_opts: []
         )
 
-      # Should return either success or error, but should NOT crash
-      assert match?({:ok, _}, result) or match?({:error, _}, result)
+      assert Enum.map(page.results, &{&1.name, &1.email}) ==
+               [{"a", "y"}, {"a", "w"}, {"b", "z"}, {"b", "x"}]
     end
   end
 
@@ -813,24 +813,25 @@ defmodule Cinder.QueryBuilderTest do
       end
     end
 
-    test "supports all embedded field sorting patterns - GitHub issue #51" do
-      query = Ash.Query.new(TestUser)
+    test "sorts by embedded and nested embedded fields - GitHub issue #51" do
+      for {first_name, street} <- [{"b", "x"}, {"c", "z"}, {"a", "y"}] do
+        Ash.Seed.seed!(TestUser, %{
+          name: first_name,
+          profile: %{first_name: first_name},
+          settings: %{address: %{street: street}}
+        })
+      end
 
-      # Test basic embedded field
-      basic_result = QueryBuilder.apply_sorting(query, [{"profile__first_name", :asc}])
-      assert length(basic_result.sort) == 1
+      sorted_names = fn sort ->
+        TestUser
+        |> Ash.Query.new()
+        |> QueryBuilder.apply_sorting(sort)
+        |> Ash.read!()
+        |> Enum.map(& &1.name)
+      end
 
-      # Test nested embedded field
-      nested_result = QueryBuilder.apply_sorting(query, [{"settings__address__street", :desc}])
-      assert length(nested_result.sort) == 1
-
-      # Test that embedded fields get converted to calc expressions (not rejected)
-      assert length(basic_result.sort) == 1
-      # No NoSuchField errors
-      assert Enum.empty?(basic_result.errors)
-
-      assert length(nested_result.sort) == 1
-      assert Enum.empty?(nested_result.errors)
+      assert sorted_names.([{"profile__first_name", :asc}]) == ["a", "b", "c"]
+      assert sorted_names.([{"settings__address__street", :desc}]) == ["c", "a", "b"]
     end
 
     test "handles invalid sort_by input gracefully without Protocol.UndefinedError" do
@@ -1133,16 +1134,16 @@ defmodule Cinder.QueryBuilderTest do
     end
 
     test "extracts sorts from nested embedded field calc expressions" do
-      # Test nested embedded fields like settings__address__city
+      # Test nested embedded fields like settings__address__street
       query =
         TestUser
         |> Ash.Query.for_read(:read, %{}, domain: TestDomain)
-        |> QueryBuilder.apply_sorting([{"settings__address__city", :asc}])
+        |> QueryBuilder.apply_sorting([{"settings__address__street", :asc}])
 
-      columns = [%{field: "name"}, %{field: "settings__address__city"}]
+      columns = [%{field: "name"}, %{field: "settings__address__street"}]
 
       result = QueryBuilder.extract_query_sorts(query, columns)
-      assert result == [{"settings__address__city", :asc}]
+      assert result == [{"settings__address__street", :asc}]
     end
 
     test "extracts sorts from relationship field calc expressions" do
@@ -1357,21 +1358,19 @@ defmodule Cinder.QueryBuilderTest do
 
     test "query built from resource preserves filters and sorts" do
       # Reproduces the main bug: Resource |> Ash.Query.filter(...) loses modifications
+      for {name, email} <- [{"test", "b"}, {"other", "a"}, {"test", "a"}] do
+        Ash.Seed.seed!(TestUser, %{name: name, email: email})
+      end
+
       query_without_for_read =
         TestUser
         |> Ash.Query.filter(name == "test")
         |> Ash.Query.sort(:email)
 
-      expect(Ash, :read, fn query, _opts ->
-        send(self(), {:final_query, query})
-        {:ok, %Ash.Page.Offset{results: [], count: 0, limit: 25, offset: 0, more?: false}}
-      end)
+      {:ok, page} = QueryBuilder.build_and_execute(query_without_for_read, default_options())
 
-      QueryBuilder.build_and_execute(query_without_for_read, default_options())
-
-      assert_received {:final_query, final_query}
-      assert final_query.filter != nil
-      assert final_query.sort != []
+      # Only the filter's records, in the sort's order
+      assert Enum.map(page.results, &{&1.name, &1.email}) == [{"test", "a"}, {"test", "b"}]
     end
 
     test "query_opts applied to existing query" do
@@ -1813,8 +1812,13 @@ defmodule Cinder.QueryBuilderTest do
       assert_received {:ash_read_called, query, _opts}
       # User's prep preserved
       assert get_in(query.context, [:private, :actor]) == :alice
-      # Cinder's filter applied
-      assert query.filter != nil
+
+      # Cinder's filter applied: running the query returns only the match
+      john = Ash.Seed.seed!(TestUser, %{name: "John Smith"})
+      _jane = Ash.Seed.seed!(TestUser, %{name: "Jane Doe"})
+
+      {:ok, page} = Mimic.call_original(Ash, :read, [query, []])
+      assert Enum.map(page.results, & &1.id) == [john.id]
     end
 
     test "explicit action option is ignored when query is already prepared (with warning)" do
@@ -2012,9 +2016,11 @@ defmodule Cinder.QueryBuilderTest do
         search_term: ""
       ]
 
+      john = Ash.Seed.seed!(TestUser, %{name: "John Smith"})
+      _jane = Ash.Seed.seed!(TestUser, %{name: "Jane Doe"})
+
       assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(TestUser, options)
-      # The query should have a filter applied
-      assert query.filter != nil
+      assert Enum.map(Ash.read!(query), & &1.id) == [john.id]
     end
 
     test "returns {:ok, query} with sorts applied" do
@@ -2028,8 +2034,7 @@ defmodule Cinder.QueryBuilderTest do
       ]
 
       assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(TestUser, options)
-      assert query.sort != nil
-      assert query.sort != []
+      assert query.sort == [name: :asc]
     end
 
     test "returns {:ok, query} with no pagination" do
@@ -2045,7 +2050,10 @@ defmodule Cinder.QueryBuilderTest do
       ]
 
       # build_query should NOT apply pagination even if page_size/current_page are passed
-      assert {:ok, %Ash.Query{}} = QueryBuilder.build_query(TestUser, options)
+      assert {:ok, %Ash.Query{} = query} = QueryBuilder.build_query(TestUser, options)
+      assert query.page == nil
+      assert query.limit == nil
+      assert query.offset in [nil, 0]
     end
 
     test "returns {:error, _} for invalid sort fields" do
