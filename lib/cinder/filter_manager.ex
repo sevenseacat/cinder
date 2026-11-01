@@ -347,44 +347,46 @@ defmodule Cinder.FilterManager do
     # Ensure multi-select fields are included even when no checkboxes are selected
     complete_filter_params = Cinder.UrlManager.ensure_multiselect_fields(filter_params, columns)
 
-    # Handle special cases for range inputs (backward compatibility)
-    complete_filter_params
-    |> Enum.reduce(%{}, fn {key, value}, acc ->
-      cond do
-        # Handle date range fields
-        String.ends_with?(key, "_from") ->
-          base_key = String.replace_suffix(key, "_from", "")
-          to_key = base_key <> "_to"
-          to_value = Map.get(complete_filter_params, to_key, "")
+    fields = for column <- columns, column.filterable, into: MapSet.new(), do: column.field
 
-          combined_value =
-            if value != "" or to_value != "", do: "#{value},#{to_value}", else: ""
+    Enum.reduce(complete_filter_params, %{}, fn {key, value}, acc ->
+      case range_half(key, fields) do
+        {field, low_key, high_key} ->
+          Map.put(acc, field, combine_range(complete_filter_params, low_key, high_key))
 
-          Map.put(acc, base_key, combined_value)
-
-        String.ends_with?(key, "_to") ->
-          # Skip _to keys as they're handled by _from keys
-          acc
-
-        # Handle number range fields
-        String.ends_with?(key, "_min") ->
-          base_key = String.replace_suffix(key, "_min", "")
-          max_key = base_key <> "_max"
-          max_value = Map.get(complete_filter_params, max_key, "")
-
-          combined_value =
-            if value != "" or max_value != "", do: "#{value},#{max_value}", else: ""
-
-          Map.put(acc, base_key, combined_value)
-
-        String.ends_with?(key, "_max") ->
-          # Skip _max keys as they're handled by _min keys
-          acc
-
-        true ->
+        nil ->
           Map.put(acc, key, value)
       end
     end)
+  end
+
+  @range_suffixes [{"_from", "_to"}, {"_min", "_max"}]
+
+  # Range filters post their halves as `field_from`/`field_to` or `field_min`/`field_max`
+  # (and so do custom filters copied from the range templates, under their own type). A key
+  # that is a field itself is never a half, so a text filter on `valid_to` stays as it is.
+  defp range_half(key, fields) do
+    if MapSet.member?(fields, key) do
+      nil
+    else
+      Enum.find_value(@range_suffixes, fn {low, high} ->
+        Enum.find_value([low, high], &range_field(key, &1, fields, low, high))
+      end)
+    end
+  end
+
+  defp range_field(key, suffix, fields, low, high) do
+    field = String.replace_suffix(key, suffix, "")
+
+    if field != key and MapSet.member?(fields, field) do
+      {field, field <> low, field <> high}
+    end
+  end
+
+  defp combine_range(params, low_key, high_key) do
+    low = Map.get(params, low_key, "")
+    high = Map.get(params, high_key, "")
+    if low != "" or high != "", do: "#{low},#{high}", else: ""
   end
 
   @doc """
