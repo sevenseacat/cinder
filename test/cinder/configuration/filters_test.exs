@@ -75,7 +75,7 @@ defmodule Cinder.FiltersTest do
       assert Registry.infer_filter_type(date_attr) == :date_range
 
       # Constraint-based enum should infer to select
-      enum_attr = %{type: :string, constraints: %{one_of: ["option1", "option2"]}}
+      enum_attr = %{type: :string, constraints: [one_of: ["option1", "option2"]]}
       assert Registry.infer_filter_type(enum_attr) == :select
 
       # Unknown type should default to text

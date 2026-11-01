@@ -903,15 +903,8 @@ defmodule Cinder.FilterManager do
 
   def extract_enum_options(%{type: type, constraints: constraints}) do
     cond do
-      # Handle constraint-based enums (new Ash format) - constraints can be a map or keyword list
-      (is_map(constraints) and Map.has_key?(constraints, :one_of)) or
-          (is_list(constraints) and Keyword.has_key?(constraints, :one_of)) ->
-        values =
-          if is_map(constraints),
-            do: Map.get(constraints, :one_of),
-            else: Keyword.get(constraints, :one_of)
-
-        enum_to_options(values, type)
+      Keyword.has_key?(constraints, :one_of) ->
+        enum_to_options(Keyword.fetch!(constraints, :one_of), type)
 
       # Handle Ash.Type.Enum and custom enum types
       is_atom(type) ->

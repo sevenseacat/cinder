@@ -51,6 +51,7 @@ defmodule TestResourceForInference do
     attribute(:flags, {:array, :boolean})
     attribute(:description, :string)
     attribute(:weapon_type, TestWeaponTypeEnum)
+    attribute(:priority, :atom, constraints: [one_of: [:low, :high]])
     attribute(:profile, TestProfile)
     attribute(:settings, TestSettings)
     attribute(:metadata, :map)

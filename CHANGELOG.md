@@ -19,6 +19,7 @@ SPDX-License-Identifier: MIT
 * Number range filters through a to-many relationship now need one related record inside the range, rather than one above the minimum and another below the maximum.
 * Filters on fields whose names end in `_from`, `_to`, `_min` or `_max` now filter from the form, instead of being mistaken for half of a range.
 * URL sync no longer leaves out a page size of 1, or a filter value of 1 on a field with "page" in its name.
+* Fields with `one_of` constraints now get a select filter of those values, instead of a text filter.
 
 ## v0.18.0 (2026-10-28)
 

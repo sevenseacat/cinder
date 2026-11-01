@@ -103,9 +103,7 @@ defmodule Cinder.Filters.Registry do
   def infer_filter_type(nil, _column_key), do: :text
 
   def infer_filter_type(%{type: type, constraints: constraints}, _column_key) do
-    # Only check constraints for enum types
-    if (is_map(constraints) and Map.has_key?(constraints, :one_of)) or
-         (is_atom(type) and enum_type?(type)) do
+    if Keyword.has_key?(constraints, :one_of) or (is_atom(type) and enum_type?(type)) do
       :select
     else
       infer_by_type(type)

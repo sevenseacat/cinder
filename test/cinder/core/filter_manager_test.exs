@@ -538,6 +538,15 @@ defmodule Cinder.FilterManagerRuntimeTest do
       assert Enum.map(config.filter_options[:options], &elem(&1, 1)) == [:tag1, :tag2, :tag3]
     end
 
+    test "an atom constrained to one_of infers a select with those options" do
+      slot = %{filterable: true, filter_options: []}
+
+      config = FilterManager.infer_filter_config("priority", TestResourceForInference, slot)
+
+      assert config.filter_type == :select
+      assert config.filter_options[:options] == [{"Low", :low}, {"High", :high}]
+    end
+
     test "an array constrained to one_of gets those options" do
       attribute = %{type: {:array, :atom}, constraints: [items: [one_of: [:draft, :published]]]}
 
