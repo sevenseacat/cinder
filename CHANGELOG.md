@@ -20,6 +20,7 @@ SPDX-License-Identifier: MIT
 * Filters on fields whose names end in `_from`, `_to`, `_min` or `_max` now filter from the form, instead of being mistaken for half of a range.
 * URL sync no longer leaves out a page size of 1, or a filter value of 1 on a field with "page" in its name.
 * Fields with `one_of` constraints now get a select filter of those values, instead of a text filter.
+* Custom filters with list values now keep them in the URL, and map values no longer crash URL-synced collections.
 
 ## v0.18.0 (2026-10-28)
 

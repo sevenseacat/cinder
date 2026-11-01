@@ -10,6 +10,8 @@ defmodule Cinder.UrlManager do
   to/from URL parameters for browser history and bookmark support.
   """
 
+  require Logger
+
   @max_page 1_000_000
 
   @type filter_value ::
@@ -160,29 +162,39 @@ defmodule Cinder.UrlManager do
   - Others: string representation
   """
   def encode_filters(filters) when is_map(filters) do
-    filters
-    |> Enum.map(fn {key, filter} ->
-      encoded_value =
-        case filter.type do
-          :multi_select when is_list(filter.value) ->
-            Enum.join(filter.value, ",")
+    for {key, filter} <- filters, {:ok, value} <- [encode_filter(key, filter)], into: %{} do
+      {Cinder.Filter.Helpers.declared_field_atom(key), value}
+    end
+  end
 
-          :multi_checkboxes when is_list(filter.value) ->
-            Enum.join(filter.value, ",")
+  defp encode_filter(_key, %{type: :date_range, value: %{from: from, to: to}}),
+    do: {:ok, "#{from},#{to}"}
 
-          :date_range ->
-            "#{filter.value.from},#{filter.value.to}"
+  defp encode_filter(_key, %{type: :number_range, value: %{min: min, max: max}}),
+    do: {:ok, "#{min},#{max}"}
 
-          :number_range ->
-            "#{filter.value.min},#{filter.value.max}"
+  defp encode_filter(key, %{type: type, value: value}) do
+    cond do
+      is_list(value) and Enum.all?(value, &url_scalar?/1) -> {:ok, Enum.join(value, ",")}
+      url_scalar?(value) -> {:ok, to_string(value)}
+      true -> unencodable(key, type)
+    end
+  end
 
-          _ ->
-            to_string(filter.value)
-        end
+  # Lists implement `String.Chars` as charlists, so they're handled above, not as scalars
+  defp url_scalar?(value), do: not is_list(value) and String.Chars.impl_for(value) != nil
 
-      {Cinder.Filter.Helpers.declared_field_atom(key), encoded_value}
-    end)
-    |> Enum.into(%{})
+  # A custom filter's value only exists once a user applies it, so this can't be caught
+  # earlier; leaving it out of the URL keeps the user's page working. The value itself
+  # isn't logged, as it may be sensitive.
+  defp unencodable(key, type) do
+    Logger.error(
+      "Cinder can't keep the #{inspect(key)} filter (type #{inspect(type)}) in the URL: its " <>
+        "value must be a string, number, atom, or a list of them. It still applies, but is " <>
+        "left out of the URL."
+    )
+
+    :error
   end
 
   @doc """
@@ -217,8 +229,6 @@ defmodule Cinder.UrlManager do
             end
           rescue
             error ->
-              require Logger
-
               Logger.error(
                 "Error processing URL filter value for #{filter_type}: #{inspect(error)}. " <>
                   "Skipping invalid filter."
@@ -227,7 +237,6 @@ defmodule Cinder.UrlManager do
               acc
           end
         else
-          require Logger
           Logger.warning("Unknown filter type: #{filter_type}. Skipping filter.")
           acc
         end
@@ -282,8 +291,6 @@ defmodule Cinder.UrlManager do
         end
       end)
     else
-      require Logger
-
       Logger.warning(
         "Invalid sort_by format in encode_sort: #{inspect(sort_by)}. Expected list of {field, direction} tuples."
       )

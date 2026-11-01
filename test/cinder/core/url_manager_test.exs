@@ -283,6 +283,27 @@ defmodule Cinder.UrlManagerTest do
 
       assert result == %{}
     end
+
+    test "joins a custom filter's list value with commas" do
+      filters = %{"tags" => %{type: :my_tags, value: ["a", "b"], operator: :in}}
+
+      assert UrlManager.encode_filters(filters) == %{tags: "a,b"}
+    end
+
+    test "leaves out a custom filter's value it can't encode, logging the filter and type" do
+      filters = %{
+        "name" => %{type: :text, value: "x", operator: :contains},
+        "price" => %{type: :my_range, value: %{min: 1, max: 10}, operator: :between}
+      }
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          assert UrlManager.encode_filters(filters) == %{name: "x"}
+        end)
+
+      assert log =~ ~s("price")
+      assert log =~ ":my_range"
+    end
   end
 
   # Regression: a URL could carry any number of multi-select values, each becoming

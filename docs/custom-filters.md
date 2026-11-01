@@ -282,6 +282,11 @@ Must return a map with `:type`, `:value`, `:operator` keys, or `nil`.
 Return `nil` if the value can't be used, such as an invalid date from a hand-edited URL. The
 filter is then ignored, instead of the query failing.
 
+When the collection syncs with the URL, the filter's `:value` is saved in the URL, and
+`process/2` gets it back from there as a string. So handle a string as well as whatever your
+form inputs send. A list is saved with its items joined by commas (`"a,b"`). A map can't be
+saved in the URL, so keep `:value` to strings, numbers, atoms, or lists of them.
+
 #### `validate/1`
 Validates a processed filter value.
 
@@ -355,25 +360,36 @@ def process(_raw_value, _column), do: nil
 
 ### Range Filters
 
+Name the inputs with `field_name(@column.field, "min")` and `field_name(@column.field, "max")`,
+and both the form and the URL give you `"min,max"`:
+
 ```elixir
-def process(%{"min" => min, "max" => max}, _column) do
-  with {min_val, ""} <- Integer.parse(min),
+def process(raw_value, _column) when is_binary(raw_value) do
+  with [min, max] <- String.split(raw_value, ","),
+       {min_val, ""} <- Integer.parse(min),
        {max_val, ""} <- Integer.parse(max),
        true <- min_val <= max_val do
     %{
       type: :my_range,
-      value: %{min: min_val, max: max_val},
+      value: [min_val, max_val],
       operator: :between
     }
   else
     _ -> nil
   end
 end
+
+def process(_raw_value, _column), do: nil
 ```
 
 ### Multi-Value Filters
 
 ```elixir
+# From the URL, the values come back joined by commas
+def process(raw_value, column) when is_binary(raw_value) do
+  process(String.split(raw_value, ","), column)
+end
+
 def process(raw_values, _column) when is_list(raw_values) do
   values = Enum.reject(raw_values, &(&1 == "" or is_nil(&1)))
 

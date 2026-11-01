@@ -1,7 +1,8 @@
-defmodule Cinder.Integration.InvalidFilterValuesTest do
+defmodule Cinder.Integration.FilterUrlValuesTest do
   @moduledoc """
-  Filter values the client can send that a filter can't use never reach the query, and
-  a filter that fails to build fails closed (an error, never unfiltered data).
+  Filter values through the URL: a custom filter's value round-trips through it, values the
+  client can send that a filter can't use never reach the query, and a filter that fails to
+  build fails closed (an error, never unfiltered data).
 
   The test data layer (ETS) accepts values a real one rejects (`added_at <= "froo"`
   is fine in ETS and an error on Postgres), so these assert that a bad value never
@@ -10,7 +11,9 @@ defmodule Cinder.Integration.InvalidFilterValuesTest do
   use Cinder.ConnCase, async: false
 
   import Phoenix.ConnTest, only: [get: 2]
-  import Phoenix.LiveViewTest, only: [live: 2, render_async: 1]
+
+  import Phoenix.LiveViewTest,
+    only: [live: 2, render: 1, render_async: 1, element: 2, render_change: 2, assert_patch: 1]
 
   alias Cinder.Filters.{Autocomplete, Date, DateRange, NumberRange, RadioGroup, Select}
 
@@ -124,6 +127,92 @@ defmodule Cinder.Integration.InvalidFilterValuesTest do
       |> assert_has("td", text: "Cheap")
       |> assert_has("td", text: "Pricey")
     end
+  end
+
+  # The range pattern from the custom filters guide
+  defmodule TrackRange do
+    @moduledoc false
+    use Cinder.Filter
+
+    @impl true
+    def render(column, _current_value, _theme, _assigns) do
+      assigns = %{column: column}
+
+      ~H"""
+      <input name={field_name(@column.field, "min")} />
+      <input name={field_name(@column.field, "max")} />
+      """
+    end
+
+    @impl true
+    def process(raw_value, _column) when is_binary(raw_value) do
+      with [min, max] <- String.split(raw_value, ","),
+           {min_val, ""} <- Integer.parse(min),
+           {max_val, ""} <- Integer.parse(max),
+           true <- min_val <= max_val do
+        %{type: :track_range, value: [min_val, max_val], operator: :between}
+      else
+        _ -> nil
+      end
+    end
+
+    def process(_raw_value, _column), do: nil
+
+    @impl true
+    def validate(_value), do: true
+    @impl true
+    def default_options, do: []
+    @impl true
+    def empty?(value), do: is_nil(value)
+
+    @impl true
+    def build_query(query, field, %{value: [min, max]}) do
+      field = String.to_existing_atom(field)
+      Ash.Query.filter(query, ^ref(field) >= ^min and ^ref(field) <= ^max)
+    end
+  end
+
+  test "a custom filter's value is kept in the URL, and applied again from it", %{conn: conn} do
+    Cinder.TestHelpers.put_app_env(:filters, track_range: TrackRange)
+
+    artist = generate(artist(name: "Track Artist"))
+    generate(album(title: "Short", track_count: 5, artist_id: artist.id))
+    generate(album(title: "Long", track_count: 20, artist_id: artist.id))
+
+    on_exit(fn ->
+      Ash.bulk_destroy!(Music.Album, :destroy, %{})
+      Ash.bulk_destroy!(Music.Artist, :destroy, %{})
+    end)
+
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.collection resource={Music.Album} url_state={@url_state}>
+          <:col :let={album} field="title">{album.title}</:col>
+          <:filter field="track_count" type={:track_range} />
+        </Cinder.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path)
+
+    view
+    |> element("form[phx-change=filter_change]")
+    |> render_change(%{"filters" => %{"track_count_min" => "1", "track_count_max" => "10"}})
+
+    # With URL sync, the filter applies when the URL comes back
+    url = assert_patch(view)
+    assert URI.decode_query(URI.parse(url).query) == %{"track_count" => "1,10"}
+    assert_only_short(view)
+
+    {:ok, view, _html} = live(conn, url)
+    assert_only_short(view)
+  end
+
+  defp assert_only_short(view) do
+    html = render(view)
+    assert html =~ "Short"
+    refute html =~ "Long"
   end
 
   # Regression: a filter that raised while building the query was dropped, so the
