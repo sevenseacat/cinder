@@ -295,7 +295,7 @@ defmodule Cinder.UrlSync do
   defp remove_empty_params(params) do
     params
     |> Enum.reject(fn {k, v} ->
-      is_nil(v) or v == "" or (v == "1" and String.contains?(to_string(k), "page"))
+      is_nil(v) or v == "" or {k, v} == {"page", "1"}
     end)
     |> Enum.into(%{})
   end

@@ -221,6 +221,13 @@ defmodule Cinder.UrlSyncTest do
       assert result_url == "/users?name=john&page=2"
     end
 
+    test "leaves out only `page` when it's 1, not other params named with \"page\"" do
+      encoded_state = %{"page" => "1", "page_size" => "1", "homepage" => "1"}
+
+      assert UrlSync.build_url(encoded_state, "http://localhost:4000/sites") ==
+               "/sites?homepage=1&page_size=1"
+    end
+
     test "removes cleared filters from URL while preserving custom params" do
       # This test demonstrates the critical bug: when a filter is cleared,
       # it should be removed from the URL, but custom params should remain
