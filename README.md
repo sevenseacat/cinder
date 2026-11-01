@@ -9,6 +9,11 @@ SPDX-License-Identifier: MIT
 Tables, lists and grids of Ash resources in Phoenix LiveView, with filtering, sorting, search and
 pagination.
 
+> [!NOTE]
+> Cinder 1.0 is being built on `main`, so this branch may not match the released version. For
+> the released docs, see [cinder.hexdocs.pm](https://cinder.hexdocs.pm), and for 0.18 fixes, the
+> [`0.18-stable`](https://github.com/sevenseacat/cinder/tree/0.18-stable) branch.
+
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user}>
   <:col :let={user} field="name" filter sort>{user.name}</:col>
