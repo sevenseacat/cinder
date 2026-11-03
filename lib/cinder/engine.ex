@@ -14,8 +14,9 @@ defmodule Cinder.Engine do
   Turning form and URL strings into values belongs to `Cinder.Params`, not here.
   """
 
-  alias Cinder.Engine.Field
+  alias Cinder.Engine.{Field, Page, Query}
   alias Cinder.Filters.Registry
+  alias Cinder.QueryBuilder
 
   @date_types [
     Ash.Type.Date,
@@ -102,6 +103,116 @@ defmodule Cinder.Engine do
   end
 
   defp sort_name(_key), do: nil
+
+  @doc """
+  Reads a page of records from `source` (a resource or query): `query`'s
+  filters, arguments, search, sort and page, on the `fields` from `field/3`.
+
+  Options, which come from the collection rather than the user:
+
+    * `scope` - the actor, tenant and context, as an `Ash.Scope`
+    * `action` - the read action, if not the source query's or the primary one
+    * `query_opts` - more for Ash (`load`, `select`, `timeout`, ...)
+    * `pagination` - `:offset` (default) or `:keyset`
+    * `search_fn` - a function to search with instead of a `contains` on each
+      searchable field, called as `search_fn.(query, searchable_columns, term)`
+      with the `Ash.Query` so far, the searchable fields as column maps (`field`,
+      `label`, `filter_type`, ...), and the search term. It returns the query.
+    * `count?` - whether to count the records (default `true`)
+
+  Every column's `load` is loaded, along with any in `query_opts`.
+  """
+  @spec run(Ash.Query.t() | module(), [Field.t()], Query.t(), keyword()) ::
+          {:ok, Page.t()} | {:error, term()}
+  def run(source, fields, %Query{} = query, opts) do
+    query_opts = Keyword.get(opts, :query_opts, [])
+    loads = for %Field{load: load} when not is_nil(load) <- fields, do: load
+
+    options = [
+      columns: Enum.map(fields, &column/1),
+      filters: query.filters,
+      arguments: query.arguments,
+      search_term: query.search,
+      sort_by: query.sort,
+      current_page: query.page,
+      page_size: query.page_size,
+      after_keyset: cursor(query, :after),
+      before_keyset: cursor(query, :before),
+      scope: opts[:scope],
+      action: opts[:action],
+      query_opts: Keyword.update(query_opts, :load, loads, &(List.wrap(&1) ++ loads)),
+      pagination_mode: Keyword.get(opts, :pagination, :offset),
+      count_mode: Keyword.get(opts, :count?, true),
+      search_fn: opts[:search_fn]
+    ]
+
+    with {:ok, result} <- QueryBuilder.build_and_execute(source, options) do
+      {:ok, page(result, query, options[:pagination_mode])}
+    end
+  end
+
+  # The column map `QueryBuilder` and a custom `search_fn` read, with every key set
+  defp column(%Field{} = field) do
+    %{
+      field: field.name,
+      label: field.name,
+      filterable: field.filter != nil,
+      filter_type: field.filter && field.filter.type,
+      filter_options: (field.filter && field.filter.options) || [],
+      filter_fn: nil,
+      searchable: field.searchable?,
+      sortable: field.sortable?
+    }
+  end
+
+  defp cursor(%Query{cursor: {direction, cursor}}, direction), do: cursor
+  defp cursor(_query, _direction), do: nil
+
+  # With no cursor, an action that can page either way pages by offset, whatever
+  # was asked for. Its records still have their cursors, so in keyset mode it's
+  # the first keyset page.
+  defp page(%Ash.Page.Offset{} = page, _query, :keyset) do
+    keyset_page(page, nil)
+  end
+
+  defp page(%Ash.Page.Offset{} = page, _query, _mode) do
+    %Page{
+      records: page.results,
+      page: div(page.offset, page.limit) + 1,
+      page_size: page.limit,
+      count: page.count,
+      more?: page.more?,
+      previous?: page.offset > 0
+    }
+  end
+
+  defp page(%Ash.Page.Keyset{} = page, query, _mode), do: keyset_page(page, query.cursor)
+  defp page(%{results: records}, _query, _mode), do: %Page{records: records}
+
+  # Ash's `more?` is whether there's more in the direction read: after the cursor,
+  # or before it. Reading before a cursor means coming back from the page it's on,
+  # so there's always a next page, and reading after one always has a previous.
+  defp keyset_page(page, cursor) do
+    {more?, previous?} =
+      case cursor do
+        {:before, _cursor} -> {true, page.more?}
+        {:after, _cursor} -> {page.more?, true}
+        nil -> {page.more?, false}
+      end
+
+    %Page{
+      records: page.results,
+      page_size: page.limit,
+      count: page.count,
+      more?: more?,
+      previous?: previous?,
+      first_cursor: keyset(List.first(page.results)),
+      last_cursor: keyset(List.last(page.results))
+    }
+  end
+
+  defp keyset(nil), do: nil
+  defp keyset(record), do: record.__metadata__[:keyset]
 
   defp resolve(resource, name) do
     case Cinder.Field.resolve(resource, name) do

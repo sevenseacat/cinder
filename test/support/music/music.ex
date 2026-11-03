@@ -145,6 +145,11 @@ defmodule Music.Album do
       pagination(offset?: true, keyset?: true, countable: true, required?: false)
     end
 
+    read :by_genre do
+      argument(:genre, Music.Genre, allow_nil?: false)
+      filter(expr(genre == ^arg(:genre)))
+    end
+
     # For showing the loading and error states in the dev app
     read :slow do
       prepare(fn query, _context ->
