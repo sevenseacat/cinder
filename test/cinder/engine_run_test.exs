@@ -99,6 +99,13 @@ defmodule Cinder.EngineRunTest do
     assert Enum.all?(page.records, &(&1.genre == :jazz))
   end
 
+  test "filters by each field's filter value" do
+    fields = fields(%{"title" => %{filter: %{}}, "price" => %{filter: %{}}})
+    # "b" matches Abbey and Blue, and Abbey is under 10
+    filters = Cinder.Params.filters_from_params(%{"title" => "b", "price_min" => "10"}, fields)
+    assert titles(run(%{filters: filters}, [], fields)) == ["Blue"]
+  end
+
   test "searches the searchable fields" do
     assert titles(run(%{search: "bl"})) == ["Blue"]
   end

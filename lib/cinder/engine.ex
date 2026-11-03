@@ -129,7 +129,7 @@ defmodule Cinder.Engine do
     loads = for %Field{load: load} when not is_nil(load) <- fields, do: load
 
     options = [
-      columns: Enum.map(fields, &column/1),
+      columns: Enum.map(fields, &Field.to_column_map/1),
       filters: query.filters,
       arguments: query.arguments,
       search_term: query.search,
@@ -149,20 +149,6 @@ defmodule Cinder.Engine do
     with {:ok, result} <- QueryBuilder.build_and_execute(source, options) do
       {:ok, page(result, query, options[:pagination_mode])}
     end
-  end
-
-  # The column map `QueryBuilder` and a custom `search_fn` read, with every key set
-  defp column(%Field{} = field) do
-    %{
-      field: field.name,
-      label: field.name,
-      filterable: field.filter != nil,
-      filter_type: field.filter && field.filter.type,
-      filter_options: (field.filter && field.filter.options) || [],
-      filter_fn: nil,
-      searchable: field.searchable?,
-      sortable: field.sortable?
-    }
   end
 
   defp cursor(%Query{cursor: {direction, cursor}}, direction), do: cursor

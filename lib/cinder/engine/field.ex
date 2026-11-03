@@ -25,4 +25,21 @@ defmodule Cinder.Engine.Field do
 
   @enforce_keys [:name]
   defstruct [:name, :filter, :load, sortable?: false, searchable?: false]
+
+  # The column map the engine's internals (`QueryBuilder`, `FilterManager`,
+  # `UrlManager`), filter types and a custom `search_fn` read, with every key set.
+  # Remove when the internals stop needing column maps.
+  @doc false
+  def to_column_map(%__MODULE__{} = field) do
+    %{
+      field: field.name,
+      label: field.name,
+      filterable: field.filter != nil,
+      filter_type: field.filter && field.filter.type,
+      filter_options: (field.filter && field.filter.options) || [],
+      filter_fn: nil,
+      searchable: field.searchable?,
+      sortable: field.sortable?
+    }
+  end
 end
