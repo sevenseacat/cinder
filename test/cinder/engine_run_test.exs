@@ -106,6 +106,44 @@ defmodule Cinder.EngineRunTest do
     assert titles(run(%{filters: filters}, [], fields)) == ["Blue"]
   end
 
+  describe "errors" do
+    defp error(arguments, opts) do
+      {:error, error} = Engine.run(Music.Album, fields(), %Query{arguments: arguments}, opts)
+      error
+    end
+
+    # `QueryBuilder` logs every failed read, even one the user just needs to finish
+    @tag :capture_log
+    test "a missing or invalid argument is an error on that input, to translate" do
+      opts = [action: :by_genre, arguments: ["genre"]]
+
+      assert error(%{}, opts) ==
+               %Engine.Error{inputs: %{"genre" => [{"is required", []}]}, reason: nil}
+
+      assert error(%{"genre" => "polka"}, opts) ==
+               %Engine.Error{inputs: %{"genre" => [{"is invalid", []}]}, reason: nil}
+    end
+
+    @tag :capture_log
+    test "an argument with no input can't be fixed by the user, so the read failed" do
+      assert %Engine.Error{
+               inputs: inputs,
+               reason: %Ash.Error.Invalid{errors: [%Ash.Error.Query.Required{field: :genre}]}
+             } = error(%{}, action: :by_genre)
+
+      assert inputs == %{}
+    end
+
+    @tag :capture_log
+    test "anything else is a failure, with the original error as the reason" do
+      assert %Engine.Error{inputs: inputs, reason: %Ash.Error.Unknown{errors: [unknown]}} =
+               error(%{}, action: :failing)
+
+      assert inputs == %{}
+      assert %Ash.Error.Unknown.UnknownError{error: "Simulated failure"} = unknown
+    end
+  end
+
   test "searches the searchable fields" do
     assert titles(run(%{search: "bl"})) == ["Blue"]
   end

@@ -14,7 +14,7 @@ defmodule Cinder.Engine do
   Turning form and URL strings into values belongs to `Cinder.Params`, not here.
   """
 
-  alias Cinder.Engine.{Field, Page, Query}
+  alias Cinder.Engine.{Error, Field, Page, Query}
   alias Cinder.Filters.Registry
   alias Cinder.QueryBuilder
 
@@ -119,11 +119,16 @@ defmodule Cinder.Engine do
       with the `Ash.Query` so far, the searchable fields as column maps (`field`,
       `label`, `filter_type`, ...), and the search term. It returns the query.
     * `count?` - whether to count the records (default `true`)
+    * `arguments` - the names of the read action arguments the user has inputs
+      for, so errors about them go on those inputs
 
   Every column's `load` is loaded, along with any in `query_opts`.
+
+  A read that fails gives a `Cinder.Engine.Error`: the errors on read action
+  arguments the user can fix, and the original error if it failed otherwise.
   """
   @spec run(Ash.Query.t() | module(), [Field.t()], Query.t(), keyword()) ::
-          {:ok, Page.t()} | {:error, term()}
+          {:ok, Page.t()} | {:error, Error.t()}
   def run(source, fields, %Query{} = query, opts) do
     query_opts = Keyword.get(opts, :query_opts, [])
     loads = for %Field{load: load} when not is_nil(load) <- fields, do: load
@@ -146,9 +151,32 @@ defmodule Cinder.Engine do
       search_fn: opts[:search_fn]
     ]
 
-    with {:ok, result} <- QueryBuilder.build_and_execute(source, options) do
-      {:ok, page(result, query, options[:pagination_mode])}
+    case QueryBuilder.build_and_execute(source, options) do
+      {:ok, result} -> {:ok, page(result, query, options[:pagination_mode])}
+      {:error, reason} -> {:error, error(reason, Keyword.get(opts, :arguments, []))}
     end
+  end
+
+  # Ash wraps its errors in a class (`Ash.Error.Invalid`, `Ash.Error.Unknown`, ...),
+  # with the errors themselves in `errors`
+  defp error(reason, arguments) do
+    errors = if is_map(reason), do: Map.get(reason, :errors, [reason]), else: [reason]
+    {on_inputs, others} = Enum.split_with(errors, &on_input?(&1, arguments))
+
+    # The conversion Phoenix forms use, so the messages are the ones a form would show.
+    # One error can give several.
+    inputs =
+      on_inputs
+      |> Enum.flat_map(&List.wrap(AshPhoenix.FormData.Error.to_form_error(&1)))
+      |> Enum.group_by(&to_string(elem(&1, 0)), fn {_field, message, vars} -> {message, vars} end)
+
+    %Error{inputs: inputs, reason: if(others != [], do: reason)}
+  end
+
+  # Only an argument with an input can be fixed by the user
+  defp on_input?(error, arguments) do
+    is_map(error) and to_string(Map.get(error, :field)) in arguments and
+      AshPhoenix.FormData.Error.impl_for(error) != nil
   end
 
   defp cursor(%Query{cursor: {direction, cursor}}, direction), do: cursor
