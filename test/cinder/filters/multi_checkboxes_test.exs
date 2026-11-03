@@ -17,6 +17,10 @@ defmodule Cinder.Filters.MultiCheckboxesTest do
     assert MultiCheckboxes.process([], %{filter_options: []}) == nil
   end
 
+  test "process/2 takes the URL's comma-separated string" do
+    assert %{value: ["a", "b"]} = MultiCheckboxes.process("a,b", %{filter_options: []})
+  end
+
   test "default_options/0 has no prompt (there's no dropdown)" do
     assert MultiCheckboxes.default_options() == [options: [], match_mode: :any]
   end

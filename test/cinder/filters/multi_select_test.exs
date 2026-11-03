@@ -9,11 +9,13 @@ defmodule Cinder.Filters.MultiSelectTest do
   alias Cinder.Filters.MultiSelect
 
   describe "process/2" do
-    test "takes a list of values, or a single one" do
+    test "takes a list of values from the form, or a comma-separated string from the URL" do
       expected = %{type: :multi_select, value: ["a", "b"], operator: :in, match_mode: :any}
 
       assert MultiSelect.process(["a", "b"], %{filter_options: []}) == expected
+      assert MultiSelect.process("a,b", %{filter_options: []}) == expected
       assert %{value: ["a"]} = MultiSelect.process("a", %{filter_options: []})
+      assert MultiSelect.process("", %{filter_options: []}) == nil
       assert MultiSelect.process([], %{filter_options: []}) == nil
       assert MultiSelect.process([""], %{filter_options: []}) == nil
       assert MultiSelect.process(nil, %{filter_options: []}) == nil

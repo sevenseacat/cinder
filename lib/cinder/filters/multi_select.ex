@@ -174,9 +174,10 @@ defmodule Cinder.Filters.MultiSelect do
     end
   end
 
+  # The form sends a list, and the URL a comma-separated string, as `Cinder.UrlManager`
+  # writes a list. Each type reads its own URL value, so this one splits it.
   def process(raw_value, column, type) when is_binary(raw_value) do
-    # Handle single value as list
-    process([raw_value], column, type)
+    process(String.split(raw_value, ","), column, type)
   end
 
   def process(_raw_value, _column, _type), do: nil
