@@ -12,6 +12,8 @@ defmodule Cinder.FilterManager do
 
   use Phoenix.Component
 
+  require Logger
+
   alias Cinder.Filters.Registry
   use Cinder.Messages
 
@@ -269,8 +271,6 @@ defmodule Cinder.FilterManager do
           )
         rescue
           error ->
-            require Logger
-
             Logger.warning(
               "Error rendering custom filter :#{assigns.column.filter_type} for column '#{assigns.column.field}': #{inspect(error)}. " <>
                 "Falling back to text filter."
@@ -290,8 +290,6 @@ defmodule Cinder.FilterManager do
       else
         # Log warning for missing custom filter
         if Registry.custom_filter?(assigns.column.filter_type) do
-          require Logger
-
           Logger.warning(
             "Custom filter :#{assigns.column.filter_type} is registered but module is not available. " <>
               "Falling back to text filter for column '#{assigns.column.field}'"
@@ -490,8 +488,6 @@ defmodule Cinder.FilterManager do
         :ok
 
       {:error, errors} ->
-        require Logger
-
         Logger.warning(
           "Custom filter validation failed during application startup:\n" <>
             Enum.map_join(errors, "\n", &"  - #{&1}")
@@ -522,8 +518,6 @@ defmodule Cinder.FilterManager do
           if module && Code.ensure_loaded?(module) do
             filter_type
           else
-            require Logger
-
             Logger.warning(
               "Custom filter :#{filter_type} is registered but module is not available " <>
                 "for column '#{key}'. Falling back to text filter."
@@ -571,36 +565,25 @@ defmodule Cinder.FilterManager do
     # Use enhanced registry that includes custom filters
     filter_module = Registry.get_filter(column.filter_type)
 
+    # A bug in a filter fails closed: no filter, rather than quietly a different one
     if filter_module do
       try do
         filter_module.process(raw_value, column)
       rescue
         error ->
-          require Logger
-
           Logger.error(
             "Error processing filter value for custom filter :#{column.filter_type} " <>
-              "on column '#{column.field}': #{inspect(error)}. Falling back to text processing."
+              "on column '#{column.field}': #{inspect(error)}. Skipping it."
           )
 
-          # Fallback to text processing
-          text_module = Registry.get_filter(:text)
-          text_module.process(raw_value, column)
+          nil
       end
     else
-      # Log warning for missing custom filter
-      if Registry.custom_filter?(column.filter_type) do
-        require Logger
+      Logger.error(
+        "No filter module for :#{column.filter_type} on column '#{column.field}'. Skipping it."
+      )
 
-        Logger.warning(
-          "Custom filter :#{column.filter_type} is registered but module is not available. " <>
-            "Falling back to text processing for column '#{column.field}'"
-        )
-      end
-
-      # Fallback to text processing
-      text_module = Registry.get_filter(:text)
-      text_module.process(raw_value, column)
+      nil
     end
   end
 

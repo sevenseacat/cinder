@@ -220,7 +220,7 @@ defmodule Cinder.FilterManagerRuntimeTest do
       assert result == %{type: :slider, value: 75, operator: :equals}
     end
 
-    test "handles custom filter processing errors gracefully" do
+    test "skips the filter when a custom filter's processing raises" do
       Application.put_env(:cinder, :filters, broken: BrokenFilter)
       Registry.register_config_filters()
 
@@ -234,20 +234,15 @@ defmodule Cinder.FilterManagerRuntimeTest do
         capture_log(fn ->
           result = FilterManager.process_filter_value("test", column)
 
-          # Should fall back to text processing
-          assert result == %{
-                   type: :text,
-                   value: "test",
-                   operator: :contains,
-                   case_sensitive: false
-                 }
+          # A bug in the filter fails closed: no filter, rather than a different one
+          assert result == nil
         end)
 
       assert log_output =~ "Error processing filter value for custom filter :broken"
-      assert log_output =~ "Falling back to text processing"
+      assert log_output =~ "Skipping it"
     end
 
-    test "falls back to text processing when custom filter module missing" do
+    test "skips the filter when a custom filter module is missing" do
       # Manually add invalid module to simulate missing module at runtime
       Application.put_env(:cinder, :filters, missing: NonExistentModule)
 
@@ -261,17 +256,12 @@ defmodule Cinder.FilterManagerRuntimeTest do
         capture_log(fn ->
           result = FilterManager.process_filter_value("test", column)
 
-          # Should fall back to text processing
-          assert result == %{
-                   type: :text,
-                   value: "test",
-                   operator: :contains,
-                   case_sensitive: false
-                 }
+          # A bug in the filter fails closed: no filter, rather than a different one
+          assert result == nil
         end)
 
       assert log_output =~ "Error processing filter value for custom filter :missing"
-      assert log_output =~ "Falling back to text processing"
+      assert log_output =~ "Skipping it"
     end
 
     test "processes built-in filters normally" do
