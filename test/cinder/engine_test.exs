@@ -1,0 +1,111 @@
+defmodule Cinder.EngineTest do
+  use ExUnit.Case, async: true
+
+  alias Cinder.Engine
+
+  describe "field/3" do
+    defp filter(name, declared \\ %{}) do
+      {:ok, field} = Engine.field(Music.Album, name, %{filter: declared})
+      field.filter
+    end
+
+    defp error(name, declared) do
+      {:error, message} = Engine.field(Music.Album, name, declared)
+      message
+    end
+
+    test "infers a filter type from the field's Ash type" do
+      assert filter("title").type == :text
+      assert filter("genre").type == :select
+      assert filter("tags").type == :multi_select
+      assert filter("release_date").type == :date_range
+      assert filter("added_at").type == :date_range
+      assert filter("is_remastered").type == :boolean
+      assert filter("price").type == :number_range
+      assert filter("track_count").type == :number_range
+      assert filter("artist.name").type == :text
+      assert filter("artist.album_count").type == :number_range
+      assert filter("details__recorded_on").type == :date_range
+    end
+
+    test "infers a text filter for types with no better one" do
+      assert filter("artist_id").type == :text
+    end
+
+    test "a declared type wins over the inferred one" do
+      assert filter("genre", %{type: :radio_group}).type == :radio_group
+      assert filter("title", %{type: :select}).type == :select
+    end
+
+    test "options are the type's defaults, then the field's enum values, then the declared ones" do
+      options = filter("genre").options
+
+      assert options[:options] == [
+               {"Rock", :rock},
+               {"Pop", :pop},
+               {"Jazz", :jazz},
+               {"Classical", :classical}
+             ]
+
+      assert Keyword.has_key?(options, :prompt)
+
+      assert filter("genre", %{options: [prompt: "Any"]}).options[:prompt] == "Any"
+
+      assert filter("genre", %{options: [options: [{"Rock", :rock}]]}).options[:options] ==
+               [{"Rock", :rock}]
+
+      assert filter("title").options[:operator] == :contains
+      assert filter("title", %{options: [operator: :equals]}).options[:operator] == :equals
+    end
+
+    test "enum values only go to types that take options" do
+      assert length(filter("genre", %{type: :radio_group}).options[:options]) == 4
+      refute Keyword.has_key?(filter("genre", %{type: :text}).options, :options)
+    end
+
+    test "no filter, sort or search unless declared" do
+      assert {:ok, field} = Engine.field(Music.Album, "title", %{})
+
+      assert %Engine.Field{name: "title", filter: nil, sortable?: false, searchable?: false} =
+               field
+    end
+
+    test "sort and search as declared" do
+      assert {:ok, %{sortable?: true, searchable?: true}} =
+               Engine.field(Music.Album, "title", %{sortable?: true, searchable?: true})
+    end
+
+    test "what showing the field needs loaded" do
+      assert {:ok, %{load: nil}} = Engine.field(Music.Album, "title", %{})
+      assert {:ok, %{load: :title_lower}} = Engine.field(Music.Album, "title_lower", %{})
+
+      assert {:ok, %{load: {:artist, [:album_count]}}} =
+               Engine.field(Music.Album, "artist.album_count", %{})
+    end
+
+    test "an unknown field is an error" do
+      assert error("nope", %{}) =~ ~s("nope")
+      assert error("artist.nope", %{}) =~ "is not a field of Music.Album"
+    end
+
+    test "filtering, sorting or searching a field that can't be queried is an error" do
+      assert error("artist", %{filter: %{}}) =~ "is a relationship"
+      assert error("title_with", %{sortable?: true}) =~ "can't be sorted: it is a calculation"
+      assert error("artist", %{searchable?: true}) =~ "can't be searched: it is a relationship"
+
+      assert error("artist", %{filter: %{}, sortable?: true}) =~
+               ~s("artist" can't be filtered or sorted: it is a relationship)
+    end
+
+    test "showing a field that can't be queried is fine" do
+      assert {:ok, %{filter: nil}} = Engine.field(Music.Album, "artist", %{})
+    end
+
+    test "an unknown filter type is an error naming the known ones" do
+      message = error("title", %{filter: %{type: :radio}})
+      assert message =~ ~s("title")
+      assert message =~ ":radio is not a filter type"
+      assert message =~ ":radio_group"
+    end
+  end
+end

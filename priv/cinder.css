@@ -19,6 +19,7 @@
 
 @source "../lib/cinder.ex";
 @source "../lib/cinder/*.ex";
+@source "../lib/cinder/engine/**/*.ex";
 @source "../lib/cinder/filter/**/*.ex";
 @source "../lib/cinder/filters/**/*.ex";
 @source "../lib/cinder/renderers/**/*.ex";

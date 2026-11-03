@@ -20,6 +20,7 @@ defmodule Cinder.FieldTest do
 
     attributes do
       attribute(:label, :string)
+      attribute(:size, :atom, constraints: [one_of: [:small, :large]])
       attribute(:inner, Inner)
       attribute(:extra, :map)
     end
@@ -217,7 +218,30 @@ defmodule Cinder.FieldTest do
       assert type("owner.item_count") == Ash.Type.Integer
       assert type("owner.items.tags") == {:array, Ash.Type.String}
       assert type("owner") == nil
-      assert type("details__label") == nil
+    end
+
+    test "the type of the field at the end of an embedded path, unknown under a map" do
+      assert type("details__label") == Ash.Type.String
+      assert type("details__inner__street") == Ash.Type.String
+      assert type("details_list__label") == Ash.Type.String
+      assert type("details__extra__anything") == nil
+      assert type("meta__anything") == nil
+    end
+  end
+
+  describe "constraints/1" do
+    defp constraints(field) do
+      {:ok, resolved} = Field.resolve(Item, field)
+      Field.constraints(resolved)
+    end
+
+    test "the constraints of attributes, embedded fields and calculations" do
+      assert constraints("tags")[:items] != nil
+      assert constraints("details__size")[:one_of] == [:small, :large]
+      assert constraints("title_lower")[:trim?] == true
+      assert constraints("owner.item_count") == []
+      assert constraints("meta__anything") == []
+      assert constraints("owner") == []
     end
   end
 

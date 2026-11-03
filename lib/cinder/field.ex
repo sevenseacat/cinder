@@ -16,13 +16,16 @@ defmodule Cinder.Field do
   - `resource` - the resource the field is on, at the end of that path
   - `name` - the field on that resource (for an embedded field, the attribute holding it)
   - `calculation` - the calculation, when `kind` is `:calculation`
+  - `attribute` - the attribute holding the value: the attribute itself, or for an embedded
+    field the one at the end of its path (`nil` under a map, whose keys aren't declared)
   """
   @type t :: %{
           relationships: [atom()],
           resource: module(),
           name: atom(),
           kind: :attribute | :embedded | :relationship | :aggregate | :calculation,
-          calculation: struct() | nil
+          calculation: struct() | nil,
+          attribute: struct() | nil
         }
 
   # Any key can be under these, so nested names can't be checked
@@ -79,12 +82,9 @@ defmodule Cinder.Field do
   def load(%{kind: :relationship} = field), do: wrap(field.relationships, {field.name, []})
   def load(field), do: wrap(field.relationships, nil)
 
-  @doc "The field's Ash type, or `nil` for a relationship or a field inside an embedded one."
+  @doc "The field's Ash type, or `nil` for a relationship or a key under a map."
   @spec type(t()) :: Ash.Type.t() | nil
-  def type(%{kind: :attribute, resource: resource, name: name}) do
-    Ash.Resource.Info.attribute(resource, name).type
-  end
-
+  def type(%{attribute: %{type: type}}), do: type
   def type(%{kind: :calculation, calculation: calculation}), do: calculation.type
 
   def type(%{kind: :aggregate, resource: resource, name: name}) do
@@ -95,6 +95,18 @@ defmodule Cinder.Field do
   end
 
   def type(_field), do: nil
+
+  @doc "The field's type constraints (such as `one_of`), or `[]` when it has none."
+  @spec constraints(t()) :: keyword()
+  def constraints(%{attribute: %{constraints: constraints}}) when is_list(constraints) do
+    constraints
+  end
+
+  def constraints(%{calculation: %{constraints: constraints}}) when is_list(constraints) do
+    constraints
+  end
+
+  def constraints(_field), do: []
 
   @doc "Whether the field is marked `sensitive?`, so its values are redacted where Ash's would be."
   @spec sensitive?(t()) :: boolean()
@@ -152,22 +164,25 @@ defmodule Cinder.Field do
 
   defp resolve_embedded(resource, name, nested, relationships) do
     with %{name: attribute, type: type} <- Ash.Resource.Info.attribute(resource, name),
-         true <- nested_exists?(type, nested) do
-      {:ok, field(resource, relationships, attribute, :embedded, nil)}
+         {:ok, leaf} <- nested_attribute(type, nested) do
+      {:ok, %{field(resource, relationships, attribute, :embedded, nil) | attribute: leaf}}
     else
       _ -> :error
     end
   end
 
-  defp nested_exists?({:array, type}, nested), do: nested_exists?(type, nested)
-  defp nested_exists?(type, nested) when type in @open_types, do: "" not in nested
+  defp nested_attribute({:array, type}, nested), do: nested_attribute(type, nested)
 
-  defp nested_exists?(type, [name | rest]) do
+  defp nested_attribute(type, nested) when type in @open_types do
+    if "" in nested, do: :error, else: {:ok, nil}
+  end
+
+  defp nested_attribute(type, [name | rest]) do
     with true <- Ash.Resource.Info.resource?(type),
-         %{type: nested_type} <- Ash.Resource.Info.attribute(type, name) do
-      rest == [] or nested_exists?(nested_type, rest)
+         %{type: nested_type} = attribute <- Ash.Resource.Info.attribute(type, name) do
+      if rest == [], do: {:ok, attribute}, else: nested_attribute(nested_type, rest)
     else
-      _ -> false
+      _ -> :error
     end
   end
 
@@ -177,7 +192,8 @@ defmodule Cinder.Field do
       resource: resource,
       name: name,
       kind: kind,
-      calculation: if(kind == :calculation, do: definition)
+      calculation: if(kind == :calculation, do: definition),
+      attribute: if(kind == :attribute, do: definition)
     }
   end
 
