@@ -27,4 +27,9 @@ defmodule Cinder.Engine.Query do
             page: 1,
             cursor: nil,
             page_size: 25
+
+  @doc "The keyset cursor to read `direction` (`:after` or `:before`) of, if that's the way it reads."
+  @spec cursor(t(), :after | :before) :: String.t() | nil
+  def cursor(%__MODULE__{cursor: {direction, cursor}}, direction), do: cursor
+  def cursor(%__MODULE__{}, _direction), do: nil
 end

@@ -2,7 +2,7 @@ defmodule Cinder.ParamsTest do
   use ExUnit.Case, async: true
 
   alias Cinder.{Engine, Params}
-  alias Cinder.Engine.Query
+  alias Cinder.Engine.{Field, Query}
 
   defp fields do
     for {name, declared} <- [
@@ -12,7 +12,7 @@ defmodule Cinder.ParamsTest do
           {"tags", %{filter: %{options: [options: [{"A", "a"}, {"B", "b"}]]}}},
           {"track_count", %{sortable?: true}}
         ] do
-      {:ok, field} = Engine.field(Music.Album, name, declared)
+      {:ok, field} = Engine.field(Music.Album, struct!(Field, Map.put(declared, :name, name)))
       field
     end
   end

@@ -43,8 +43,8 @@ defmodule Cinder.Params do
       filters: Map.take(query.filters, filterable),
       sort_by: if(query.sort == defaults.sort, do: [], else: query.sort),
       current_page: query.page,
-      after: cursor(query, :after),
-      before: cursor(query, :before),
+      after: Query.cursor(query, :after),
+      before: Query.cursor(query, :before),
       page_size: query.page_size,
       default_page_size: defaults.page_size,
       search_term: query.search
@@ -88,9 +88,6 @@ defmodule Cinder.Params do
       page_size: page_size(params["page_size"], defaults.page_size, opts[:page_sizes])
     }
   end
-
-  defp cursor(%Query{cursor: {direction, cursor}}, direction), do: cursor
-  defp cursor(%Query{}, _direction), do: nil
 
   # A URL may have both: `after` wins, as it does in `Cinder.UrlManager`
   defp url_cursor(params) do

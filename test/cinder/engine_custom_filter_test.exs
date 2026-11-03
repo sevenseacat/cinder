@@ -5,6 +5,7 @@ defmodule Cinder.EngineCustomFilterTest do
   import Cinder.TestHelpers, only: [put_app_env: 2]
 
   alias Cinder.Engine
+  alias Cinder.Engine.Field
 
   defmodule Slider do
     use Cinder.Filter
@@ -32,7 +33,7 @@ defmodule Cinder.EngineCustomFilterTest do
     put_app_env(:filters, slider: Slider)
 
     assert {:ok, %{filter: filter}} =
-             Engine.field(Music.Album, "genre", %{filter: %{type: :slider}})
+             Engine.field(Music.Album, %Field{name: "genre", filter: %{type: :slider}})
 
     assert filter.type == :slider
     assert filter.options[:step] == 1
@@ -42,7 +43,9 @@ defmodule Cinder.EngineCustomFilterTest do
   test "a custom filter type whose module can't be loaded is an error" do
     put_app_env(:filters, gone: Cinder.EngineCustomFilterTest.Gone)
 
-    assert {:error, message} = Engine.field(Music.Album, "title", %{filter: %{type: :gone}})
+    assert {:error, message} =
+             Engine.field(Music.Album, %Field{name: "title", filter: %{type: :gone}})
+
     assert message =~ "Cinder.EngineCustomFilterTest.Gone"
   end
 end

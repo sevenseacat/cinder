@@ -2,15 +2,18 @@ defmodule Cinder.EngineTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Engine
+  alias Cinder.Engine.Field
 
-  describe "field/3" do
+  describe "field/2" do
     defp filter(name, declared \\ %{}) do
-      {:ok, field} = Engine.field(Music.Album, name, %{filter: declared})
+      {:ok, field} = Engine.field(Music.Album, %Field{name: name, filter: declared})
       field.filter
     end
 
     defp error(name, declared) do
-      {:error, message} = Engine.field(Music.Album, name, declared)
+      {:error, message} =
+        Engine.field(Music.Album, struct!(Field, Map.put(declared, :name, name)))
+
       message
     end
 
@@ -30,6 +33,11 @@ defmodule Cinder.EngineTest do
 
     test "infers a text filter for types with no better one" do
       assert filter("artist_id").type == :text
+    end
+
+    test "the filter has its type's module, for the shell to render and check options with" do
+      assert filter("genre").module == Cinder.Filters.Select
+      assert filter("genre", %{type: :radio_group}).module == Cinder.Filters.RadioGroup
     end
 
     test "a declared type wins over the inferred one" do
@@ -64,30 +72,30 @@ defmodule Cinder.EngineTest do
     end
 
     test "no filter, sort or search unless declared" do
-      assert {:ok, field} = Engine.field(Music.Album, "title", %{})
+      assert {:ok, field} = Engine.field(Music.Album, %Field{name: "title"})
 
-      assert %Engine.Field{name: "title", filter: nil, sortable?: false, searchable?: false} =
+      assert %Field{name: "title", filter: nil, sortable?: false, searchable?: false} =
                field
     end
 
     test "sort and search as declared" do
       assert {:ok, %{sortable?: true, searchable?: true}} =
-               Engine.field(Music.Album, "title", %{sortable?: true, searchable?: true})
+               Engine.field(Music.Album, %Field{name: "title", sortable?: true, searchable?: true})
     end
 
     test "what showing a column's field needs loaded" do
-      assert {:ok, %{load: nil}} = Engine.field(Music.Album, "title", %{column?: true})
+      assert {:ok, %{load: nil}} = Engine.field(Music.Album, %Field{name: "title", column?: true})
 
       assert {:ok, %{load: :title_lower}} =
-               Engine.field(Music.Album, "title_lower", %{column?: true})
+               Engine.field(Music.Album, %Field{name: "title_lower", column?: true})
 
       assert {:ok, %{load: {:artist, [:album_count]}}} =
-               Engine.field(Music.Album, "artist.album_count", %{column?: true})
+               Engine.field(Music.Album, %Field{name: "artist.album_count", column?: true})
     end
 
     test "a field that isn't a column is never shown, so it needs nothing loaded" do
       assert {:ok, %{load: nil}} =
-               Engine.field(Music.Album, "artist.album_count", %{filter: %{}})
+               Engine.field(Music.Album, %Field{name: "artist.album_count", filter: %{}})
     end
 
     test "an unknown field is an error" do
@@ -105,7 +113,7 @@ defmodule Cinder.EngineTest do
     end
 
     test "showing a field that can't be queried is fine" do
-      assert {:ok, %{filter: nil}} = Engine.field(Music.Album, "artist", %{})
+      assert {:ok, %{filter: nil}} = Engine.field(Music.Album, %Field{name: "artist"})
     end
 
     test "an unknown filter type is an error naming the known ones" do
@@ -125,7 +133,7 @@ defmodule Cinder.EngineTest do
             {"artist.name", true},
             {"price", false}
           ] do
-        {:ok, field} = Engine.field(Music.Album, name, %{sortable?: sortable?})
+        {:ok, field} = Engine.field(Music.Album, %Field{name: name, sortable?: sortable?})
         field
       end
     end

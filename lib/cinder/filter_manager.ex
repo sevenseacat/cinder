@@ -494,7 +494,7 @@ defmodule Cinder.FilterManager do
     end
   end
 
-  # Replaced by `Cinder.Engine.field/3`: remove with the old shell
+  # Replaced by `Cinder.Engine.field/2`: remove with the old shell
   @doc """
   Infers filter configuration from Ash resource attribute definitions.
   """
@@ -869,7 +869,7 @@ defmodule Cinder.FilterManager do
     end
   end
 
-  # Replaced by `Cinder.Engine.field/3`: remove with the old shell
+  # Replaced by `Cinder.Engine.field/2`: remove with the old shell
   @doc """
   Extracts enum options from Ash resource attribute.
 

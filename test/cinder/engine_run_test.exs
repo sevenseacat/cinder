@@ -3,7 +3,7 @@ defmodule Cinder.EngineRunTest do
   use Cinder.ConnCase, async: false
 
   alias Cinder.Engine
-  alias Cinder.Engine.{Page, Query}
+  alias Cinder.Engine.{Field, Page, Query}
 
   setup do
     artist = generate(artist(name: "Run Artist"))
@@ -20,7 +20,7 @@ defmodule Cinder.EngineRunTest do
 
   defp fields(declared \\ %{"title" => %{sortable?: true, searchable?: true}}) do
     for {name, declared} <- declared do
-      {:ok, field} = Engine.field(Music.Album, name, declared)
+      {:ok, field} = Engine.field(Music.Album, struct!(Field, Map.put(declared, :name, name)))
       field
     end
   end

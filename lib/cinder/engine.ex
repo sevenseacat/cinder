@@ -28,14 +28,9 @@ defmodule Cinder.Engine do
   @number_types [Ash.Type.Integer, Ash.Type.Decimal, Ash.Type.Float]
 
   @doc """
-  Describes a field of `resource` for a collection, from what was declared for
-  it:
-
-    * `filter` - `nil` if it isn't filtered, or `%{type: type, options: options}`,
-      where a `nil` (or missing) type is inferred from the field's Ash type
-    * `sortable?` and `searchable?` - whether it can be sorted and searched
-    * `column?` - whether it's a column, so can be shown (hidden or not), and
-      needs loading
+  Checks a field as declared (a `Cinder.Engine.Field`) against `resource`, and
+  fills in the rest: its filter's type, module and options, and what showing it
+  needs loaded.
 
   A filter's options are its type's defaults, then the field's enum values (for
   types that take `options`), then the declared ones.
@@ -44,24 +39,15 @@ defmodule Cinder.Engine do
   a field the resource doesn't have, filtering, sorting or searching a field that
   can't be queried, or a filter type that doesn't exist.
   """
-  @spec field(module(), String.t(), map()) :: {:ok, Field.t()} | {:error, String.t()}
-  def field(resource, name, declared) do
-    declared_filter = Map.get(declared, :filter)
-    sortable? = Map.get(declared, :sortable?, false)
-    searchable? = Map.get(declared, :searchable?, false)
-    uses = [filtered: declared_filter != nil, sorted: sortable?, searched: searchable?]
+  @spec field(module(), Field.t()) :: {:ok, Field.t()} | {:error, String.t()}
+  def field(resource, %Field{name: name} = field) do
+    uses = [filtered: field.filter != nil, sorted: field.sortable?, searched: field.searchable?]
 
     with {:ok, resolved} <- resolve(resource, name),
          :ok <- queryable(resolved, uses),
-         {:ok, filter} <- filter(resolved, declared_filter) do
-      {:ok,
-       %Field{
-         name: name,
-         filter: filter,
-         sortable?: sortable?,
-         searchable?: searchable?,
-         load: if(Map.get(declared, :column?, false), do: Cinder.Field.load(resolved))
-       }}
+         {:ok, filter} <- filter(resolved, field.filter) do
+      load = if field.column?, do: Cinder.Field.load(resolved)
+      {:ok, %{field | filter: filter, load: load}}
     else
       {:error, problem} -> {:error, "#{inspect(name)} #{problem}"}
     end
@@ -105,7 +91,7 @@ defmodule Cinder.Engine do
 
   @doc """
   Reads a page of records from `source` (a resource or query): `query`'s
-  filters, arguments, search, sort and page, on the `fields` from `field/3`.
+  filters, arguments, search, sort and page, on the `fields` from `field/2`.
 
   Options, which come from the collection rather than the user:
 
@@ -140,8 +126,8 @@ defmodule Cinder.Engine do
       sort_by: query.sort,
       current_page: query.page,
       page_size: query.page_size,
-      after_keyset: cursor(query, :after),
-      before_keyset: cursor(query, :before),
+      after_keyset: Query.cursor(query, :after),
+      before_keyset: Query.cursor(query, :before),
       scope: opts[:scope],
       action: opts[:action],
       query_opts: Keyword.update(query_opts, :load, loads, &(List.wrap(&1) ++ loads)),
@@ -177,9 +163,6 @@ defmodule Cinder.Engine do
     is_map(error) and to_string(Map.get(error, :field)) in arguments and
       AshPhoenix.FormData.Error.impl_for(error) != nil
   end
-
-  defp cursor(%Query{cursor: {direction, cursor}}, direction), do: cursor
-  defp cursor(_query, _direction), do: nil
 
   # With no cursor, an action that can page either way pages by offset, whatever
   # was asked for. Its records still have their cursors, so in keyset mode it's
@@ -264,7 +247,7 @@ defmodule Cinder.Engine do
         |> Keyword.merge(enum_options)
         |> Keyword.merge(Map.get(declared, :options, []))
 
-      {:ok, %{type: type, options: options}}
+      {:ok, %{type: type, module: module, options: options}}
     end
   end
 
