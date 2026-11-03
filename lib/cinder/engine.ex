@@ -65,6 +65,42 @@ defmodule Cinder.Engine do
     end
   end
 
+  @doc """
+  The sort already on `query` that the collection can show: its sorts on
+  sortable `fields`, in order, as `[{name, direction}]`. A resource has none.
+  """
+  @spec query_sorts(Ash.Query.t() | module(), [Field.t()]) :: [{String.t(), atom()}]
+  def query_sorts(%Ash.Query{sort: sort}, fields) do
+    sortable = for %Field{sortable?: true, name: name} <- fields, do: name
+
+    Enum.flat_map(sort, fn {key, direction} ->
+      name = sort_name(key)
+      if name in sortable, do: [{name, direction}], else: []
+    end)
+  end
+
+  def query_sorts(_resource, _fields), do: []
+
+  # An attribute or aggregate is its name, a calculation carries its name, and a
+  # relationship path (`"artist.name"`) is an unnamed expression of the field
+  defp sort_name(name) when is_atom(name), do: Atom.to_string(name)
+
+  defp sort_name(%Ash.Query.Calculation{calc_name: name}) when not is_nil(name) do
+    Atom.to_string(name)
+  end
+
+  defp sort_name(%Ash.Query.Calculation{opts: opts}) do
+    case opts[:expr] do
+      %Ash.Query.Ref{relationship_path: [_ | _] = path} = ref ->
+        Enum.map_join(path ++ [Ash.Query.Ref.name(ref)], ".", &to_string/1)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp sort_name(_key), do: nil
+
   defp resolve(resource, name) do
     case Cinder.Field.resolve(resource, name) do
       {:ok, resolved} -> {:ok, resolved}

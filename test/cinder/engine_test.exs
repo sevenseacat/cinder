@@ -108,4 +108,41 @@ defmodule Cinder.EngineTest do
       assert message =~ ":radio_group"
     end
   end
+
+  describe "query_sorts/2" do
+    # `title`, `title_lower` and `artist.name` are sortable; `price` is only shown
+    defp fields do
+      for {name, sortable?} <- [
+            {"title", true},
+            {"title_lower", true},
+            {"artist.name", true},
+            {"price", false}
+          ] do
+        {:ok, field} = Engine.field(Music.Album, name, %{sortable?: sortable?})
+        field
+      end
+    end
+
+    defp query_sorts(sort), do: Engine.query_sorts(Ash.Query.sort(Music.Album, sort), fields())
+
+    test "a resource has no sort" do
+      assert Engine.query_sorts(Music.Album, fields()) == []
+    end
+
+    test "sorts on sortable fields, in order, in any direction" do
+      assert query_sorts(title: :desc_nils_last, title_lower: :asc_nils_first) ==
+               [{"title", :desc_nils_last}, {"title_lower", :asc_nils_first}]
+
+      assert query_sorts([:title]) == [{"title", :asc}]
+    end
+
+    test "sorts through relationships, by their field name" do
+      assert query_sorts("-artist.name") == [{"artist.name", :desc}]
+    end
+
+    test "sorts on fields that aren't sortable are left out" do
+      assert query_sorts(price: :asc, title: :desc) == [{"title", :desc}]
+      assert query_sorts(track_count: :asc) == []
+    end
+  end
 end
