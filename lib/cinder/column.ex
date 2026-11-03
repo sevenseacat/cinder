@@ -245,6 +245,7 @@ defmodule Cinder.Column do
   defp extract_resource_from_query_or_resource(resource) when is_atom(resource), do: resource
   defp extract_resource_from_query_or_resource(other), do: other
 
+  # Replaced by `Cinder.Engine.field/3`: remove with the old shell
   defp determine_sortability(resource_or_query, field, slot) do
     # Extract the actual resource from query or resource
     resource = extract_resource_from_query_or_resource(resource_or_query)
@@ -276,7 +277,8 @@ defmodule Cinder.Column do
     end
   end
 
-  # Determines filterability based on field nature and user intent
+  # Determines filterability based on field nature and user intent.
+  # Replaced by `Cinder.Engine.field/3`: remove with the old shell
   defp determine_filterability(resource_or_query, field, slot) do
     # Extract the actual resource from query or resource
     resource = extract_resource_from_query_or_resource(resource_or_query)

@@ -994,6 +994,7 @@ defmodule Cinder.QueryBuilder do
        "Fields must exist on the resource and calculations must be database-level (using expr()) to be sortable."}
   end
 
+  # Replaced by `Cinder.Engine.query_sorts/2`: remove with the old shell
   @doc """
   Extracts sort information from an Ash query for table UI initialization.
 

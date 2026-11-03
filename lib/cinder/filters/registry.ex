@@ -88,6 +88,7 @@ defmodule Cinder.Filters.Registry do
     Map.keys(all_filters())
   end
 
+  # Replaced by `Cinder.Engine.field/3`: remove with the old shell
   @doc """
   Infers the appropriate filter type based on Ash resource attribute.
 
