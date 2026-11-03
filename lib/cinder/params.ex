@@ -3,16 +3,15 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.Params do
-  @moduledoc """
-  Strings to and from values: a filter form's params, and a collection's URL
-  params.
-
-  The shell hands it what was typed or what's in the URL, and gets back the
-  values to query with, or the other way round. It doesn't touch Ash: what a
-  field is comes from `Cinder.Engine`.
-
-  Input comes from users, so input that can't be used is left out, never an error.
-  """
+  @moduledoc false
+  # Strings to and from values: a filter form's params, and a collection's URL
+  # params.
+  #
+  # The shell hands it what was typed or what's in the URL, and gets back the
+  # values to query with, or the other way round. It doesn't touch Ash: what a
+  # field is comes from `Cinder.Engine`.
+  #
+  # Input comes from users, so input that can't be used is left out, never an error.
 
   alias Cinder.Engine.{Field, Query}
   alias Cinder.{FilterManager, UrlManager}

@@ -3,20 +3,19 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.Selection do
-  @moduledoc """
-  Predicates that decide selection behaviour for a collection.
-
-  Selection has two distinct concerns:
-
-    * whether selection is enabled for the collection at all (`enabled?/1`),
-      which governs the checkbox column, the "select all" control and the
-      bulk-action bar; and
-    * whether an individual item may be selected (`item_selectable?/2`), which
-      governs the per-item checkbox and click-to-toggle.
-
-  These functions are shared by the renderers and `Cinder.LiveComponent`. They
-  treat the `selectable` value uniformly as `true | false | (item -> boolean)`.
-  """
+  @moduledoc false
+  # Predicates that decide selection behaviour for a collection.
+  #
+  # Selection has two distinct concerns:
+  #
+  #   * whether selection is enabled for the collection at all (`enabled?/1`),
+  #     which governs the checkbox column, the "select all" control and the
+  #     bulk-action bar; and
+  #   * whether an individual item may be selected (`item_selectable?/2`), which
+  #     governs the per-item checkbox and click-to-toggle.
+  #
+  # These functions are shared by the renderers and `Cinder.LiveComponent`. They
+  # treat the `selectable` value uniformly as `true | false | (item -> boolean)`.
 
   @doc """
   Returns whether selection is enabled for the collection.

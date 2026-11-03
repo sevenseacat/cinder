@@ -3,15 +3,14 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.Engine.Field do
-  @moduledoc """
-  A field as the engine understands it, from `Cinder.Engine.field/3`.
-
-  `filter`, `sortable?` and `searchable?` are what the developer allowed, so
-  they're what input from outside the template (the URL, a search term) is
-  checked against. `filter` is `nil` when the field can't be filtered. `load` is
-  what showing a column's field needs loaded, for `Ash.Query.load/2`, or `nil`
-  when it isn't a column or needs nothing.
-  """
+  @moduledoc false
+  # A field as the engine understands it, from `Cinder.Engine.field/3`.
+  #
+  # `filter`, `sortable?` and `searchable?` are what the developer allowed, so
+  # they're what input from outside the template (the URL, a search term) is
+  # checked against. `filter` is `nil` when the field can't be filtered. `load` is
+  # what showing a column's field needs loaded, for `Ash.Query.load/2`, or `nil`
+  # when it isn't a column or needs nothing.
 
   @type filter :: %{type: atom(), options: keyword()}
 

@@ -3,41 +3,40 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.BulkActionExecutor do
-  @moduledoc """
-  Executes bulk actions on selected records.
-
-  This module is used internally by `Cinder.LiveComponent` to execute bulk actions
-  defined in `bulk_action` slots. It handles both Ash action atoms and function
-  captures.
-
-  ## Atom Actions
-
-  When given an atom, introspects the resource to determine if it's an update or
-  destroy action, then calls `Ash.bulk_update/4` or `Ash.bulk_destroy/4`:
-
-      BulkActionExecutor.execute(:archive,
-        resource: MyApp.User,
-        ids: ["1", "2"],
-        actor: current_user
-      )
-
-  ## Function Actions
-
-  When given a function, calls it with `(query, opts)` matching the signature of
-  Ash code interface functions. The query is pre-filtered to the selected IDs:
-
-      BulkActionExecutor.execute(&MyApp.Users.archive/2,
-        resource: MyApp.User,
-        ids: ["1", "2"],
-        actor: current_user
-      )
-
-  ## Options Handling
-
-  - **Atom actions**: `action_opts` are merged directly into Ash options
-  - **Function actions**: `action_opts` are wrapped in `bulk_options: [...]` for
-    code interface compatibility
-  """
+  @moduledoc false
+  # Executes bulk actions on selected records.
+  #
+  # This module is used internally by `Cinder.LiveComponent` to execute bulk actions
+  # defined in `bulk_action` slots. It handles both Ash action atoms and function
+  # captures.
+  #
+  # ## Atom Actions
+  #
+  # When given an atom, introspects the resource to determine if it's an update or
+  # destroy action, then calls `Ash.bulk_update/4` or `Ash.bulk_destroy/4`:
+  #
+  #     BulkActionExecutor.execute(:archive,
+  #       resource: MyApp.User,
+  #       ids: ["1", "2"],
+  #       actor: current_user
+  #     )
+  #
+  # ## Function Actions
+  #
+  # When given a function, calls it with `(query, opts)` matching the signature of
+  # Ash code interface functions. The query is pre-filtered to the selected IDs:
+  #
+  #     BulkActionExecutor.execute(&MyApp.Users.archive/2,
+  #       resource: MyApp.User,
+  #       ids: ["1", "2"],
+  #       actor: current_user
+  #     )
+  #
+  # ## Options Handling
+  #
+  # - **Atom actions**: `action_opts` are merged directly into Ash options
+  # - **Function actions**: `action_opts` are wrapped in `bulk_options: [...]` for
+  #   code interface compatibility
 
   @type action :: atom() | (Ash.Query.t(), keyword() -> any())
   @type opts :: [

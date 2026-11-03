@@ -3,26 +3,10 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.PageSize do
-  @moduledoc """
-  Page size configuration for Cinder table components.
-
-  ## Configuration
-
-  Set a global default page size in your application configuration:
-
-      # config/config.exs
-      config :cinder, default_page_size: 50
-
-      # Or with configurable options (shows dropdown selector)
-      config :cinder, default_page_size: [default: 25, options: [10, 25, 50, 100]]
-
-  Individual tables can override the global default:
-
-  ```heex
-  <Cinder.collection page_size={100} ...>
-  </Cinder.collection>
-  ```
-  """
+  @moduledoc false
+  # Page size configuration: a number, or `[default: n, options: [...]]`, globally
+  # (`config :cinder, default_page_size: ...`) or per collection. Documented for users
+  # in `docs/advanced.md`.
 
   @default_page_size 25
 

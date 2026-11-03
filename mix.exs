@@ -126,8 +126,7 @@ defmodule Cinder.MixProject do
           Cinder.LiveComponent
         ],
         "URL State Management": [
-          Cinder.UrlSync,
-          Cinder.UrlManager
+          Cinder.UrlSync
         ],
         Refresh: [
           Cinder.Refresh,
@@ -136,6 +135,7 @@ defmodule Cinder.MixProject do
         "Filter Types": [
           Cinder.Filter,
           Cinder.Filter.Helpers,
+          Cinder.Filter.Debug,
           ~r/Cinder\.Filters\./
         ],
         Renderers: [
@@ -153,15 +153,6 @@ defmodule Cinder.MixProject do
         ],
         "Mix Tasks": [
           ~r/Mix\.Tasks\./
-        ],
-        Internal: [
-          Cinder.QueryBuilder,
-          Cinder.Column,
-          Cinder.FilterManager,
-          Cinder.Filter.Debug,
-          Cinder.PageSize,
-          Cinder.BulkActionExecutor,
-          Cinder.Selection
         ],
         Deprecated: [
           Cinder.Table,

@@ -8,6 +8,12 @@ SPDX-License-Identifier: MIT
 
 This guide covers breaking changes, deprecations, and migration paths for Cinder.
 
+## Upgrading to 1.0
+
+### Internal modules
+
+`Cinder.UrlManager`, `Cinder.FilterManager`, `Cinder.Column`, `Cinder.PageSize`, `Cinder.Selection` and `Cinder.BulkActionExecutor` are now internal: they're gone from the docs, and can change in any release. Collections, including ones with `Cinder.UrlSync`, need no changes. If your code calls these modules directly, open an issue describing what you use them for.
+
 ## Upgrading to 0.18.0
 
 ### Changed: Cinder requires LiveView 1.1 and ships a JS hook

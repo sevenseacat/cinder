@@ -3,13 +3,12 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.Engine.Query do
-  @moduledoc """
-  What `Cinder.Engine.run/4` reads: the parts of a collection's state that pick
-  its records, which change as the user filters, searches, sorts and pages.
-
-  An empty `sort` leaves the source query's own sort alone. `page` is for offset
-  pagination, and `cursor` (`{:after | :before, cursor}`) for keyset.
-  """
+  @moduledoc false
+  # What `Cinder.Engine.run/4` reads: the parts of a collection's state that pick
+  # its records, which change as the user filters, searches, sorts and pages.
+  #
+  # An empty `sort` leaves the source query's own sort alone. `page` is for offset
+  # pagination, and `cursor` (`{:after | :before, cursor}`) for keyset.
 
   @type t :: %__MODULE__{
           filters: %{String.t() => map()},

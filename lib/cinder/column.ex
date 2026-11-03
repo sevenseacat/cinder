@@ -3,13 +3,12 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.Column do
-  @moduledoc """
-  Column configuration and type inference for Cinder table components.
-
-  Parses columns, inferring filter types,
-  sort capabilities, and display options from Ash resource definitions.
-  Supports relationship fields using dot notation (e.g., "user.name").
-  """
+  @moduledoc false
+  # Column configuration and type inference for Cinder table components.
+  #
+  # Parses columns, inferring filter types,
+  # sort capabilities, and display options from Ash resource definitions.
+  # Supports relationship fields using dot notation (e.g., "user.name").
 
   require Logger
 

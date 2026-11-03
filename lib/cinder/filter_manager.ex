@@ -3,12 +3,9 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.FilterManager do
-  @moduledoc """
-  Coordinator for Cinder's modular filter system.
-
-  Acts as the main interface for filter operations while delegating
-  to individual filter type modules for specific implementations.
-  """
+  @moduledoc false
+  # Coordinator for Cinder's filter system, delegating to each filter type's module.
+  # Internal: the shell goes through `Cinder.Engine` and `Cinder.Params`.
 
   use Phoenix.Component
 

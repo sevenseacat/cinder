@@ -3,16 +3,15 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.Engine do
-  @moduledoc """
-  The Ash layer: the only part of Cinder that touches Ash.
-
-  The shell asks it what a resource's fields are and how they can be filtered,
-  searched and sorted, what sort a given query already has, and for a page of
-  records. It answers with Cinder's own data, never Ash structs or column maps,
-  so what's behind it can change without the shell changing.
-
-  Turning form and URL strings into values belongs to `Cinder.Params`, not here.
-  """
+  @moduledoc false
+  # The Ash layer: the only part of Cinder that touches Ash.
+  #
+  # The shell asks it what a resource's fields are and how they can be filtered,
+  # searched and sorted, what sort a given query already has, and for a page of
+  # records. It answers with Cinder's own data, never Ash structs or column maps,
+  # so what's behind it can change without the shell changing.
+  #
+  # Turning form and URL strings into values belongs to `Cinder.Params`, not here.
 
   alias Cinder.Engine.{Error, Field, Page, Query}
   alias Cinder.Filters.Registry

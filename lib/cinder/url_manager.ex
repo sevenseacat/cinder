@@ -3,12 +3,10 @@
 # SPDX-License-Identifier: MIT
 
 defmodule Cinder.UrlManager do
-  @moduledoc """
-  URL state management for Cinder table components.
-
-  Handles encoding and decoding of table state (filters, pagination, sorting)
-  to/from URL parameters for browser history and bookmark support.
-  """
+  @moduledoc false
+  # URL state management for Cinder table components: encoding and decoding table state
+  # (filters, pagination, sorting) to/from URL parameters. Internal: the shell goes
+  # through `Cinder.Params`.
 
   require Logger
 
