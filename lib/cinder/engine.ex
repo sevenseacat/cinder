@@ -34,6 +34,8 @@ defmodule Cinder.Engine do
     * `filter` - `nil` if it isn't filtered, or `%{type: type, options: options}`,
       where a `nil` (or missing) type is inferred from the field's Ash type
     * `sortable?` and `searchable?` - whether it can be sorted and searched
+    * `column?` - whether it's a column, so can be shown (hidden or not), and
+      needs loading
 
   A filter's options are its type's defaults, then the field's enum values (for
   types that take `options`), then the declared ones.
@@ -58,7 +60,7 @@ defmodule Cinder.Engine do
          filter: filter,
          sortable?: sortable?,
          searchable?: searchable?,
-         load: Cinder.Field.load(resolved)
+         load: if(Map.get(declared, :column?, false), do: Cinder.Field.load(resolved))
        }}
     else
       {:error, problem} -> {:error, "#{inspect(name)} #{problem}"}

@@ -75,12 +75,19 @@ defmodule Cinder.EngineTest do
                Engine.field(Music.Album, "title", %{sortable?: true, searchable?: true})
     end
 
-    test "what showing the field needs loaded" do
-      assert {:ok, %{load: nil}} = Engine.field(Music.Album, "title", %{})
-      assert {:ok, %{load: :title_lower}} = Engine.field(Music.Album, "title_lower", %{})
+    test "what showing a column's field needs loaded" do
+      assert {:ok, %{load: nil}} = Engine.field(Music.Album, "title", %{column?: true})
+
+      assert {:ok, %{load: :title_lower}} =
+               Engine.field(Music.Album, "title_lower", %{column?: true})
 
       assert {:ok, %{load: {:artist, [:album_count]}}} =
-               Engine.field(Music.Album, "artist.album_count", %{})
+               Engine.field(Music.Album, "artist.album_count", %{column?: true})
+    end
+
+    test "a field that isn't a column is never shown, so it needs nothing loaded" do
+      assert {:ok, %{load: nil}} =
+               Engine.field(Music.Album, "artist.album_count", %{filter: %{}})
     end
 
     test "an unknown field is an error" do
