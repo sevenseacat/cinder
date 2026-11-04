@@ -13,10 +13,10 @@ defmodule CinderDevWeb.NextLive do
       current_path={@current_path}
       query_params={@query_params}
     >
-      <Cinder.Next.collection id="albums" resource={Music.Album}>
-        <:col :let={album} field="title">{album.title}</:col>
-        <:col :let={album} field="artist.name">{album.artist.name}</:col>
-        <:col :let={album} field="release_date" label="Released">
+      <Cinder.Next.collection id="albums" resource={Music.Album} sort={[mode: :exclusive]}>
+        <:col :let={album} field="title" sort>{album.title}</:col>
+        <:col :let={album} field="artist.name" sort>{album.artist.name}</:col>
+        <:col :let={album} field="release_date" label="Released" sort={[cycle: [:desc, :asc, nil]]}>
           {Calendar.strftime(album.release_date, "%d/%m/%Y")}
         </:col>
       </Cinder.Next.collection>

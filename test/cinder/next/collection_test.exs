@@ -55,6 +55,36 @@ defmodule Cinder.Next.CollectionTest do
     |> assert_has("#albums td", text: "Next Artist")
   end
 
+  describe "sorting" do
+    defp sortable do
+      Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album}>
+          <:col :let={album} field="title" sort>{album.title}</:col>
+          <:col :let={album} field="artist.name">{album.artist.name}</:col>
+        </Cinder.Next.collection>
+        """
+      end)
+    end
+
+    test "clicking a sortable heading sorts by it, then the other way, then not at all",
+         %{conn: conn} do
+      session = visit(conn, sortable())
+
+      session
+      |> refute_has("#albums th button", text: "Artist > Name")
+      |> assert_has("#albums th[aria-sort=none]", text: "Title")
+      |> click_button("#albums th button", "Title")
+      |> assert_has("#albums th[aria-sort=ascending]", text: "Title ▲")
+      |> assert_has("#albums tbody tr:first-child td", text: "Abbey")
+      |> click_button("#albums th button", "Title")
+      |> assert_has("#albums th[aria-sort=descending]", text: "Title ▼")
+      |> assert_has("#albums tbody tr:first-child td", text: "Blue")
+      |> click_button("#albums th button", "Title")
+      |> assert_has("#albums th[aria-sort=none]", text: "Title")
+    end
+  end
+
   test "reads as the actor given", %{conn: conn} do
     path =
       Fixture.register(fn assigns ->

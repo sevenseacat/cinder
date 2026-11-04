@@ -26,12 +26,42 @@ defmodule Cinder.Next.Schema do
     query_opts: [
       type: {:keyword_list, Keyword.drop(Ash.read_opts(), @own_read_opts)},
       doc: "More options for the read, as `Ash.read/2` takes them."
+    ],
+    sort: [
+      type:
+        {:keyword_list,
+         [
+           mode: [
+             type: {:in, [:additive, :exclusive, "additive", "exclusive"]},
+             default: :additive,
+             doc: "Whether a column clicked adds to the sort (`:additive`) or replaces it."
+           ]
+         ]},
+      default: [],
+      doc: "How the collection sorts."
     ]
   ]
 
+  @directions [:asc, :desc, :asc_nils_first, :asc_nils_last, :desc_nils_first, :desc_nils_last]
+
   @col [
     field: [type: :string, required: true, doc: "The field the column shows."],
-    label: [type: :string, doc: "The column's heading. Defaults to the humanised field."]
+    label: [type: :string, doc: "The column's heading. Defaults to the humanised field."],
+    # `sort` alone (`true`) means `[]`, and `false` is left out, before this
+    sort: [
+      type:
+        {:keyword_list,
+         [
+           cycle: [
+             type: {:list, {:in, [nil | @directions]}},
+             default: [nil, :asc, :desc],
+             doc:
+               "The directions clicking the heading steps through. Without `nil`, it's always sorted."
+           ]
+         ]},
+      doc:
+        "Sort by the column's field, by clicking its heading: `sort`, or `sort={[cycle: [...]]}`."
+    ]
   ]
 
   def collection, do: @collection
@@ -70,9 +100,18 @@ defmodule Cinder.Next.Schema do
 
   @doc "A `<:col>` slot entry's attributes, checked."
   def validate_col!(slot) do
-    attributes = slot |> Map.drop([:__slot__, :inner_block]) |> Enum.to_list()
+    attributes =
+      slot
+      |> Map.drop([:__slot__, :inner_block])
+      |> Enum.flat_map(&shorthand/1)
+
     validate!(attributes, @col, ~s(<:col field="#{slot[:field]}">))
   end
+
+  # One shape for each option, so an error is about that shape alone
+  defp shorthand({:sort, true}), do: [sort: []]
+  defp shorthand({:sort, false}), do: []
+  defp shorthand(attribute), do: [attribute]
 
   # Unset attrs arrive as `nil`, which means "not given"
   defp validate!(options, schema, declaration) do

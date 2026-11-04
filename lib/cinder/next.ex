@@ -19,9 +19,14 @@ defmodule Cinder.Next do
     default: [],
     doc: "More options for the read, as `Ash.read/2` takes them"
 
+  attr :sort, :list,
+    default: [],
+    doc: "How the collection sorts: `[mode: :additive | :exclusive]`"
+
   slot :col, required: true, doc: "A column, showing its content for each record" do
     attr :field, :string, required: true
     attr :label, :string
+    attr :sort, :any, doc: "Sort by the column's field: `true`, or `[cycle: [...]]`"
   end
 
   # Runs on every parent render, so it only hands everything on: the collection

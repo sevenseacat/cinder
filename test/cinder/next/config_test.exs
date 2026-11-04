@@ -125,6 +125,88 @@ defmodule Cinder.Next.ConfigTest do
                  fn -> query_opts.(select: [:title]) end
   end
 
+  describe "sorting" do
+    test "a column with `sort` cycles unsorted, ascending, descending, or its own cycle" do
+      config =
+        build([
+          col("title", sort: true),
+          col("added_at", sort: [cycle: [:desc, :asc, nil]]),
+          col("price")
+        ])
+
+      assert Enum.map(config.columns, & &1.sort) == [
+               %{cycle: [nil, :asc, :desc]},
+               %{cycle: [:desc, :asc, nil]},
+               nil
+             ]
+
+      assert Enum.map(config.fields, &{&1.name, &1.sortable?}) ==
+               [{"title", true}, {"added_at", true}, {"price", false}]
+    end
+
+    test "two columns for one field are one field, sortable if either is" do
+      config = build([col("title"), col("title", sort: true)])
+      assert [%{name: "title", sortable?: true}] = config.fields
+      assert length(config.columns) == 2
+    end
+
+    test "the sort mode is additive unless given, as an atom or a string" do
+      assert build([col("title")]).sort.mode == :additive
+
+      for mode <- [:exclusive, "exclusive"] do
+        options = [id: "albums", resource: Music.Album, sort: [mode: mode]]
+        assert build([col("title")], options).sort.mode == :exclusive
+      end
+    end
+
+    test "the starting sort: the query's on sortable fields, then always-sorted columns" do
+      query = Ash.Query.sort(Music.Album, price: :desc, track_count: :asc)
+
+      config =
+        build(
+          [
+            col("price", sort: true),
+            col("track_count"),
+            col("title", sort: [cycle: [:asc, :desc]]),
+            col("release_date", sort: [cycle: [:desc, :asc]])
+          ],
+          id: "albums",
+          query: query
+        )
+
+      assert config.sort.default ==
+               [{"price", :desc}, {"title", :asc}, {"release_date", :desc}]
+    end
+
+    test "`sort={false}` is the same as no `sort`" do
+      assert [%{sort: nil}] = build([col("title", sort: false)]).columns
+    end
+
+    test "a cycle with something that isn't a direction is an error naming the column" do
+      assert_raise ArgumentError,
+                   ~s(<:col field="title">: invalid list in :cycle option: invalid value for list ) <>
+                     "element at position 0: expected one of [nil, :asc, :desc, :asc_nils_first, " <>
+                     ":asc_nils_last, :desc_nils_first, :desc_nils_last], got: :up (in options [:sort])",
+                   fn -> build([col("title", sort: [cycle: [:up, :down]])]) end
+    end
+
+    test "a sort mode that isn't one is an error naming the collection" do
+      options = [id: "albums", resource: Music.Album, sort: [mode: :sideways]]
+
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: invalid value for :mode option: ) <>
+                     ~s(expected one of [:additive, :exclusive, "additive", "exclusive"], ) <>
+                     "got: :sideways (in options [:sort])",
+                   fn -> build([col("title")], options) end
+    end
+
+    test "a column that's always sorted, and already sorted by the query, keeps the query's" do
+      query = Ash.Query.sort(Music.Album, title: :desc)
+      config = build([col("title", sort: [cycle: [:asc, :desc]])], id: "albums", query: query)
+      assert config.sort.default == [{"title", :desc}]
+    end
+  end
+
   test "a field the resource doesn't have is an error" do
     assert_raise ArgumentError, ~s("nope" is not a field of Music.Album), fn ->
       build([col("nope")])
