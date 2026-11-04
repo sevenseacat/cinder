@@ -116,6 +116,25 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums td", text: "Blue")
     end
 
+    test "a filter's label and options show in its control", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:field :let={album} name="genre" filter={[label: "Style", prompt: "Any"]}>
+              {album.genre}
+            </:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path)
+      |> assert_has("#albums th", text: "Genre")
+      |> assert_has("#albums-filters label", text: "Style")
+      |> assert_has("#albums-filters button", text: "Any")
+    end
+
     test "a filter on a field that isn't filterable (a tampered event) is ignored",
          %{conn: conn} do
       conn

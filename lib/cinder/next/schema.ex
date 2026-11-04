@@ -32,7 +32,7 @@ defmodule Cinder.Next.Schema do
         {:keyword_list,
          [
            mode: [
-             type: {:in, [:additive, :exclusive, "additive", "exclusive"]},
+             type: {:in, [:additive, :exclusive]},
              default: :additive,
              doc: "Whether a column clicked adds to the sort (`:additive`) or replaces it."
            ]
@@ -43,6 +43,13 @@ defmodule Cinder.Next.Schema do
   ]
 
   @directions [:asc, :desc, :asc_nils_first, :asc_nils_last, :desc_nils_first, :desc_nils_last]
+
+  # Cinder's own keys in a `<:field>`'s `filter`. Any others are the filter type's
+  # options, split off before Spark sees them.
+  @filter [
+    type: [type: :atom, doc: "The filter type. Inferred from the field if not given."],
+    label: [type: :string, doc: "The control's label. Defaults to the column's."]
+  ]
 
   @field [
     name: [type: :string, required: true, doc: "The field's name, or path (`artist.name`)."],
@@ -62,8 +69,10 @@ defmodule Cinder.Next.Schema do
       doc: "Sort by the field, by clicking its heading: `sort`, or `sort={[cycle: [...]]}`."
     ],
     filter: [
-      type: {:keyword_list, []},
-      doc: "Filter by the field, with the type its attribute infers: `filter`."
+      type: {:keyword_list, @filter},
+      doc:
+        "Filter by the field: `filter`, or `filter={[type: ..., label: ..., ...]}` " <>
+          "with the type's own options."
     ]
   ]
 
@@ -101,14 +110,32 @@ defmodule Cinder.Next.Schema do
     end
   end
 
-  @doc "A `<:field>` slot entry's attributes, checked."
+  @doc """
+  A `<:field>` slot entry's attributes, checked. A filter's type options come back
+  under its `options` key, unchecked: they're the type's to check.
+  """
   def validate_field!(slot) do
     attributes =
       slot
       |> Map.drop([:__slot__, :inner_block])
       |> Enum.flat_map(&shorthand/1)
 
-    validate!(attributes, @field, ~s(<:field name="#{slot[:name]}">))
+    {attributes, filter_options} = split_filter_options(attributes)
+
+    attributes
+    |> validate!(@field, ~s(<:field name="#{slot[:name]}">))
+    |> Keyword.replace_lazy(:filter, &Keyword.put(&1, :options, filter_options))
+  end
+
+  # Spark rejects keys its schema doesn't have, and a type's options can be anything
+  defp split_filter_options(attributes) do
+    with filter when is_list(filter) <- attributes[:filter],
+         true <- Keyword.keyword?(filter) do
+      {own, options} = Keyword.split(filter, Keyword.keys(@filter))
+      {Keyword.put(attributes, :filter, own), options}
+    else
+      _not_a_keyword_list -> {attributes, []}
+    end
   end
 
   # One shape for each option, so an error is about that shape alone

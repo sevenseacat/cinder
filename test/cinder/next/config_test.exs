@@ -144,19 +144,10 @@ defmodule Cinder.Next.ConfigTest do
                [{"title", true}, {"added_at", true}, {"price", false}]
     end
 
-    test "two columns for one field are one field, sortable if either is" do
-      config = build([field("title"), field("title", sort: true)])
-      assert [%{name: "title", sortable?: true}] = config.fields
-      assert length(config.columns) == 2
-    end
-
-    test "the sort mode is additive unless given, as an atom or a string" do
+    test "the sort mode is additive unless given" do
       assert build([field("title")]).sort.mode == :additive
-
-      for mode <- [:exclusive, "exclusive"] do
-        options = [id: "albums", resource: Music.Album, sort: [mode: mode]]
-        assert build([field("title")], options).sort.mode == :exclusive
-      end
+      options = [id: "albums", resource: Music.Album, sort: [mode: :exclusive]]
+      assert build([field("title")], options).sort.mode == :exclusive
     end
 
     test "the starting sort: the query's on sortable fields, then always-sorted columns" do
@@ -190,14 +181,16 @@ defmodule Cinder.Next.ConfigTest do
                    fn -> build([field("title", sort: [cycle: [:up, :down]])]) end
     end
 
-    test "a sort mode that isn't one is an error naming the collection" do
-      options = [id: "albums", resource: Music.Album, sort: [mode: :sideways]]
+    test "a sort mode that isn't one, or is a string, is an error naming the collection" do
+      for mode <- [:sideways, "exclusive"] do
+        options = [id: "albums", resource: Music.Album, sort: [mode: mode]]
 
-      assert_raise ArgumentError,
-                   ~s(<Cinder.Next.collection id="albums">: invalid value for :mode option: ) <>
-                     ~s(expected one of [:additive, :exclusive, "additive", "exclusive"], ) <>
-                     "got: :sideways (in options [:sort])",
-                   fn -> build([field("title")], options) end
+        assert_raise ArgumentError,
+                     ~s(<Cinder.Next.collection id="albums">: invalid value for :mode option: ) <>
+                       "expected one of [:additive, :exclusive], " <>
+                       "got: #{inspect(mode)} (in options [:sort])",
+                     fn -> build([field("title")], options) end
+      end
     end
 
     test "a column that's always sorted, and already sorted by the query, keeps the query's" do
@@ -248,14 +241,72 @@ defmodule Cinder.Next.ConfigTest do
              ]
     end
 
-    test "two columns for one field are one field, filtered if either is" do
-      config = build([field("title"), field("title", filter: true)])
-      assert [%{name: "title", filter: %{type: :text}}] = config.fields
-    end
-
     test "`filter={false}` is the same as no `filter`" do
       assert [%{filter: nil}] = build([field("title", filter: false)]).fields
     end
+
+    test "a filter's type and options are merged over the type's defaults and enum values" do
+      config =
+        build([
+          field("genre", filter: [type: :select, prompt: "Any"]),
+          field("title", filter: [placeholder: "Search"])
+        ])
+
+      assert Enum.map(config.fields, & &1.filter) == [
+               %{
+                 type: :select,
+                 module: Cinder.Filters.Select,
+                 options: [
+                   options: [
+                     {"Rock", :rock},
+                     {"Pop", :pop},
+                     {"Jazz", :jazz},
+                     {"Classical", :classical}
+                   ],
+                   prompt: "Any"
+                 ]
+               },
+               %{
+                 type: :text,
+                 module: Cinder.Filters.Text,
+                 options: [operator: :contains, case_sensitive: false, placeholder: "Search"]
+               }
+             ]
+    end
+
+    test "a filter's label is the control's, and the column keeps its own" do
+      config = build([field("genre", label: "Genre", filter: [label: "Style"])])
+      assert [%{label: "Genre"}] = config.columns
+      assert [%{column: %{label: "Style"}}] = config.filters
+    end
+
+    test "a filter type that doesn't exist is an error naming the field" do
+      assert_raise ArgumentError,
+                   ~s("title" can't be filtered: :nope is not a filter type (known: :autocomplete, ) <>
+                     ":boolean, :checkbox, :date, :date_range, :multi_checkboxes, :multi_select, " <>
+                     ":number_range, :radio_group, :select, :text)",
+                   fn -> build([field("title", filter: [type: :nope])]) end
+    end
+
+    test "a filter type given as a string is an error naming the column" do
+      assert_raise ArgumentError,
+                   ~s(<:field name="title">: invalid value for :type option: ) <>
+                     ~s|expected atom, got: "select" (in options [:filter])|,
+                   fn -> build([field("title", filter: [type: "select"])]) end
+    end
+
+    test "a filter that isn't `true` or a keyword list is an error naming the column" do
+      assert_raise ArgumentError,
+                   ~s(<:field name="title">: invalid value for :filter option: ) <>
+                     ~s(expected keyword list, got: "select"),
+                   fn -> build([field("title", filter: "select")]) end
+    end
+  end
+
+  test "a second <:field> for a name is an error" do
+    assert_raise ArgumentError,
+                 ~s(<:field name="title"> is declared twice: each field is declared once),
+                 fn -> build([field("title"), field("title", sort: true)]) end
   end
 
   test "a field the resource doesn't have is an error" do

@@ -29,7 +29,10 @@ defmodule Cinder.Next do
     attr :name, :string, required: true
     attr :label, :string
     attr :sort, :any, doc: "Sort by the field: `true`, or `[cycle: [...]]`"
-    attr :filter, :any, doc: "Filter by the field: `true`, with the type its attribute infers"
+
+    attr :filter, :any,
+      doc:
+        "Filter by the field: `true`, or `[type: ..., label: ..., ...]` with the type's options"
   end
 
   # Runs on every parent render, so it only hands everything on: the collection

@@ -40,8 +40,8 @@ defmodule Cinder.Next.Config do
     options = Schema.validate_collection!(options)
     source = source!(options[:resource], options[:query])
     resource = Ash.Query.new(source).resource
-    columns = Enum.map(field_slots, &column!/1)
-    fields = fields!(resource, columns)
+    columns = field_slots |> Enum.map(&column!/1) |> once_each!()
+    fields = Enum.map(columns, &field!(resource, &1))
 
     %__MODULE__{
       source: source,
@@ -53,33 +53,30 @@ defmodule Cinder.Next.Config do
       scope: options[:scope],
       query_opts: options[:query_opts] || [],
       sort: %{
-        mode: sort_mode(options[:sort][:mode]),
+        mode: options[:sort][:mode] || :additive,
         default: default_sort(source, fields, columns)
       }
     }
   end
 
-  # One field per name: two columns can show the same field, which is sortable or
-  # filtered if either column is
-  defp fields!(resource, columns) do
-    for name <- columns |> Enum.map(& &1.field) |> Enum.uniq() do
-      columns = Enum.filter(columns, &(&1.field == name))
-      sortable? = Enum.any?(columns, &(&1.sort != nil))
-      filter = if Enum.any?(columns, & &1.filter?), do: %{}
+  # A `<:field>` declares its field, so a second one for a name would contradict it
+  defp once_each!(columns) do
+    names = Enum.map(columns, & &1.field)
 
-      field!(resource, %Engine.Field{
-        name: name,
-        column?: true,
-        sortable?: sortable?,
-        filter: filter
-      })
+    case names -- Enum.uniq(names) do
+      [] ->
+        columns
+
+      [name | _] ->
+        raise ArgumentError,
+              ~s(<:field name="#{name}"> is declared twice: each field is declared once)
     end
   end
 
+  # The fields are built from the columns one for one, so they pair up in order
   defp filters(fields, columns) do
-    for %Engine.Field{filter: %{module: module}, name: name} = field <- fields do
-      label = Enum.find_value(columns, &(&1.field == name && &1.label))
-      %{column: %{Engine.Field.to_column_map(field) | label: label}, module: module}
+    for {%Engine.Field{filter: %{module: module}} = field, column} <- Enum.zip(fields, columns) do
+      %{column: %{Engine.Field.to_column_map(field) | label: column.filter.label}, module: module}
     end
   end
 
@@ -115,22 +112,37 @@ defmodule Cinder.Next.Config do
               ~s(<:field :let={record} name="#{name}">{record.#{name}}</:field>)
     end
 
+    label = attributes[:label] || Cinder.Filter.Helpers.humanize_embedded_field(name)
+
     %{
       field: name,
-      label: attributes[:label] || Cinder.Filter.Helpers.humanize_embedded_field(name),
+      label: label,
       sort: column_sort(attributes[:sort]),
-      filter?: attributes[:filter] != nil
+      filter: column_filter(attributes[:filter], label)
     }
   end
-
-  # The schema has already checked it's one of these
-  defp sort_mode(mode) when mode in [:exclusive, "exclusive"], do: :exclusive
-  defp sort_mode(_additive), do: :additive
 
   defp column_sort(nil), do: nil
   defp column_sort(sort), do: %{cycle: sort[:cycle]}
 
-  defp field!(resource, field) do
+  # The type is left out when it isn't given, for `Engine.field/2` to infer
+  defp column_filter(nil, _column_label), do: nil
+
+  defp column_filter(filter, column_label) do
+    filter
+    |> Keyword.take([:type, :options])
+    |> Map.new()
+    |> Map.put(:label, filter[:label] || column_label)
+  end
+
+  defp field!(resource, column) do
+    field = %Engine.Field{
+      name: column.field,
+      column?: true,
+      sortable?: column.sort != nil,
+      filter: column.filter && Map.delete(column.filter, :label)
+    }
+
     case Engine.field(resource, field) do
       {:ok, field} -> field
       {:error, message} -> raise ArgumentError, message
