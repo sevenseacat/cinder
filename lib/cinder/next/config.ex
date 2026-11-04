@@ -14,6 +14,8 @@ defmodule Cinder.Next.Config do
 
   # The actor, tenant and scope are kept as given: Ash applies its own precedence.
   # `sort` is the mode, and the default: the sort the collection starts with.
+  # `filters` are the filter controls: the column map their type renders from (with
+  # the column's label), and the type's module.
   defstruct [
     :source,
     :actor,
@@ -21,6 +23,7 @@ defmodule Cinder.Next.Config do
     :scope,
     columns: [],
     fields: [],
+    filters: [],
     query_opts: [],
     sort: %{mode: :additive, default: []}
   ]
@@ -44,6 +47,7 @@ defmodule Cinder.Next.Config do
       source: source,
       columns: columns,
       fields: fields,
+      filters: filters(fields, columns),
       actor: options[:actor],
       tenant: options[:tenant],
       scope: options[:scope],
@@ -55,12 +59,27 @@ defmodule Cinder.Next.Config do
     }
   end
 
-  # One field per name: two columns can show the same field, which is sortable if
-  # either column is
+  # One field per name: two columns can show the same field, which is sortable or
+  # filtered if either column is
   defp fields!(resource, columns) do
     for name <- columns |> Enum.map(& &1.field) |> Enum.uniq() do
-      sortable? = Enum.any?(columns, &(&1.field == name and &1.sort != nil))
-      field!(resource, %Engine.Field{name: name, column?: true, sortable?: sortable?})
+      columns = Enum.filter(columns, &(&1.field == name))
+      sortable? = Enum.any?(columns, &(&1.sort != nil))
+      filter = if Enum.any?(columns, & &1.filter?), do: %{}
+
+      field!(resource, %Engine.Field{
+        name: name,
+        column?: true,
+        sortable?: sortable?,
+        filter: filter
+      })
+    end
+  end
+
+  defp filters(fields, columns) do
+    for %Engine.Field{filter: %{module: module}, name: name} = field <- fields do
+      label = Enum.find_value(columns, &(&1.field == name && &1.label))
+      %{column: %{Engine.Field.to_column_map(field) | label: label}, module: module}
     end
   end
 
@@ -99,7 +118,8 @@ defmodule Cinder.Next.Config do
     %{
       field: name,
       label: attributes[:label] || Cinder.Filter.Helpers.humanize_embedded_field(name),
-      sort: column_sort(attributes[:sort])
+      sort: column_sort(attributes[:sort]),
+      filter?: attributes[:filter] != nil
     }
   end
 

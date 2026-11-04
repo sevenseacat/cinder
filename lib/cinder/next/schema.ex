@@ -47,7 +47,7 @@ defmodule Cinder.Next.Schema do
   @field [
     name: [type: :string, required: true, doc: "The field's name, or path (`artist.name`)."],
     label: [type: :string, doc: "The column's heading. Defaults to the humanised name."],
-    # `sort` alone (`true`) means `[]`, and `false` is left out, before this
+    # `sort` and `filter` alone (`true`) mean `[]`, and `false` is left out, before this
     sort: [
       type:
         {:keyword_list,
@@ -60,6 +60,10 @@ defmodule Cinder.Next.Schema do
            ]
          ]},
       doc: "Sort by the field, by clicking its heading: `sort`, or `sort={[cycle: [...]]}`."
+    ],
+    filter: [
+      type: {:keyword_list, []},
+      doc: "Filter by the field, with the type its attribute infers: `filter`."
     ]
   ]
 
@@ -108,8 +112,8 @@ defmodule Cinder.Next.Schema do
   end
 
   # One shape for each option, so an error is about that shape alone
-  defp shorthand({:sort, true}), do: [sort: []]
-  defp shorthand({:sort, false}), do: []
+  defp shorthand({key, true}) when key in [:sort, :filter], do: [{key, []}]
+  defp shorthand({key, false}) when key in [:sort, :filter], do: []
   defp shorthand(attribute), do: [attribute]
 
   # Unset attrs arrive as `nil`, which means "not given"

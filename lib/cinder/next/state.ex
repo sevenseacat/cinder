@@ -47,4 +47,7 @@ defmodule Cinder.Next.State do
       Enum.filter(sort, fn {field, _direction} -> field in sortable end)
     end
   end
+
+  @doc "The filters to keep when the declarations change: those still filterable."
+  def carry_over_filters(filters, filterable), do: Map.take(filters, filterable)
 end

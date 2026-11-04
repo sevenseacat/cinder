@@ -27,6 +27,20 @@ defmodule Cinder.Params do
   end
 
   @doc """
+  The other way: `filters` as the values each filterable field's control shows
+  (`"rock"`, `%{min: "10", max: ""}`), or its type's empty value if it isn't
+  filtered.
+  """
+  @spec filter_values(%{String.t() => map()}, [Field.t()]) :: %{String.t() => term()}
+  def filter_values(filters, fields) do
+    # A bridge: `build_filter_values` formats with a hardcoded list of types, so a
+    # custom type gets its raw value. Each type should format its own, as each
+    # parses its own URL value, when filter types are redesigned.
+    columns = for %Field{filter: filter} = field <- fields, filter, do: Field.to_column_map(field)
+    FilterManager.build_filter_values(columns, filters)
+  end
+
+  @doc """
   A query as URL params, leaving out whatever matches `defaults` (the collection's
   starting query), so a collection as it started has none.
 

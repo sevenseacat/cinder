@@ -72,4 +72,16 @@ defmodule Cinder.Next.StateTest do
       assert State.carry_over_sort(sort, [], [], ["title"]) == [{"title", :desc}]
     end
   end
+
+  describe "carry_over_filters/2" do
+    test "filters stay, minus fields that are no longer filterable" do
+      filters = %{
+        "title" => %{type: :text, value: "ab", operator: :contains, case_sensitive: false},
+        "genre" => %{type: :select, value: "rock", operator: :equals}
+      }
+
+      assert State.carry_over_filters(filters, ["genre", "price"]) ==
+               %{"genre" => %{type: :select, value: "rock", operator: :equals}}
+    end
+  end
 end

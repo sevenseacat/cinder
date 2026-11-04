@@ -46,6 +46,19 @@ defmodule Cinder.ParamsTest do
     end
   end
 
+  describe "filter_values/2" do
+    test "each filtered field's value as its control shows it, empty if it isn't filtered" do
+      filters = Params.filters_from_params(%{"title" => "road", "price_min" => "10"}, fields())
+
+      assert Params.filter_values(filters, fields()) == %{
+               "title" => "road",
+               "genre" => "",
+               "price" => %{min: "10", max: ""},
+               "tags" => []
+             }
+    end
+  end
+
   describe "to_url/4 and from_url/4" do
     @defaults %Query{sort: [{"title", :asc}], page_size: 25}
     @opts [arguments: ["year"], page_sizes: [25, 50]]

@@ -2,15 +2,15 @@ defmodule Cinder.Next.CollectionTest do
   # The Music records are shared ETS data
   use Cinder.ConnCase, async: false
 
-  import Phoenix.LiveViewTest, only: [render_component: 2]
+  import Phoenix.LiveViewTest, only: [element: 2, render_change: 2, render_component: 2]
 
   alias Cinder.TestLive.Fixture
 
   setup do
     artist = generate(artist(name: "Next Artist"))
 
-    for title <- ["Blue", "Abbey"] do
-      generate(album(title: title, artist_id: artist.id))
+    for {title, genre} <- [{"Blue", :jazz}, {"Abbey", :rock}] do
+      generate(album(title: title, genre: genre, artist_id: artist.id))
     end
 
     on_exit(fn ->
@@ -82,6 +82,51 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums tbody tr:first-child td", text: "Blue")
       |> click_button("#albums th button", "Title")
       |> assert_has("#albums th[aria-sort=none]", text: "Title")
+    end
+  end
+
+  describe "filtering" do
+    defp filterable do
+      Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album}>
+          <:field :let={album} name="title" filter>{album.title}</:field>
+          <:field :let={album} name="genre" filter>{album.genre}</:field>
+          <:field :let={album} name="artist.name">{album.artist.name}</:field>
+        </Cinder.Next.collection>
+        """
+      end)
+    end
+
+    test "typing in a text filter shows only the records that match", %{conn: conn} do
+      conn
+      |> visit(filterable())
+      |> fill_in("Title", with: "ab")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Abbey")
+      |> fill_in("Title", with: "")
+      |> assert_has("#albums tbody tr", count: 2)
+    end
+
+    test "choosing in a select filter shows only the records that match", %{conn: conn} do
+      conn
+      |> visit(filterable())
+      |> choose("Jazz")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Blue")
+    end
+
+    test "a filter on a field that isn't filterable (a tampered event) is ignored",
+         %{conn: conn} do
+      conn
+      |> visit(filterable())
+      |> unwrap(fn view ->
+        view
+        |> element("#albums-filters")
+        |> render_change(%{"filters" => %{"title" => "ab", "artist.name" => "nobody"}})
+      end)
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Abbey")
     end
   end
 

@@ -207,6 +207,57 @@ defmodule Cinder.Next.ConfigTest do
     end
   end
 
+  describe "filtering" do
+    test "a column with `filter` is filtered by the type its attribute infers" do
+      config =
+        build([
+          field("title", filter: true),
+          field("release_date", filter: true),
+          field("genre", filter: true),
+          field("price")
+        ])
+
+      assert Enum.map(config.fields, &{&1.name, &1.filter}) == [
+               {"title",
+                %{
+                  type: :text,
+                  module: Cinder.Filters.Text,
+                  options: [operator: :contains, case_sensitive: false, placeholder: nil]
+                }},
+               {"release_date",
+                %{
+                  type: :date_range,
+                  module: Cinder.Filters.DateRange,
+                  options: [include_time: false]
+                }},
+               {"genre",
+                %{
+                  type: :select,
+                  module: Cinder.Filters.Select,
+                  options: [
+                    prompt: nil,
+                    options: [
+                      {"Rock", :rock},
+                      {"Pop", :pop},
+                      {"Jazz", :jazz},
+                      {"Classical", :classical}
+                    ]
+                  ]
+                }},
+               {"price", nil}
+             ]
+    end
+
+    test "two columns for one field are one field, filtered if either is" do
+      config = build([field("title"), field("title", filter: true)])
+      assert [%{name: "title", filter: %{type: :text}}] = config.fields
+    end
+
+    test "`filter={false}` is the same as no `filter`" do
+      assert [%{filter: nil}] = build([field("title", filter: false)]).fields
+    end
+  end
+
   test "a field the resource doesn't have is an error" do
     assert_raise ArgumentError, ~s("nope" is not a field of Music.Album), fn ->
       build([field("nope")])
