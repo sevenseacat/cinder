@@ -97,9 +97,12 @@ defmodule Cinder.MixProject do
   end
 
   defp docs do
+    main? = System.get_env("DOCS_MAIN") == "1"
+
     [
       main: "readme",
-      source_ref: "v#{@version}",
+      source_ref: if(main?, do: "main", else: "v#{@version}"),
+      before_closing_body_tag: &unreleased_banner(&1, main?),
       source_url: @source_url,
       logo: "logos/buddy-icon.png",
       extras: [
@@ -162,4 +165,20 @@ defmodule Cinder.MixProject do
       ]
     ]
   end
+
+  # Docs built from `main` go to GitHub Pages, and mustn't pass for the released docs on hexdocs
+  defp unreleased_banner(:html, true) do
+    """
+    <script>
+      document.getElementById("content").insertAdjacentHTML("afterbegin", `
+        <section role="note" class="admonition warning">
+          <h4 class="admonition-title warning">Unreleased</h4>
+          <p>These docs are built from Cinder's <code>main</code> branch.
+          For the latest release, see <a href="https://cinder.hexdocs.pm">cinder.hexdocs.pm</a>.</p>
+        </section>`)
+    </script>
+    """
+  end
+
+  defp unreleased_banner(_format, _main?), do: ""
 end
