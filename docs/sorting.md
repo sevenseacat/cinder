@@ -52,8 +52,9 @@ cycle's first direction. All of Ash's directions work: `:asc`, `:desc`, `:asc_ni
 
 ## Sorting by Several Columns
 
-Clicking a second column adds to the sort: sorted by the first column, then by the second.
-With `sort_mode={:exclusive}` (or `"exclusive"`), clicking a column replaces the sort instead:
+Clicking a second column adds to the sort: the column you click becomes the main sort, and the
+columns you sorted by before only order the records it leaves tied. With
+`sort_mode={:exclusive}` (or `"exclusive"`), clicking a column replaces the sort instead:
 
 ```heex
 <Cinder.collection resource={MyApp.User} actor={@current_user} sort_mode={:exclusive}>
