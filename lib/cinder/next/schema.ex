@@ -44,9 +44,9 @@ defmodule Cinder.Next.Schema do
 
   @directions [:asc, :desc, :asc_nils_first, :asc_nils_last, :desc_nils_first, :desc_nils_last]
 
-  @col [
-    field: [type: :string, required: true, doc: "The field the column shows."],
-    label: [type: :string, doc: "The column's heading. Defaults to the humanised field."],
+  @field [
+    name: [type: :string, required: true, doc: "The field's name, or path (`artist.name`)."],
+    label: [type: :string, doc: "The column's heading. Defaults to the humanised name."],
     # `sort` alone (`true`) means `[]`, and `false` is left out, before this
     sort: [
       type:
@@ -59,13 +59,12 @@ defmodule Cinder.Next.Schema do
                "The directions clicking the heading steps through. Without `nil`, it's always sorted."
            ]
          ]},
-      doc:
-        "Sort by the column's field, by clicking its heading: `sort`, or `sort={[cycle: [...]]}`."
+      doc: "Sort by the field, by clicking its heading: `sort`, or `sort={[cycle: [...]]}`."
     ]
   ]
 
   def collection, do: @collection
-  def col, do: @col
+  def field, do: @field
 
   @doc "The collection's options, checked."
   def validate_collection!(options) do
@@ -98,14 +97,14 @@ defmodule Cinder.Next.Schema do
     end
   end
 
-  @doc "A `<:col>` slot entry's attributes, checked."
-  def validate_col!(slot) do
+  @doc "A `<:field>` slot entry's attributes, checked."
+  def validate_field!(slot) do
     attributes =
       slot
       |> Map.drop([:__slot__, :inner_block])
       |> Enum.flat_map(&shorthand/1)
 
-    validate!(attributes, @col, ~s(<:col field="#{slot[:field]}">))
+    validate!(attributes, @field, ~s(<:field name="#{slot[:name]}">))
   end
 
   # One shape for each option, so an error is about that shape alone

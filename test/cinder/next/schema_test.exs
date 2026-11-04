@@ -14,8 +14,8 @@ defmodule Cinder.Next.SchemaTest do
     attrs = component.attrs |> Enum.map(& &1.name) |> Enum.sort()
     assert attrs == Schema.collection() |> Keyword.keys() |> Enum.sort()
 
-    col = Enum.find(component.slots, &(&1.name == :col))
-    col_attrs = col.attrs |> Enum.map(& &1.name) |> Enum.sort()
-    assert col_attrs == Schema.col() |> Keyword.keys() |> Enum.sort()
+    field = Enum.find(component.slots, &(&1.name == :field))
+    field_attrs = field.attrs |> Enum.map(& &1.name) |> Enum.sort()
+    assert field_attrs == Schema.field() |> Keyword.keys() |> Enum.sort()
   end
 end

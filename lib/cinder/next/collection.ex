@@ -14,16 +14,16 @@ defmodule Cinder.Next.Collection do
 
   @impl true
   def update(assigns, socket) do
-    # The columns' inner blocks are new on every parent render, so they're always
+    # The fields' inner blocks are new on every parent render, so they're always
     # taken; the config is only rebuilt, and the records reloaded, when what's
-    # declared changes
-    declarations = Config.declarations(assigns.options, assigns.columns)
-    socket = assign(socket, id: assigns.id, columns: assigns.columns)
+    # declared changes. Every field is a column, for now.
+    declarations = Config.declarations(assigns.options, assigns.fields)
+    socket = assign(socket, id: assigns.id, columns: assigns.fields)
 
     if declarations == socket.assigns[:declarations] do
       {:ok, socket}
     else
-      config = Config.build(assigns.options, assigns.columns)
+      config = Config.build(assigns.options, assigns.fields)
       query = query(socket.assigns, config)
       {:ok, socket |> assign(declarations: declarations, config: config, query: query) |> load()}
     end

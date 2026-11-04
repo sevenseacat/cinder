@@ -23,10 +23,12 @@ defmodule Cinder.Next do
     default: [],
     doc: "How the collection sorts: `[mode: :additive | :exclusive]`"
 
-  slot :col, required: true, doc: "A column, showing its content for each record" do
-    attr :field, :string, required: true
+  slot :field,
+    required: true,
+    doc: "A field, shown as a column with its content for each record" do
+    attr :name, :string, required: true
     attr :label, :string
-    attr :sort, :any, doc: "Sort by the column's field: `true`, or `[cycle: [...]]`"
+    attr :sort, :any, doc: "Sort by the field: `true`, or `[cycle: [...]]`"
   end
 
   # Runs on every parent render, so it only hands everything on: the collection
@@ -41,8 +43,8 @@ defmodule Cinder.Next do
     <.live_component
       module={Cinder.Next.Collection}
       id={@id}
-      options={assigns_to_attributes(assigns, [:col])}
-      columns={@col}
+      options={assigns_to_attributes(assigns, [:field])}
+      fields={@field}
     />
     """
   end

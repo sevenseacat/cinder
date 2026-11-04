@@ -26,18 +26,18 @@ defmodule Cinder.Next.Config do
   ]
 
   @doc """
-  The parts of the declarations that decide the config. A column's inner block
+  The parts of the declarations that decide the config. A `<:field>`'s inner block
   closes over the parent's assigns, so it's new on every render, and is left out.
   """
-  def declarations(options, columns) do
-    {options, Enum.map(columns, &Map.drop(&1, [:inner_block]))}
+  def declarations(options, field_slots) do
+    {options, Enum.map(field_slots, &Map.drop(&1, [:inner_block]))}
   end
 
-  def build(options, columns) do
+  def build(options, field_slots) do
     options = Schema.validate_collection!(options)
     source = source!(options[:resource], options[:query])
     resource = Ash.Query.new(source).resource
-    columns = Enum.map(columns, &column!/1)
+    columns = Enum.map(field_slots, &column!/1)
     fields = fields!(resource, columns)
 
     %__MODULE__{
@@ -87,18 +87,18 @@ defmodule Cinder.Next.Config do
   end
 
   defp column!(slot) do
-    attributes = Schema.validate_col!(slot)
-    field = attributes[:field]
+    attributes = Schema.validate_field!(slot)
+    name = attributes[:name]
 
     if !slot[:inner_block] do
       raise ArgumentError,
-            ~s(<:col field="#{field}"> needs content, such as ) <>
-              ~s(<:col :let={record} field="#{field}">{record.#{field}}</:col>)
+            ~s(<:field name="#{name}"> needs content, such as ) <>
+              ~s(<:field :let={record} name="#{name}">{record.#{name}}</:field>)
     end
 
     %{
-      field: field,
-      label: attributes[:label] || Cinder.Filter.Helpers.humanize_embedded_field(field),
+      field: name,
+      label: attributes[:label] || Cinder.Filter.Helpers.humanize_embedded_field(name),
       sort: column_sort(attributes[:sort])
     }
   end

@@ -22,25 +22,25 @@ defmodule Cinder.Next.CollectionTest do
   # `required: true` only warns at compile time, so without this the error is a
   # `KeyError` on `:id`
   test "a collection without an id is an error that says so" do
-    col = %{__slot__: :col, field: "title", inner_block: fn _changed, album -> album.title end}
+    field = %{__slot__: :field, name: "title", inner_block: fn _changed, album -> album.title end}
 
     assert_raise ArgumentError,
                  "<Cinder.Next.collection> needs an `id`, unique on the page",
                  fn ->
                    render_component(&Cinder.Next.collection/1,
                      resource: Music.Album,
-                     col: [col]
+                     field: [field]
                    )
                  end
   end
 
-  test "shows the records in a table, a column per <:col>", %{conn: conn} do
+  test "shows the records in a table, a column per <:field>", %{conn: conn} do
     path =
       Fixture.register(fn assigns ->
         ~H"""
         <Cinder.Next.collection id="albums" resource={Music.Album}>
-          <:col :let={album} field="title">{album.title}</:col>
-          <:col :let={album} field="artist.name" label="Band">{album.artist.name}</:col>
+          <:field :let={album} name="title">{album.title}</:field>
+          <:field :let={album} name="artist.name" label="Band">{album.artist.name}</:field>
         </Cinder.Next.collection>
         """
       end)
@@ -60,8 +60,8 @@ defmodule Cinder.Next.CollectionTest do
       Fixture.register(fn assigns ->
         ~H"""
         <Cinder.Next.collection id="albums" resource={Music.Album}>
-          <:col :let={album} field="title" sort>{album.title}</:col>
-          <:col :let={album} field="artist.name">{album.artist.name}</:col>
+          <:field :let={album} name="title" sort>{album.title}</:field>
+          <:field :let={album} name="artist.name">{album.artist.name}</:field>
         </Cinder.Next.collection>
         """
       end)
@@ -90,7 +90,7 @@ defmodule Cinder.Next.CollectionTest do
       Fixture.register(fn assigns ->
         ~H"""
         <Cinder.Next.collection id="albums" resource={Music.Album} actor={%{name: "Rebecca"}}>
-          <:col :let={album} field="viewer">{album.viewer}</:col>
+          <:field :let={album} name="viewer">{album.viewer}</:field>
         </Cinder.Next.collection>
         """
       end)

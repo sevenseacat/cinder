@@ -13,12 +13,12 @@ defmodule CinderDevWeb.NextLive do
       current_path={@current_path}
       query_params={@query_params}
     >
-      <Cinder.Next.collection id="albums" resource={Music.Album} sort={[mode: :exclusive]}>
-        <:col :let={album} field="title" sort>{album.title}</:col>
-        <:col :let={album} field="artist.name" sort>{album.artist.name}</:col>
-        <:col :let={album} field="release_date" label="Released" sort={[cycle: [:desc, :asc, nil]]}>
+      <Cinder.Next.collection id="albums" resource={Music.Album}>
+        <:field :let={album} name="title" sort>{album.title}</:field>
+        <:field :let={album} name="artist.name" sort>{album.artist.name}</:field>
+        <:field :let={album} name="release_date" label="Released" sort={[cycle: [:desc, :asc, nil]]}>
           {Calendar.strftime(album.release_date, "%d/%m/%Y")}
-        </:col>
+        </:field>
       </Cinder.Next.collection>
     </Layouts.app>
     """
