@@ -95,9 +95,12 @@ defmodule Cinder.Engine do
 
   Options, which come from the collection rather than the user:
 
-    * `scope` - the actor, tenant and context, as an `Ash.Scope`
+    * `actor`, `tenant` and `scope` - as `Ash.read/2` takes them, which decides
+      between them (an explicit actor or tenant wins over the scope's)
     * `action` - the read action, if not the source query's or the primary one
-    * `query_opts` - more for Ash (`load`, `select`, `timeout`, ...)
+    * `query_opts` - more of `Ash.read/2`'s options. Each reaches the read, and the
+      ones `Ash.Query.for_read/4` also takes reach the query when it's built, so
+      the action's preparations see them. `load` is merged with the columns' loads.
     * `pagination` - `:offset` (default) or `:keyset`
     * `search_fn` - a function to search with instead of a `contains` on each
       searchable field, called as `search_fn.(query, searchable_columns, term)`
@@ -115,8 +118,8 @@ defmodule Cinder.Engine do
   @spec run(Ash.Query.t() | module(), [Field.t()], Query.t(), keyword()) ::
           {:ok, Page.t()} | {:error, Error.t()}
   def run(source, fields, %Query{} = query, opts) do
-    query_opts = Keyword.get(opts, :query_opts, [])
-    loads = for %Field{load: load} when not is_nil(load) <- fields, do: load
+    {load, read_opts} = opts |> Keyword.get(:query_opts, []) |> Keyword.pop(:load)
+    loads = List.wrap(load) ++ for %Field{load: load} when not is_nil(load) <- fields, do: load
 
     options = [
       columns: Enum.map(fields, &Field.to_column_map/1),
@@ -129,8 +132,11 @@ defmodule Cinder.Engine do
       after_keyset: Query.cursor(query, :after),
       before_keyset: Query.cursor(query, :before),
       scope: opts[:scope],
+      actor: opts[:actor],
+      tenant: opts[:tenant],
       action: opts[:action],
-      query_opts: Keyword.update(query_opts, :load, loads, &(List.wrap(&1) ++ loads)),
+      query_opts: [load: loads],
+      read_opts: read_opts,
       pagination_mode: Keyword.get(opts, :pagination, :offset),
       count_mode: Keyword.get(opts, :count?, true),
       search_fn: opts[:search_fn]

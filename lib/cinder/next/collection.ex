@@ -32,7 +32,8 @@ defmodule Cinder.Next.Collection do
   # errors
   defp load(socket) do
     %{config: config} = socket.assigns
-    {:ok, page} = Engine.run(config.source, config.fields, %Engine.Query{}, [])
+    opts = Map.take(config, [:actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
+    {:ok, page} = Engine.run(config.source, config.fields, %Engine.Query{}, opts)
     assign(socket, :page, page)
   end
 

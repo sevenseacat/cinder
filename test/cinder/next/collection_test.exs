@@ -54,4 +54,19 @@ defmodule Cinder.Next.CollectionTest do
     |> assert_has("#albums td", text: "Abbey")
     |> assert_has("#albums td", text: "Next Artist")
   end
+
+  test "reads as the actor given", %{conn: conn} do
+    path =
+      Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album} actor={%{name: "Rebecca"}}>
+          <:col :let={album} field="viewer">{album.viewer}</:col>
+        </Cinder.Next.collection>
+        """
+      end)
+
+    conn
+    |> visit(path)
+    |> assert_has("#albums td", text: "Rebecca", count: 2)
+  end
 end

@@ -144,6 +144,25 @@ defmodule Cinder.EngineRunTest do
     end
   end
 
+  describe "authorisation and read options" do
+    defp viewers(opts) do
+      {:ok, field} = Engine.field(Music.Album, %Field{name: "viewer", column?: true})
+      {:ok, page} = Engine.run(Music.Album, [field], %Query{}, opts)
+      page.records |> Enum.map(& &1.viewer) |> Enum.uniq()
+    end
+
+    test "the actor and the scope reach the read, with Ash's precedence between them" do
+      assert viewers(actor: %{name: "Actor"}) == ["Actor"]
+      assert viewers(scope: %{actor: %{name: "Scope"}}) == ["Scope"]
+      assert viewers(actor: %{name: "Actor"}, scope: %{actor: %{name: "Scope"}}) == ["Actor"]
+    end
+
+    test "read options that preparations depend on reach them" do
+      opts = [action: :by_context, query_opts: [context: %{only_title: "Blue"}]]
+      assert titles(run(%{}, opts)) == ["Blue"]
+    end
+  end
+
   test "searches the searchable fields" do
     assert titles(run(%{search: "bl"})) == ["Blue"]
   end

@@ -12,7 +12,8 @@ defmodule Cinder.Next.Config do
   alias Cinder.Engine
   alias Cinder.Next.Schema
 
-  defstruct [:source, columns: [], fields: []]
+  # The actor, tenant and scope are kept as given: Ash applies its own precedence
+  defstruct [:source, :actor, :tenant, :scope, columns: [], fields: [], query_opts: []]
 
   @doc """
   The parts of the declarations that decide the config. A column's inner block
@@ -33,7 +34,15 @@ defmodule Cinder.Next.Config do
         field!(resource, %Engine.Field{name: column.field, column?: true})
       end)
 
-    %__MODULE__{source: source, columns: columns, fields: fields}
+    %__MODULE__{
+      source: source,
+      columns: columns,
+      fields: fields,
+      actor: options[:actor],
+      tenant: options[:tenant],
+      scope: options[:scope],
+      query_opts: options[:query_opts] || []
+    }
   end
 
   defp source!(nil, nil), do: raise(ArgumentError, "a collection needs a `resource` or a `query`")

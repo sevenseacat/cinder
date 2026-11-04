@@ -11,6 +11,13 @@ defmodule Cinder.Next do
   attr :id, :string, required: true, doc: "The collection's id, unique on the page"
   attr :resource, :atom, default: nil, doc: "The Ash resource to read (or give a `query`)"
   attr :query, :any, default: nil, doc: "The Ash query to read (or give a `resource`)"
+  attr :actor, :any, default: nil, doc: "The actor to read as"
+  attr :tenant, :any, default: nil, doc: "The tenant to read in"
+  attr :scope, :any, default: nil, doc: "An Ash scope"
+
+  attr :query_opts, :list,
+    default: [],
+    doc: "More options for the read, as `Ash.read/2` takes them"
 
   slot :col, required: true, doc: "A column, showing its content for each record" do
     attr :field, :string, required: true

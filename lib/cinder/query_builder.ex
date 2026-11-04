@@ -869,22 +869,28 @@ defmodule Cinder.QueryBuilder do
   defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
 
   # Opts handed to `Ash.Query.for_read/4`. Auth opts plus query_opts that
-  # for_read recognises (see `Ash.Query.for_read_opts/0`).
+  # for_read recognises (see `Ash.Query.for_read_opts/0`), and from `read_opts`
+  # (`Cinder.Engine.run/4`'s pass-through) the ones for_read takes, so the action's
+  # preparations see them.
   defp build_for_read_opts(options) do
     query_opts = Keyword.get(options, :query_opts, [])
+    read_opts = Keyword.get(options, :read_opts, [])
 
     options
     |> build_auth_opts()
     |> Keyword.merge(Keyword.take(query_opts, [:authorize?, :tracer]))
+    |> Keyword.merge(Keyword.take(read_opts, Keyword.keys(Ash.Query.for_read_opts())))
   end
 
-  # Opts handed to `Ash.read/2`. Auth opts plus query_opts that affect execution.
+  # Opts handed to `Ash.read/2`. Auth opts plus query_opts that affect execution,
+  # and all of `read_opts`.
   defp build_read_opts(options) do
     query_opts = Keyword.get(options, :query_opts, [])
 
     options
     |> build_auth_opts()
     |> Keyword.merge(Keyword.take(query_opts, [:timeout, :authorize?, :max_concurrency, :tracer]))
+    |> Keyword.merge(Keyword.get(options, :read_opts, []))
   end
 
   # Deprecated: Cinder resolves fields with `Cinder.Field` now. Kept as wrappers over it
