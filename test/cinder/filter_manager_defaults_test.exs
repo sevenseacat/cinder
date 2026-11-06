@@ -20,6 +20,28 @@ defmodule Cinder.FilterManager.DefaultsTest do
                %{"delivered_on" => %{type: :date, value: "2026-06-12", operator: :equals}}
     end
 
+    test "keeps a select's prompt value that was chosen over its default" do
+      columns = [
+        %{
+          field: "status",
+          filterable: true,
+          filter_type: :select,
+          filter_options: [
+            options: [{"Active", "active"}],
+            prompt_value: "all",
+            default: "active"
+          ]
+        }
+      ]
+
+      filters =
+        %{"status" => "all"}
+        |> FilterManager.params_to_filters(columns)
+        |> FilterManager.apply_defaults(columns)
+
+      assert filters == %{"status" => %{type: :select, value: "all", operator: :any}}
+    end
+
     test "never overwrites an existing filter value" do
       columns = [date_column(default: ~D[2026-06-12])]
       existing = %{"delivered_on" => %{type: :date, value: "2026-06-01", operator: :equals}}
