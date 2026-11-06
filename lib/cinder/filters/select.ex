@@ -149,12 +149,12 @@ defmodule Cinder.Filters.Select do
 
     prompt_value = get_option(filter_options, :prompt_value, "")
 
-    # The prompt's own value is a choice of every option, so it is kept but narrows nothing
-    # A value from the client that isn't among the options can't be used: no filter
     cond do
+      # The prompt's own value is a choice of every option, so it is kept but narrows nothing
       trimmed != "" and trimmed == prompt_value ->
         %{type: :select, value: trimmed, operator: :any}
 
+      # A value from the client that isn't among the options can't be used: no filter
       trimmed == "" or trimmed == "all" or
           not Cinder.Filter.Helpers.client_value_allowed?(trimmed, filter_options) ->
         nil
@@ -195,6 +195,7 @@ defmodule Cinder.Filters.Select do
   @impl true
   def empty?(value) do
     case value do
+      %{operator: :any} -> false
       nil -> true
       "" -> true
       "all" -> true

@@ -338,7 +338,7 @@ defmodule Cinder.FilterManager do
     assigns =
       assigns
       |> assign(:filter_content, filter_content)
-      |> assign(:at_default?, at_default?(assigns.column, assigns.current_value))
+      |> assign_new(:at_default?, fn -> false end)
 
     ~H"""
     <div class="flex items-center group/cinder-filter" data-cinder-filter={@column.field}>
@@ -464,15 +464,14 @@ defmodule Cinder.FilterManager do
   end
 
   @doc """
-  Whether a filter's form value is the one its column's `default:` seeds, so
-  clearing it would only put it back.
+  Whether a filter holds the value its column's `default:` seeds, so clearing
+  it would only put it back.
   """
-  def at_default?(column, current_value) do
-    case default_filter_value(column) do
-      nil -> false
-      default -> format_filter_value(default, column.filter_type) == current_value
-    end
-  end
+  def at_default?(nil, _filter), do: false
+  def at_default?(_column, nil), do: false
+
+  def at_default?(column, %{value: value}),
+    do: match?(%{value: ^value}, default_filter_value(column))
 
   @doc """
   Clears a specific filter from the filter state.
@@ -531,7 +530,7 @@ defmodule Cinder.FilterManager do
   @doc """
   Counts the number of active filters, leaving out any still at its column's default.
   """
-  def count_active_filters(filters, columns \\ []) do
+  def count_active_filters(filters, columns) do
     filters |> reader_set_filters(columns) |> map_size()
   end
 
@@ -541,11 +540,9 @@ defmodule Cinder.FilterManager do
   only put it back.
   """
   def reader_set_filters(filters, columns) do
-    defaults = apply_defaults(%{}, columns)
+    columns_by_field = Map.new(columns, &{&1.field, &1})
 
-    Map.reject(filters, fn {key, filter} ->
-      match?(%{value: value} when value == filter.value, Map.get(defaults, key))
-    end)
+    Map.reject(filters, fn {field, filter} -> at_default?(columns_by_field[field], filter) end)
   end
 
   @doc """

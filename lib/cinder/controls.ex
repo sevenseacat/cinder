@@ -102,7 +102,7 @@ defmodule Cinder.Controls do
            label: column.label,
            type: column.filter_type,
            value: current_value,
-           at_default?: FilterManager.at_default?(column, current_value),
+           at_default?: FilterManager.at_default?(column, Map.get(assigns.filters, column.field)),
            options: column.filter_options,
            name: "filters[#{column.field}]",
            id: filter_id(assigns.table_id, column.field)
@@ -183,6 +183,7 @@ defmodule Cinder.Controls do
       assigns
       |> assign(:column, column)
       |> assign(:table_id, table_id)
+      |> assign(:at_default?, Map.get(assigns.filter, :at_default?, false))
 
     ~H"""
     <div class={@theme.filter_input_wrapper_class} data-key="filter_input_wrapper_class">
@@ -195,6 +196,7 @@ defmodule Cinder.Controls do
         column={@column}
         table_id={@table_id}
         current_value={@filter.value}
+        at_default?={@at_default?}
         filter_values={@filter_values}
         raw_filter_params={@raw_filter_params}
         theme={@theme}
