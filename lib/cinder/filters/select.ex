@@ -18,6 +18,7 @@ defmodule Cinder.Filters.Select do
     options = get_option(filter_options, :options, [])
     default_prompt = dgettext("cinder", "All %{label}", label: column.label)
     prompt = get_option(filter_options, :prompt, default_prompt)
+    prompt_position = get_option(filter_options, :prompt_position, :first)
 
     current_value = current_value || ""
 
@@ -49,6 +50,7 @@ defmodule Cinder.Filters.Select do
       current_value: current_value,
       options: options,
       prompt: prompt,
+      prompt_position: prompt_position,
       theme: theme,
       display_text: display_text,
       dropdown_id: dropdown_id,
@@ -80,17 +82,14 @@ defmodule Cinder.Filters.Select do
         data-key="filter_select_dropdown_class"
         phx-click-away={JS.hide(to: "##{@dropdown_id}-options")}
       >
-        <label class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} data-key="filter_select_option_class">
-          <input
-            type="radio"
-            name={field_name(@column.field)}
-            value=""
-            checked={@current_value == ""}
-            class="sr-only"
-            phx-click={JS.hide(to: "##{@dropdown_id}-options")}
-          />
-          <span class={@theme.filter_select_label_class} data-key="filter_select_label_class">{@prompt}</span>
-        </label>
+        <.prompt_option
+          :if={@prompt_position == :first}
+          column={@column}
+          current_value={@current_value}
+          prompt={@prompt}
+          theme={@theme}
+          dropdown_id={@dropdown_id}
+        />
 
         <label :for={{label, value} <- @options} class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} data-key="filter_select_option_class">
           <input
@@ -104,11 +103,36 @@ defmodule Cinder.Filters.Select do
           <span class={@theme.filter_select_label_class} data-key="filter_select_label_class">{label}</span>
         </label>
 
+        <.prompt_option
+          :if={@prompt_position == :last}
+          column={@column}
+          current_value={@current_value}
+          prompt={@prompt}
+          theme={@theme}
+          dropdown_id={@dropdown_id}
+        />
+
         <div :if={Enum.empty?(@options)} class={@theme.filter_select_empty_class} data-key="filter_select_empty_class">
           {dgettext("cinder", "No options available")}
         </div>
       </div>
     </div>
+    """
+  end
+
+  defp prompt_option(assigns) do
+    ~H"""
+    <label class={[@theme.filter_select_option_class, "flex items-center cursor-pointer"]} data-key="filter_select_option_class">
+      <input
+        type="radio"
+        name={field_name(@column.field)}
+        value=""
+        checked={@current_value == ""}
+        class="sr-only"
+        phx-click={JS.hide(to: "##{@dropdown_id}-options")}
+      />
+      <span class={@theme.filter_select_label_class} data-key="filter_select_label_class">{@prompt}</span>
+    </label>
     """
   end
 
@@ -147,7 +171,8 @@ defmodule Cinder.Filters.Select do
   def default_options do
     [
       options: [],
-      prompt: nil
+      prompt: nil,
+      prompt_position: :first
     ]
   end
 

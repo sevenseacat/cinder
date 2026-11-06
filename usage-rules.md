@@ -204,7 +204,7 @@ Additional filter types:
 ### Filter Type Options
 
 - **Text**: `operator`, `case_sensitive`, `placeholder`
-- **Select**: `options`, `prompt`
+- **Select**: `options`, `prompt`, `prompt_position` (`:first`/`:last`)
 - **Boolean**: `labels` map with `true`/`false` keys
 - **Date Range**: `include_time`
 - **Number Range**: `min`, `max`, `step`

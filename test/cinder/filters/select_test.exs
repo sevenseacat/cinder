@@ -74,4 +74,59 @@ defmodule Cinder.Filters.SelectTest do
              )
     end
   end
+
+  describe "Select filter render/4 prompt position" do
+    setup do
+      theme = %{
+        filter_select_container_class: "container",
+        filter_select_input_class: "input",
+        filter_select_placeholder_class: "placeholder",
+        filter_select_arrow_class: "",
+        filter_select_dropdown_class: "dropdown",
+        filter_select_option_class: "option",
+        filter_select_label_class: "label",
+        filter_select_empty_class: "empty"
+      }
+
+      %{theme: theme}
+    end
+
+    test "lists the prompt before the options by default", %{theme: theme} do
+      assert option_labels(select_column([]), theme) == ["All Statuses", "Active", "Inactive"]
+    end
+
+    test "lists the prompt after the options with prompt_position: :last", %{theme: theme} do
+      assert option_labels(select_column(prompt_position: :last), theme) ==
+               ["Active", "Inactive", "All Statuses"]
+    end
+
+    test "keeps the prompt as the button label with prompt_position: :last", %{theme: theme} do
+      html = render_html(select_column(prompt_position: :last), theme)
+
+      assert html =~ ~r{<span class="placeholder truncate">All Statuses</span>}
+    end
+  end
+
+  defp select_column(extra_options) do
+    %{
+      field: "status",
+      label: "Status",
+      filter_options:
+        [options: [{"Active", "active"}, {"Inactive", "inactive"}], prompt: "All Statuses"] ++
+          extra_options
+    }
+  end
+
+  defp option_labels(column, theme) do
+    ~r{<span class="label" data-key="filter_select_label_class">([^<]+)</span>}
+    |> Regex.scan(render_html(column, theme), capture: :all_but_first)
+    |> List.flatten()
+  end
+
+  defp render_html(column, theme) do
+    column
+    |> Select.render(nil, theme, %{target: nil})
+    |> Phoenix.HTML.Safe.to_iodata()
+    |> IO.iodata_to_binary()
+  end
 end

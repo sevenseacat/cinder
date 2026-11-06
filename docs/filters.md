@@ -93,6 +93,15 @@ Dropdown for single-value selection. **Automatically populated for Ash enum fiel
 >
   {user.department}
 </:col>
+
+<!-- With the prompt listed after the options instead of before them -->
+<:col
+  :let={user}
+  field="department"
+  filter={[type: :select, options: @departments, prompt: "All Departments", prompt_position: :last]}
+>
+  {user.department}
+</:col>
 ```
 
 ### Multi-Select Filter
