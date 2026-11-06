@@ -100,6 +100,10 @@ defmodule Cinder.Filters.SelectTest do
       assert Select.validate(Select.process("all", column))
     end
 
+    test "does not call the prompt value's filter empty" do
+      refute Select.empty?(%{type: :select, value: "all", operator: :any})
+    end
+
     test "still drops \"all\" when it is not the prompt value" do
       assert Select.process("all", select_column([])) == nil
     end

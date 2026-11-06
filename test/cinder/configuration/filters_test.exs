@@ -818,14 +818,14 @@ defmodule Cinder.FiltersTest do
       assert result == %{}
     end
 
-    test "count_active_filters/1 counts non-empty filters" do
+    test "count_active_filters/2 counts non-empty filters" do
       filters = %{
         "title" => %{type: :text, value: "test"},
         "price" => %{type: :number_range, value: %{min: "100", max: "200"}},
         "empty" => %{type: :text, value: ""}
       }
 
-      result = FilterManager.count_active_filters(filters)
+      result = FilterManager.count_active_filters(filters, [])
       # Counts all entries, empty check is done elsewhere
       assert result == 3
     end

@@ -1,6 +1,8 @@
 defmodule Cinder.FilterManager.DefaultsTest do
   use ExUnit.Case, async: true
 
+  import Phoenix.LiveViewTest, only: [render_component: 2]
+
   alias Cinder.FilterManager
 
   defp date_column(opts) do
@@ -116,6 +118,8 @@ defmodule Cinder.FilterManager.DefaultsTest do
   end
 
   describe "at_default?/2" do
+    defp select_filter(value), do: %{type: :select, value: value, operator: :equals}
+
     defp select_column(opts) do
       %{
         field: "status",
@@ -126,19 +130,64 @@ defmodule Cinder.FilterManager.DefaultsTest do
     end
 
     test "is true while the filter holds the value its default seeds" do
-      assert FilterManager.at_default?(select_column(default: "active"), "active")
+      assert FilterManager.at_default?(select_column(default: "active"), select_filter("active"))
     end
 
     test "is false once the filter holds another value" do
-      refute FilterManager.at_default?(select_column(default: "active"), "done")
+      refute FilterManager.at_default?(select_column(default: "active"), select_filter("done"))
     end
 
     test "is false for a column without a default" do
-      refute FilterManager.at_default?(select_column([]), "active")
+      refute FilterManager.at_default?(select_column([]), select_filter("active"))
     end
 
-    test "compares dates in the form the filter shows them" do
-      assert FilterManager.at_default?(date_column(default: ~D[2026-06-12]), "2026-06-12")
+    test "is false for a filter that is not set" do
+      refute FilterManager.at_default?(select_column(default: "active"), nil)
+    end
+
+    test "compares a date default by the value it processes into" do
+      filter = %{type: :date, value: "2026-06-12", operator: :equals}
+
+      assert FilterManager.at_default?(date_column(default: ~D[2026-06-12]), filter)
+    end
+
+    test "is false for a field no column declares" do
+      refute FilterManager.at_default?(nil, select_filter("active"))
+    end
+  end
+
+  describe "the clear button of a filter" do
+    test "stays hidden while the filter holds its default" do
+      assert clear_button(at_default?: true) =~ "invisible"
+    end
+
+    test "shows once the filter holds another value" do
+      refute clear_button(at_default?: false) =~ "invisible"
+    end
+
+    defp clear_button(at_default?: at_default?) do
+      filter = %{
+        field: "status",
+        label: "Status",
+        type: :select,
+        value: "active",
+        at_default?: at_default?,
+        options: [options: [{"Active", "active"}, {"Done", "done"}]],
+        name: "filters[status]",
+        id: "table-filter-status"
+      }
+
+      assigns = %{
+        filter: filter,
+        theme: Cinder.Theme.default(),
+        target: nil,
+        filter_values: %{},
+        raw_filter_params: %{}
+      }
+
+      html = render_component(&Cinder.Controls.render_filter/1, assigns)
+
+      ~r{<button[^>]*data-cinder-clear[^>]*>}s |> Regex.run(html) |> hd()
     end
   end
 
