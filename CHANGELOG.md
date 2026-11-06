@@ -15,6 +15,9 @@
 * Added `remove_item/3` and `remove_items/3`, which remove rows from a collection without re-querying, dropping them from the selection and the footer count. Thanks @Alt-iOS! ([#229](https://github.com/sevenseacat/cinder/pull/229))
 * `pagination` accepts a keyword list, with a `count` option: `true` (default), `:async` to count in the background, or `false` to skip the total count. Thanks @Alt-iOS! ([#241](https://github.com/sevenseacat/cinder/pull/241))
 * `use Cinder.UrlSync` is now all a LiveView needs for URL sync, without a `handle_params/3` calling `Cinder.UrlSync.handle_params/3`.
+* Select filters accept `prompt_position: :last`, which lists the prompt after the options instead of before them.
+* Select filters accept `prompt_value`, which makes the prompt a choice of its own: it is kept in the URL, a `default:` no longer replaces it, and it narrows nothing.
+* The controls data gives each filter an `at_default?` flag, true while clearing it would only put its `default:` back.
 
 ### Bugfixes
 
@@ -28,6 +31,8 @@
 * Keyset pagination's "Next page" now works in apps that don't set `config :ash, default_page_type: :keyset`, where it previously reloaded the first page.
 * Sort keys sent by the client are now ignored unless they're a declared sortable column, so they can no longer create atoms or sort by fields that weren't defined as sortable.
 * Self-closing `<:col field="..." />` columns now render their field's value in table layouts, instead of crashing.
+* A filter still at its `default:` no longer shows its × or counts towards "Clear all", since clearing it would only put the default back.
+* A select filter's prompt chosen through `prompt_value` is no longer styled as a placeholder.
 * Page numbers from the URL are capped at 1,000,000, and multi-select values from the URL or a form are trimmed to the filter's options (or to 100 when it has none), so they can't make a query do unbounded work.
 * Bulk actions only act on selected records that are still in the collection's `query`, and the selection is cleared when the `query` changes.
 * A bulk action that partly fails now fires `on_error` instead of `on_success`.
