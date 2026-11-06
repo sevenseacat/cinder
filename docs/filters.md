@@ -548,9 +548,9 @@ The `:let` binding provides:
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `filters` | keyword list | Filters keyed by field atom, preserving column order. Access by name: `controls.filters[:status]` |
+| `filters` | keyword list | Filters keyed by field atom, preserving column order. Access by name: `controls.filters[:status]`. Each holds `value` and `at_default?`, true when clearing it would only put its `default:` back |
 | `search` | map or nil | Search input data (value, name, label, placeholder, id), or nil when disabled |
-| `active_filter_count` | integer | Number of currently active filters |
+| `active_filter_count` | integer | Number of currently active filters, leaving out any still at its `default:` |
 | `target` | any | LiveComponent target for `phx-target` |
 | `theme` | map | Resolved theme map |
 | `table_id` | string | DOM ID prefix |

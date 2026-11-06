@@ -73,7 +73,7 @@ defmodule Cinder.Controls do
   - `:filters` — keyword list of filter data maps keyed by field atom, preserving column order.
       Access by name: `controls.filters[:status]`. Iterate: `for {_name, filter} <- controls.filters`.
   - `:search` — search input data map (value, name, label, placeholder, id), or `nil` when disabled
-  - `:active_filter_count` — number of currently active filters
+  - `:active_filter_count` — number of currently active filters, leaving out any still at its `default:`
   - `:target` — LiveComponent target for `phx-target`
   - `:theme` — resolved theme map
   - `:table_id` — table DOM ID prefix
@@ -87,7 +87,7 @@ defmodule Cinder.Controls do
   def build_controls_data(assigns) do
     filterable_columns = Enum.filter(assigns.columns, & &1.filterable)
     filter_values = FilterManager.build_filter_values(filterable_columns, assigns.filters)
-    active_filter_count = FilterManager.count_active_filters(assigns.filters)
+    active_filter_count = FilterManager.count_active_filters(assigns.filters, filterable_columns)
     raw_filter_params = Map.get(assigns, :raw_filter_params, %{})
     filter_mode = Map.get(assigns, :filter_mode, true)
 
@@ -102,6 +102,7 @@ defmodule Cinder.Controls do
            label: column.label,
            type: column.filter_type,
            value: current_value,
+           at_default?: FilterManager.at_default?(column, current_value),
            options: column.filter_options,
            name: "filters[#{column.field}]",
            id: filter_id(assigns.table_id, column.field)

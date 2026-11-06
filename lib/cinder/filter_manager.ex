@@ -335,7 +335,10 @@ defmodule Cinder.FilterManager do
       end
 
     # Wrap with clear button
-    assigns = assign(assigns, :filter_content, filter_content)
+    assigns =
+      assigns
+      |> assign(:filter_content, filter_content)
+      |> assign(:at_default?, at_default?(assigns.column, assigns.current_value))
 
     ~H"""
     <div class="flex items-center group/cinder-filter" data-cinder-filter={@column.field}>
@@ -343,7 +346,7 @@ defmodule Cinder.FilterManager do
         <%= @filter_content %>
       </div>
 
-      <!-- Clear individual filter button - always present but invisible when no value -->
+      <!-- Clear individual filter button - always present but invisible when no value, or when clearing would only put its default back -->
       <button
         type="button"
         data-cinder-clear
@@ -352,7 +355,7 @@ defmodule Cinder.FilterManager do
         phx-target={@target}
         class={[
           @theme.filter_clear_button_class,
-          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""}, do: "invisible group-data-[cinder-partial]/cinder-filter:visible", else: "")
+          unless(@current_value != "" and not is_nil(@current_value) and @current_value != [] and @current_value != %{from: "", to: ""} and @current_value != %{min: "", max: ""} and not @at_default?, do: "invisible group-data-[cinder-partial]/cinder-filter:visible", else: "")
         ]}
         data-key="filter_clear_button_class"
         title={dgettext("cinder", "Clear filter")}
@@ -461,6 +464,17 @@ defmodule Cinder.FilterManager do
   end
 
   @doc """
+  Whether a filter's form value is the one its column's `default:` seeds, so
+  clearing it would only put it back.
+  """
+  def at_default?(column, current_value) do
+    case default_filter_value(column) do
+      nil -> false
+      default -> format_filter_value(default, column.filter_type) == current_value
+    end
+  end
+
+  @doc """
   Clears a specific filter from the filter state.
   """
   def clear_filter(filters, key) do
@@ -515,10 +529,23 @@ defmodule Cinder.FilterManager do
   end
 
   @doc """
-  Counts the number of active filters.
+  Counts the number of active filters, leaving out any still at its column's default.
   """
-  def count_active_filters(filters) do
-    Enum.count(filters)
+  def count_active_filters(filters, columns \\ []) do
+    filters |> reader_set_filters(columns) |> map_size()
+  end
+
+  @doc """
+  The filters a reader set: those not holding their column's `default:`. A
+  filter still at its default is not one the reader set, and resetting would
+  only put it back.
+  """
+  def reader_set_filters(filters, columns) do
+    defaults = apply_defaults(%{}, columns)
+
+    Map.reject(filters, fn {key, filter} ->
+      match?(%{value: value} when value == filter.value, Map.get(defaults, key))
+    end)
   end
 
   @doc """

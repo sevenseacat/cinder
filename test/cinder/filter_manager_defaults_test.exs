@@ -114,4 +114,42 @@ defmodule Cinder.FilterManager.DefaultsTest do
              }
     end
   end
+
+  describe "at_default?/2" do
+    defp select_column(opts) do
+      %{
+        field: "status",
+        filterable: true,
+        filter_type: :select,
+        filter_options: [options: [{"Active", "active"}, {"Done", "done"}]] ++ opts
+      }
+    end
+
+    test "is true while the filter holds the value its default seeds" do
+      assert FilterManager.at_default?(select_column(default: "active"), "active")
+    end
+
+    test "is false once the filter holds another value" do
+      refute FilterManager.at_default?(select_column(default: "active"), "done")
+    end
+
+    test "is false for a column without a default" do
+      refute FilterManager.at_default?(select_column([]), "active")
+    end
+
+    test "compares dates in the form the filter shows them" do
+      assert FilterManager.at_default?(date_column(default: ~D[2026-06-12]), "2026-06-12")
+    end
+  end
+
+  describe "count_active_filters/2" do
+    test "leaves out a filter still at its column's default" do
+      columns = [date_column(default: ~D[2026-06-12])]
+      at_default = %{"delivered_on" => %{type: :date, value: "2026-06-12", operator: :equals}}
+      changed = %{"delivered_on" => %{type: :date, value: "2026-06-01", operator: :equals}}
+
+      assert FilterManager.count_active_filters(at_default, columns) == 0
+      assert FilterManager.count_active_filters(changed, columns) == 1
+    end
+  end
 end

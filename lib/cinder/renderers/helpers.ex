@@ -220,13 +220,11 @@ defmodule Cinder.Renderers.Helpers do
   def empty_context(assigns) do
     filters = Map.get(assigns, :filters, %{})
     search_term = Map.get(assigns, :search_term, "")
-    defaults = Cinder.FilterManager.apply_defaults(%{}, Map.get(assigns, :query_columns, []))
 
     has_active_filters =
-      Enum.any?(filters, fn {key, filter} ->
-        Cinder.Filter.has_filter_value?(filter.value) and
-          not match?(%{value: value} when value == filter.value, Map.get(defaults, key))
-      end)
+      filters
+      |> Cinder.FilterManager.reader_set_filters(Map.get(assigns, :query_columns, []))
+      |> Enum.any?(fn {_key, filter} -> Cinder.Filter.has_filter_value?(filter.value) end)
 
     %{
       filtered?: has_active_filters or search_term != "",

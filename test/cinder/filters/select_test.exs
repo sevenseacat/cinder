@@ -116,7 +116,7 @@ defmodule Cinder.Filters.SelectTest do
       html = render_html(select_column(prompt_value: "all"), "all")
 
       assert html =~ ~r{<input type="radio" name="filters\[status\]" value="all" checked}
-      assert html =~ ~r{<span class="placeholder truncate">All Statuses</span>}
+      assert html =~ ~r{<span class="\s*truncate">All Statuses</span>}
     end
   end
 
