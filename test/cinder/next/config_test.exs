@@ -303,6 +303,32 @@ defmodule Cinder.Next.ConfigTest do
     end
   end
 
+  test "a field with `column={false}` is a field, but not a column, and needs no content" do
+    config =
+      build([
+        field("title"),
+        field("genre", column: false, filter: true, inner_block: nil)
+      ])
+
+    assert Enum.map(config.columns, & &1.field) == ["title"]
+
+    assert [%{name: "title", column?: true}, %{name: "genre", column?: false, load: nil}] =
+             config.fields
+
+    assert [%{column: %{field: "genre", label: "Genre"}, module: Cinder.Filters.Select}] =
+             config.filters
+  end
+
+  test "a field that isn't a column isn't in the starting sort, as nothing would show it" do
+    config =
+      build([
+        field("title", sort: [cycle: [:asc, :desc]]),
+        field("price", sort: [cycle: [:desc, :asc]], column: false)
+      ])
+
+    assert config.sort.default == [{"title", :asc}]
+  end
+
   test "a second <:field> for a name is an error" do
     assert_raise ArgumentError,
                  ~s(<:field name="title"> is declared twice: each field is declared once),

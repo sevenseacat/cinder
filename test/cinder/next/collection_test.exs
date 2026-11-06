@@ -135,6 +135,27 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums-filters button", text: "Any")
     end
 
+    test "a field that isn't a column filters, with no heading or cells", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:field :let={album} name="title">{album.title}</:field>
+            <:field name="genre" filter column={false} />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path)
+      |> assert_has("#albums th", count: 1)
+      |> assert_has("#albums tbody tr:first-child td", count: 1)
+      |> assert_has("#albums-filters label", text: "Genre")
+      |> choose("Jazz")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Blue")
+    end
+
     test "a filter on a field that isn't filterable (a tampered event) is ignored",
          %{conn: conn} do
       conn

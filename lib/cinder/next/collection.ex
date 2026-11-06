@@ -20,9 +20,10 @@ defmodule Cinder.Next.Collection do
   def update(assigns, socket) do
     # The fields' inner blocks are new on every parent render, so they're always
     # taken; the config is only rebuilt, and the records reloaded, when what's
-    # declared changes. Every field is a column, for now.
+    # declared changes. Only the fields that are columns have cells.
     declarations = Config.declarations(assigns.options, assigns.fields)
-    socket = assign(socket, id: assigns.id, columns: assigns.fields)
+    columns = Enum.reject(assigns.fields, &(&1[:column] == false))
+    socket = assign(socket, id: assigns.id, columns: columns)
 
     if declarations == socket.assigns[:declarations] do
       {:ok, socket}

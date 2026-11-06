@@ -54,6 +54,11 @@ defmodule Cinder.Next.Schema do
   @field [
     name: [type: :string, required: true, doc: "The field's name, or path (`artist.name`)."],
     label: [type: :string, doc: "The column's heading. Defaults to the humanised name."],
+    column: [
+      type: :boolean,
+      default: true,
+      doc: "Whether it's a column. If not, it has no heading or cells, and needs no content."
+    ],
     # `sort` and `filter` alone (`true`) mean `[]`, and `false` is left out, before this
     sort: [
       type:

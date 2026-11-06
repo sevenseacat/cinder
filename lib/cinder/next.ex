@@ -28,6 +28,10 @@ defmodule Cinder.Next do
     doc: "A field, shown as a column with its content for each record" do
     attr :name, :string, required: true
     attr :label, :string
+
+    attr :column, :boolean,
+      doc: "Whether it's a column (default `true`). One that isn't can still be filtered."
+
     attr :sort, :any, doc: "Sort by the field: `true`, or `[cycle: [...]]`"
 
     attr :filter, :any,

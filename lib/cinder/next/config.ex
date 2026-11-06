@@ -40,14 +40,15 @@ defmodule Cinder.Next.Config do
     options = Schema.validate_collection!(options)
     source = source!(options[:resource], options[:query])
     resource = Ash.Query.new(source).resource
-    columns = field_slots |> Enum.map(&column!/1) |> once_each!()
-    fields = Enum.map(columns, &field!(resource, &1))
+    declared = field_slots |> Enum.map(&declare!/1) |> once_each!()
+    columns = Enum.filter(declared, & &1.column?)
+    fields = Enum.map(declared, &field!(resource, &1))
 
     %__MODULE__{
       source: source,
       columns: columns,
       fields: fields,
-      filters: filters(fields, columns),
+      filters: filters(fields, declared),
       actor: options[:actor],
       tenant: options[:tenant],
       scope: options[:scope],
@@ -60,12 +61,12 @@ defmodule Cinder.Next.Config do
   end
 
   # A `<:field>` declares its field, so a second one for a name would contradict it
-  defp once_each!(columns) do
-    names = Enum.map(columns, & &1.field)
+  defp once_each!(declared) do
+    names = Enum.map(declared, & &1.field)
 
     case names -- Enum.uniq(names) do
       [] ->
-        columns
+        declared
 
       [name | _] ->
         raise ArgumentError,
@@ -73,15 +74,17 @@ defmodule Cinder.Next.Config do
     end
   end
 
-  # The fields are built from the columns one for one, so they pair up in order
-  defp filters(fields, columns) do
-    for {%Engine.Field{filter: %{module: module}} = field, column} <- Enum.zip(fields, columns) do
-      %{column: %{Engine.Field.to_column_map(field) | label: column.filter.label}, module: module}
+  # The fields are built from the declared ones one for one, so they pair up in order
+  defp filters(fields, declared) do
+    for {%Engine.Field{filter: %{module: module}} = field, %{filter: filter}} <-
+          Enum.zip(fields, declared) do
+      %{column: %{Engine.Field.to_column_map(field) | label: filter.label}, module: module}
     end
   end
 
-  # The source query's sorts the collection can show, then each column that's
-  # always sorted (its cycle has no `nil`) and isn't yet, in its first direction
+  # The source query's sorts the collection can show, then each column that's always
+  # sorted (its cycle has no `nil`) and isn't yet, in its first direction. Only
+  # columns: a field that isn't one has no heading to show its sort.
   defp default_sort(source, fields, columns) do
     from_query = Engine.query_sorts(source, fields)
 
@@ -102,11 +105,12 @@ defmodule Cinder.Next.Config do
     raise ArgumentError, "give a collection a `resource` or a `query`, not both"
   end
 
-  defp column!(slot) do
+  # A field that isn't a column has no cells, so its inner block is never used
+  defp declare!(slot) do
     attributes = Schema.validate_field!(slot)
     name = attributes[:name]
 
-    if !slot[:inner_block] do
+    if attributes[:column] and !slot[:inner_block] do
       raise ArgumentError,
             ~s(<:field name="#{name}"> needs content, such as ) <>
               ~s(<:field :let={record} name="#{name}">{record.#{name}}</:field>)
@@ -117,30 +121,31 @@ defmodule Cinder.Next.Config do
     %{
       field: name,
       label: label,
-      sort: column_sort(attributes[:sort]),
-      filter: column_filter(attributes[:filter], label)
+      column?: attributes[:column],
+      sort: declared_sort(attributes[:sort]),
+      filter: declared_filter(attributes[:filter], label)
     }
   end
 
-  defp column_sort(nil), do: nil
-  defp column_sort(sort), do: %{cycle: sort[:cycle]}
+  defp declared_sort(nil), do: nil
+  defp declared_sort(sort), do: %{cycle: sort[:cycle]}
 
   # The type is left out when it isn't given, for `Engine.field/2` to infer
-  defp column_filter(nil, _column_label), do: nil
+  defp declared_filter(nil, _label), do: nil
 
-  defp column_filter(filter, column_label) do
+  defp declared_filter(filter, label) do
     filter
     |> Keyword.take([:type, :options])
     |> Map.new()
-    |> Map.put(:label, filter[:label] || column_label)
+    |> Map.put(:label, filter[:label] || label)
   end
 
-  defp field!(resource, column) do
+  defp field!(resource, declared) do
     field = %Engine.Field{
-      name: column.field,
-      column?: true,
-      sortable?: column.sort != nil,
-      filter: column.filter && Map.delete(column.filter, :label)
+      name: declared.field,
+      column?: declared.column?,
+      sortable?: declared.sort != nil,
+      filter: declared.filter && Map.delete(declared.filter, :label)
     }
 
     case Engine.field(resource, field) do
