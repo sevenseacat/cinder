@@ -13,7 +13,7 @@ defmodule CinderDevWeb.NextLive do
       current_path={@current_path}
       query_params={@query_params}
     >
-      <Cinder.Next.collection id="albums" resource={Music.Album}>
+      <Cinder.Next.collection id="albums" resource={Music.Album} pagination={[size: 10]}>
         <:field :let={album} name="title" sort filter search>{album.title}</:field>
         <:field :let={album} name="artist.name" sort search>{album.artist.name}</:field>
         <:field
