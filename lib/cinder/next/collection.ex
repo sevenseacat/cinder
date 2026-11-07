@@ -106,7 +106,7 @@ defmodule Cinder.Next.Collection do
   end
 
   # Keyset pages go from the cursors of the page shown, kept on the server
-  def handle_event(direction, _params, socket) when direction in ["next", "previous"] do
+  def handle_event(direction, _params, socket) when direction in ["next_page", "previous_page"] do
     %{config: config, page: page, query: query} = socket.assigns
 
     with %{mode: :keyset} <- config.pagination,
@@ -117,8 +117,8 @@ defmodule Cinder.Next.Collection do
     end
   end
 
-  defp cursor(%{more?: true, last_cursor: cursor}, "next"), do: {:after, cursor}
-  defp cursor(%{previous?: true, first_cursor: cursor}, "previous"), do: {:before, cursor}
+  defp cursor(%{more?: true, last_cursor: cursor}, "next_page"), do: {:after, cursor}
+  defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
   defp cursor(_page, _direction), do: nil
 
   # Synchronous, and a failed read crashes, until the slices for loading states and
@@ -217,7 +217,7 @@ defmodule Cinder.Next.Collection do
   end
 
   # An offset page (numbered) says which page to go to; a keyset one only which way
-  defp page_click(%{page: nil}, direction), do: ["phx-click": to_string(direction)]
+  defp page_click(%{page: nil}, direction), do: ["phx-click": "#{direction}_page"]
   defp page_click(%{page: page}, :previous), do: ["phx-click": "page", "phx-value-page": page - 1]
   defp page_click(%{page: page}, :next), do: ["phx-click": "page", "phx-value-page": page + 1]
 

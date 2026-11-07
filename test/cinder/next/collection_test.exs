@@ -427,7 +427,7 @@ defmodule Cinder.Next.CollectionTest do
 
       conn
       |> visit(paged())
-      |> unwrap(&(&1 |> with_target("#albums") |> render_click("next", %{})))
+      |> unwrap(&(&1 |> with_target("#albums") |> render_click("next_page", %{})))
       |> assert_has("#albums nav", text: "Page 1 of 3")
     end
   end
