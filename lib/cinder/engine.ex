@@ -91,20 +91,20 @@ defmodule Cinder.Engine do
 
   @doc """
   Whether `source`'s read action (the query's, or the resource's primary read) can
-  page by offset, and if so whether it can count the records: Ash's read fails if
-  asked to do either when the action can't.
+  page by `mode` (`:offset` or `:keyset`), and if so whether it can count the
+  records: Ash's read fails if asked to do either when the action can't.
   """
-  @spec pagination(Ash.Query.t() | module(), :offset) ::
+  @spec pagination(Ash.Query.t() | module(), :offset | :keyset) ::
           {:ok, %{count?: boolean()}} | {:error, String.t()}
-  def pagination(source, :offset) do
+  def pagination(source, mode) when mode in [:offset, :keyset] do
     query = Ash.Query.new(source)
     action = query.action || Ash.Resource.Info.primary_action!(query.resource, :read)
-
+    can_page? = if mode == :offset, do: :offset?, else: :keyset?
     action_name = "#{inspect(query.resource)}'s #{inspect(action.name)} action"
 
     case action.pagination do
-      %{offset?: true, countable: countable} -> {:ok, %{count?: countable != false}}
-      %{} -> {:error, "#{action_name} doesn't paginate by offset"}
+      %{^can_page? => true, countable: countable} -> {:ok, %{count?: countable != false}}
+      %{} -> {:error, "#{action_name} doesn't paginate by #{mode}"}
       _none -> {:error, "#{action_name} doesn't paginate"}
     end
   end

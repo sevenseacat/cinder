@@ -169,9 +169,24 @@ defmodule Cinder.EngineTest do
                {:ok, %{count?: false}}
     end
 
+    test "an action that pages by keyset" do
+      assert Engine.pagination(Ash.Query.for_read(Music.Album, :keyset_only), :keyset) ==
+               {:ok, %{count?: true}}
+    end
+
+    test "an action can't be paged in a way it doesn't page" do
+      assert Engine.pagination(Ash.Query.for_read(Music.Album, :keyset_only), :offset) ==
+               {:error, "Music.Album's :keyset_only action doesn't paginate by offset"}
+
+      assert Engine.pagination(Ash.Query.for_read(Music.Album, :uncountable), :keyset) ==
+               {:error, "Music.Album's :uncountable action doesn't paginate by keyset"}
+    end
+
     test "an action that doesn't paginate can't be paged" do
-      assert Engine.pagination(Ash.Query.for_read(Music.Album, :by_context), :offset) ==
-               {:error, "Music.Album's :by_context action doesn't paginate"}
+      for mode <- [:offset, :keyset] do
+        assert Engine.pagination(Ash.Query.for_read(Music.Album, :by_context), mode) ==
+                 {:error, "Music.Album's :by_context action doesn't paginate"}
+      end
     end
   end
 end

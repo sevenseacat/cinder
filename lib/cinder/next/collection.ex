@@ -66,7 +66,8 @@ defmodule Cinder.Next.Collection do
 
   # What decides the records read, besides the query
   defp read(config) do
-    {Map.take(config, [:source, :actor, :tenant, :scope, :query_opts]), config.search[:fn]}
+    {Map.take(config, [:source, :actor, :tenant, :scope, :query_opts]), config.search[:fn],
+     config.pagination[:mode]}
   end
 
   @impl true
@@ -93,16 +94,32 @@ defmodule Cinder.Next.Collection do
     {:noreply, socket |> assign(:query, query) |> load()}
   end
 
-  # The page comes from the client, so one that isn't a positive number is ignored
+  # An offset page comes from the client, so one that isn't a positive number is
+  # ignored. Each mode's events are ignored in the other (from tampering).
   def handle_event("page", %{"page" => page}, socket) do
-    case Integer.parse(page) do
-      {page, ""} when page > 0 ->
-        {:noreply, socket |> assign(:query, %{socket.assigns.query | page: page}) |> load()}
-
-      _not_a_page ->
-        {:noreply, socket}
+    with %{mode: :offset} <- socket.assigns.config.pagination,
+         {page, ""} when page > 0 <- Integer.parse(page) do
+      {:noreply, socket |> assign(:query, %{socket.assigns.query | page: page}) |> load()}
+    else
+      _not_a_page -> {:noreply, socket}
     end
   end
+
+  # Keyset pages go from the cursors of the page shown, kept on the server
+  def handle_event(direction, _params, socket) when direction in ["next", "previous"] do
+    %{config: config, page: page, query: query} = socket.assigns
+
+    with %{mode: :keyset} <- config.pagination,
+         {_direction, _cursor} = cursor <- cursor(page, direction) do
+      {:noreply, socket |> assign(:query, %{query | cursor: cursor}) |> load()}
+    else
+      _no_page_that_way -> {:noreply, socket}
+    end
+  end
+
+  defp cursor(%{more?: true, last_cursor: cursor}, "next"), do: {:after, cursor}
+  defp cursor(%{previous?: true, first_cursor: cursor}, "previous"), do: {:before, cursor}
+  defp cursor(_page, _direction), do: nil
 
   # Synchronous, and a failed read crashes, until the slices for loading states and
   # errors. The controls' values are worked out here, with the records, rather than
@@ -110,7 +127,14 @@ defmodule Cinder.Next.Collection do
   defp load(socket) do
     %{config: config, query: query} = socket.assigns
     opts = Map.take(config, [:actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
-    opts = [search_fn: config.search[:fn], count?: config.pagination[:count?] == true] ++ opts
+
+    opts =
+      [
+        search_fn: config.search[:fn],
+        pagination: config.pagination[:mode] || :offset,
+        count?: config.pagination[:count?] == true
+      ] ++ opts
+
     {:ok, page} = Engine.run(config.source, config.fields, query, opts)
     filter_values = Params.filter_values(query.filters, config.fields)
     assign(socket, page: page, filter_values: filter_values)
@@ -174,30 +198,28 @@ defmodule Cinder.Next.Collection do
           </tr>
         </tbody>
       </table>
-      <nav :if={@page.page && (@page.previous? or @page.more?)} aria-label="Pagination">
+      <nav :if={@config.pagination && (@page.previous? or @page.more?)} aria-label="Pagination">
         <button
           type="button"
-          phx-click="page"
-          phx-value-page={@page.page - 1}
           phx-target={@myself}
           disabled={!@page.previous?}
+          {page_click(@page, :previous)}
         >
           {dgettext("cinder", "Previous page")}
         </button>
-        <span>{page_of(@page)}</span>
-        <button
-          type="button"
-          phx-click="page"
-          phx-value-page={@page.page + 1}
-          phx-target={@myself}
-          disabled={!@page.more?}
-        >
+        <span :if={@page.page}>{page_of(@page)}</span>
+        <button type="button" phx-target={@myself} disabled={!@page.more?} {page_click(@page, :next)}>
           {dgettext("cinder", "Next page")}
         </button>
       </nav>
     </div>
     """
   end
+
+  # An offset page (numbered) says which page to go to; a keyset one only which way
+  defp page_click(%{page: nil}, direction), do: ["phx-click": to_string(direction)]
+  defp page_click(%{page: page}, :previous), do: ["phx-click": "page", "phx-value-page": page - 1]
+  defp page_click(%{page: page}, :next), do: ["phx-click": "page", "phx-value-page": page + 1]
 
   # Without a count (the action can't count), there's no total
   defp page_of(%{count: nil, page: page}) do

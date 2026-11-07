@@ -11,7 +11,9 @@ defmodule Cinder.Next.CollectionTest do
       render: 1,
       render_change: 2,
       render_click: 2,
-      render_component: 2
+      render_click: 3,
+      render_component: 2,
+      with_target: 2
     ]
 
   alias Cinder.TestLive.Fixture
@@ -371,6 +373,61 @@ defmodule Cinder.Next.CollectionTest do
         next = element(view, "#albums nav button", "Next page")
         ["0", "-1", "two"] |> Enum.map(&render_click(next, %{"page" => &1})) |> List.last()
       end)
+      |> assert_has("#albums nav", text: "Page 1 of 3")
+    end
+
+    test "by keyset, the previous and next pages, with no page number", %{conn: conn} do
+      conn
+      |> visit(paged(Ash.Query.sort(Music.Album, :title), mode: :keyset, size: 2))
+      |> titles(["Abbey", "Blue"])
+      |> refute_has("#albums nav span")
+      |> assert_has("#albums nav button[disabled]", text: "Previous page")
+      |> click_button("#albums nav button", "Next page")
+      |> titles(["Cold", "Dark"])
+      |> click_button("#albums nav button", "Next page")
+      |> titles(["Echo"])
+      |> assert_has("#albums nav button[disabled]", text: "Next page")
+      |> click_button("#albums nav button", "Previous page")
+      |> titles(["Cold", "Dark"])
+      |> click_button("#albums nav button", "Previous page")
+      |> titles(["Abbey", "Blue"])
+      |> assert_has("#albums nav button[disabled]", text: "Previous page")
+    end
+
+    test "by keyset, back to the first page when the sort or the filters change",
+         %{conn: conn} do
+      conn
+      |> visit(paged(Ash.Query.sort(Music.Album, :title), mode: :keyset, size: 2))
+      |> click_button("#albums nav button", "Next page")
+      |> click_button("#albums th button", "Title")
+      |> titles(["Echo", "Dark"])
+      |> assert_has("#albums nav button[disabled]", text: "Previous page")
+      |> click_button("#albums nav button", "Next page")
+      # Abbey, Blue and Echo
+      |> fill_in("Title", with: "e")
+      |> titles(["Echo", "Blue"])
+      |> assert_has("#albums nav button[disabled]", text: "Previous page")
+    end
+
+    test "an action that only pages by keyset does so without being told", %{conn: conn} do
+      query = Music.Album |> Ash.Query.for_read(:keyset_only) |> Ash.Query.sort(:title)
+
+      conn
+      |> visit(paged(query))
+      |> titles(["Abbey", "Blue"])
+      |> click_button("#albums nav button", "Next page")
+      |> titles(["Cold", "Dark"])
+    end
+
+    test "each mode ignores the other's events (tampered ones)", %{conn: conn} do
+      conn
+      |> visit(paged(Ash.Query.sort(Music.Album, :title), mode: :keyset, size: 2))
+      |> unwrap(&(&1 |> with_target("#albums") |> render_click("page", %{"page" => "2"})))
+      |> titles(["Abbey", "Blue"])
+
+      conn
+      |> visit(paged())
+      |> unwrap(&(&1 |> with_target("#albums") |> render_click("next", %{})))
       |> assert_has("#albums nav", text: "Page 1 of 3")
     end
   end

@@ -27,7 +27,7 @@ defmodule Cinder.Next do
     default: [],
     doc: "How the collection searches: `[label: ..., placeholder: ..., fn: ...]`"
 
-  attr :pagination, :list, default: [], doc: "How the collection pages: `[size: ...]`"
+  attr :pagination, :list, default: [], doc: "How the collection pages: `[mode: ..., size: ...]`"
 
   slot :field,
     required: true,

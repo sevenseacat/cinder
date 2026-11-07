@@ -64,11 +64,17 @@ defmodule Cinder.Next.Schema do
     pagination: [
       type:
         {:keyword_list,
-         [size: [type: :pos_integer, default: 25, doc: "How many records a page shows."]]},
+         [
+           mode: [
+             type: {:in, [:offset, :keyset]},
+             doc: "`:offset` or `:keyset`. By default, offset if the read action can, or keyset."
+           ],
+           size: [type: :pos_integer, default: 25, doc: "How many records a page shows."]
+         ]},
       default: [],
       doc:
-        "How the collection pages. Pages by offset if the read action can, " <>
-          "and giving this for an action that can't is an error."
+        "How the collection pages, if the read action can. " <>
+          "Giving this for an action that can't page that way is an error."
     ]
   ]
 

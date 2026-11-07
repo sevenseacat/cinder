@@ -17,8 +17,8 @@ defmodule Cinder.Next.Config do
   # `filters` are the filter controls: the column map their type renders from (with
   # the column's label), and the type's module.
   # `search` is the search box's options, or `nil` when no field is searchable.
-  # `pagination` is the page size and whether to count, or `nil` when the action
-  # doesn't page.
+  # `pagination` is the mode, the page size and whether to count, or `nil` when the
+  # action doesn't page.
   defstruct [
     :source,
     :actor,
@@ -91,12 +91,15 @@ defmodule Cinder.Next.Config do
     end
   end
 
-  # Paged if the action can be. Asking for pagination it can't do is a mistake, as
-  # it is in Ash; by default, it just reads every record.
+  # Paged if the action can be, by offset if it can. Asking for pagination it can't
+  # do is a mistake, as it is in Ash; by default, it just reads every record.
+  # Keyset pages have no number to show a total against, so aren't counted (yet).
   defp pagination!(source, options, paginate?) do
-    case Engine.pagination(source, :offset) do
-      {:ok, %{count?: count?}} ->
-        %{size: options[:pagination][:size], count?: count?}
+    modes = if mode = options[:pagination][:mode], do: [mode], else: [:offset, :keyset]
+
+    case first_mode(source, modes) do
+      {:ok, mode, %{count?: count?}} ->
+        %{mode: mode, size: options[:pagination][:size], count?: mode == :offset and count?}
 
       {:error, message} when paginate? ->
         raise ArgumentError,
@@ -105,6 +108,15 @@ defmodule Cinder.Next.Config do
 
       {:error, _message} ->
         nil
+    end
+  end
+
+  # The first mode the action can page by, or the last one's error
+  defp first_mode(source, [mode | rest]) do
+    case {Engine.pagination(source, mode), rest} do
+      {{:ok, can}, _rest} -> {:ok, mode, can}
+      {error, []} -> error
+      {_error, rest} -> first_mode(source, rest)
     end
   end
 

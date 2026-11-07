@@ -422,14 +422,47 @@ defmodule Cinder.Next.ConfigTest do
       build([field("title")], id: "albums", query: source, pagination: pagination).pagination
     end
 
-    test "25 records a page, counted, unless the size is given" do
-      assert build([field("title")]).pagination == %{size: 25, count?: true}
-      assert pagination(Ash.Query.new(Music.Album), size: 10) == %{size: 10, count?: true}
+    test "by offset, 25 records a page, counted, unless the size is given" do
+      assert build([field("title")]).pagination == %{mode: :offset, size: 25, count?: true}
+
+      assert pagination(Ash.Query.new(Music.Album), size: 10) ==
+               %{mode: :offset, size: 10, count?: true}
     end
 
     test "an action that can't count pages without a count" do
       query = Ash.Query.for_read(Music.Album, :uncountable)
-      assert pagination(query, []) == %{size: 25, count?: false}
+      assert pagination(query, []) == %{mode: :offset, size: 25, count?: false}
+    end
+
+    test "by keyset when asked, or when the action only pages that way, without a count" do
+      assert pagination(Ash.Query.new(Music.Album), mode: :keyset) ==
+               %{mode: :keyset, size: 25, count?: false}
+
+      assert pagination(Ash.Query.for_read(Music.Album, :keyset_only), []) ==
+               %{mode: :keyset, size: 25, count?: false}
+    end
+
+    test "a mode the action can't page by is an error" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: `pagination` can't be used: ) <>
+                     "Music.Album's :keyset_only action doesn't paginate by offset",
+                   fn ->
+                     pagination(Ash.Query.for_read(Music.Album, :keyset_only), mode: :offset)
+                   end
+
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: `pagination` can't be used: ) <>
+                     "Music.Album's :uncountable action doesn't paginate by keyset",
+                   fn ->
+                     pagination(Ash.Query.for_read(Music.Album, :uncountable), mode: :keyset)
+                   end
+    end
+
+    test "a mode that isn't one is an error" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: invalid value for :mode option: ) <>
+                     "expected one of [:offset, :keyset], got: :cursor (in options [:pagination])",
+                   fn -> pagination(Ash.Query.new(Music.Album), mode: :cursor) end
     end
 
     test "an action that doesn't paginate isn't paged, and asking it to is an error" do
