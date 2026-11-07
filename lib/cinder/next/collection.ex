@@ -35,23 +35,39 @@ defmodule Cinder.Next.Collection do
     end
   end
 
-  # A new collection starts with the default sort; when the declarations change
-  # after mount, the user's sort, filters and search carry over
+  # A rebuild, when the declarations change after mount: the user's sort, filters
+  # and search carry over, and the page too if the records would be the same
   defp query(%{config: old, query: query}, config) do
     sortable = for %Engine.Field{sortable?: true, name: name} <- config.fields, do: name
     filterable = for %{column: column} <- config.filters, do: column.field
     searchable = for %Engine.Field{searchable?: true, name: name} <- config.fields, do: name
     sort = State.carry_over_sort(query.sort, old.sort.default, config.sort.default, sortable)
 
-    %{
+    carried = %{
       query
       | sort: sort,
         filters: State.carry_over_filters(query.filters, filterable),
-        search: State.carry_over_search(query.search, searchable)
+        search: State.carry_over_search(query.search, searchable),
+        page_size: page_size(config)
     }
+
+    State.carry_over_page(carried, query, read(old) == read(config))
   end
 
-  defp query(_assigns, config), do: %Engine.Query{sort: config.sort.default}
+  # The first build, on mount, before there's a config or query: a new collection
+  # starts on page 1 with the default sort
+  defp query(_assigns, config) do
+    %Engine.Query{sort: config.sort.default, page_size: page_size(config)}
+  end
+
+  # An action that doesn't page reads every record, whatever the size
+  defp page_size(%{pagination: nil}), do: %Engine.Query{}.page_size
+  defp page_size(%{pagination: pagination}), do: pagination.size
+
+  # What decides the records read, besides the query
+  defp read(config) do
+    {Map.take(config, [:source, :actor, :tenant, :scope, :query_opts]), config.search[:fn]}
+  end
 
   @impl true
   def handle_event("sort", %{"field" => field}, socket) do
@@ -64,7 +80,7 @@ defmodule Cinder.Next.Collection do
 
       column ->
         sort = State.toggle_sort(query.sort, field, column.sort.cycle, config.sort.mode)
-        {:noreply, socket |> assign(:query, %{query | sort: sort}) |> load()}
+        {:noreply, socket |> assign(:query, State.first_page(%{query | sort: sort})) |> load()}
     end
   end
 
@@ -73,8 +89,19 @@ defmodule Cinder.Next.Collection do
   def handle_event("filter", params, socket) do
     %{config: config, query: query} = socket.assigns
     filters = Params.filters_from_params(params["filters"] || %{}, config.fields)
-    query = %{query | filters: filters, search: params["search"] || ""}
+    query = State.first_page(%{query | filters: filters, search: params["search"] || ""})
     {:noreply, socket |> assign(:query, query) |> load()}
+  end
+
+  # The page comes from the client, so one that isn't a positive number is ignored
+  def handle_event("page", %{"page" => page}, socket) do
+    case Integer.parse(page) do
+      {page, ""} when page > 0 ->
+        {:noreply, socket |> assign(:query, %{socket.assigns.query | page: page}) |> load()}
+
+      _not_a_page ->
+        {:noreply, socket}
+    end
   end
 
   # Synchronous, and a failed read crashes, until the slices for loading states and
@@ -83,7 +110,7 @@ defmodule Cinder.Next.Collection do
   defp load(socket) do
     %{config: config, query: query} = socket.assigns
     opts = Map.take(config, [:actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
-    opts = [search_fn: config.search[:fn]] ++ opts
+    opts = [search_fn: config.search[:fn], count?: config.pagination[:count?] == true] ++ opts
     {:ok, page} = Engine.run(config.source, config.fields, query, opts)
     filter_values = Params.filter_values(query.filters, config.fields)
     assign(socket, page: page, filter_values: filter_values)
@@ -147,8 +174,39 @@ defmodule Cinder.Next.Collection do
           </tr>
         </tbody>
       </table>
+      <nav :if={@page.page && (@page.previous? or @page.more?)} aria-label="Pagination">
+        <button
+          type="button"
+          phx-click="page"
+          phx-value-page={@page.page - 1}
+          phx-target={@myself}
+          disabled={!@page.previous?}
+        >
+          {dgettext("cinder", "Previous page")}
+        </button>
+        <span>{page_of(@page)}</span>
+        <button
+          type="button"
+          phx-click="page"
+          phx-value-page={@page.page + 1}
+          phx-target={@myself}
+          disabled={!@page.more?}
+        >
+          {dgettext("cinder", "Next page")}
+        </button>
+      </nav>
     </div>
     """
+  end
+
+  # Without a count (the action can't count), there's no total
+  defp page_of(%{count: nil, page: page}) do
+    dgettext("cinder", "Page %{current}", current: page)
+  end
+
+  defp page_of(%{count: count, page: page, page_size: size}) do
+    total = max(ceil(count / size), 1)
+    dgettext("cinder", "Page %{current} of %{total}", current: page, total: total)
   end
 
   defp direction(sort, field) do

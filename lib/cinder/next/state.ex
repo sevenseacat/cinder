@@ -54,4 +54,20 @@ defmodule Cinder.Next.State do
   @doc "The search to keep when the declarations change: all of it, while any field is searchable."
   def carry_over_search(_search, []), do: ""
   def carry_over_search(search, _searchable), do: search
+
+  @doc """
+  The page to keep when the declarations change: the same one if the read gives the
+  same records (`same_source?`, and nothing in `query` but the page changed from
+  `old`), or else the first.
+  """
+  def carry_over_page(query, old, same_source?) do
+    if same_source? and first_page(query) == first_page(old) do
+      query
+    else
+      first_page(query)
+    end
+  end
+
+  @doc "The query on its first page, as after anything that changes which records match."
+  def first_page(query), do: %{query | page: 1, cursor: nil}
 end

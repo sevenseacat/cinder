@@ -90,6 +90,26 @@ defmodule Cinder.Engine do
   defp sort_name(_key), do: nil
 
   @doc """
+  Whether `source`'s read action (the query's, or the resource's primary read) can
+  page by offset, and if so whether it can count the records: Ash's read fails if
+  asked to do either when the action can't.
+  """
+  @spec pagination(Ash.Query.t() | module(), :offset) ::
+          {:ok, %{count?: boolean()}} | {:error, String.t()}
+  def pagination(source, :offset) do
+    query = Ash.Query.new(source)
+    action = query.action || Ash.Resource.Info.primary_action!(query.resource, :read)
+
+    action_name = "#{inspect(query.resource)}'s #{inspect(action.name)} action"
+
+    case action.pagination do
+      %{offset?: true, countable: countable} -> {:ok, %{count?: countable != false}}
+      %{} -> {:error, "#{action_name} doesn't paginate by offset"}
+      _none -> {:error, "#{action_name} doesn't paginate"}
+    end
+  end
+
+  @doc """
   Reads a page of records from `source` (a resource or query): `query`'s
   filters, arguments, search, sort and page, on the `fields` from `field/2`.
 

@@ -28,6 +28,7 @@ msgid_plural "active"
 msgstr[0] "aktiv"
 msgstr[1] "aktiva"
 
+#: lib/cinder/next/collection.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Page %{current} of %{total}"
@@ -44,11 +45,13 @@ msgstr "visar %{start}-%{end} av %{total}"
 msgid "to"
 msgstr "till"
 
+#: lib/cinder/next/collection.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Next page"
 msgstr "Nästa sida"
 
+#: lib/cinder/next/collection.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Previous page"
@@ -201,6 +204,7 @@ msgstr "Skriv för att söka fler alternativ..."
 msgid "An error occurred while loading data"
 msgstr "Ett fel uppstod vid laddning av data"
 
+#: lib/cinder/next/collection.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"

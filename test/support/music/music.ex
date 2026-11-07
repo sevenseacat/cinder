@@ -160,6 +160,10 @@ defmodule Music.Album do
       pagination(offset?: true, keyset?: true, countable: true, required?: false)
     end
 
+    read :uncountable do
+      pagination(offset?: true, countable: false, required?: false)
+    end
+
     read :by_genre do
       argument(:genre, Music.Genre, allow_nil?: false)
       filter(expr(genre == ^arg(:genre)))

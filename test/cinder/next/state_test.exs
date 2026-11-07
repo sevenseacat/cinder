@@ -91,4 +91,18 @@ defmodule Cinder.Next.StateTest do
       assert State.carry_over_search("ab", []) == ""
     end
   end
+
+  describe "carry_over_page/3" do
+    @old %Cinder.Engine.Query{sort: [{"title", :asc}], search: "ab", page: 3}
+
+    test "the page stays if the same read gives the same records" do
+      assert State.carry_over_page(@old, @old, true) == @old
+    end
+
+    test "back to the first page if the source or the query changed" do
+      assert State.carry_over_page(@old, @old, false).page == 1
+      assert State.carry_over_page(%{@old | search: ""}, @old, true).page == 1
+      assert State.carry_over_page(%{@old | page_size: 10}, @old, true).page == 1
+    end
+  end
 end

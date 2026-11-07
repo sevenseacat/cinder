@@ -160,4 +160,18 @@ defmodule Cinder.EngineTest do
       assert query_sorts(track_count: :asc) == []
     end
   end
+
+  describe "pagination/2" do
+    test "an action that pages by offset, counted if it can be" do
+      assert Engine.pagination(Music.Album, :offset) == {:ok, %{count?: true}}
+
+      assert Engine.pagination(Ash.Query.for_read(Music.Album, :uncountable), :offset) ==
+               {:ok, %{count?: false}}
+    end
+
+    test "an action that doesn't paginate can't be paged" do
+      assert Engine.pagination(Ash.Query.for_read(Music.Album, :by_context), :offset) ==
+               {:error, "Music.Album's :by_context action doesn't paginate"}
+    end
+  end
 end

@@ -4,7 +4,15 @@ defmodule Cinder.Next.CollectionTest do
 
   require Ash.Query
 
-  import Phoenix.LiveViewTest, only: [element: 2, render_change: 2, render_component: 2]
+  import Phoenix.LiveViewTest,
+    only: [
+      element: 2,
+      element: 3,
+      render: 1,
+      render_change: 2,
+      render_click: 2,
+      render_component: 2
+    ]
 
   alias Cinder.TestLive.Fixture
 
@@ -234,6 +242,136 @@ defmodule Cinder.Next.CollectionTest do
       |> fill_in("Search", with: "Miles Davis")
       |> assert_has("#albums tbody tr", count: 1)
       |> assert_has("#albums td", text: "Kind of Blue")
+    end
+  end
+
+  describe "paging" do
+    # With the two albums from the main setup, five, in pages of two
+    setup do
+      for title <- ["Cold", "Dark", "Echo"], do: generate(album(title: title))
+      :ok
+    end
+
+    defp paged(query \\ Ash.Query.sort(Music.Album, :title), pagination \\ [size: 2]) do
+      Fixture.register(fn assigns ->
+        assigns = assign(assigns, query: query, pagination: pagination)
+
+        ~H"""
+        <Cinder.Next.collection id="albums" query={@query} pagination={@pagination}>
+          <:field :let={album} name="title" sort filter search>{album.title}</:field>
+        </Cinder.Next.collection>
+        """
+      end)
+    end
+
+    defp titles(session, titles) do
+      Enum.reduce(titles, assert_has(session, "#albums tbody tr", count: length(titles)), fn
+        title, session -> assert_has(session, "#albums td", text: title)
+      end)
+    end
+
+    test "the previous and next pages, and where you are", %{conn: conn} do
+      conn
+      |> visit(paged())
+      |> assert_has("#albums nav[aria-label=Pagination]", text: "Page 1 of 3")
+      |> titles(["Abbey", "Blue"])
+      |> assert_has("#albums nav button[disabled]", text: "Previous page")
+      |> click_button("#albums nav button", "Next page")
+      |> assert_has("#albums nav", text: "Page 2 of 3")
+      |> titles(["Cold", "Dark"])
+      |> click_button("#albums nav button", "Next page")
+      |> assert_has("#albums nav", text: "Page 3 of 3")
+      |> titles(["Echo"])
+      |> assert_has("#albums nav button[disabled]", text: "Next page")
+      |> click_button("#albums nav button", "Previous page")
+      |> titles(["Cold", "Dark"])
+    end
+
+    test "back to the first page when the sort, the filters or the search change",
+         %{conn: conn} do
+      conn
+      |> visit(paged())
+      |> click_button("#albums nav button", "Next page")
+      # Already sorted by title, so now the other way
+      |> click_button("#albums th button", "Title")
+      |> assert_has("#albums nav", text: "Page 1 of 3")
+      |> titles(["Echo", "Dark"])
+      |> click_button("#albums nav button", "Next page")
+      # Abbey, Blue and Echo
+      |> fill_in("Search", with: "e")
+      |> assert_has("#albums nav", text: "Page 1 of 2")
+      |> titles(["Echo", "Blue"])
+      |> click_button("#albums nav button", "Next page")
+      |> fill_in("Title", with: "e")
+      |> assert_has("#albums nav", text: "Page 1 of 2")
+    end
+
+    test "when the parent changes the declarations, the page stays if the records would be the same",
+         %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            query={assigns[:query] || Ash.Query.sort(Music.Album, :title)}
+            pagination={[size: 2]}
+          >
+            <:field :let={album} name="title" label={assigns[:label]}>{album.title}</:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      session = conn |> visit(path) |> click_button("#albums nav button", "Next page")
+
+      parent = fn change ->
+        unwrap(session, fn view ->
+          Fixture.run(view, change)
+          render(view)
+        end)
+      end
+
+      parent.(&assign(&1, :label, "Name"))
+      |> assert_has("#albums th", text: "Name")
+      |> assert_has("#albums nav", text: "Page 2 of 3")
+
+      parent.(&assign(&1, :query, Ash.Query.sort(Music.Album, title: :desc)))
+      |> assert_has("#albums nav", text: "Page 1 of 3")
+      |> titles(["Echo", "Dark"])
+    end
+
+    test "no controls when everything fits on one page", %{conn: conn} do
+      conn
+      |> visit(paged(Ash.Query.sort(Music.Album, :title), size: 5))
+      |> titles(["Abbey", "Blue", "Cold", "Dark", "Echo"])
+      |> refute_has("#albums nav")
+    end
+
+    test "an action that doesn't paginate shows every record", %{conn: conn} do
+      conn
+      |> visit(paged(Ash.Query.for_read(Music.Album, :by_context), []))
+      |> titles(["Abbey", "Blue", "Cold", "Dark", "Echo"])
+      |> refute_has("#albums nav")
+    end
+
+    test "an action that can't count shows the page without a total", %{conn: conn} do
+      query = Music.Album |> Ash.Query.for_read(:uncountable) |> Ash.Query.sort(:title)
+
+      conn
+      |> visit(paged(query))
+      |> assert_has("#albums nav", text: "Page 1")
+      |> refute_has("#albums nav", text: "of")
+      |> click_button("#albums nav button", "Next page")
+      |> titles(["Cold", "Dark"])
+    end
+
+    test "a page that isn't a positive number (a tampered event) is ignored", %{conn: conn} do
+      conn
+      |> visit(paged())
+      |> unwrap(fn view ->
+        next = element(view, "#albums nav button", "Next page")
+        ["0", "-1", "two"] |> Enum.map(&render_click(next, %{"page" => &1})) |> List.last()
+      end)
+      |> assert_has("#albums nav", text: "Page 1 of 3")
     end
   end
 

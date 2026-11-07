@@ -60,6 +60,15 @@ defmodule Cinder.Next.Schema do
          ]},
       default: [],
       doc: "How the collection searches. It has a search box if any field is searchable."
+    ],
+    pagination: [
+      type:
+        {:keyword_list,
+         [size: [type: :pos_integer, default: 25, doc: "How many records a page shows."]]},
+      default: [],
+      doc:
+        "How the collection pages. Pages by offset if the read action can, " <>
+          "and giving this for an action that can't is an error."
     ]
   ]
 

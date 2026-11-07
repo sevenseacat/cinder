@@ -416,4 +416,37 @@ defmodule Cinder.Next.ConfigTest do
       build([field("nope")])
     end
   end
+
+  describe "pagination" do
+    defp pagination(source, pagination) do
+      build([field("title")], id: "albums", query: source, pagination: pagination).pagination
+    end
+
+    test "25 records a page, counted, unless the size is given" do
+      assert build([field("title")]).pagination == %{size: 25, count?: true}
+      assert pagination(Ash.Query.new(Music.Album), size: 10) == %{size: 10, count?: true}
+    end
+
+    test "an action that can't count pages without a count" do
+      query = Ash.Query.for_read(Music.Album, :uncountable)
+      assert pagination(query, []) == %{size: 25, count?: false}
+    end
+
+    test "an action that doesn't paginate isn't paged, and asking it to is an error" do
+      query = Ash.Query.for_read(Music.Album, :by_context)
+      assert pagination(query, []) == nil
+
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: `pagination` can't be used: ) <>
+                     "Music.Album's :by_context action doesn't paginate",
+                   fn -> pagination(query, size: 10) end
+    end
+
+    test "a size that isn't a positive integer is an error" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: invalid value for :size option: ) <>
+                     "expected positive integer, got: 0 (in options [:pagination])",
+                   fn -> pagination(Ash.Query.new(Music.Album), size: 0) end
+    end
+  end
 end

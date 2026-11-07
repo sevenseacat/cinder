@@ -17,6 +17,8 @@ defmodule Cinder.Next.Config do
   # `filters` are the filter controls: the column map their type renders from (with
   # the column's label), and the type's module.
   # `search` is the search box's options, or `nil` when no field is searchable.
+  # `pagination` is the page size and whether to count, or `nil` when the action
+  # doesn't page.
   defstruct [
     :source,
     :actor,
@@ -27,6 +29,7 @@ defmodule Cinder.Next.Config do
     filters: [],
     query_opts: [],
     search: nil,
+    pagination: nil,
     sort: %{mode: :additive, default: []}
   ]
 
@@ -39,6 +42,8 @@ defmodule Cinder.Next.Config do
   end
 
   def build(options, field_slots) do
+    # The schema fills in the page size, so whether `pagination` was given is asked first
+    paginate? = options[:pagination] not in [nil, []]
     options = Schema.validate_collection!(options)
     source = source!(options[:resource], options[:query])
     resource = Ash.Query.new(source).resource
@@ -52,6 +57,7 @@ defmodule Cinder.Next.Config do
       fields: fields,
       filters: filters(fields, declared),
       search: search(options[:search], declared),
+      pagination: pagination!(source, options, paginate?),
       actor: options[:actor],
       tenant: options[:tenant],
       scope: options[:scope],
@@ -82,6 +88,23 @@ defmodule Cinder.Next.Config do
   defp search(options, declared) do
     if Enum.any?(declared, & &1.search?) do
       %{label: options[:label], placeholder: options[:placeholder], fn: options[:fn]}
+    end
+  end
+
+  # Paged if the action can be. Asking for pagination it can't do is a mistake, as
+  # it is in Ash; by default, it just reads every record.
+  defp pagination!(source, options, paginate?) do
+    case Engine.pagination(source, :offset) do
+      {:ok, %{count?: count?}} ->
+        %{size: options[:pagination][:size], count?: count?}
+
+      {:error, message} when paginate? ->
+        raise ArgumentError,
+              ~s(<Cinder.Next.collection id="#{options[:id]}">: `pagination` can't be used: ) <>
+                message
+
+      {:error, _message} ->
+        nil
     end
   end
 
