@@ -39,6 +39,27 @@ defmodule Cinder.Next.Schema do
          ]},
       default: [],
       doc: "How the collection sorts."
+    ],
+    search: [
+      type:
+        {:keyword_list,
+         [
+           label: [type: :string, doc: "The search box's label. Defaults to \"Search\"."],
+           placeholder: [
+             type: :string,
+             doc: "The search box's placeholder. Defaults to \"Search...\"."
+           ],
+           fn: [
+             type: {:fun, 3},
+             doc:
+               "Searches instead of a case-insensitive `contains` on each searchable field: " <>
+                 "called with the `Ash.Query`, the searchable fields " <>
+                 "(`%{name: \"artist.name\", expr: <Ash expression>}`), and the text. " <>
+                 "Returns the query."
+           ]
+         ]},
+      default: [],
+      doc: "How the collection searches. It has a search box if any field is searchable."
     ]
   ]
 
@@ -59,6 +80,7 @@ defmodule Cinder.Next.Schema do
       default: true,
       doc: "Whether it's a column. If not, it has no heading or cells, and needs no content."
     ],
+    search: [type: :boolean, default: false, doc: "Search the field from the search box."],
     # `sort` and `filter` alone (`true`) mean `[]`, and `false` is left out, before this
     sort: [
       type:

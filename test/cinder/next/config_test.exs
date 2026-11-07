@@ -303,6 +303,82 @@ defmodule Cinder.Next.ConfigTest do
     end
   end
 
+  describe "searching" do
+    test "a field with `search` is searched, whether it's a column or not" do
+      config =
+        build([
+          field("title", search: true),
+          field("artist.name", search: true, column: false, inner_block: nil),
+          field("price", search: false),
+          field("genre")
+        ])
+
+      assert Enum.map(config.fields, &{&1.name, &1.searchable?}) == [
+               {"title", true},
+               {"artist.name", true},
+               {"price", false},
+               {"genre", false}
+             ]
+
+      assert config.search == %{label: nil, placeholder: nil, fn: nil}
+    end
+
+    # Not an error: fields can become searchable after mount
+    test "without a searchable field, there's no search, even with search options" do
+      assert build([field("title")]).search == nil
+
+      config =
+        build([field("title")], id: "albums", resource: Music.Album, search: [label: "Find"])
+
+      assert config.search == nil
+    end
+
+    test "the search's label, placeholder and function" do
+      search_fn = fn query, _fields, _text -> query end
+
+      config =
+        build([field("title", search: true)],
+          id: "albums",
+          resource: Music.Album,
+          search: [label: "Find", placeholder: "Title...", fn: search_fn]
+        )
+
+      assert config.search == %{label: "Find", placeholder: "Title...", fn: search_fn}
+    end
+
+    test "search options that aren't a keyword list, or aren't search options, are errors" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: invalid value for :search option: ) <>
+                     "expected keyword list, got: false",
+                   fn ->
+                     build([field("title", search: true)],
+                       id: "albums",
+                       resource: Music.Album,
+                       search: false
+                     )
+                   end
+
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: unknown options [:nope], ) <>
+                     "valid options are: [:label, :placeholder, :fn] (in options [:search])",
+                   fn ->
+                     build([field("title", search: true)],
+                       id: "albums",
+                       resource: Music.Album,
+                       search: [nope: true]
+                     )
+                   end
+    end
+
+    test "searching a field that can't be searched is an error naming the field" do
+      assert_raise ArgumentError,
+                   ~s("artist" can't be searched: it is a relationship, not a field),
+                   fn ->
+                     build([field("artist", search: true)])
+                   end
+    end
+  end
+
   test "a field with `column={false}` is a field, but not a column, and needs no content" do
     config =
       build([

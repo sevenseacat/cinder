@@ -50,4 +50,8 @@ defmodule Cinder.Next.State do
 
   @doc "The filters to keep when the declarations change: those still filterable."
   def carry_over_filters(filters, filterable), do: Map.take(filters, filterable)
+
+  @doc "The search to keep when the declarations change: all of it, while any field is searchable."
+  def carry_over_search(_search, []), do: ""
+  def carry_over_search(search, _searchable), do: search
 end

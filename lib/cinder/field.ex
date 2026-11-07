@@ -15,6 +15,7 @@ defmodule Cinder.Field do
   - `relationships` - the relationship path to the field, outermost first
   - `resource` - the resource the field is on, at the end of that path
   - `name` - the field on that resource (for an embedded field, the attribute holding it)
+  - `embedded_path` - for an embedded field, the names inside that attribute, outermost first
   - `calculation` - the calculation, when `kind` is `:calculation`
   - `attribute` - the attribute holding the value: the attribute itself, or for an embedded
     field the one at the end of its path (`nil` under a map, whose keys aren't declared)
@@ -23,6 +24,7 @@ defmodule Cinder.Field do
           relationships: [atom()],
           resource: module(),
           name: atom(),
+          embedded_path: [String.t()],
           kind: :attribute | :embedded | :relationship | :aggregate | :calculation,
           calculation: struct() | nil,
           attribute: struct() | nil
@@ -81,6 +83,22 @@ defmodule Cinder.Field do
   def load(%{kind: :aggregate} = field), do: wrap(field.relationships, field.name)
   def load(%{kind: :relationship} = field), do: wrap(field.relationships, {field.name, []})
   def load(field), do: wrap(field.relationships, nil)
+
+  @doc """
+  The field as an Ash expression, for a query to use: a reference to it, or for an embedded
+  field, the path into its attribute. Through a to-many relationship, a condition on it holds
+  if it does for any related record.
+  """
+  @spec expr(t()) :: Ash.Expr.t()
+  def expr(%{kind: :embedded} = field) do
+    require Ash.Expr
+
+    attribute = Ash.Expr.ref(field.relationships, field.name)
+    path = Enum.map(field.embedded_path, &Cinder.Filter.Helpers.declared_field_atom/1)
+    Ash.Expr.expr(get_path(^attribute, ^path))
+  end
+
+  def expr(field), do: Ash.Expr.ref(field.relationships, field.name)
 
   @doc "The field's Ash type, or `nil` for a relationship or a key under a map."
   @spec type(t()) :: Ash.Type.t() | nil
@@ -165,7 +183,12 @@ defmodule Cinder.Field do
   defp resolve_embedded(resource, name, nested, relationships) do
     with %{name: attribute, type: type} <- Ash.Resource.Info.attribute(resource, name),
          {:ok, leaf} <- nested_attribute(type, nested) do
-      {:ok, %{field(resource, relationships, attribute, :embedded, nil) | attribute: leaf}}
+      {:ok,
+       %{
+         field(resource, relationships, attribute, :embedded, nil)
+         | attribute: leaf,
+           embedded_path: nested
+       }}
     else
       _ -> :error
     end
@@ -191,6 +214,7 @@ defmodule Cinder.Field do
       relationships: relationships,
       resource: resource,
       name: name,
+      embedded_path: [],
       kind: kind,
       calculation: if(kind == :calculation, do: definition),
       attribute: if(kind == :attribute, do: definition)

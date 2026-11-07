@@ -137,12 +137,14 @@ msgstr ""
 
 #: lib/cinder/collection.ex
 #: lib/cinder/controls.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "Search"
 msgstr ""
 
 #: lib/cinder/collection.ex
 #: lib/cinder/controls.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "Search..."
 msgstr ""

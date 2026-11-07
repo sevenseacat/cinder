@@ -47,6 +47,15 @@ defmodule Cinder.FieldTest do
     @moduledoc false
     use Ash.Resource, domain: nil, data_layer: Ash.DataLayer.Ets
 
+    # Each test process has its own records
+    ets do
+      private?(true)
+    end
+
+    actions do
+      defaults([:read])
+    end
+
     attributes do
       uuid_primary_key(:id)
       attribute(:name, :string)
@@ -68,6 +77,15 @@ defmodule Cinder.FieldTest do
   defmodule Item do
     @moduledoc false
     use Ash.Resource, domain: nil, data_layer: Ash.DataLayer.Ets
+
+    # Each test process has its own records
+    ets do
+      private?(true)
+    end
+
+    actions do
+      defaults([:read])
+    end
 
     attributes do
       uuid_primary_key(:id)
@@ -95,6 +113,17 @@ defmodule Cinder.FieldTest do
       calculate :optional_arg, :string, expr(title <> ^arg(:suffix)) do
         argument(:suffix, :string, default: "!")
       end
+    end
+  end
+
+  # To read them by, for `expr/1`
+  defmodule Domain do
+    @moduledoc false
+    use Ash.Domain, validate_config_inclusion?: false
+
+    resources do
+      resource(Cinder.FieldTest.Owner)
+      resource(Cinder.FieldTest.Item)
     end
   end
 
@@ -263,6 +292,50 @@ defmodule Cinder.FieldTest do
       assert load("owner.name_lower") == {:owner, [:name_lower]}
       assert load("owner.items.title_lower") == {:owner, [{:items, [:title_lower]}]}
       assert load("owner.items.details__label") == {:owner, [{:items, []}]}
+    end
+  end
+
+  describe "expr/1" do
+    # The records whose field contains `text`, filtering by the field's expression
+    defp matching(resource, field, text) do
+      require Ash.Query
+
+      {:ok, resolved} = Field.resolve(resource, field)
+      expr = Field.expr(resolved)
+
+      resource
+      |> Ash.Query.filter(contains(type(^expr, :string), ^text))
+      |> Ash.read!(domain: Domain)
+      |> Enum.map(&(Map.get(&1, :title) || &1.name))
+      |> Enum.sort()
+    end
+
+    test "an expression of each kind of field, to query by" do
+      ann = Ash.Seed.seed!(Owner, %{name: "Ann"})
+      bob = Ash.Seed.seed!(Owner, %{name: "Bob"})
+
+      Ash.Seed.seed!(Item, %{
+        title: "Kettle",
+        owner_id: ann.id,
+        details: %Details{label: "Steel", inner: %Inner{street: "High St"}},
+        meta: %{colour: "red"}
+      })
+
+      Ash.Seed.seed!(Item, %{title: "Lamp", owner_id: ann.id, details: %Details{label: "Brass"}})
+      Ash.Seed.seed!(Item, %{title: "Mug", owner_id: bob.id, details: %Details{label: "Clay"}})
+
+      assert matching(Item, "title", "Kett") == ["Kettle"]
+      assert matching(Item, "title_lower", "kett") == ["Kettle"]
+      assert matching(Item, "owner.name", "Bob") == ["Mug"]
+      assert matching(Item, "owner.name_lower", "bob") == ["Mug"]
+      assert matching(Item, "details__label", "Brass") == ["Lamp"]
+      assert matching(Item, "details__inner__street", "High") == ["Kettle"]
+      assert matching(Item, "meta__colour", "red") == ["Kettle"]
+      assert matching(Owner, "item_count", "2") == ["Ann"]
+
+      # Through a to-many relationship, a record matches if any related one does
+      assert matching(Owner, "items.title", "Mug") == ["Bob"]
+      assert matching(Owner, "items.details__label", "Steel") == ["Ann"]
     end
   end
 end

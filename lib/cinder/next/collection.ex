@@ -8,6 +8,7 @@ defmodule Cinder.Next.Collection do
   # has done (a `Cinder.Engine.Query`, for now), and the page of records it shows.
 
   use Phoenix.LiveComponent
+  use Cinder.Messages
 
   alias Cinder.{Engine, Params}
   alias Cinder.Next.{Config, State}
@@ -35,12 +36,19 @@ defmodule Cinder.Next.Collection do
   end
 
   # A new collection starts with the default sort; when the declarations change
-  # after mount, the user's sort and filters carry over
+  # after mount, the user's sort, filters and search carry over
   defp query(%{config: old, query: query}, config) do
     sortable = for %Engine.Field{sortable?: true, name: name} <- config.fields, do: name
     filterable = for %{column: column} <- config.filters, do: column.field
+    searchable = for %Engine.Field{searchable?: true, name: name} <- config.fields, do: name
     sort = State.carry_over_sort(query.sort, old.sort.default, config.sort.default, sortable)
-    %{query | sort: sort, filters: State.carry_over_filters(query.filters, filterable)}
+
+    %{
+      query
+      | sort: sort,
+        filters: State.carry_over_filters(query.filters, filterable),
+        search: State.carry_over_search(query.search, searchable)
+    }
   end
 
   defp query(_assigns, config), do: %Engine.Query{sort: config.sort.default}
@@ -60,11 +68,13 @@ defmodule Cinder.Next.Collection do
     end
   end
 
-  # Input for fields that aren't filtered (from a tampered event) is left out
+  # The search box is in the filter form. Input for fields that aren't filtered (from
+  # a tampered event) is left out, and a search without a box searches nothing.
   def handle_event("filter", params, socket) do
     %{config: config, query: query} = socket.assigns
     filters = Params.filters_from_params(params["filters"] || %{}, config.fields)
-    {:noreply, socket |> assign(:query, %{query | filters: filters}) |> load()}
+    query = %{query | filters: filters, search: params["search"] || ""}
+    {:noreply, socket |> assign(:query, query) |> load()}
   end
 
   # Synchronous, and a failed read crashes, until the slices for loading states and
@@ -73,6 +83,7 @@ defmodule Cinder.Next.Collection do
   defp load(socket) do
     %{config: config, query: query} = socket.assigns
     opts = Map.take(config, [:actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
+    opts = [search_fn: config.search[:fn]] ++ opts
     {:ok, page} = Engine.run(config.source, config.fields, query, opts)
     filter_values = Params.filter_values(query.filters, config.fields)
     assign(socket, page: page, filter_values: filter_values)
@@ -82,7 +93,23 @@ defmodule Cinder.Next.Collection do
   def render(assigns) do
     ~H"""
     <div id={@id}>
-      <form :if={@config.filters != []} id={"#{@id}-filters"} phx-change="filter" phx-target={@myself}>
+      <form
+        :if={@config.filters != [] or @config.search != nil}
+        id={"#{@id}-filters"}
+        phx-change="filter"
+        phx-target={@myself}
+      >
+        <div :if={@config.search}>
+          <label for={"#{@id}-search"}>{@config.search.label || dgettext("cinder", "Search")}</label>
+          <input
+            type="search"
+            id={"#{@id}-search"}
+            name="search"
+            value={@query.search}
+            placeholder={@config.search.placeholder || dgettext("cinder", "Search...")}
+            phx-debounce="300"
+          />
+        </div>
         <div :for={%{column: column, module: module} <- @config.filters}>
           <label for={Cinder.Filter.filter_id(@id, column.field)}>{column.label}</label>
           {module.render(column, @filter_values[column.field], @theme, %{

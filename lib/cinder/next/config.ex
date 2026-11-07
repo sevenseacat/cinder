@@ -16,6 +16,7 @@ defmodule Cinder.Next.Config do
   # `sort` is the mode, and the default: the sort the collection starts with.
   # `filters` are the filter controls: the column map their type renders from (with
   # the column's label), and the type's module.
+  # `search` is the search box's options, or `nil` when no field is searchable.
   defstruct [
     :source,
     :actor,
@@ -25,6 +26,7 @@ defmodule Cinder.Next.Config do
     fields: [],
     filters: [],
     query_opts: [],
+    search: nil,
     sort: %{mode: :additive, default: []}
   ]
 
@@ -49,6 +51,7 @@ defmodule Cinder.Next.Config do
       columns: columns,
       fields: fields,
       filters: filters(fields, declared),
+      search: search(options[:search], declared),
       actor: options[:actor],
       tenant: options[:tenant],
       scope: options[:scope],
@@ -71,6 +74,14 @@ defmodule Cinder.Next.Config do
       [name | _] ->
         raise ArgumentError,
               ~s(<:field name="#{name}"> is declared twice: each field is declared once)
+    end
+  end
+
+  # A label or placeholder not given stays `nil`: its default is translated when
+  # rendered, in the user's locale
+  defp search(options, declared) do
+    if Enum.any?(declared, & &1.search?) do
+      %{label: options[:label], placeholder: options[:placeholder], fn: options[:fn]}
     end
   end
 
@@ -123,6 +134,7 @@ defmodule Cinder.Next.Config do
       label: label,
       column?: attributes[:column],
       sort: declared_sort(attributes[:sort]),
+      search?: attributes[:search],
       filter: declared_filter(attributes[:filter], label)
     }
   end
@@ -145,6 +157,7 @@ defmodule Cinder.Next.Config do
       name: declared.field,
       column?: declared.column?,
       sortable?: declared.sort != nil,
+      searchable?: declared.search?,
       filter: declared.filter && Map.delete(declared.filter, :label)
     }
 

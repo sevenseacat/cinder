@@ -2,6 +2,8 @@ defmodule Cinder.EngineRunTest do
   # The Music records are shared ETS data
   use Cinder.ConnCase, async: false
 
+  require Ash.Query
+
   alias Cinder.Engine
   alias Cinder.Engine.{Field, Page, Query}
 
@@ -165,6 +167,26 @@ defmodule Cinder.EngineRunTest do
 
   test "searches the searchable fields" do
     assert titles(run(%{search: "bl"})) == ["Blue"]
+  end
+
+  test "a custom search gets each searchable field's name and expression, and the text" do
+    test = self()
+
+    search_fn = fn query, fields, text ->
+      send(test, {:searched, Enum.map(fields, & &1.name), text})
+      %{expr: title} = Enum.find(fields, &(&1.name == "title"))
+      Ash.Query.filter(query, ^title == ^text)
+    end
+
+    fields =
+      fields(%{
+        "title" => %{searchable?: true},
+        "artist.name" => %{searchable?: true},
+        "price" => %{column?: true}
+      })
+
+    assert titles(run(%{search: "Blue"}, [search_fn: search_fn], fields)) == ["Blue"]
+    assert_received {:searched, ["artist.name", "title"], "Blue"}
   end
 
   test "loads what the columns need, and only the columns" do

@@ -2,6 +2,8 @@ defmodule Cinder.Next.CollectionTest do
   # The Music records are shared ETS data
   use Cinder.ConnCase, async: false
 
+  require Ash.Query
+
   import Phoenix.LiveViewTest, only: [element: 2, render_change: 2, render_component: 2]
 
   alias Cinder.TestLive.Fixture
@@ -167,6 +169,71 @@ defmodule Cinder.Next.CollectionTest do
       end)
       |> assert_has("#albums tbody tr", count: 1)
       |> assert_has("#albums td", text: "Abbey")
+    end
+  end
+
+  describe "searching" do
+    setup do
+      miles = generate(artist(name: "Miles Davis"))
+      generate(album(title: "Kind of Blue", genre: :jazz, artist_id: miles.id))
+      :ok
+    end
+
+    defp searchable(search \\ []) do
+      Fixture.register(fn assigns ->
+        assigns = assign(assigns, :search, search)
+
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album} search={@search}>
+          <:field :let={album} name="title" search>{album.title}</:field>
+          <:field name="artist.name" search column={false} />
+        </Cinder.Next.collection>
+        """
+      end)
+    end
+
+    test "typing in the search box shows the records matching any searchable field, in any case",
+         %{conn: conn} do
+      conn
+      |> visit(searchable())
+      |> assert_has("#albums-filters label", text: "Search")
+      |> assert_has("#albums-filters input[type=search][placeholder='Search...']")
+      |> fill_in("Search", with: "BLUE")
+      |> assert_has("#albums tbody tr", count: 2)
+      |> fill_in("Search", with: "miles")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Kind of Blue")
+      |> fill_in("Search", with: "")
+      |> assert_has("#albums tbody tr", count: 3)
+    end
+
+    test "without a searchable field there's no search box", %{conn: conn} do
+      conn
+      |> visit(filterable())
+      |> refute_has("#albums-filters input[type=search]")
+    end
+
+    test "the search box's label and placeholder", %{conn: conn} do
+      conn
+      |> visit(searchable(label: "Find", placeholder: "Title or artist"))
+      |> assert_has("#albums-filters label", text: "Find")
+      |> assert_has("#albums-filters input[type=search][placeholder='Title or artist']")
+    end
+
+    test "a custom search function's query is the one read", %{conn: conn} do
+      # Only an exact artist name, which the default search wouldn't do
+      search_fn = fn query, fields, text ->
+        %{expr: artist} = Enum.find(fields, &(&1.name == "artist.name"))
+        Ash.Query.filter(query, ^artist == ^text)
+      end
+
+      conn
+      |> visit(searchable(fn: search_fn))
+      |> fill_in("Search", with: "miles")
+      |> refute_has("#albums tbody tr")
+      |> fill_in("Search", with: "Miles Davis")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Kind of Blue")
     end
   end
 

@@ -102,10 +102,11 @@ defmodule Cinder.Engine do
       ones `Ash.Query.for_read/4` also takes reach the query when it's built, so
       the action's preparations see them. `load` is merged with the columns' loads.
     * `pagination` - `:offset` (default) or `:keyset`
-    * `search_fn` - a function to search with instead of a `contains` on each
-      searchable field, called as `search_fn.(query, searchable_columns, term)`
-      with the `Ash.Query` so far, the searchable fields as column maps (`field`,
-      `label`, `filter_type`, ...), and the search term. It returns the query.
+    * `search_fn` - a function to search with instead of a case-insensitive
+      `contains` on each searchable field, called as `search_fn.(query, fields, text)`
+      with the `Ash.Query` so far, the searchable fields in order, each as
+      `%{name: "artist.name", expr: <Ash expression>}`, and the search text. It
+      returns the query.
     * `count?` - whether to count the records (default `true`)
     * `arguments` - the names of the read action arguments the user has inputs
       for, so errors about them go on those inputs
@@ -139,13 +140,29 @@ defmodule Cinder.Engine do
       read_opts: read_opts,
       pagination_mode: Keyword.get(opts, :pagination, :offset),
       count_mode: Keyword.get(opts, :count?, true),
-      search_fn: opts[:search_fn]
+      search_fn: search_fn(opts[:search_fn], source, fields)
     ]
 
     case QueryBuilder.build_and_execute(source, options) do
       {:ok, result} -> {:ok, page(result, query, options[:pagination_mode])}
       {:error, reason} -> {:error, error(reason, Keyword.get(opts, :arguments, []))}
     end
+  end
+
+  # `QueryBuilder` calls a search function with column maps, which stay behind the
+  # engine: the shell's gets each searchable field's name and expression instead
+  defp search_fn(nil, _source, _fields), do: nil
+
+  defp search_fn(search_fn, source, fields) do
+    resource = Ash.Query.new(source).resource
+
+    searchable =
+      for %Field{searchable?: true, name: name} <- fields do
+        {:ok, resolved} = Cinder.Field.resolve(resource, name)
+        %{name: name, expr: Cinder.Field.expr(resolved)}
+      end
+
+    fn query, _columns, text -> search_fn.(query, searchable, text) end
   end
 
   # Ash wraps its errors in a class (`Ash.Error.Invalid`, `Ash.Error.Unknown`, ...),

@@ -23,6 +23,10 @@ defmodule Cinder.Next do
     default: [],
     doc: "How the collection sorts: `[mode: :additive | :exclusive]`"
 
+  attr :search, :list,
+    default: [],
+    doc: "How the collection searches: `[label: ..., placeholder: ..., fn: ...]`"
+
   slot :field,
     required: true,
     doc: "A field, shown as a column with its content for each record" do
@@ -37,6 +41,8 @@ defmodule Cinder.Next do
     attr :filter, :any,
       doc:
         "Filter by the field: `true`, or `[type: ..., label: ..., ...]` with the type's options"
+
+    attr :search, :boolean, doc: "Search the field from the search box"
   end
 
   # Runs on every parent render, so it only hands everything on: the collection

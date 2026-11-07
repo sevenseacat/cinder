@@ -84,4 +84,11 @@ defmodule Cinder.Next.StateTest do
                %{"genre" => %{type: :select, value: "rock", operator: :equals}}
     end
   end
+
+  describe "carry_over_search/2" do
+    test "the search stays while any field is searchable" do
+      assert State.carry_over_search("ab", ["title"]) == "ab"
+      assert State.carry_over_search("ab", []) == ""
+    end
+  end
 end
