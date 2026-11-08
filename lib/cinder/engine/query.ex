@@ -9,6 +9,8 @@ defmodule Cinder.Engine.Query do
   #
   # An empty `sort` leaves the source query's own sort alone. `page` is for offset
   # pagination, and `cursor` (`{:after | :before, cursor}`) for keyset.
+  # `page_size` is `nil` when the collection isn't paged; an action that pages
+  # anyway uses the default.
 
   @type t :: %__MODULE__{
           filters: %{String.t() => map()},
@@ -17,7 +19,7 @@ defmodule Cinder.Engine.Query do
           sort: [{String.t(), atom()}],
           page: pos_integer(),
           cursor: nil | {:after | :before, String.t()},
-          page_size: pos_integer()
+          page_size: pos_integer() | nil
         }
 
   defstruct filters: %{},

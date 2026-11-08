@@ -89,6 +89,12 @@ defmodule Cinder.EngineRunTest do
     assert %Page{more?: true, previous?: false} = back
   end
 
+  test "with no page size, an action that doesn't page reads every record, and one that does uses the default" do
+    assert %Page{page_size: nil} = page = run(%{page_size: nil}, action: :by_context)
+    assert length(page.records) == 3
+    assert %Page{page_size: 25} = run(%{page_size: nil}, action: :paginated)
+  end
+
   test "offset and unpaginated pages have no cursors" do
     assert %Page{first_cursor: nil, last_cursor: nil} = run(%{}, action: :paginated)
     assert %Page{first_cursor: nil, last_cursor: nil} = run(%{})

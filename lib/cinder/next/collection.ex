@@ -48,7 +48,7 @@ defmodule Cinder.Next.Collection do
       | sort: sort,
         filters: State.carry_over_filters(query.filters, filterable),
         search: State.carry_over_search(query.search, searchable),
-        page_size: page_size(config)
+        page_size: config.pagination[:size]
     }
 
     State.carry_over_page(carried, query, read(old) == read(config))
@@ -57,12 +57,8 @@ defmodule Cinder.Next.Collection do
   # The first build, on mount, before there's a config or query: a new collection
   # starts on page 1 with the default sort
   defp query(_assigns, config) do
-    %Engine.Query{sort: config.sort.default, page_size: page_size(config)}
+    %Engine.Query{sort: config.sort.default, page_size: config.pagination[:size]}
   end
-
-  # An action that doesn't page reads every record, whatever the size
-  defp page_size(%{pagination: nil}), do: %Engine.Query{}.page_size
-  defp page_size(%{pagination: pagination}), do: pagination.size
 
   # What decides the records read, besides the query
   defp read(config) do

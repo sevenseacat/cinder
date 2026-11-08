@@ -161,7 +161,7 @@ defmodule Cinder.Engine do
       search_term: query.search,
       sort_by: query.sort,
       current_page: query.page,
-      page_size: query.page_size,
+      page_size: query.page_size || %Query{}.page_size,
       after_keyset: Query.cursor(query, :after),
       before_keyset: Query.cursor(query, :before),
       scope: opts[:scope],
