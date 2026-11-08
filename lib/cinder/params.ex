@@ -13,7 +13,7 @@ defmodule Cinder.Params do
   #
   # Input comes from users, so input that can't be used is left out, never an error.
 
-  alias Cinder.Engine.{Field, Query}
+  alias Cinder.Engine.{Argument, Field, Query}
   alias Cinder.{FilterManager, UrlManager}
 
   # The keys `to_url/4` writes that aren't a field's or an argument's
@@ -23,23 +23,35 @@ defmodule Cinder.Params do
   The filters in a filter form's params (`%{"genre" => "rock", "price_min" =>
   "10"}`), as `Cinder.Engine.Query`'s `filters`: each filterable field's input
   as its filter type's value. Input a field's filter can't use is left out.
+
+  Given `Cinder.Engine.Argument`s instead, the same for their inputs, as
+  `Cinder.Engine.Query`'s `arguments`.
   """
-  @spec filters_from_params(%{String.t() => term()}, [Field.t()]) :: %{String.t() => map()}
-  def filters_from_params(params, fields) do
-    FilterManager.params_to_filters(params, Enum.map(fields, &Field.to_column_map/1))
+  @spec filters_from_params(%{String.t() => term()}, [Field.t() | Argument.t()]) ::
+          %{String.t() => map()}
+  def filters_from_params(params, inputs) do
+    FilterManager.params_to_filters(params, Enum.map(inputs, &column_map/1))
   end
+
+  defp column_map(%Field{} = field), do: Field.to_column_map(field)
+  defp column_map(%Argument{} = argument), do: Argument.to_column_map(argument)
+
+  # Every argument has an input
+  defp filtered?(%Field{filter: filter}), do: filter != nil
+  defp filtered?(%Argument{}), do: true
 
   @doc """
   The other way: `filters` as the values each filterable field's control shows
   (`"rock"`, `%{min: "10", max: ""}`), or its type's empty value if it isn't
-  filtered.
+  filtered. Takes `Cinder.Engine.Argument`s and their values too.
   """
-  @spec filter_values(%{String.t() => map()}, [Field.t()]) :: %{String.t() => term()}
-  def filter_values(filters, fields) do
+  @spec filter_values(%{String.t() => map()}, [Field.t() | Argument.t()]) ::
+          %{String.t() => term()}
+  def filter_values(filters, inputs) do
     # A bridge: `build_filter_values` formats with a hardcoded list of types, so a
     # custom type gets its raw value. Each type should format its own, as each
     # parses its own URL value, when filter types are redesigned.
-    columns = for %Field{filter: filter} = field <- fields, filter, do: Field.to_column_map(field)
+    columns = for input <- inputs, filtered?(input), do: column_map(input)
     FilterManager.build_filter_values(columns, filters)
   end
 
@@ -49,8 +61,8 @@ defmodule Cinder.Params do
 
   Options:
 
-    * `arguments` - the names of the read action's arguments, which go in the URL
-      under their own names
+    * `arguments` - the read action's `Cinder.Engine.Argument`s, whose values go
+      in the URL under their own names, encoded as filters' are
   """
   @spec to_url(Query.t(), [Field.t()], Query.t(), keyword()) :: %{String.t() => String.t()}
   def to_url(%Query{} = query, fields, %Query{} = defaults, opts) do
@@ -67,7 +79,7 @@ defmodule Cinder.Params do
     |> UrlManager.encode_state()
     |> Map.new(fn {key, value} -> {to_string(key), value} end)
     |> Map.merge(unsorted(query.sort, defaults.sort))
-    |> Map.merge(arguments(query.arguments, opts))
+    |> Map.merge(argument_params(query.arguments, opts))
   end
 
   # A URL without `sort` has the default sort, so no sort, when the default has
@@ -86,7 +98,7 @@ defmodule Cinder.Params do
 
   Options:
 
-    * `arguments` - the names of the read action's arguments
+    * `arguments` - the read action's `Cinder.Engine.Argument`s
     * `page_sizes` - the page sizes the URL may ask for (default: only the
       default's), so a URL can't ask for any number of records
     * `search?` - whether the collection can be searched (default: `true`)
@@ -106,7 +118,7 @@ defmodule Cinder.Params do
 
     query = %Query{
       filters: filters_from_params(params, fields),
-      arguments: arguments(params, opts),
+      arguments: filters_from_params(params, Keyword.get(opts, :arguments, [])),
       search: if(search?, do: params["search"], else: defaults.search),
       sort: sort,
       page: UrlManager.decode_page(params["page"]),
@@ -123,12 +135,20 @@ defmodule Cinder.Params do
   end
 
   @doc """
+  The keys `to_url/4` writes that aren't a field's or an argument's, so no field
+  or argument can have one as its name.
+  """
+  @spec own_keys() :: [String.t()]
+  def own_keys, do: @own_keys
+
+  @doc """
   Every key `to_url/4` may write for `fields`, so whatever keeps a URL's other
   params knows which are the collection's. Takes `to_url/4`'s `arguments`.
   """
   @spec url_keys([Field.t()], keyword()) :: [String.t()]
   def url_keys(fields, opts) do
-    @own_keys ++ filterable(fields) ++ Keyword.get(opts, :arguments, [])
+    arguments = for %Argument{name: name} <- Keyword.get(opts, :arguments, []), do: name
+    @own_keys ++ filterable(fields) ++ arguments
   end
 
   defp filterable(fields) do
@@ -144,13 +164,13 @@ defmodule Cinder.Params do
     end
   end
 
-  # The arguments' values that aren't blank, as strings
-  defp arguments(values, opts) do
-    for name <- Keyword.get(opts, :arguments, []),
-        value = values[name],
-        value not in [nil, ""],
-        into: %{},
-        do: {name, to_string(value)}
+  defp argument_params(values, opts) do
+    names = for %Argument{name: name} <- Keyword.get(opts, :arguments, []), do: name
+
+    values
+    |> Map.take(names)
+    |> UrlManager.encode_filters()
+    |> Map.new(fn {key, value} -> {to_string(key), value} end)
   end
 
   defp page_size(param, default, allowed) do

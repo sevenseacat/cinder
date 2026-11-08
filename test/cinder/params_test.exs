@@ -2,7 +2,7 @@ defmodule Cinder.ParamsTest do
   use ExUnit.Case, async: true
 
   alias Cinder.{Engine, Params}
-  alias Cinder.Engine.{Field, Query}
+  alias Cinder.Engine.{Argument, Field, Query}
 
   defp fields do
     for {name, declared} <- [
@@ -14,6 +14,18 @@ defmodule Cinder.ParamsTest do
         ] do
       {:ok, field} = Engine.field(Music.Album, struct!(Field, Map.put(declared, :name, name)))
       field
+    end
+  end
+
+  defp arguments do
+    for {name, input} <- [
+          {"size", %{}},
+          {"labels", %{options: [options: [{"A", "a"}, {"B", "b"}]]}}
+        ] do
+      {:ok, argument} =
+        Engine.argument(Music.Album, :by_inputs, %Argument{name: name, input: input})
+
+      argument
     end
   end
 
@@ -61,10 +73,13 @@ defmodule Cinder.ParamsTest do
 
   describe "to_url/4 and from_url/4" do
     @defaults %Query{sort: [{"title", :asc}], page_size: 25}
-    @opts [arguments: ["year"], page_sizes: [25, 50]]
+    @opts [page_sizes: [25, 50]]
 
-    defp to_url(query), do: Params.to_url(query, fields(), @defaults, @opts)
-    defp from_url(params), do: Params.from_url(params, fields(), @defaults, @opts)
+    defp to_url(query),
+      do: Params.to_url(query, fields(), @defaults, [arguments: arguments()] ++ @opts)
+
+    defp from_url(params),
+      do: Params.from_url(params, fields(), @defaults, [arguments: arguments()] ++ @opts)
 
     test "a query round-trips through the URL" do
       filters =
@@ -75,7 +90,8 @@ defmodule Cinder.ParamsTest do
 
       query = %Query{
         filters: filters,
-        arguments: %{"year" => "1987"},
+        arguments:
+          Params.filters_from_params(%{"size" => "single", "labels" => ["a", "b"]}, arguments()),
         search: "blue",
         sort: [{"track_count", :desc_nils_last}, {"title", :asc}],
         page: 3,
@@ -89,7 +105,8 @@ defmodule Cinder.ParamsTest do
                "genre" => "rock",
                "tags" => "a,b",
                "price" => "10,",
-               "year" => "1987",
+               "size" => "single",
+               "labels" => "a,b",
                "search" => "blue",
                "sort" => "--track_count,title",
                "page" => "3",
@@ -158,8 +175,8 @@ defmodule Cinder.ParamsTest do
 
   describe "url_keys/2" do
     test "every key the collection may write: its own, each filterable field's, and the arguments'" do
-      assert Params.url_keys(fields(), arguments: ["year"]) ==
-               ~w(search sort page after before page_size title genre price tags year)
+      assert Params.url_keys(fields(), arguments: arguments()) ==
+               ~w(search sort page after before page_size title genre price tags size labels)
     end
   end
 end
