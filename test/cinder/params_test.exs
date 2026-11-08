@@ -106,6 +106,14 @@ defmodule Cinder.ParamsTest do
       end
     end
 
+    # Without a `sort` param, a URL has the default sort
+    test "an unsorted query round-trips through the URL as an empty `sort`" do
+      query = %Query{@defaults | sort: []}
+
+      assert to_url(query) == %{"sort" => ""}
+      assert from_url(to_url(query)) == query
+    end
+
     test "the defaults are left out of the URL, and fill in what isn't there" do
       assert to_url(@defaults) == %{}
       assert from_url(%{}) == @defaults

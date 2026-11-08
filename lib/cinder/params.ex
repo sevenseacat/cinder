@@ -65,8 +65,14 @@ defmodule Cinder.Params do
     }
     |> UrlManager.encode_state()
     |> Map.new(fn {key, value} -> {to_string(key), value} end)
+    |> Map.merge(unsorted(query.sort, defaults.sort))
     |> Map.merge(arguments(query.arguments, opts))
   end
+
+  # A URL without `sort` has the default sort, so no sort, when the default has
+  # one, is an empty `sort`
+  defp unsorted([], [_ | _]), do: %{"sort" => ""}
+  defp unsorted(_sort, _default), do: %{}
 
   @doc """
   URL params as a query, with whatever isn't there from `defaults`. Params that
