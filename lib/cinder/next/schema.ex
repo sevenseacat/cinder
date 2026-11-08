@@ -134,6 +134,12 @@ defmodule Cinder.Next.Schema do
 
   @argument [
     name: [type: :string, required: true, doc: "The read action argument's name."],
+    param: [
+      type: :string,
+      doc:
+        "What it goes by in the form and the URL, if not its name: " <>
+          "for a name that's a field's, or one of the collection's own URL params."
+    ],
     input: [
       type: {:keyword_list, @input},
       default: [],

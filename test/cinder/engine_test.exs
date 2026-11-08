@@ -291,6 +291,20 @@ defmodule Cinder.EngineTest do
       assert input.options[:options] == [{"One", :single}]
     end
 
+    test "an argument goes by its name in the form and the URL, unless it has a `param`" do
+      {:ok, genre} = Engine.argument(Music.Album, :by_genre, %Argument{name: "genre", input: %{}})
+      assert genre.param == "genre"
+
+      {:ok, genre} =
+        Engine.argument(Music.Album, :by_genre, %Argument{
+          name: "genre",
+          param: "style",
+          input: %{}
+        })
+
+      assert genre.param == "style"
+    end
+
     test "an argument is required if it can't be nil and has no default" do
       {:ok, genre} = Engine.argument(Music.Album, :by_genre, %Argument{name: "genre", input: %{}})
       assert genre.required?

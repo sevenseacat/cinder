@@ -106,39 +106,46 @@ defmodule Cinder.Next.Config do
     end
   end
 
-  # Each argument with its input's label. An argument's input shares the form and
-  # the URL with the fields' filters and the collection's own params, so its name
-  # can't be one of theirs.
+  # Each argument with its input's label
   defp arguments!(source, action, argument_slots, declared) do
-    fields = Enum.map(declared, & &1.field)
-    own_params = Params.own_keys()
-
     argument_slots
     |> Enum.map(&Schema.validate_argument!/1)
     |> tap(&arguments_once!/1)
+    |> tap(&params_unclashed!(&1, declared))
     |> Enum.map(fn attributes ->
+      input = attributes[:input]
+
+      declared = %Engine.Argument{
+        name: attributes[:name],
+        param: attributes[:param],
+        input: Map.new(Keyword.take(input, [:type, :options]))
+      }
+
+      {argument!(source, action, declared), input[:label] || humanize(attributes[:name])}
+    end)
+  end
+
+  # An argument's input shares the form and the URL with the fields' filters, the
+  # collection's own params and the other arguments, so its param can't be one of
+  # theirs. An argument's name can't be changed, so its param can be.
+  defp params_unclashed!(arguments, declared) do
+    shared = " in the form and the URL"
+
+    taken =
+      Map.new(Params.own_keys(), &{&1, ~s(the collection's own URL param "#{&1}")})
+      |> Map.merge(Map.new(declared, &{&1.field, ~s(<:field name="#{&1.field}">) <> shared}))
+
+    Enum.reduce(arguments, taken, fn attributes, taken ->
       name = attributes[:name]
+      param = attributes[:param] || name
 
-      cond do
-        name in fields ->
-          raise ArgumentError,
-                ~s(<:argument name="#{name}"> can't be used: <:field name="#{name}"> has its name)
-
-        name in own_params ->
-          raise ArgumentError,
-                ~s(<:argument name="#{name}"> can't be used: ) <>
-                  ~s("#{name}" is one of the collection's URL params)
-
-        true ->
-          input = attributes[:input]
-
-          declared = %Engine.Argument{
-            name: name,
-            input: Map.new(Keyword.take(input, [:type, :options]))
-          }
-
-          {argument!(source, action, declared), input[:label] || humanize(name)}
+      if clash = taken[param] do
+        raise ArgumentError,
+              ~s(<:argument name="#{name}"> clashes with #{clash}: ) <>
+                "give it another name there with `param`"
       end
+
+      Map.put(taken, param, ~s(<:argument name="#{name}">) <> shared)
     end)
   end
 

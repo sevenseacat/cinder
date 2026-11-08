@@ -177,7 +177,8 @@ defmodule Cinder.Engine do
     case control(type, values, Map.get(argument.input, :options, [])) do
       {:ok, input} ->
         required? = found.allow_nil? == false and is_nil(found.default)
-        {:ok, %{argument | input: input, required?: required?}}
+        param = argument.param || argument.name
+        {:ok, %{argument | input: input, required?: required?, param: param}}
 
       {:error, problem} ->
         {:error, "#{inspect(argument.name)} can't be an input: #{problem}"}
@@ -237,8 +238,9 @@ defmodule Cinder.Engine do
       `%{name: "artist.name", expr: <Ash expression>}`, and the search text. It
       returns the query.
     * `count?` - whether to count the records (default `true`)
-    * `arguments` - the names of the read action arguments the user has inputs
-      for, so errors about them go on those inputs
+    * `arguments` - the read action's `Cinder.Engine.Argument`s, from
+      `argument/3`: `query`'s `arguments` are under their `param`s, and so are
+      errors about them, which the user can fix. Values for any others are left out.
 
   Every column's `load` is loaded, along with any in `query_opts`.
 
@@ -254,7 +256,7 @@ defmodule Cinder.Engine do
     options = [
       columns: Enum.map(fields, &Field.to_column_map/1),
       filters: query.filters,
-      arguments: Map.new(query.arguments, fn {name, %{value: value}} -> {name, value} end),
+      arguments: argument_values(query.arguments, opts[:arguments] || []),
       search_term: query.search,
       sort_by: query.sort,
       current_page: query.page,
@@ -274,8 +276,16 @@ defmodule Cinder.Engine do
 
     case QueryBuilder.build_and_execute(source, options) do
       {:ok, result} -> {:ok, page(result, query, options[:pagination_mode])}
-      {:error, reason} -> {:error, error(reason, Keyword.get(opts, :arguments, []))}
+      {:error, reason} -> {:error, error(reason, opts[:arguments] || [])}
     end
+  end
+
+  # The action takes each by its name
+  defp argument_values(values, arguments) do
+    for %Argument{name: name, param: param} <- arguments,
+        %{value: value} <- [values[param]],
+        into: %{},
+        do: {name, value}
   end
 
   # `QueryBuilder` calls a search function with column maps, which stay behind the
@@ -297,22 +307,25 @@ defmodule Cinder.Engine do
   # Ash wraps its errors in a class (`Ash.Error.Invalid`, `Ash.Error.Unknown`, ...),
   # with the errors themselves in `errors`
   defp error(reason, arguments) do
+    params = Map.new(arguments, &{&1.name, &1.param})
     errors = if is_map(reason), do: Map.get(reason, :errors, [reason]), else: [reason]
-    {on_inputs, others} = Enum.split_with(errors, &on_input?(&1, arguments))
+    {on_inputs, others} = Enum.split_with(errors, &on_input?(&1, params))
 
     # The conversion Phoenix forms use, so the messages are the ones a form would show.
     # One error can give several.
     inputs =
       on_inputs
       |> Enum.flat_map(&List.wrap(AshPhoenix.FormData.Error.to_form_error(&1)))
-      |> Enum.group_by(&to_string(elem(&1, 0)), fn {_field, message, vars} -> {message, vars} end)
+      |> Enum.group_by(&params[to_string(elem(&1, 0))], fn {_field, message, vars} ->
+        {message, vars}
+      end)
 
     %Error{inputs: inputs, reason: if(others != [], do: reason)}
   end
 
   # Only an argument with an input can be fixed by the user
-  defp on_input?(error, arguments) do
-    is_map(error) and to_string(Map.get(error, :field)) in arguments and
+  defp on_input?(error, params) do
+    is_map(error) and Map.has_key?(params, to_string(Map.get(error, :field))) and
       AshPhoenix.FormData.Error.impl_for(error) != nil
   end
 

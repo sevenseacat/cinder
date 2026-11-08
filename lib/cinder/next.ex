@@ -58,6 +58,7 @@ defmodule Cinder.Next do
 
   slot :argument, doc: "A read action argument, with an input for its value" do
     attr :name, :string, required: true
+    attr :param, :string, doc: "What it goes by in the form and the URL, if not its name"
 
     attr :input, :list,
       doc: "Its input, as a filter's: `[type: ..., label: ..., ...]` with the type's options"

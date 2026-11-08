@@ -582,14 +582,39 @@ defmodule Cinder.Next.ConfigTest do
     end
 
     # They'd share a name in the form and the URL
-    test "an argument named as a <:field>, or as one of the collection's URL params, is an error" do
+    test "an argument named as a <:field>, one of the collection's URL params, or another argument's `param`, is an error" do
       assert_raise ArgumentError,
-                   ~s(<:argument name="title"> can't be used: <:field name="title"> has its name),
+                   ~s(<:argument name="title"> clashes with <:field name="title"> in the form and the URL: ) <>
+                     ~s(give it another name there with `param`),
                    fn -> build([field("title")], @by_inputs, [argument("title")]) end
 
       assert_raise ArgumentError,
-                   ~s(<:argument name="page"> can't be used: "page" is one of the collection's URL params),
+                   ~s(<:argument name="page"> clashes with the collection's own URL param "page": ) <>
+                     ~s(give it another name there with `param`),
                    fn -> build([field("title")], @by_inputs, [argument("page")]) end
+
+      assert_raise ArgumentError,
+                   ~s(<:argument name="size"> clashes with <:argument name="title"> in the form and the URL: ) <>
+                     ~s(give it another name there with `param`),
+                   fn ->
+                     build([field("price")], @by_inputs, [
+                       argument("title"),
+                       argument("size", param: "title")
+                     ])
+                   end
+    end
+
+    test "a `param` is what an argument goes by in the form and the URL" do
+      config =
+        build([field("title")], @by_inputs, [
+          argument("title", param: "named"),
+          argument("page", param: "p")
+        ])
+
+      assert [%{name: "title", param: "named"}, %{name: "page", param: "p"}] = config.arguments
+
+      assert [%{column: %{field: "named", label: "Title"}}, %{column: %{field: "p"}}] =
+               config.argument_inputs
     end
 
     test "a query already prepared for its action can't take arguments" do
@@ -605,7 +630,7 @@ defmodule Cinder.Next.ConfigTest do
 
     test "an unknown option is an error" do
       assert_raise ArgumentError,
-                   ~s(<:argument name="genre">: unknown options [:nope], valid options are: [:name, :input]),
+                   ~s(<:argument name="genre">: unknown options [:nope], valid options are: [:name, :param, :input]),
                    fn -> build([field("title")], @by_genre, [argument("genre", nope: true)]) end
     end
   end

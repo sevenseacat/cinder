@@ -100,11 +100,17 @@ defmodule Cinder.EngineRunTest do
     assert %Page{first_cursor: nil, last_cursor: nil} = run(%{})
   end
 
-  # Arguments are their inputs' values, as filters are
+  defp genre(param) do
+    argument = %Engine.Argument{name: "genre", param: param, input: %{}}
+    {:ok, argument} = Engine.argument(Music.Album, :by_genre, argument)
+    argument
+  end
+
+  # Arguments are their inputs' values, as filters are, under their `param`s
   test "passes each argument's value to the read action" do
     generate(album(title: "Jazzy", genre: :jazz))
     genre = %{type: :select, value: "jazz", operator: :equals}
-    page = run(%{arguments: %{"genre" => genre}}, action: :by_genre)
+    page = run(%{arguments: %{"style" => genre}}, action: :by_genre, arguments: [genre("style")])
     assert "Jazzy" in titles(page)
     assert Enum.all?(page.records, &(&1.genre == :jazz))
   end
@@ -124,14 +130,15 @@ defmodule Cinder.EngineRunTest do
 
     # `QueryBuilder` logs every failed read, even one the user just needs to finish
     @tag :capture_log
+    # Under the input's `param`, which is what the shell knows it by
     test "a missing or invalid argument is an error on that input, to translate" do
-      opts = [action: :by_genre, arguments: ["genre"]]
+      opts = [action: :by_genre, arguments: [genre("style")]]
 
       assert error(%{}, opts) ==
-               %Engine.Error{inputs: %{"genre" => [{"is required", []}]}, reason: nil}
+               %Engine.Error{inputs: %{"style" => [{"is required", []}]}, reason: nil}
 
-      assert error(%{"genre" => %{type: :text, value: "polka", operator: :contains}}, opts) ==
-               %Engine.Error{inputs: %{"genre" => [{"is invalid", []}]}, reason: nil}
+      assert error(%{"style" => %{type: :text, value: "polka", operator: :contains}}, opts) ==
+               %Engine.Error{inputs: %{"style" => [{"is invalid", []}]}, reason: nil}
     end
 
     @tag :capture_log

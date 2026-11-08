@@ -62,7 +62,7 @@ defmodule Cinder.Params do
   Options:
 
     * `arguments` - the read action's `Cinder.Engine.Argument`s, whose values go
-      in the URL under their own names, encoded as filters' are
+      in the URL under their `param`s, encoded as filters' are
   """
   @spec to_url(Query.t(), [Field.t()], Query.t(), keyword()) :: %{String.t() => String.t()}
   def to_url(%Query{} = query, fields, %Query{} = defaults, opts) do
@@ -136,7 +136,7 @@ defmodule Cinder.Params do
 
   @doc """
   The keys `to_url/4` writes that aren't a field's or an argument's, so no field
-  or argument can have one as its name.
+  or argument `param` can be one.
   """
   @spec own_keys() :: [String.t()]
   def own_keys, do: @own_keys
@@ -147,8 +147,7 @@ defmodule Cinder.Params do
   """
   @spec url_keys([Field.t()], keyword()) :: [String.t()]
   def url_keys(fields, opts) do
-    arguments = for %Argument{name: name} <- Keyword.get(opts, :arguments, []), do: name
-    @own_keys ++ filterable(fields) ++ arguments
+    @own_keys ++ filterable(fields) ++ argument_keys(opts)
   end
 
   defp filterable(fields) do
@@ -164,11 +163,13 @@ defmodule Cinder.Params do
     end
   end
 
-  defp argument_params(values, opts) do
-    names = for %Argument{name: name} <- Keyword.get(opts, :arguments, []), do: name
+  defp argument_keys(opts) do
+    for %Argument{param: param} <- Keyword.get(opts, :arguments, []), do: param
+  end
 
+  defp argument_params(values, opts) do
     values
-    |> Map.take(names)
+    |> Map.take(argument_keys(opts))
     |> UrlManager.encode_filters()
     |> Map.new(fn {key, value} -> {to_string(key), value} end)
   end

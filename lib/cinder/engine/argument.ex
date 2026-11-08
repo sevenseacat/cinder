@@ -8,6 +8,9 @@ defmodule Cinder.Engine.Argument do
   # shell fills in what the template declares, and `Cinder.Engine.argument/3`
   # checks it against the action and fills in the rest.
   #
+  #   * `param` - what it goes by in the form and the URL, and so in
+  #     `Cinder.Engine.Query`'s `arguments`: its name, unless that clashes. Filled
+  #     in from `name` if not given.
   #   * `input` - the control for its value, which works as a filter's does: as
   #     declared, `%{}` with an optional `type` (inferred if missing) and
   #     `options`; once filled in, the type, its module and the options
@@ -18,19 +21,20 @@ defmodule Cinder.Engine.Argument do
 
   @type t :: %__MODULE__{
           name: String.t(),
+          param: String.t() | nil,
           input: input() | %{optional(:type) => atom(), optional(:options) => keyword()},
           required?: boolean()
         }
 
   @enforce_keys [:name]
-  defstruct [:name, input: %{}, required?: false]
+  defstruct [:name, :param, input: %{}, required?: false]
 
   # The column map the engine's internals (`FilterManager`, `UrlManager`) and filter
   # types read, as for a `Cinder.Engine.Field`. Remove with `Field.to_column_map/1`.
   @doc false
   def to_column_map(%__MODULE__{} = argument) do
     %{
-      field: argument.name,
+      field: argument.param,
       label: argument.name,
       filterable: true,
       filter_type: argument.input[:type],

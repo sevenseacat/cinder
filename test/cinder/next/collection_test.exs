@@ -669,5 +669,27 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums tbody tr", count: 1)
       |> assert_has("#albums td", text: "Abbey")
     end
+
+    test "an argument with a `param` goes by it in the URL", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album} action={:by_genre} url_state={@url_state}>
+            <:field :let={album} name="title">{album.title}</:field>
+            <:argument name="genre" param="style" />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path)
+      |> choose("Jazz")
+      |> assert_path(path, query_params: %{style: "jazz"}, timeout: 500)
+      |> assert_has("#albums td", text: "Blue")
+
+      conn
+      |> visit(path <> "?style=rock")
+      |> assert_has("#albums td", text: "Abbey")
+    end
   end
 end

@@ -116,6 +116,21 @@ defmodule Cinder.ParamsTest do
       assert from_url(params) == query
     end
 
+    test "an argument goes in the URL under its `param`" do
+      argument = %Argument{name: "size", param: "format", input: %{}}
+      {:ok, argument} = Engine.argument(Music.Album, :by_inputs, argument)
+      opts = [arguments: [argument]]
+
+      query = %Query{
+        @defaults
+        | arguments: Params.filters_from_params(%{"format" => "single"}, [argument])
+      }
+
+      assert Params.to_url(query, [], @defaults, opts) == %{"format" => "single"}
+      assert Params.from_url(%{"format" => "single"}, [], @defaults, opts) == query
+      assert Params.url_keys([], opts) == Params.own_keys() ++ ["format"]
+    end
+
     test "a keyset cursor round-trips through the URL" do
       for cursor <- [{:after, "g2wAAA"}, {:before, "g2wAAA"}] do
         query = %Query{@defaults | cursor: cursor}

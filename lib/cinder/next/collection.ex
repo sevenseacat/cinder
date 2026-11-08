@@ -56,7 +56,7 @@ defmodule Cinder.Next.Collection do
     sortable = for %Engine.Field{sortable?: true, name: name} <- config.fields, do: name
     filterable = for %{column: column} <- config.filters, do: column.field
     searchable = for %Engine.Field{searchable?: true, name: name} <- config.fields, do: name
-    arguments = for %Engine.Argument{name: name} <- config.arguments, do: name
+    arguments = for %Engine.Argument{param: param} <- config.arguments, do: param
     sort = State.carry_over_sort(query.sort, old.sort.default, config.sort.default, sortable)
 
     carried = %{
@@ -200,7 +200,7 @@ defmodule Cinder.Next.Collection do
 
     # A read missing a required argument would fail, and a form doesn't say a field
     # is required before it's used
-    if Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.name))) do
+    if Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) do
       assign(socket, page: %Engine.Page{}, argument_errors: %{})
     else
       run(socket, opts)
@@ -209,7 +209,7 @@ defmodule Cinder.Next.Collection do
 
   defp run(socket, opts) do
     %{config: config, query: query} = socket.assigns
-    opts = [arguments: Enum.map(config.arguments, & &1.name)] ++ opts
+    opts = [arguments: config.arguments] ++ opts
 
     case {Engine.run(config.source, config.fields, query, opts), query.cursor} do
       {{:ok, page}, _cursor} ->
