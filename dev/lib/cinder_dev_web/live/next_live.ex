@@ -33,6 +33,14 @@ defmodule CinderDevWeb.NextLive do
         </:field>
         <:field name="genre" filter={[type: :radio_group, prompt: "Any"]} column={false} />
       </Cinder.Next.collection>
+
+      <%!-- Not synced to the URL: only one collection on a page can be, for now --%>
+      <h2 class="mt-8 text-lg font-semibold">By genre</h2>
+      <Cinder.Next.collection id="albums-by-genre" resource={Music.Album} action={:by_genre}>
+        <:field :let={album} name="title" sort>{album.title}</:field>
+        <:field :let={album} name="artist.name">{album.artist.name}</:field>
+        <:argument name="genre" input={[prompt: "Choose a genre"]} />
+      </Cinder.Next.collection>
     </Layouts.app>
     """
   end
