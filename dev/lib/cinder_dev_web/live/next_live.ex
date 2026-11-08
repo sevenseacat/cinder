@@ -3,6 +3,7 @@ defmodule CinderDevWeb.NextLive do
   The new shell (`Cinder.Next`), as it's rebuilt slice by slice.
   """
   use CinderDevWeb, :live_view
+  use Cinder.UrlSync
 
   @impl true
   def render(assigns) do
@@ -17,6 +18,7 @@ defmodule CinderDevWeb.NextLive do
         id="albums"
         resource={Music.Album}
         pagination={[mode: :keyset, size: 10]}
+        url_state={@url_state}
       >
         <:field :let={album} name="title" sort filter search>{album.title}</:field>
         <:field :let={album} name="artist.name" sort search>{album.artist.name}</:field>

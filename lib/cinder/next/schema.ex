@@ -71,6 +71,12 @@ defmodule Cinder.Next.Schema do
       doc:
         "How the collection pages, if the read action can. " <>
           "Giving this for an action that can't page that way is an error."
+    ],
+    url_state: [
+      type: {:or, [nil, :map]},
+      doc:
+        "The LiveView's `@url_state`, from `use Cinder.UrlSync`, " <>
+          "to keep the sort, filters, search and page in the URL."
     ]
   ]
 

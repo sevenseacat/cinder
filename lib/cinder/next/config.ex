@@ -35,10 +35,11 @@ defmodule Cinder.Next.Config do
 
   @doc """
   The parts of the declarations that decide the config. A `<:field>`'s inner block
-  closes over the parent's assigns, so it's new on every render, and is left out.
+  closes over the parent's assigns, so it's new on every render, and is left out,
+  as is `url_state`, which is the user's state rather than the config.
   """
   def declarations(options, field_slots) do
-    {options, Enum.map(field_slots, &Map.drop(&1, [:inner_block]))}
+    {Keyword.delete(options, :url_state), Enum.map(field_slots, &Map.drop(&1, [:inner_block]))}
   end
 
   def build(options, field_slots) do

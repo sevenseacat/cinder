@@ -29,6 +29,10 @@ defmodule Cinder.Next do
 
   attr :pagination, :list, default: [], doc: "How the collection pages: `[mode: ..., size: ...]`"
 
+  attr :url_state, :map,
+    default: nil,
+    doc: "The LiveView's `@url_state` (`use Cinder.UrlSync`), to keep its state in the URL"
+
   slot :field,
     required: true,
     doc: "A field, shown as a column with its content for each record" do

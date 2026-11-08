@@ -13,6 +13,7 @@ defmodule Cinder.Next.CollectionTest do
       render_click: 2,
       render_click: 3,
       render_component: 2,
+      render_patch: 2,
       with_target: 2
     ]
 
@@ -266,10 +267,12 @@ defmodule Cinder.Next.CollectionTest do
       end)
     end
 
-    defp titles(session, titles) do
-      Enum.reduce(titles, assert_has(session, "#albums tbody tr", count: length(titles)), fn
-        title, session -> assert_has(session, "#albums td", text: title)
-      end)
+    # Synced to the URL, the rows change when the URL patch comes back, so `timeout`
+    # waits for it
+    defp titles(session, titles, opts \\ []) do
+      titles
+      |> Enum.reduce(session, &assert_has(&2, "#albums td", [text: &1] ++ opts))
+      |> assert_has("#albums tbody tr", count: length(titles))
     end
 
     test "the previous and next pages, and where you are", %{conn: conn} do
@@ -429,6 +432,171 @@ defmodule Cinder.Next.CollectionTest do
       |> visit(paged())
       |> unwrap(&(&1 |> with_target("#albums") |> render_click("next_page", %{})))
       |> assert_has("#albums nav", text: "Page 1 of 3")
+    end
+  end
+
+  describe "URL sync" do
+    # With the two albums from the main setup, five, in pages of two
+    setup do
+      for {title, genre} <- [{"Cold", :rock}, {"Dark", :jazz}, {"Echo", :rock}] do
+        generate(album(title: title, genre: genre))
+      end
+
+      :ok
+    end
+
+    defp synced(pagination \\ [size: 2]) do
+      Fixture.register(fn assigns ->
+        assigns = assign(assigns, pagination: pagination)
+
+        ~H"""
+        <Cinder.Next.collection
+          id="albums"
+          query={Ash.Query.sort(Music.Album, :title)}
+          pagination={@pagination}
+          url_state={@url_state}
+        >
+          <:field :let={album} name="title" sort filter search>{album.title}</:field>
+          <:field name="genre" filter column={false} />
+        </Cinder.Next.collection>
+        """
+      end)
+    end
+
+    test "what the user does goes in the URL", %{conn: conn} do
+      path = synced()
+
+      conn
+      |> visit(path)
+      |> click_button("#albums th button", "Title")
+      |> assert_path(path, query_params: %{sort: "-title"}, timeout: 500)
+      |> click_button("#albums nav button", "Next page")
+      |> assert_path(path, query_params: %{sort: "-title", page: "2"}, timeout: 500)
+      |> fill_in("Search", with: "e")
+      |> assert_path(path, query_params: %{sort: "-title", search: "e"}, timeout: 500)
+      # Of Echo, Blue and Abbey
+      |> fill_in("Title", with: "b")
+      |> assert_path(path, query_params: %{sort: "-title", search: "e", title: "b"}, timeout: 500)
+      |> titles(["Blue", "Abbey"], timeout: 500)
+    end
+
+    test "visiting a URL shows what it says", %{conn: conn} do
+      conn
+      |> visit(synced() <> "?sort=-title&page=2&genre=rock")
+      |> assert_has("#albums nav", text: "Page 2 of 2")
+      |> titles(["Abbey"], timeout: 500)
+      |> assert_has("#albums th[aria-sort=descending]", text: "Title")
+    end
+
+    test "going back to the default takes it out of the URL", %{conn: conn} do
+      path = synced()
+
+      conn
+      |> visit(path)
+      |> fill_in("Search", with: "e")
+      |> click_button("#albums nav button", "Next page")
+      |> assert_path(path, query_params: %{search: "e", page: "2"}, timeout: 500)
+      |> click_button("#albums nav button", "Previous page")
+      |> assert_path(path, query_params: %{search: "e"}, timeout: 500)
+      |> fill_in("Title", with: "b")
+      |> assert_path(path, query_params: %{search: "e", title: "b"}, timeout: 500)
+      |> fill_in("Title", with: "")
+      |> assert_path(path, query_params: %{search: "e"}, timeout: 500)
+      |> fill_in("Search", with: "")
+      |> assert_path(path, query_params: %{}, timeout: 500)
+    end
+
+    # Without `sort`, the URL has the default sort, so unsorted has to be in it
+    test "sorting to unsorted, when the default sorts, stays unsorted on a reload", %{conn: conn} do
+      path = synced()
+
+      conn
+      |> visit(path)
+      |> click_button("#albums th button", "Title")
+      |> assert_path(path, query_params: %{sort: "-title"}, timeout: 500)
+      |> click_button("#albums th button", "Title")
+      |> assert_path(path, query_params: %{sort: ""}, timeout: 500)
+      |> reload_page()
+      |> assert_has("#albums th[aria-sort=none]", text: "Title")
+    end
+
+    test "the app's own params stay", %{conn: conn} do
+      path = synced()
+
+      conn
+      |> visit(path <> "?tab=albums")
+      |> click_button("#albums nav button", "Next page")
+      |> assert_path(path, query_params: %{tab: "albums", page: "2"}, timeout: 500)
+    end
+
+    test "a URL change from elsewhere (the back button) is shown", %{conn: conn} do
+      path = synced()
+
+      conn
+      |> visit(path)
+      |> click_button("#albums nav button", "Next page")
+      |> unwrap(&render_patch(&1, path <> "?sort=-title"))
+      |> assert_has("#albums nav", text: "Page 1 of 3")
+      |> titles(["Echo", "Dark"], timeout: 500)
+    end
+
+    test "params the collection can't use are ignored", %{conn: conn} do
+      conn
+      |> visit(synced() <> "?sort=-nope&page=two&genre=polka")
+      |> assert_has("#albums nav", text: "Page 1 of 3")
+      |> titles(["Abbey", "Blue"], timeout: 500)
+    end
+
+    # The cursor's value is Ash's, so the URL is only checked for having it
+    test "by keyset, the page goes in the URL, and a reload shows it", %{conn: conn} do
+      path = synced(mode: :keyset, size: 2)
+
+      conn
+      |> visit(path)
+      |> click_button("#albums nav button", "Next page")
+      |> refute_path(path, query_params: %{}, timeout: 500)
+      |> reload_page()
+      |> titles(["Cold", "Dark"])
+      |> click_button("#albums nav button", "Previous page")
+      |> refute_path(path, query_params: %{}, timeout: 500)
+      |> reload_page()
+      |> titles(["Abbey", "Blue"])
+    end
+
+    # The engine logs the failed read
+    @tag :capture_log
+    test "a cursor that isn't one shows the first page", %{conn: conn} do
+      conn
+      |> visit(synced(mode: :keyset, size: 2) <> "?after=not-a-cursor")
+      |> titles(["Abbey", "Blue"], timeout: 500)
+    end
+
+    test "when the parent changes the declarations and the page resets, so does the URL",
+         %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            query={assigns[:query] || Ash.Query.sort(Music.Album, :title)}
+            pagination={[size: 2]}
+            url_state={@url_state}
+          >
+            <:field :let={album} name="title">{album.title}</:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path)
+      |> click_button("#albums nav button", "Next page")
+      |> assert_path(path, query_params: %{page: "2"}, timeout: 500)
+      |> unwrap(fn view ->
+        Fixture.run(view, &assign(&1, :query, Ash.Query.sort(Music.Album, title: :desc)))
+        render(view)
+      end)
+      |> assert_path(path, query_params: %{}, timeout: 500)
+      |> titles(["Echo", "Dark"], timeout: 500)
     end
   end
 

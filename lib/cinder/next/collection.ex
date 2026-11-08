@@ -10,7 +10,7 @@ defmodule Cinder.Next.Collection do
   use Phoenix.LiveComponent
   use Cinder.Messages
 
-  alias Cinder.{Engine, Params}
+  alias Cinder.{Engine, Params, UrlSync}
   alias Cinder.Next.{Config, State}
 
   # Filter types render with a theme's classes, until theming is redone
@@ -21,23 +21,38 @@ defmodule Cinder.Next.Collection do
   def update(assigns, socket) do
     # The fields' inner blocks are new on every parent render, so they're always
     # taken; the config is only rebuilt, and the records reloaded, when what's
-    # declared changes. Only the fields that are columns have cells.
+    # declared changes. Only the fields that are columns have cells. Synced to the
+    # URL (`url_params` isn't `nil`), a change to the URL's params is applied too.
     declarations = Config.declarations(assigns.options, assigns.fields)
     columns = Enum.reject(assigns.fields, &(&1[:column] == false))
-    socket = assign(socket, id: assigns.id, columns: columns)
+    url_params = assigns.options[:url_state][:params]
+    old = socket.assigns
+    url_changed? = url_params != nil and url_params != old[:url_params]
+    socket = assign(socket, id: assigns.id, columns: columns, url_params: url_params)
 
-    if declarations == socket.assigns[:declarations] do
-      {:ok, socket}
-    else
-      config = Config.build(assigns.options, assigns.fields)
-      query = query(socket.assigns, config)
-      {:ok, socket |> assign(declarations: declarations, config: config, query: query) |> load()}
+    cond do
+      declarations != old[:declarations] ->
+        config = Config.build(assigns.options, assigns.fields)
+        query = query(old, config, if(url_changed?, do: url_params))
+        socket = socket |> assign(declarations: declarations, config: config) |> show(query)
+
+        # A rebuild that moves the query (back to the first page, say) moves the URL too
+        if url_params && !url_changed? && query != old.query, do: patch_url(socket, query)
+        {:ok, socket}
+
+      # A change to the app's own params changes nothing here
+      url_changed? ->
+        query = from_url(url_params, old.config)
+        {:ok, if(query == old.query, do: socket, else: show(socket, query))}
+
+      true ->
+        {:ok, socket}
     end
   end
 
   # A rebuild, when the declarations change after mount: the user's sort, filters
   # and search carry over, and the page too if the records would be the same
-  defp query(%{config: old, query: query}, config) do
+  defp query(%{config: old, query: query}, config, nil) do
     sortable = for %Engine.Field{sortable?: true, name: name} <- config.fields, do: name
     filterable = for %{column: column} <- config.filters, do: column.field
     searchable = for %Engine.Field{searchable?: true, name: name} <- config.fields, do: name
@@ -54,10 +69,23 @@ defmodule Cinder.Next.Collection do
     State.carry_over_page(carried, query, read(old) == read(config))
   end
 
+  # On mount, or when the URL changes with the declarations: what the URL says
+  defp query(_assigns, config, url_params) when url_params != nil do
+    from_url(url_params, config)
+  end
+
   # The first build, on mount, before there's a config or query: a new collection
   # starts on page 1 with the default sort
-  defp query(_assigns, config) do
+  defp query(_assigns, config, nil), do: start(config)
+
+  defp start(config) do
     %Engine.Query{sort: config.sort.default, page_size: config.pagination[:size]}
+  end
+
+  # Anything in the URL the collection can't use is left out: it's the user's to edit
+  defp from_url(params, config) do
+    opts = [search?: config.search != nil, pagination: config.pagination[:mode]]
+    Params.from_url(params, config.fields, start(config), opts)
   end
 
   # What decides the records read, besides the query
@@ -77,7 +105,7 @@ defmodule Cinder.Next.Collection do
 
       column ->
         sort = State.toggle_sort(query.sort, field, column.sort.cycle, config.sort.mode)
-        {:noreply, socket |> assign(:query, State.first_page(%{query | sort: sort})) |> load()}
+        {:noreply, change(socket, State.first_page(%{query | sort: sort}))}
     end
   end
 
@@ -87,7 +115,7 @@ defmodule Cinder.Next.Collection do
     %{config: config, query: query} = socket.assigns
     filters = Params.filters_from_params(params["filters"] || %{}, config.fields)
     query = State.first_page(%{query | filters: filters, search: params["search"] || ""})
-    {:noreply, socket |> assign(:query, query) |> load()}
+    {:noreply, change(socket, query)}
   end
 
   # An offset page comes from the client, so one that isn't a positive number is
@@ -95,7 +123,7 @@ defmodule Cinder.Next.Collection do
   def handle_event("page", %{"page" => page}, socket) do
     with %{mode: :offset} <- socket.assigns.config.pagination,
          {page, ""} when page > 0 <- Integer.parse(page) do
-      {:noreply, socket |> assign(:query, %{socket.assigns.query | page: page}) |> load()}
+      {:noreply, change(socket, %{socket.assigns.query | page: page})}
     else
       _not_a_page -> {:noreply, socket}
     end
@@ -107,7 +135,7 @@ defmodule Cinder.Next.Collection do
 
     with %{mode: :keyset} <- config.pagination,
          {_direction, _cursor} = cursor <- cursor(page, direction) do
-      {:noreply, socket |> assign(:query, %{query | cursor: cursor}) |> load()}
+      {:noreply, change(socket, %{query | cursor: cursor})}
     else
       _no_page_that_way -> {:noreply, socket}
     end
@@ -116,6 +144,22 @@ defmodule Cinder.Next.Collection do
   defp cursor(%{more?: true, last_cursor: cursor}, "next_page"), do: {:after, cursor}
   defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
   defp cursor(_page, _direction), do: nil
+
+  # Synced, what the user does changes the URL, and shows when the URL comes back,
+  # so the new records and the new URL arrive in one render
+  defp change(%{assigns: %{url_params: nil}} = socket, query), do: show(socket, query)
+
+  defp change(socket, query) do
+    patch_url(socket, query)
+    socket
+  end
+
+  defp patch_url(%{assigns: %{config: config}}, query) do
+    params = Params.to_url(query, config.fields, start(config), [])
+    UrlSync.patch(params, owns: Params.url_keys(config.fields, []))
+  end
+
+  defp show(socket, query), do: socket |> assign(:query, query) |> load()
 
   # Synchronous, and a failed read crashes, until the slices for loading states and
   # errors. The controls' values are worked out here, with the records, rather than
@@ -131,9 +175,16 @@ defmodule Cinder.Next.Collection do
         count?: config.pagination[:count?] == true
       ] ++ opts
 
-    {:ok, page} = Engine.run(config.source, config.fields, query, opts)
-    filter_values = Params.filter_values(query.filters, config.fields)
-    assign(socket, page: page, filter_values: filter_values)
+    case {Engine.run(config.source, config.fields, query, opts), query.cursor} do
+      {{:ok, page}, _cursor} ->
+        filter_values = Params.filter_values(query.filters, config.fields)
+        assign(socket, page: page, filter_values: filter_values)
+
+      # Only a cursor from the URL can fail to read (the others are a page's own), and
+      # what the user puts in the URL is dropped
+      {{:error, _error}, {_direction, _cursor}} ->
+        show(socket, State.first_page(query))
+    end
   end
 
   @impl true
