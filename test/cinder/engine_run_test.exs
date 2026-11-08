@@ -100,9 +100,11 @@ defmodule Cinder.EngineRunTest do
     assert %Page{first_cursor: nil, last_cursor: nil} = run(%{})
   end
 
-  test "passes arguments to the read action" do
+  # Arguments are their inputs' values, as filters are
+  test "passes each argument's value to the read action" do
     generate(album(title: "Jazzy", genre: :jazz))
-    page = run(%{arguments: %{"genre" => "jazz"}}, action: :by_genre)
+    genre = %{type: :select, value: "jazz", operator: :equals}
+    page = run(%{arguments: %{"genre" => genre}}, action: :by_genre)
     assert "Jazzy" in titles(page)
     assert Enum.all?(page.records, &(&1.genre == :jazz))
   end
@@ -128,7 +130,7 @@ defmodule Cinder.EngineRunTest do
       assert error(%{}, opts) ==
                %Engine.Error{inputs: %{"genre" => [{"is required", []}]}, reason: nil}
 
-      assert error(%{"genre" => "polka"}, opts) ==
+      assert error(%{"genre" => %{type: :text, value: "polka", operator: :contains}}, opts) ==
                %Engine.Error{inputs: %{"genre" => [{"is invalid", []}]}, reason: nil}
     end
 

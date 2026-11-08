@@ -13,7 +13,7 @@ defmodule Cinder.Engine do
   #
   # Turning form and URL strings into values belongs to `Cinder.Params`, not here.
 
-  alias Cinder.Engine.{Error, Field, Page, Query}
+  alias Cinder.Engine.{Argument, Error, Field, Page, Query}
   alias Cinder.Filters.Registry
   alias Cinder.QueryBuilder
 
@@ -138,6 +138,65 @@ defmodule Cinder.Engine do
   end
 
   @doc """
+  Checks an argument as declared (a `Cinder.Engine.Argument`) against `action`
+  (from `read_action/2`), and fills in the rest: its input's type, module and
+  options, as a filter's, and whether it's required.
+
+  An argument the action doesn't have is an error, as is any argument for a query
+  already prepared for its action: its preparations have run without it.
+  """
+  @spec argument(Ash.Query.t() | module(), atom(), Argument.t()) ::
+          {:ok, Argument.t()} | {:error, String.t()}
+  def argument(source, action, %Argument{name: name} = argument) do
+    query = Ash.Query.new(source)
+    action = Ash.Resource.Info.action(query.resource, action)
+    found = Enum.find(action.arguments, &(to_string(&1.name) == name))
+
+    cond do
+      query.action != nil ->
+        {:error,
+         "#{inspect(name)} can't be given: the query is already prepared for " <>
+           "#{inspect(query.action.name)}, so the action has run without it. " <>
+           "Give the action as `action` instead"}
+
+      found == nil ->
+        {:error,
+         "#{inspect(name)} is not an argument of " <>
+           "#{inspect(query.resource)}'s #{inspect(action.name)} action"}
+
+      true ->
+        input(argument, found)
+    end
+  end
+
+  defp input(argument, found) do
+    ash_type = Ash.Type.get_type(found.type)
+    values = enum_values(ash_type, found.constraints)
+    type = Map.get(argument.input, :type) || infer_input_type(ash_type, values)
+
+    case control(type, values, Map.get(argument.input, :options, [])) do
+      {:ok, input} ->
+        required? = found.allow_nil? == false and is_nil(found.default)
+        {:ok, %{argument | input: input, required?: required?}}
+
+      {:error, problem} ->
+        {:error, "#{inspect(argument.name)} can't be an input: #{problem}"}
+    end
+  end
+
+  # An argument takes a single value, so a single date, not a range, and a number
+  # is typed. A list takes several.
+  defp infer_input_type(ash_type, values) do
+    cond do
+      match?({:array, _}, ash_type) -> :multi_select
+      values != [] -> :select
+      ash_type == Ash.Type.Boolean -> :boolean
+      ash_type == Ash.Type.Date -> :date
+      true -> :text
+    end
+  end
+
+  @doc """
   Whether `source` read with `action` (from `read_action/2`) can page by `mode`
   (`:offset` or `:keyset`), and if so whether it can count the records: Ash's read
   fails if asked to do either when the action can't.
@@ -159,7 +218,8 @@ defmodule Cinder.Engine do
 
   @doc """
   Reads a page of records from `source` (a resource or query): `query`'s
-  filters, arguments, search, sort and page, on the `fields` from `field/2`.
+  filters, arguments (each its input's value, as a filter's), search, sort and
+  page, on the `fields` from `field/2`.
 
   Options, which come from the collection rather than the user:
 
@@ -194,7 +254,7 @@ defmodule Cinder.Engine do
     options = [
       columns: Enum.map(fields, &Field.to_column_map/1),
       filters: query.filters,
-      arguments: query.arguments,
+      arguments: Map.new(query.arguments, fn {name, %{value: value}} -> {name, value} end),
       search_term: query.search,
       sort_by: query.sort,
       current_page: query.page,
@@ -327,6 +387,13 @@ defmodule Cinder.Engine do
     values = enum_values(ash_type, Cinder.Field.constraints(resolved))
     type = Map.get(declared, :type) || infer_type(ash_type, values)
 
+    with {:error, problem} <- control(type, values, Map.get(declared, :options, [])) do
+      {:error, "can't be filtered: #{problem}"}
+    end
+  end
+
+  # A filter's control, or an argument's input: its type's module and options
+  defp control(type, values, declared_options) do
     with {:ok, module} <- filter_module(type) do
       defaults = module.default_options()
 
@@ -337,7 +404,7 @@ defmodule Cinder.Engine do
       options =
         defaults
         |> Keyword.merge(enum_options)
-        |> Keyword.merge(Map.get(declared, :options, []))
+        |> Keyword.merge(declared_options)
 
       {:ok, %{type: type, module: module, options: options}}
     end
@@ -351,13 +418,12 @@ defmodule Cinder.Engine do
         if Code.ensure_loaded?(module) do
           {:ok, module}
         else
-          {:error,
-           "can't be filtered: #{inspect(type)}'s module #{inspect(module)} can't be loaded"}
+          {:error, "#{inspect(type)}'s module #{inspect(module)} can't be loaded"}
         end
 
       :error ->
         names = known |> Map.keys() |> Enum.sort() |> Enum.map_join(", ", &inspect/1)
-        {:error, "can't be filtered: #{inspect(type)} is not a filter type (known: #{names})"}
+        {:error, "#{inspect(type)} is not a filter type (known: #{names})"}
     end
   end
 

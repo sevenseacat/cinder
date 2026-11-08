@@ -173,6 +173,17 @@ defmodule Music.Album do
       filter(expr(genre == ^arg(:genre)))
     end
 
+    # An argument of each kind of type, for inferring inputs
+    read :by_inputs do
+      argument(:remastered, :boolean)
+      argument(:title, :string)
+      argument(:labels, {:array, :string})
+      argument(:released_on, :date)
+      argument(:size, :atom, constraints: [one_of: [:single, :double]])
+      # Clashes with the collection's own URL param
+      argument(:page, :integer)
+    end
+
     # For showing the loading and error states in the dev app
     read :slow do
       prepare(fn query, _context ->

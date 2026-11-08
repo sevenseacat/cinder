@@ -2,7 +2,7 @@ defmodule Cinder.EngineTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Engine
-  alias Cinder.Engine.Field
+  alias Cinder.Engine.{Argument, Field}
 
   describe "field/2" do
     defp filter(name, declared \\ %{}) do
@@ -254,6 +254,74 @@ defmodule Cinder.EngineTest do
       assert Engine.read_action(query, :by_genre) ==
                {:error,
                 "the query already reads with :paginated, so it can't read with :by_genre"}
+    end
+  end
+
+  describe "argument/3" do
+    defp input(name, input \\ %{}) do
+      {:ok, argument} =
+        Engine.argument(Music.Album, :by_inputs, %Argument{name: name, input: input})
+
+      argument.input
+    end
+
+    test "infers an input type from the argument's Ash type" do
+      assert input("remastered").type == :boolean
+      assert input("title").type == :text
+      assert input("labels").type == :multi_select
+      assert input("released_on").type == :date
+      assert input("size").type == :select
+    end
+
+    test "an enum or `one_of` argument's values are its options" do
+      assert input("size").options[:options] == [{"Single", :single}, {"Double", :double}]
+
+      {:ok, argument} =
+        Engine.argument(Music.Album, :by_genre, %Argument{name: "genre", input: %{}})
+
+      assert argument.input.module == Cinder.Filters.Select
+      assert length(argument.input.options[:options]) == 4
+    end
+
+    test "a declared type and options win, as with a filter" do
+      assert %{type: :radio_group, module: Cinder.Filters.RadioGroup} =
+               input =
+               input("size", %{type: :radio_group, options: [options: [{"One", :single}]]})
+
+      assert input.options[:options] == [{"One", :single}]
+    end
+
+    test "an argument is required if it can't be nil and has no default" do
+      {:ok, genre} = Engine.argument(Music.Album, :by_genre, %Argument{name: "genre", input: %{}})
+      assert genre.required?
+
+      {:ok, title} =
+        Engine.argument(Music.Album, :by_inputs, %Argument{name: "title", input: %{}})
+
+      refute title.required?
+    end
+
+    test "an argument the action doesn't have is an error" do
+      assert Engine.argument(Music.Album, :read, %Argument{name: "genre", input: %{}}) ==
+               {:error, ~s("genre" is not an argument of Music.Album's :read action)}
+    end
+
+    test "an unknown input type is an error naming the known ones" do
+      {:error, message} =
+        Engine.argument(Music.Album, :by_genre, %Argument{name: "genre", input: %{type: :nope}})
+
+      assert message =~
+               ~r/^"genre" can't be an input: :nope is not a filter type \(known: :autocomplete/
+    end
+
+    # The action's preparations have already run without the argument
+    test "a query already prepared for its action can't take arguments" do
+      query = Ash.Query.for_read(Music.Album, :by_genre, %{genre: :rock})
+
+      assert Engine.argument(query, :by_genre, %Argument{name: "genre", input: %{}}) ==
+               {:error,
+                ~s("genre" can't be given: the query is already prepared for :by_genre, ) <>
+                  "so the action has run without it. Give the action as `action` instead"}
     end
   end
 end
