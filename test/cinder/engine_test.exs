@@ -112,6 +112,17 @@ defmodule Cinder.EngineTest do
                ~s("artist" can't be filtered or sorted: it is a relationship)
     end
 
+    test "the field's path: its relationships, then its name, then any names inside it" do
+      path = fn name ->
+        {:ok, field} = Engine.field(Music.Album, %Field{name: name})
+        field.path
+      end
+
+      assert path.("title") == ["title"]
+      assert path.("artist.name") == ["artist", "name"]
+      assert path.("details__recorded_on") == ["details", "recorded_on"]
+    end
+
     test "a query is checked against its resource" do
       query = Ash.Query.for_read(Music.Album, :keyset_only)
 

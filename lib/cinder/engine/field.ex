@@ -17,6 +17,8 @@ defmodule Cinder.Engine.Field do
   #   * `column?` - whether it's a column, so can be shown (hidden or not)
   #   * `load` - filled in: what showing it as a column needs loaded, for
   #     `Ash.Query.load/2`, or `nil`
+  #   * `path` - filled in: the names leading to it, its own last (`["artist",
+  #     "name"]`), however the name is written, for the shell to label it from
 
   @type filter :: %{type: atom(), module: module(), options: keyword()}
 
@@ -26,11 +28,12 @@ defmodule Cinder.Engine.Field do
           sortable?: boolean(),
           searchable?: boolean(),
           column?: boolean(),
-          load: term()
+          load: term(),
+          path: [String.t()] | nil
         }
 
   @enforce_keys [:name]
-  defstruct [:name, :filter, :load, sortable?: false, searchable?: false, column?: false]
+  defstruct [:name, :filter, :load, :path, sortable?: false, searchable?: false, column?: false]
 
   # The column map the engine's internals (`QueryBuilder`, `FilterManager`,
   # `UrlManager`), filter types and a custom `search_fn` read, with every key set.

@@ -40,7 +40,7 @@ defmodule Cinder.Engine do
   @doc """
   Checks a field as declared (a `Cinder.Engine.Field`) against `source` (a
   resource, or a query on one), and fills in the rest: its filter's type, module
-  and options, and what showing it needs loaded.
+  and options, what showing it needs loaded, and its path.
 
   A filter's options are its type's defaults, then the field's enum values (for
   types that take `options`), then the declared ones.
@@ -57,7 +57,8 @@ defmodule Cinder.Engine do
          :ok <- queryable(resolved, uses),
          {:ok, filter} <- filter(resolved, field.filter) do
       load = if field.column?, do: Cinder.Field.load(resolved)
-      {:ok, %{field | filter: filter, load: load}}
+      path = Enum.map(resolved.relationships, &to_string/1) ++ [to_string(resolved.name)]
+      {:ok, %{field | filter: filter, load: load, path: path ++ resolved.embedded_path}}
     else
       {:error, problem} -> {:error, "#{inspect(name)} #{problem}"}
     end

@@ -47,8 +47,9 @@ defmodule Cinder.Next.Config do
     options = Schema.validate_collection!(options)
     source = source!(options[:resource], options[:query])
     declared = field_slots |> Enum.map(&declare!/1) |> once_each!()
-    columns = Enum.filter(declared, & &1.column?)
     fields = Enum.map(declared, &field!(source, &1))
+    declared = Enum.zip_with(declared, fields, &labelled/2)
+    columns = Enum.filter(declared, & &1.column?)
 
     %__MODULE__{
       source: source,
@@ -161,15 +162,13 @@ defmodule Cinder.Next.Config do
               ~s(<:field :let={record} name="#{name}">{record.#{name}}</:field>)
     end
 
-    label = attributes[:label] || Cinder.Filter.Helpers.humanize_embedded_field(name)
-
     %{
       field: name,
-      label: label,
+      label: attributes[:label],
       column?: attributes[:column],
       sort: declared_sort(attributes[:sort]),
       search?: attributes[:search],
-      filter: declared_filter(attributes[:filter], label)
+      filter: declared_filter(attributes[:filter])
     }
   end
 
@@ -177,13 +176,25 @@ defmodule Cinder.Next.Config do
   defp declared_sort(sort), do: %{cycle: sort[:cycle]}
 
   # The type is left out when it isn't given, for `Engine.field/2` to infer
-  defp declared_filter(nil, _label), do: nil
+  defp declared_filter(nil), do: nil
 
-  defp declared_filter(filter, label) do
+  defp declared_filter(filter) do
     filter
     |> Keyword.take([:type, :options])
     |> Map.new()
-    |> Map.put(:label, filter[:label] || label)
+    |> Map.put(:label, filter[:label])
+  end
+
+  # A label not given is the field's path, humanised ("Artist > Name"), and a
+  # filter's is its field's
+  defp labelled(declared, %Engine.Field{path: path}) do
+    label = declared.label || Enum.map_join(path, " > ", &humanize/1)
+    filter = declared.filter && Map.update!(declared.filter, :label, &(&1 || label))
+    %{declared | label: label, filter: filter}
+  end
+
+  defp humanize(name) do
+    name |> String.split("_") |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp field!(source, declared) do

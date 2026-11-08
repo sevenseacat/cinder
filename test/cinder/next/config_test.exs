@@ -16,8 +16,16 @@ defmodule Cinder.Next.ConfigTest do
   end
 
   test "each column has a label, the humanised field unless one's given" do
-    config = build([field("title"), field("artist.name"), field("price", label: "Cost")])
-    assert Enum.map(config.columns, & &1.label) == ["Title", "Artist > Name", "Cost"]
+    config =
+      build([
+        field("title"),
+        field("artist.name"),
+        field("details__recorded_on"),
+        field("price", label: "Cost")
+      ])
+
+    assert Enum.map(config.columns, & &1.label) ==
+             ["Title", "Artist > Name", "Details > Recorded On", "Cost"]
   end
 
   test "each column is a field, to load what it shows" do

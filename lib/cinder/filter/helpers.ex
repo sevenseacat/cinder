@@ -1337,6 +1337,8 @@ defmodule Cinder.Filter.Helpers do
       "User > Profile > First Name"
 
   """
+  # Replaced by `Cinder.Next.Config`'s labels from `Engine.Field.path`: remove with
+  # the old shell (it's public, so in the upgrade guide too)
   def humanize_embedded_field(field) when is_binary(field) do
     case parse_field_notation(field) do
       {:direct, field_name} ->
