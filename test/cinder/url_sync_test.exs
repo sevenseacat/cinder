@@ -280,4 +280,24 @@ defmodule Cinder.UrlSyncTest do
              "Expected custom param to remain but got: #{result_url}"
     end
   end
+
+  describe "patched_url/3" do
+    @uri "http://localhost:4000/albums?theme=dark&title=old&page=2"
+
+    test "the collection's params replace all it owns, and the app's own stay" do
+      assert UrlSync.patched_url(@uri, %{"genre" => "rock"}, ~w(title genre page)) ==
+               "/albums?genre=rock&theme=dark"
+    end
+
+    # An empty `sort` means unsorted, where no `sort` means the default
+    test "empty params are kept" do
+      assert UrlSync.patched_url(@uri, %{"sort" => ""}, ~w(title page sort)) ==
+               "/albums?sort=&theme=dark"
+    end
+
+    test "with no params left, the path alone" do
+      assert UrlSync.patched_url("http://localhost:4000/albums?page=2", %{}, ["page"]) ==
+               "/albums"
+    end
+  end
 end

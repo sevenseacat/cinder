@@ -16,6 +16,9 @@ defmodule Cinder.Params do
   alias Cinder.Engine.{Field, Query}
   alias Cinder.{FilterManager, UrlManager}
 
+  # The keys `to_url/4` writes that aren't a field's or an argument's
+  @own_keys ~w(search sort page after before page_size)
+
   @doc """
   The filters in a filter form's params (`%{"genre" => "rock", "price_min" =>
   "10"}`), as `Cinder.Engine.Query`'s `filters`: each filterable field's input
@@ -51,10 +54,8 @@ defmodule Cinder.Params do
   """
   @spec to_url(Query.t(), [Field.t()], Query.t(), keyword()) :: %{String.t() => String.t()}
   def to_url(%Query{} = query, fields, %Query{} = defaults, opts) do
-    filterable = for %Field{filter: filter, name: name} when filter != nil <- fields, do: name
-
     %{
-      filters: Map.take(query.filters, filterable),
+      filters: Map.take(query.filters, filterable(fields)),
       sort_by: if(query.sort == defaults.sort, do: [], else: query.sort),
       current_page: query.page,
       after: Query.cursor(query, :after),
@@ -88,6 +89,9 @@ defmodule Cinder.Params do
     * `arguments` - the names of the read action's arguments
     * `page_sizes` - the page sizes the URL may ask for (default: only the
       default's), so a URL can't ask for any number of records
+    * `search?` - whether the collection can be searched (default: `true`)
+    * `pagination` - if given, the paging mode: `:offset` ignores a cursor,
+      `:keyset` a page number, and `nil` (not paged) both
   """
   @spec from_url(%{String.t() => term()}, [Field.t()], Query.t(), keyword()) :: Query.t()
   def from_url(params, fields, %Query{} = defaults, opts) do
@@ -98,15 +102,37 @@ defmodule Cinder.Params do
         defaults.sort
       end
 
-    %Query{
+    search? = Keyword.get(opts, :search?, true) and is_binary(params["search"])
+
+    query = %Query{
       filters: filters_from_params(params, fields),
       arguments: arguments(params, opts),
-      search: if(is_binary(params["search"]), do: params["search"], else: defaults.search),
+      search: if(search?, do: params["search"], else: defaults.search),
       sort: sort,
       page: UrlManager.decode_page(params["page"]),
       cursor: url_cursor(params),
       page_size: page_size(params["page_size"], defaults.page_size, opts[:page_sizes])
     }
+
+    case Keyword.fetch(opts, :pagination) do
+      {:ok, :offset} -> %{query | cursor: defaults.cursor}
+      {:ok, :keyset} -> %{query | page: defaults.page}
+      {:ok, nil} -> %{query | page: defaults.page, cursor: defaults.cursor}
+      :error -> query
+    end
+  end
+
+  @doc """
+  Every key `to_url/4` may write for `fields`, so whatever keeps a URL's other
+  params knows which are the collection's. Takes `to_url/4`'s `arguments`.
+  """
+  @spec url_keys([Field.t()], keyword()) :: [String.t()]
+  def url_keys(fields, opts) do
+    @own_keys ++ filterable(fields) ++ Keyword.get(opts, :arguments, [])
+  end
+
+  defp filterable(fields) do
+    for %Field{filter: filter, name: name} when filter != nil <- fields, do: name
   end
 
   # A URL may have both: `after` wins, as it does in `Cinder.UrlManager`

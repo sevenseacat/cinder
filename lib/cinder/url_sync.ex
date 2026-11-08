@@ -117,12 +117,35 @@ defmodule Cinder.UrlSync do
       else: {:halt, socket}
   end
 
+  # The old shell's message: remove with the old shell
   defp info_hook({:table_state_change, _table_id, encoded_state}, socket) do
     current_uri = get_in(socket.assigns, [:url_state, :uri])
     {:halt, update_url(socket, encoded_state, current_uri)}
   end
 
+  defp info_hook({:cinder_url_patch, params, owns}, socket) do
+    uri = get_in(socket.assigns, [:url_state, :uri]) || "/"
+    {:halt, Phoenix.LiveView.push_patch(socket, to: patched_url(uri, params, owns))}
+  end
+
   defp info_hook(_message, socket), do: {:cont, socket}
+
+  @doc false
+  # How `Cinder.Next.collection` changes the URL: `params` replace every param it
+  # `owns` (those it may write, so one it no longer writes goes), and the app's
+  # own stay. Called from the collection, in the LiveView's process.
+  def patch(params, owns: owns), do: send(self(), {:cinder_url_patch, params, owns})
+
+  @doc false
+  # Empty params are kept: `params` leaves defaults out already, so an empty one
+  # means something (`sort=` is unsorted, where no `sort` is the default sort)
+  def patched_url(uri, params, owns) do
+    uri = URI.parse(uri)
+    params = URI.decode_query(uri.query || "") |> Map.drop(owns) |> Map.merge(params)
+    path = uri.path || "/"
+
+    if params == %{}, do: path, else: "#{path}?#{URI.encode_query(params)}"
+  end
 
   @doc """
   Updates the LiveView socket with new URL parameters.
@@ -322,8 +345,10 @@ defmodule Cinder.UrlSync do
   def handle_params(params, uri \\ nil, socket) do
     collection_state = extract_collection_state(params)
 
+    # `Cinder.Next` reads only `params` and `uri`. The rest are the old shell's
+    # (`filters` is the same params, misnamed): remove with the old shell
     url_state = %{
-      # Raw params for proper filter decoding
+      params: params,
       filters: params,
       current_page: collection_state.current_page,
       sort_by: collection_state.sort_by,

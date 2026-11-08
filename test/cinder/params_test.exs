@@ -140,5 +140,26 @@ defmodule Cinder.ParamsTest do
       query = Params.from_url(%{"page_size" => "50"}, fields(), @defaults, [])
       assert query.page_size == 25
     end
+
+    test "without search, a search in the URL is ignored" do
+      query = Params.from_url(%{"search" => "blue"}, fields(), @defaults, search?: false)
+      assert query == @defaults
+    end
+
+    test "each paging mode ignores the other's params, and an unpaged collection both" do
+      params = %{"page" => "3", "after" => "g2wAAA"}
+      from_url = &Params.from_url(params, fields(), @defaults, pagination: &1)
+
+      assert from_url.(:offset) == %Query{@defaults | page: 3}
+      assert from_url.(:keyset) == %Query{@defaults | cursor: {:after, "g2wAAA"}}
+      assert from_url.(nil) == @defaults
+    end
+  end
+
+  describe "url_keys/2" do
+    test "every key the collection may write: its own, each filterable field's, and the arguments'" do
+      assert Params.url_keys(fields(), arguments: ["year"]) ==
+               ~w(search sort page after before page_size title genre price tags year)
+    end
   end
 end
