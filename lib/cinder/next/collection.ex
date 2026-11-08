@@ -23,7 +23,7 @@ defmodule Cinder.Next.Collection do
     # taken; the config is only rebuilt, and the records reloaded, when what's
     # declared changes. Only the fields that are columns have cells. Synced to the
     # URL (`url_params` isn't `nil`), a change to the URL's params is applied too.
-    declarations = Config.declarations(assigns.options, assigns.fields)
+    declarations = Config.declarations(assigns.options, assigns.fields, assigns.arguments)
     columns = Enum.reject(assigns.fields, &(&1[:column] == false))
     url_params = assigns.options[:url_state][:params]
     old = socket.assigns
@@ -32,7 +32,7 @@ defmodule Cinder.Next.Collection do
 
     cond do
       declarations != old[:declarations] ->
-        config = Config.build(assigns.options, assigns.fields)
+        config = Config.build(assigns.options, assigns.fields, assigns.arguments)
         query = query(old, config, if(url_changed?, do: url_params))
         socket = socket |> assign(declarations: declarations, config: config) |> show(query)
 
@@ -50,18 +50,20 @@ defmodule Cinder.Next.Collection do
     end
   end
 
-  # A rebuild, when the declarations change after mount: the user's sort, filters
-  # and search carry over, and the page too if the records would be the same
+  # A rebuild, when the declarations change after mount: the user's sort, filters,
+  # arguments and search carry over, and the page too if the records would be the same
   defp query(%{config: old, query: query}, config, nil) do
     sortable = for %Engine.Field{sortable?: true, name: name} <- config.fields, do: name
     filterable = for %{column: column} <- config.filters, do: column.field
     searchable = for %Engine.Field{searchable?: true, name: name} <- config.fields, do: name
+    arguments = for %Engine.Argument{name: name} <- config.arguments, do: name
     sort = State.carry_over_sort(query.sort, old.sort.default, config.sort.default, sortable)
 
     carried = %{
       query
       | sort: sort,
-        filters: State.carry_over_filters(query.filters, filterable),
+        filters: State.carry_over_inputs(query.filters, filterable),
+        arguments: State.carry_over_inputs(query.arguments, arguments),
         search: State.carry_over_search(query.search, searchable),
         page_size: config.pagination[:size]
     }
@@ -84,7 +86,12 @@ defmodule Cinder.Next.Collection do
 
   # Anything in the URL the collection can't use is left out: it's the user's to edit
   defp from_url(params, config) do
-    opts = [search?: config.search != nil, pagination: config.pagination[:mode]]
+    opts = [
+      search?: config.search != nil,
+      pagination: config.pagination[:mode],
+      arguments: config.arguments
+    ]
+
     Params.from_url(params, config.fields, start(config), opts)
   end
 
@@ -109,12 +116,21 @@ defmodule Cinder.Next.Collection do
     end
   end
 
-  # The search box is in the filter form. Input for fields that aren't filtered (from
-  # a tampered event) is left out, and a search without a box searches nothing.
+  # The search box and the arguments' inputs are in the filter form. Input for fields
+  # that aren't filtered or arguments that aren't declared (from a tampered event) is
+  # left out, and a search without a box searches nothing.
   def handle_event("filter", params, socket) do
     %{config: config, query: query} = socket.assigns
-    filters = Params.filters_from_params(params["filters"] || %{}, config.fields)
-    query = State.first_page(%{query | filters: filters, search: params["search"] || ""})
+    inputs = params["filters"] || %{}
+
+    query = %{
+      query
+      | filters: Params.filters_from_params(inputs, config.fields),
+        arguments: Params.filters_from_params(inputs, config.arguments),
+        search: params["search"] || ""
+    }
+
+    query = State.first_page(query)
     {:noreply, change(socket, query)}
   end
 
@@ -155,8 +171,9 @@ defmodule Cinder.Next.Collection do
   end
 
   defp patch_url(%{assigns: %{config: config}}, query) do
-    params = Params.to_url(query, config.fields, start(config), [])
-    UrlSync.patch(params, owns: Params.url_keys(config.fields, []))
+    opts = [arguments: config.arguments]
+    params = Params.to_url(query, config.fields, start(config), opts)
+    UrlSync.patch(params, owns: Params.url_keys(config.fields, opts))
   end
 
   defp show(socket, query), do: socket |> assign(:query, query) |> load()
@@ -175,10 +192,36 @@ defmodule Cinder.Next.Collection do
         count?: config.pagination[:count?] == true
       ] ++ opts
 
+    socket =
+      assign(socket,
+        filter_values: Params.filter_values(query.filters, config.fields),
+        argument_values: Params.filter_values(query.arguments, config.arguments)
+      )
+
+    # A read missing a required argument would fail, and a form doesn't say a field
+    # is required before it's used
+    if Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.name))) do
+      assign(socket, page: %Engine.Page{}, argument_errors: %{})
+    else
+      run(socket, opts)
+    end
+  end
+
+  defp run(socket, opts) do
+    %{config: config, query: query} = socket.assigns
+    opts = [arguments: Enum.map(config.arguments, & &1.name)] ++ opts
+
     case {Engine.run(config.source, config.fields, query, opts), query.cursor} do
       {{:ok, page}, _cursor} ->
-        filter_values = Params.filter_values(query.filters, config.fields)
-        assign(socket, page: page, filter_values: filter_values)
+        assign(socket, page: page, argument_errors: %{})
+
+      # What the user can fix: a value the action can't use. Ash's messages, until
+      # they're translated.
+      {{:error, %Engine.Error{reason: nil, inputs: inputs}}, _cursor} ->
+        errors =
+          Map.new(inputs, fn {name, errors} -> {name, Enum.map(errors, &interpolate/1)} end)
+
+        assign(socket, page: %Engine.Page{}, argument_errors: errors)
 
       # Only a cursor from the URL can fail to read (the others are a page's own), and
       # what the user puts in the URL is dropped
@@ -187,16 +230,38 @@ defmodule Cinder.Next.Collection do
     end
   end
 
+  defp interpolate({message, vars}) do
+    Enum.reduce(vars, message, fn {key, value}, message ->
+      String.replace(message, "%{#{key}}", var(value))
+    end)
+  end
+
+  # Lists are chardata to `to_string/1`, so a list of values (`one_of`'s) is joined
+  defp var(value) when is_list(value), do: Enum.map_join(value, ", ", &var/1)
+
+  defp var(value) do
+    if String.Chars.impl_for(value), do: to_string(value), else: inspect(value)
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
     <div id={@id}>
       <form
-        :if={@config.filters != [] or @config.search != nil}
+        :if={@config.filters != [] or @config.search != nil or @config.argument_inputs != []}
         id={"#{@id}-filters"}
         phx-change="filter"
         phx-target={@myself}
       >
+        <div :for={%{column: column, module: module} <- @config.argument_inputs}>
+          <label for={Cinder.Filter.filter_id(@id, column.field)}>{column.label}</label>
+          {module.render(column, @argument_values[column.field], @theme, %{
+            table_id: @id,
+            target: @myself,
+            filter_values: @argument_values
+          })}
+          <p :for={message <- @argument_errors[column.field] || []}>{message}</p>
+        </div>
         <div :if={@config.search}>
           <label for={"#{@id}-search"}>{@config.search.label || dgettext("cinder", "Search")}</label>
           <input

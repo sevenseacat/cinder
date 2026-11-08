@@ -95,6 +95,12 @@ defmodule Cinder.Next.Schema do
     label: [type: :string, doc: "The control's label. Defaults to the column's."]
   ]
 
+  # The same for an `<:argument>`'s `input`
+  @input [
+    type: [type: :atom, doc: "The input type. Inferred from the argument if not given."],
+    label: [type: :string, doc: "The input's label. Defaults to the humanised name."]
+  ]
+
   @field [
     name: [type: :string, required: true, doc: "The field's name, or path (`artist.name`)."],
     label: [type: :string, doc: "The column's heading. Defaults to the humanised name."],
@@ -126,8 +132,20 @@ defmodule Cinder.Next.Schema do
     ]
   ]
 
+  @argument [
+    name: [type: :string, required: true, doc: "The read action argument's name."],
+    input: [
+      type: {:keyword_list, @input},
+      default: [],
+      doc:
+        "Its input, as a filter's: `input={[type: ..., label: ..., ...]}` " <>
+          "with the type's own options."
+    ]
+  ]
+
   def collection, do: @collection
   def field, do: @field
+  def argument, do: @argument
 
   @doc "The collection's options, checked."
   def validate_collection!(options) do
@@ -173,19 +191,35 @@ defmodule Cinder.Next.Schema do
       |> Map.drop([:__slot__, :inner_block])
       |> Enum.flat_map(&shorthand/1)
 
-    {attributes, filter_options} = split_filter_options(attributes)
+    {attributes, filter_options} = split_type_options(attributes, :filter, @filter)
 
     attributes
     |> validate!(@field, ~s(<:field name="#{slot[:name]}">))
     |> Keyword.replace_lazy(:filter, &Keyword.put(&1, :options, filter_options))
   end
 
+  @doc """
+  An `<:argument>` slot entry's attributes, checked. Its input's type options come
+  back under its `options` key, unchecked, as a filter's do.
+  """
+  def validate_argument!(slot) do
+    {attributes, input_options} =
+      slot
+      |> Map.drop([:__slot__, :inner_block])
+      |> Enum.to_list()
+      |> split_type_options(:input, @input)
+
+    attributes
+    |> validate!(@argument, ~s(<:argument name="#{slot[:name]}">))
+    |> Keyword.update!(:input, &Keyword.put(&1, :options, input_options))
+  end
+
   # Spark rejects keys its schema doesn't have, and a type's options can be anything
-  defp split_filter_options(attributes) do
-    with filter when is_list(filter) <- attributes[:filter],
-         true <- Keyword.keyword?(filter) do
-      {own, options} = Keyword.split(filter, Keyword.keys(@filter))
-      {Keyword.put(attributes, :filter, own), options}
+  defp split_type_options(attributes, key, schema) do
+    with given when is_list(given) <- attributes[key],
+         true <- Keyword.keyword?(given) do
+      {own, options} = Keyword.split(given, Keyword.keys(schema))
+      {Keyword.put(attributes, key, own), options}
     else
       _not_a_keyword_list -> {attributes, []}
     end

@@ -11,6 +11,7 @@ defmodule Cinder.Next.Config do
 
   alias Cinder.Engine
   alias Cinder.Next.Schema
+  alias Cinder.Params
 
   # The actor, tenant and scope are kept as given: Ash applies its own precedence.
   # `sort` is the mode, and the default: the sort the collection starts with.
@@ -19,7 +20,8 @@ defmodule Cinder.Next.Config do
   # `search` is the search box's options, or `nil` when no field is searchable.
   # `pagination` is the mode, the page size and whether to count, or `nil` when the
   # action doesn't page.
-  # `action` is the read action's name.
+  # `action` is the read action's name, and `arguments` the ones the user gives
+  # values for. `argument_inputs` are their controls, as `filters` are.
   defstruct [
     :source,
     :action,
@@ -29,6 +31,8 @@ defmodule Cinder.Next.Config do
     columns: [],
     fields: [],
     filters: [],
+    arguments: [],
+    argument_inputs: [],
     query_opts: [],
     search: nil,
     pagination: nil,
@@ -40,11 +44,12 @@ defmodule Cinder.Next.Config do
   closes over the parent's assigns, so it's new on every render, and is left out,
   as is `url_state`, which is the user's state rather than the config.
   """
-  def declarations(options, field_slots) do
-    {Keyword.delete(options, :url_state), Enum.map(field_slots, &Map.drop(&1, [:inner_block]))}
+  def declarations(options, field_slots, argument_slots) do
+    {Keyword.delete(options, :url_state), Enum.map(field_slots, &Map.drop(&1, [:inner_block])),
+     argument_slots}
   end
 
-  def build(options, field_slots) do
+  def build(options, field_slots, argument_slots) do
     # The schema fills in the page size, so whether `pagination` was given is asked first
     paginate? = options[:pagination] not in [nil, []]
     options = Schema.validate_collection!(options)
@@ -54,10 +59,13 @@ defmodule Cinder.Next.Config do
     fields = Enum.map(declared, &field!(source, &1))
     declared = Enum.zip_with(declared, fields, &labelled/2)
     columns = Enum.filter(declared, & &1.column?)
+    arguments = arguments!(source, action, argument_slots, declared)
 
     %__MODULE__{
       source: source,
       action: action,
+      arguments: Enum.map(arguments, &elem(&1, 0)),
+      argument_inputs: Enum.map(arguments, &argument_input/1),
       columns: columns,
       fields: fields,
       filters: filters(fields, declared),
@@ -96,6 +104,67 @@ defmodule Cinder.Next.Config do
       {:error, message} ->
         raise ArgumentError, ~s(<Cinder.Next.collection id="#{options[:id]}">: ) <> message
     end
+  end
+
+  # Each argument with its input's label. An argument's input shares the form and
+  # the URL with the fields' filters and the collection's own params, so its name
+  # can't be one of theirs.
+  defp arguments!(source, action, argument_slots, declared) do
+    fields = Enum.map(declared, & &1.field)
+    own_params = Params.own_keys()
+
+    argument_slots
+    |> Enum.map(&Schema.validate_argument!/1)
+    |> tap(&arguments_once!/1)
+    |> Enum.map(fn attributes ->
+      name = attributes[:name]
+
+      cond do
+        name in fields ->
+          raise ArgumentError,
+                ~s(<:argument name="#{name}"> can't be used: <:field name="#{name}"> has its name)
+
+        name in own_params ->
+          raise ArgumentError,
+                ~s(<:argument name="#{name}"> can't be used: ) <>
+                  ~s("#{name}" is one of the collection's URL params)
+
+        true ->
+          input = attributes[:input]
+
+          declared = %Engine.Argument{
+            name: name,
+            input: Map.new(Keyword.take(input, [:type, :options]))
+          }
+
+          {argument!(source, action, declared), input[:label] || humanize(name)}
+      end
+    end)
+  end
+
+  defp arguments_once!(arguments) do
+    names = Enum.map(arguments, & &1[:name])
+
+    case names -- Enum.uniq(names) do
+      [] ->
+        :ok
+
+      [name | _] ->
+        raise ArgumentError,
+              ~s(<:argument name="#{name}"> is declared twice: each argument is declared once)
+    end
+  end
+
+  defp argument!(source, action, argument) do
+    case Engine.argument(source, action, argument) do
+      {:ok, argument} -> argument
+      {:error, message} -> raise ArgumentError, message
+    end
+  end
+
+  defp argument_input({argument, label}) do
+    column = %{Engine.Argument.to_column_map(argument) | label: label}
+    %{column: column, module: argument.input.module}
   end
 
   # A label or placeholder not given stays `nil`: its default is translated when

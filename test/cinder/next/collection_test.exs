@@ -614,4 +614,60 @@ defmodule Cinder.Next.CollectionTest do
     |> visit(path)
     |> assert_has("#albums td", text: "Rebecca", count: 2)
   end
+
+  describe "read action arguments" do
+    defp by_genre(input \\ []) do
+      Fixture.register(fn assigns ->
+        assigns = assign(assigns, input: input)
+
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album} action={:by_genre} url_state={@url_state}>
+          <:field :let={album} name="title">{album.title}</:field>
+          <:argument name="genre" input={@input} />
+        </Cinder.Next.collection>
+        """
+      end)
+    end
+
+    # A form doesn't say a field is required before it's used
+    test "nothing is read until a required argument has a value, and no error shows",
+         %{conn: conn} do
+      conn
+      |> visit(by_genre())
+      |> assert_has("#albums-filters label", text: "Genre")
+      |> refute_has("#albums tbody tr")
+      |> refute_has("#albums", text: "required")
+      |> choose("Jazz")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Blue")
+    end
+
+    # `QueryBuilder` logs every failed read, even one the user just needs to fix
+    @tag :capture_log
+    test "a value the action can't use shows its message under the input, and no records",
+         %{conn: conn} do
+      conn
+      |> visit(by_genre(type: :text))
+      |> fill_in("Genre", with: "polka")
+      |> assert_has("#albums-filters", text: "is invalid")
+      |> refute_has("#albums tbody tr")
+      |> fill_in("Genre", with: "rock")
+      |> refute_has("#albums-filters", text: "is invalid")
+      |> assert_has("#albums td", text: "Abbey")
+    end
+
+    test "an argument's value goes in the URL, and comes back from it", %{conn: conn} do
+      path = by_genre()
+
+      conn
+      |> visit(path)
+      |> choose("Jazz")
+      |> assert_path(path, query_params: %{genre: "jazz"}, timeout: 500)
+
+      conn
+      |> visit(path <> "?genre=rock")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Abbey")
+    end
+  end
 end

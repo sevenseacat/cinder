@@ -11,8 +11,12 @@ defmodule Cinder.Next.ConfigTest do
     )
   end
 
-  defp build(fields, options \\ [id: "albums", resource: Music.Album]) do
-    Config.build(options, fields)
+  # An `<:argument>` slot entry
+  defp argument(name, attrs \\ []),
+    do: Map.merge(%{__slot__: :argument, name: name}, Map.new(attrs))
+
+  defp build(fields, options \\ [id: "albums", resource: Music.Album], arguments \\ []) do
+    Config.build(options, fields, arguments)
   end
 
   test "each column has a label, the humanised field unless one's given" do
@@ -531,6 +535,78 @@ defmodule Cinder.Next.ConfigTest do
                    fn ->
                      build([field("title")], id: "albums", query: query, action: :by_genre)
                    end
+    end
+  end
+
+  describe "arguments" do
+    @by_genre [id: "albums", resource: Music.Album, action: :by_genre]
+    @by_inputs [id: "albums", resource: Music.Album, action: :by_inputs]
+
+    test "each <:argument> is an argument of the action, with its input" do
+      config = build([field("title")], @by_genre, [argument("genre")])
+
+      assert [%Cinder.Engine.Argument{name: "genre", required?: true, input: %{type: :select}}] =
+               config.arguments
+
+      assert [%{column: %{field: "genre", label: "Genre", filter_type: :select}, module: module}] =
+               config.argument_inputs
+
+      assert module == Cinder.Filters.Select
+    end
+
+    test "an input's label, type and options, as a filter's" do
+      config =
+        build([field("title")], @by_genre, [
+          argument("genre",
+            input: [type: :radio_group, label: "Style", options: [{"Rock", :rock}]]
+          )
+        ])
+
+      assert [%{column: column, module: Cinder.Filters.RadioGroup}] = config.argument_inputs
+      assert %{label: "Style", filter_type: :radio_group} = column
+      assert column.filter_options[:options] == [{"Rock", :rock}]
+    end
+
+    test "an argument the action doesn't have is an error" do
+      assert_raise ArgumentError,
+                   ~s("nope" is not an argument of Music.Album's :by_genre action),
+                   fn -> build([field("title")], @by_genre, [argument("nope")]) end
+    end
+
+    test "an argument declared twice is an error" do
+      assert_raise ArgumentError,
+                   ~s(<:argument name="genre"> is declared twice: each argument is declared once),
+                   fn ->
+                     build([field("title")], @by_genre, [argument("genre"), argument("genre")])
+                   end
+    end
+
+    # They'd share a name in the form and the URL
+    test "an argument named as a <:field>, or as one of the collection's URL params, is an error" do
+      assert_raise ArgumentError,
+                   ~s(<:argument name="title"> can't be used: <:field name="title"> has its name),
+                   fn -> build([field("title")], @by_inputs, [argument("title")]) end
+
+      assert_raise ArgumentError,
+                   ~s(<:argument name="page"> can't be used: "page" is one of the collection's URL params),
+                   fn -> build([field("title")], @by_inputs, [argument("page")]) end
+    end
+
+    test "a query already prepared for its action can't take arguments" do
+      query = Ash.Query.for_read(Music.Album, :by_genre, %{genre: :rock})
+
+      assert_raise ArgumentError,
+                   ~s("genre" can't be given: the query is already prepared for :by_genre, ) <>
+                     "so the action has run without it. Give the action as `action` instead",
+                   fn ->
+                     build([field("title")], [id: "albums", query: query], [argument("genre")])
+                   end
+    end
+
+    test "an unknown option is an error" do
+      assert_raise ArgumentError,
+                   ~s(<:argument name="genre">: unknown options [:nope], valid options are: [:name, :input]),
+                   fn -> build([field("title")], @by_genre, [argument("genre", nope: true)]) end
     end
   end
 end

@@ -8,7 +8,7 @@ defmodule Cinder.Next.SchemaTest do
   # LiveView's own, undocumented record of a module's declarations (it uses it for
   # compile-time checks): if a release changes its shape, this test fails, and
   # nothing users see does.
-  test "the component's attrs and slot attrs are the schemas' options" do
+  test "the component's attrs and each slot's attrs are the schemas' options" do
     component = Cinder.Next.__components__()[:collection]
 
     attrs = component.attrs |> Enum.map(& &1.name) |> Enum.sort()
@@ -17,5 +17,9 @@ defmodule Cinder.Next.SchemaTest do
     field = Enum.find(component.slots, &(&1.name == :field))
     field_attrs = field.attrs |> Enum.map(& &1.name) |> Enum.sort()
     assert field_attrs == Schema.field() |> Keyword.keys() |> Enum.sort()
+
+    argument = Enum.find(component.slots, &(&1.name == :argument))
+    argument_attrs = argument.attrs |> Enum.map(& &1.name) |> Enum.sort()
+    assert argument_attrs == Schema.argument() |> Keyword.keys() |> Enum.sort()
   end
 end

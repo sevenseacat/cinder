@@ -56,6 +56,13 @@ defmodule Cinder.Next do
     attr :search, :boolean, doc: "Search the field from the search box"
   end
 
+  slot :argument, doc: "A read action argument, with an input for its value" do
+    attr :name, :string, required: true
+
+    attr :input, :list,
+      doc: "Its input, as a filter's: `[type: ..., label: ..., ...]` with the type's options"
+  end
+
   # Runs on every parent render, so it only hands everything on: the collection
   # works out what's changed. The id is checked here, as the LiveComponent can't
   # exist without one.
@@ -68,8 +75,9 @@ defmodule Cinder.Next do
     <.live_component
       module={Cinder.Next.Collection}
       id={@id}
-      options={assigns_to_attributes(assigns, [:field])}
+      options={assigns_to_attributes(assigns, [:field, :argument])}
       fields={@field}
+      arguments={@argument}
     />
     """
   end
