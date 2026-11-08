@@ -119,6 +119,11 @@ defmodule Cinder.Next.ConfigTest do
                  ~s(<Cinder.Next.collection id="albums">: give `tenant` as the collection's own attribute, not in `query_opts`),
                  fn -> query_opts.(tenant: "t") end
 
+    # The engine sets `page` from `pagination`, and there's no `page` attribute
+    assert_raise ArgumentError,
+                 ~r/^<Cinder\.Next\.collection id="albums">: unknown options \[:page\], valid options are: \[/,
+                 fn -> query_opts.(page: [limit: 5]) end
+
     assert_raise ArgumentError,
                  ~s(<Cinder.Next.collection id="albums">: `select` isn't a read option: ) <>
                    "select on the query instead, as in query={Ash.Query.select(Resource, [...])}",

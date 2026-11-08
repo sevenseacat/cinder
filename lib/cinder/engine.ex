@@ -27,10 +27,20 @@ defmodule Cinder.Engine do
 
   @number_types [Ash.Type.Integer, Ash.Type.Decimal, Ash.Type.Float]
 
+  # Read options the engine sets itself, from the query it's given
+  @set_read_opts [:action, :actor, :tenant, :scope, :page, :return_query?]
+
   @doc """
-  Checks a field as declared (a `Cinder.Engine.Field`) against `resource`, and
-  fills in the rest: its filter's type, module and options, and what showing it
-  needs loaded.
+  The read options a caller may give in `run/4`'s `query_opts`: `Ash.read/2`'s,
+  without the ones the engine sets, as a `Spark.Options` schema.
+  """
+  @spec read_opts() :: keyword()
+  def read_opts, do: Keyword.drop(Ash.read_opts(), @set_read_opts)
+
+  @doc """
+  Checks a field as declared (a `Cinder.Engine.Field`) against `source` (a
+  resource, or a query on one), and fills in the rest: its filter's type, module
+  and options, and what showing it needs loaded.
 
   A filter's options are its type's defaults, then the field's enum values (for
   types that take `options`), then the declared ones.
@@ -39,11 +49,11 @@ defmodule Cinder.Engine do
   a field the resource doesn't have, filtering, sorting or searching a field that
   can't be queried, or a filter type that doesn't exist.
   """
-  @spec field(module(), Field.t()) :: {:ok, Field.t()} | {:error, String.t()}
-  def field(resource, %Field{name: name} = field) do
+  @spec field(Ash.Query.t() | module(), Field.t()) :: {:ok, Field.t()} | {:error, String.t()}
+  def field(source, %Field{name: name} = field) do
     uses = [filtered: field.filter != nil, sorted: field.sortable?, searched: field.searchable?]
 
-    with {:ok, resolved} <- resolve(resource, name),
+    with {:ok, resolved} <- resolve(Ash.Query.new(source).resource, name),
          :ok <- queryable(resolved, uses),
          {:ok, filter} <- filter(resolved, field.filter) do
       load = if field.column?, do: Cinder.Field.load(resolved)
@@ -118,9 +128,10 @@ defmodule Cinder.Engine do
     * `actor`, `tenant` and `scope` - as `Ash.read/2` takes them, which decides
       between them (an explicit actor or tenant wins over the scope's)
     * `action` - the read action, if not the source query's or the primary one
-    * `query_opts` - more of `Ash.read/2`'s options. Each reaches the read, and the
-      ones `Ash.Query.for_read/4` also takes reach the query when it's built, so
-      the action's preparations see them. `load` is merged with the columns' loads.
+    * `query_opts` - more of `Ash.read/2`'s options, those in `read_opts/0`. Each
+      reaches the read, and the ones `Ash.Query.for_read/4` also takes reach the
+      query when it's built, so the action's preparations see them. `load` is
+      merged with the columns' loads.
     * `pagination` - `:offset` (default) or `:keyset`
     * `search_fn` - a function to search with instead of a case-insensitive
       `contains` on each searchable field, called as `search_fn.(query, fields, text)`

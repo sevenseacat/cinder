@@ -46,10 +46,9 @@ defmodule Cinder.Next.Config do
     paginate? = options[:pagination] not in [nil, []]
     options = Schema.validate_collection!(options)
     source = source!(options[:resource], options[:query])
-    resource = Ash.Query.new(source).resource
     declared = field_slots |> Enum.map(&declare!/1) |> once_each!()
     columns = Enum.filter(declared, & &1.column?)
-    fields = Enum.map(declared, &field!(resource, &1))
+    fields = Enum.map(declared, &field!(source, &1))
 
     %__MODULE__{
       source: source,
@@ -187,7 +186,7 @@ defmodule Cinder.Next.Config do
     |> Map.put(:label, filter[:label] || label)
   end
 
-  defp field!(resource, declared) do
+  defp field!(source, declared) do
     field = %Engine.Field{
       name: declared.field,
       column?: declared.column?,
@@ -196,7 +195,7 @@ defmodule Cinder.Next.Config do
       filter: declared.filter && Map.delete(declared.filter, :label)
     }
 
-    case Engine.field(resource, field) do
+    case Engine.field(source, field) do
       {:ok, field} -> field
       {:error, message} -> raise ArgumentError, message
     end

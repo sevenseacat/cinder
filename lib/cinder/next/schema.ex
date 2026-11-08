@@ -9,10 +9,6 @@ defmodule Cinder.Next.Schema do
   # several options together are `Cinder.Next.Config`'s. Errors name the declaration
   # they're about.
 
-  # Read options the collection sets from its own attributes (or will: `action` and
-  # `page`), so they can't also be given in `query_opts`
-  @own_read_opts [:action, :actor, :tenant, :scope, :page, :return_query?]
-
   @collection [
     id: [type: :string, required: true, doc: "The collection's id, unique on the page."],
     resource: [type: {:spark, Ash.Resource}, doc: "The Ash resource to read (or give a `query`)."],
@@ -24,7 +20,7 @@ defmodule Cinder.Next.Schema do
       doc: "An Ash scope. An `actor` or `tenant` given as well wins over the scope's, as in Ash."
     ],
     query_opts: [
-      type: {:keyword_list, Keyword.drop(Ash.read_opts(), @own_read_opts)},
+      type: {:keyword_list, Cinder.Engine.read_opts()},
       doc: "More options for the read, as `Ash.read/2` takes them."
     ],
     sort: [
@@ -126,17 +122,20 @@ defmodule Cinder.Next.Schema do
     declaration = ~s(<Cinder.Next.collection id="#{options[:id]}">)
     check_query_opts!(options[:query_opts] || [], declaration)
 
-    # Checking `query_opts` against Ash's schema fills in Ash's defaults, which are
-    # Ash's to apply: only the options given are kept
+    # Checking `query_opts` against the read options' schema fills in Ash's
+    # defaults, which are Ash's to apply: only the options given are kept
     options
     |> validate!(@collection, declaration)
     |> Keyword.replace(:query_opts, options[:query_opts])
   end
 
-  # Before the schema, which would only call these unknown
+  # Before the schema, which would only call these unknown: `select`, and the
+  # collection's own attributes (such as `actor` and `tenant`)
   defp check_query_opts!(query_opts, declaration) do
+    explained = [:select | Keyword.keys(@collection) -- Keyword.keys(Cinder.Engine.read_opts())]
+
     if Keyword.keyword?(query_opts) do
-      case Enum.find(Keyword.keys(query_opts), &(&1 in [:select | @own_read_opts])) do
+      case Enum.find(Keyword.keys(query_opts), &(&1 in explained)) do
         nil ->
           :ok
 

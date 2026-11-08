@@ -112,6 +112,16 @@ defmodule Cinder.EngineTest do
                ~s("artist" can't be filtered or sorted: it is a relationship)
     end
 
+    test "a query is checked against its resource" do
+      query = Ash.Query.for_read(Music.Album, :keyset_only)
+
+      assert {:ok, %{filter: %{type: :select}}} =
+               Engine.field(query, %Field{name: "genre", filter: %{}})
+
+      assert {:error, ~s("nope" is not a field of Music.Album)} =
+               Engine.field(query, %Field{name: "nope"})
+    end
+
     test "showing a field that can't be queried is fine" do
       assert {:ok, %{filter: nil}} = Engine.field(Music.Album, %Field{name: "artist"})
     end
@@ -121,6 +131,19 @@ defmodule Cinder.EngineTest do
       assert message =~ ~s("title")
       assert message =~ ":radio is not a filter type"
       assert message =~ ":radio_group"
+    end
+  end
+
+  describe "read_opts/0" do
+    test "Ash's read options, without the ones the engine sets" do
+      keys = Keyword.keys(Engine.read_opts())
+
+      assert :timeout in keys
+      assert :load in keys
+
+      for set <- [:action, :actor, :tenant, :scope, :page, :return_query?] do
+        refute set in keys
+      end
     end
   end
 
