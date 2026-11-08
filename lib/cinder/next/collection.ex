@@ -90,8 +90,8 @@ defmodule Cinder.Next.Collection do
 
   # What decides the records read, besides the query
   defp read(config) do
-    {Map.take(config, [:source, :actor, :tenant, :scope, :query_opts]), config.search[:fn],
-     config.pagination[:mode]}
+    {Map.take(config, [:source, :action, :actor, :tenant, :scope, :query_opts]),
+     config.search[:fn], config.pagination[:mode]}
   end
 
   @impl true
@@ -166,7 +166,7 @@ defmodule Cinder.Next.Collection do
   # in `render/1`, where they'd be new on every render.
   defp load(socket) do
     %{config: config, query: query} = socket.assigns
-    opts = Map.take(config, [:actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
+    opts = Map.take(config, [:action, :actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
 
     opts =
       [

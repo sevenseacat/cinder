@@ -195,32 +195,65 @@ defmodule Cinder.EngineTest do
     end
   end
 
-  describe "pagination/2" do
+  describe "pagination/3" do
     test "an action that pages by offset, counted if it can be" do
-      assert Engine.pagination(Music.Album, :offset) == {:ok, %{count?: true}}
+      assert Engine.pagination(Music.Album, :read, :offset) == {:ok, %{count?: true}}
 
-      assert Engine.pagination(Ash.Query.for_read(Music.Album, :uncountable), :offset) ==
+      assert Engine.pagination(Music.Album, :uncountable, :offset) ==
                {:ok, %{count?: false}}
     end
 
     test "an action that pages by keyset" do
-      assert Engine.pagination(Ash.Query.for_read(Music.Album, :keyset_only), :keyset) ==
+      assert Engine.pagination(Music.Album, :keyset_only, :keyset) ==
                {:ok, %{count?: true}}
     end
 
     test "an action can't be paged in a way it doesn't page" do
-      assert Engine.pagination(Ash.Query.for_read(Music.Album, :keyset_only), :offset) ==
+      assert Engine.pagination(Music.Album, :keyset_only, :offset) ==
                {:error, "Music.Album's :keyset_only action doesn't paginate by offset"}
 
-      assert Engine.pagination(Ash.Query.for_read(Music.Album, :uncountable), :keyset) ==
+      assert Engine.pagination(Music.Album, :uncountable, :keyset) ==
                {:error, "Music.Album's :uncountable action doesn't paginate by keyset"}
     end
 
     test "an action that doesn't paginate can't be paged" do
       for mode <- [:offset, :keyset] do
-        assert Engine.pagination(Ash.Query.for_read(Music.Album, :by_context), mode) ==
+        assert Engine.pagination(Music.Album, :by_context, mode) ==
                  {:error, "Music.Album's :by_context action doesn't paginate"}
       end
+    end
+  end
+
+  describe "read_action/2" do
+    test "the query's action, or the primary read" do
+      assert Engine.read_action(Ash.Query.new(Music.Album), nil) == {:ok, :read}
+      assert Engine.read_action(Music.Album, nil) == {:ok, :read}
+
+      assert Engine.read_action(Ash.Query.for_read(Music.Album, :paginated), nil) ==
+               {:ok, :paginated}
+    end
+
+    test "the given action, by its name or as a string" do
+      assert Engine.read_action(Music.Album, :by_genre) == {:ok, :by_genre}
+      assert Engine.read_action(Music.Album, "by_genre") == {:ok, :by_genre}
+    end
+
+    # On Artist, whose only read is `:read`, so the list doesn't change as Album's grows
+    test "an action that isn't one of the resource's reads is an error naming them" do
+      for action <- [:nope, "nope", :destroy] do
+        assert Engine.read_action(Music.Artist, action) ==
+                 {:error,
+                  "Music.Artist has no read action #{inspect(action)} (its read actions: :read)"}
+      end
+    end
+
+    test "a query that reads with a different action is an error" do
+      query = Ash.Query.for_read(Music.Album, :paginated)
+      assert Engine.read_action(query, :paginated) == {:ok, :paginated}
+
+      assert Engine.read_action(query, :by_genre) ==
+               {:error,
+                "the query already reads with :paginated, so it can't read with :by_genre"}
     end
   end
 end

@@ -13,6 +13,12 @@ defmodule Cinder.Next.Schema do
     id: [type: :string, required: true, doc: "The collection's id, unique on the page."],
     resource: [type: {:spark, Ash.Resource}, doc: "The Ash resource to read (or give a `query`)."],
     query: [type: {:struct, Ash.Query}, doc: "The Ash query to read (or give a `resource`)."],
+    action: [
+      type: {:or, [:atom, :string]},
+      doc:
+        "The read action, if not the query's or the primary read. " <>
+          "Give it here, not in the query, for its arguments to be given."
+    ],
     actor: [type: :any, doc: "The actor to read as."],
     tenant: [type: :any, doc: "The tenant to read in."],
     scope: [

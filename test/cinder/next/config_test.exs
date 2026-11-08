@@ -495,4 +495,42 @@ defmodule Cinder.Next.ConfigTest do
                    fn -> pagination(Ash.Query.new(Music.Album), size: 0) end
     end
   end
+
+  describe "the read action" do
+    @albums ~s(<Cinder.Next.collection id="albums">)
+
+    test "the `action` given, the query's, or the primary read" do
+      assert build([field("title")]).action == :read
+
+      assert build([field("title")], id: "albums", resource: Music.Album, action: "by_genre").action ==
+               :by_genre
+
+      query = Ash.Query.for_read(Music.Album, :paginated)
+      assert build([field("title")], id: "albums", query: query).action == :paginated
+    end
+
+    test "pagination is the `action`'s" do
+      config = build([field("title")], id: "albums", resource: Music.Album, action: :keyset_only)
+      assert config.pagination == %{mode: :keyset, size: 25, count?: false}
+    end
+
+    test "an action that isn't one of the resource's reads is an error" do
+      assert_raise ArgumentError,
+                   "#{@albums}: Music.Artist has no read action :nope (its read actions: :read)",
+                   fn ->
+                     build([field("name")], id: "albums", resource: Music.Artist, action: :nope)
+                   end
+    end
+
+    # The old shell only warned, and read with the query's
+    test "a query already reading with a different action is an error" do
+      query = Ash.Query.for_read(Music.Album, :paginated)
+
+      assert_raise ArgumentError,
+                   "#{@albums}: the query already reads with :paginated, so it can't read with :by_genre",
+                   fn ->
+                     build([field("title")], id: "albums", query: query, action: :by_genre)
+                   end
+    end
+  end
 end

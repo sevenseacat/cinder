@@ -19,8 +19,10 @@ defmodule Cinder.Next.Config do
   # `search` is the search box's options, or `nil` when no field is searchable.
   # `pagination` is the mode, the page size and whether to count, or `nil` when the
   # action doesn't page.
+  # `action` is the read action's name.
   defstruct [
     :source,
+    :action,
     :actor,
     :tenant,
     :scope,
@@ -47,6 +49,7 @@ defmodule Cinder.Next.Config do
     paginate? = options[:pagination] not in [nil, []]
     options = Schema.validate_collection!(options)
     source = source!(options[:resource], options[:query])
+    action = action!(source, options)
     declared = field_slots |> Enum.map(&declare!/1) |> once_each!()
     fields = Enum.map(declared, &field!(source, &1))
     declared = Enum.zip_with(declared, fields, &labelled/2)
@@ -54,11 +57,12 @@ defmodule Cinder.Next.Config do
 
     %__MODULE__{
       source: source,
+      action: action,
       columns: columns,
       fields: fields,
       filters: filters(fields, declared),
       search: search(options[:search], declared),
-      pagination: pagination!(source, options, paginate?),
+      pagination: pagination!(source, action, options, paginate?),
       actor: options[:actor],
       tenant: options[:tenant],
       scope: options[:scope],
@@ -84,6 +88,16 @@ defmodule Cinder.Next.Config do
     end
   end
 
+  defp action!(source, options) do
+    case Engine.read_action(source, options[:action]) do
+      {:ok, action} ->
+        action
+
+      {:error, message} ->
+        raise ArgumentError, ~s(<Cinder.Next.collection id="#{options[:id]}">: ) <> message
+    end
+  end
+
   # A label or placeholder not given stays `nil`: its default is translated when
   # rendered, in the user's locale
   defp search(options, declared) do
@@ -95,10 +109,10 @@ defmodule Cinder.Next.Config do
   # Paged if the action can be, by offset if it can. Asking for pagination it can't
   # do is a mistake, as it is in Ash; by default, it just reads every record.
   # Keyset pages have no number to show a total against, so aren't counted (yet).
-  defp pagination!(source, options, paginate?) do
+  defp pagination!(source, action, options, paginate?) do
     modes = if mode = options[:pagination][:mode], do: [mode], else: [:offset, :keyset]
 
-    case first_mode(source, modes) do
+    case first_mode(source, action, modes) do
       {:ok, mode, %{count?: count?}} ->
         %{mode: mode, size: options[:pagination][:size], count?: mode == :offset and count?}
 
@@ -113,11 +127,11 @@ defmodule Cinder.Next.Config do
   end
 
   # The first mode the action can page by, or the last one's error
-  defp first_mode(source, [mode | rest]) do
-    case {Engine.pagination(source, mode), rest} do
+  defp first_mode(source, action, [mode | rest]) do
+    case {Engine.pagination(source, action, mode), rest} do
       {{:ok, can}, _rest} -> {:ok, mode, can}
       {error, []} -> error
-      {_error, rest} -> first_mode(source, rest)
+      {_error, rest} -> first_mode(source, action, rest)
     end
   end
 

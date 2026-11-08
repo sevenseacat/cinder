@@ -101,15 +101,52 @@ defmodule Cinder.Engine do
   defp sort_name(_key), do: nil
 
   @doc """
-  Whether `source`'s read action (the query's, or the resource's primary read) can
-  page by `mode` (`:offset` or `:keyset`), and if so whether it can count the
-  records: Ash's read fails if asked to do either when the action can't.
+  The read action `source` is read with: the query's, or `action` (an atom, or a
+  string matched to the resource's read actions' names), or the primary read.
+
+  A query that already reads with an action is one `Ash.Query.for_read/4` has
+  prepared, so asking for a different one is an error, as is an action that isn't
+  one of the resource's reads.
   """
-  @spec pagination(Ash.Query.t() | module(), :offset | :keyset) ::
-          {:ok, %{count?: boolean()}} | {:error, String.t()}
-  def pagination(source, mode) when mode in [:offset, :keyset] do
+  @spec read_action(Ash.Query.t() | module(), atom() | String.t() | nil) ::
+          {:ok, atom()} | {:error, String.t()}
+  def read_action(source, action) do
     query = Ash.Query.new(source)
-    action = query.action || Ash.Resource.Info.primary_action!(query.resource, :read)
+    reads = for %{type: :read, name: name} <- Ash.Resource.Info.actions(query.resource), do: name
+    named = Enum.find(reads, &(to_string(&1) == to_string(action)))
+
+    cond do
+      action == nil and query.action != nil ->
+        {:ok, query.action.name}
+
+      action == nil ->
+        {:ok, Ash.Resource.Info.primary_action!(query.resource, :read).name}
+
+      named == nil ->
+        {:error,
+         "#{inspect(query.resource)} has no read action #{inspect(action)} " <>
+           "(its read actions: #{Enum.map_join(reads, ", ", &inspect/1)})"}
+
+      query.action != nil and query.action.name != named ->
+        {:error,
+         "the query already reads with #{inspect(query.action.name)}, " <>
+           "so it can't read with #{inspect(named)}"}
+
+      true ->
+        {:ok, named}
+    end
+  end
+
+  @doc """
+  Whether `source` read with `action` (from `read_action/2`) can page by `mode`
+  (`:offset` or `:keyset`), and if so whether it can count the records: Ash's read
+  fails if asked to do either when the action can't.
+  """
+  @spec pagination(Ash.Query.t() | module(), atom(), :offset | :keyset) ::
+          {:ok, %{count?: boolean()}} | {:error, String.t()}
+  def pagination(source, action, mode) when mode in [:offset, :keyset] do
+    query = Ash.Query.new(source)
+    action = Ash.Resource.Info.action(query.resource, action)
     can_page? = if mode == :offset, do: :offset?, else: :keyset?
     action_name = "#{inspect(query.resource)}'s #{inspect(action.name)} action"
 
