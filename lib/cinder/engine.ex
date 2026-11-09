@@ -101,6 +101,24 @@ defmodule Cinder.Engine do
   defp sort_name(_key), do: nil
 
   @doc """
+  The attribute that identifies each of `source`'s records, for selecting them: its
+  resource's primary key. A primary key that isn't one attribute (several, or none)
+  is an error, as no one field identifies a record.
+  """
+  @spec primary_key(Ash.Query.t() | module()) :: {:ok, atom()} | {:error, String.t()}
+  def primary_key(source) do
+    resource = Ash.Query.new(source).resource
+
+    case Ash.Resource.Info.primary_key(resource) do
+      [key] ->
+        {:ok, key}
+
+      keys ->
+        {:error, "#{inspect(resource)}'s primary key isn't a single attribute: #{inspect(keys)}"}
+    end
+  end
+
+  @doc """
   The read action `source` is read with: the query's, or `action` (an atom, or a
   string matched to the resource's read actions' names), or the primary read.
 

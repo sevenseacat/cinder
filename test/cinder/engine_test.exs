@@ -224,6 +224,20 @@ defmodule Cinder.EngineTest do
     end
   end
 
+  describe "primary_key/1" do
+    test "the field that identifies each record" do
+      assert Engine.primary_key(Music.Album) == {:ok, :id}
+      assert Engine.primary_key(Ash.Query.new(Music.Album)) == {:ok, :id}
+    end
+
+    # No one field identifies a record
+    test "a primary key of several attributes is an error" do
+      assert Engine.primary_key(TestCompositeKey) ==
+               {:error,
+                "TestCompositeKey's primary key isn't a single attribute: [:album_id, :position]"}
+    end
+  end
+
   describe "read_action/2" do
     test "the query's action, or the primary read" do
       assert Engine.read_action(Ash.Query.new(Music.Album), nil) == {:ok, :read}
