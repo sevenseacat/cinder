@@ -19,6 +19,7 @@ defmodule CinderDevWeb.NextLive do
         resource={Music.Album}
         pagination={[mode: :keyset, size: 10]}
         url_state={@url_state}
+        selectable={&(&1.genre != :classical)}
       >
         <:field :let={album} name="title" sort filter search>{album.title}</:field>
         <:field :let={album} name="artist.name" sort search>{album.artist.name}</:field>
