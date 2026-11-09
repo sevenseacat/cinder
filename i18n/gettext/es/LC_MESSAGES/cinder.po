@@ -209,3 +209,13 @@ msgstr "Ocurrió un error al cargar los datos"
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Página %{current}"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select all on this page"
+msgstr "Seleccionar todo en esta página"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select row"
+msgstr "Seleccionar fila"

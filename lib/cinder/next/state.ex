@@ -5,8 +5,9 @@
 defmodule Cinder.Next.State do
   @moduledoc false
   # How a collection's state changes as the user works with it, as pure functions.
-  # For now its state is a `Cinder.Engine.Query`; once there's state that isn't
-  # query (selection, layout, hidden columns), this becomes the struct holding it all.
+  # For now its state is a `Cinder.Engine.Query` and the selected ids (a `MapSet` of
+  # the strings the boxes carry), kept apart; once there's more state that isn't
+  # query (layout, hidden columns), this becomes the struct holding it all.
 
   @doc """
   The sort after clicking `field`, whose sort cycles through `cycle`. Additive
@@ -73,4 +74,31 @@ defmodule Cinder.Next.State do
 
   @doc "The query on its first page, as after anything that changes which records match."
   def first_page(query), do: %{query | page: 1, cursor: nil}
+
+  @doc """
+  The selected ids after a record's box is clicked: `id` selected, or cleared if it
+  was. Only an id in `selectable` (the page shown's records that can be selected)
+  can be, so any other, from a forged event, changes nothing.
+  """
+  def toggle_selected(selected, id, selectable) do
+    cond do
+      id not in selectable -> selected
+      id in selected -> MapSet.delete(selected, id)
+      true -> MapSet.put(selected, id)
+    end
+  end
+
+  @doc "The selected ids with every one of `selectable` (the page's) added."
+  def select_page(selected, selectable), do: MapSet.union(selected, selectable)
+
+  @doc "The selected ids with every one of `selectable` (the page's) removed."
+  def clear_page(selected, selectable), do: MapSet.difference(selected, selectable)
+
+  @doc """
+  Whether every one of `selectable` (the page's) is selected, so the page's box is
+  checked. A page with nothing selectable isn't.
+  """
+  def page_selected?(selected, selectable) do
+    MapSet.size(selectable) > 0 and MapSet.subset?(selectable, selected)
+  end
 end

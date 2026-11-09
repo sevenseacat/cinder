@@ -34,7 +34,12 @@ defmodule Cinder.Next.Collection do
       declarations != old[:declarations] ->
         config = Config.build(assigns.options, assigns.fields, assigns.arguments)
         query = query(old, config, if(url_changed?, do: url_params))
-        socket = socket |> assign(declarations: declarations, config: config) |> show(query)
+
+        socket =
+          socket
+          |> assign(declarations: declarations, config: config)
+          |> select(selected(old, config))
+          |> show(query)
 
         # A rebuild that moves the query (back to the first page, say) moves the URL too
         if url_params && !url_changed? && query != old.query, do: patch_url(socket, query)
@@ -79,6 +84,14 @@ defmodule Cinder.Next.Collection do
   # The first build, on mount, before there's a config or query: a new collection
   # starts on page 1 with the default sort
   defp query(_assigns, config, nil), do: start(config)
+
+  # The selection survives a rebuild that reads the same records, while records can
+  # still be selected. A new collection has none.
+  defp selected(%{config: old, selected: selected}, config) do
+    if config.selectable != false and read(old) == read(config), do: selected, else: MapSet.new()
+  end
+
+  defp selected(_assigns, _config), do: MapSet.new()
 
   defp start(config) do
     %Engine.Query{sort: config.sort.default, page_size: config.pagination[:size]}
@@ -157,9 +170,45 @@ defmodule Cinder.Next.Collection do
     end
   end
 
+  # Only the page shown's records that can be selected can be (`selectable_ids`), so a
+  # forged id changes nothing
+  def handle_event("select", %{"id" => id}, socket) do
+    %{selected: selected, selectable_ids: selectable} = socket.assigns
+    {:noreply, select(socket, State.toggle_selected(selected, id, selectable))}
+  end
+
+  # The page's box is checked when all of the page is selected, so clicking it clears
+  # the page, and otherwise selects it
+  def handle_event("select_page", _params, socket) do
+    %{selected: selected, selectable_ids: selectable} = socket.assigns
+
+    selected =
+      if State.page_selected?(selected, selectable) do
+        State.clear_page(selected, selectable)
+      else
+        State.select_page(selected, selectable)
+      end
+
+    {:noreply, select(socket, selected)}
+  end
+
   defp cursor(%{more?: true, last_cursor: cursor}, "next_page"), do: {:after, cursor}
   defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
   defp cursor(_page, _direction), do: nil
+
+  # The parent hears of each change, if it asked to. A new collection has selected
+  # nothing, so mounting one isn't a change.
+  defp select(socket, selected) do
+    %{config: config, id: id} = socket.assigns
+
+    if config.on_selection_change && selected != (socket.assigns[:selected] || MapSet.new()) do
+      count = MapSet.size(selected)
+      payload = %{selected_ids: selected, selected_count: count, component_id: id}
+      send(self(), {config.on_selection_change, payload})
+    end
+
+    assign(socket, :selected, selected)
+  end
 
   # Synced, what the user does changes the URL, and shows when the URL comes back,
   # so the new records and the new URL arrive in one render
@@ -176,7 +225,23 @@ defmodule Cinder.Next.Collection do
     UrlSync.patch(params, owns: Params.url_keys(config.fields, opts))
   end
 
-  defp show(socket, query), do: socket |> assign(:query, query) |> load()
+  defp show(socket, query), do: socket |> assign(:query, query) |> load() |> selectable_ids()
+
+  # The ids of the page's records that can be selected: the only ones the boxes can
+  # change. Ids are kept as the strings the boxes carry.
+  defp selectable_ids(%{assigns: %{config: config, page: page}} = socket) do
+    ids =
+      for record <- page.records, selectable?(config.selectable, record), into: MapSet.new() do
+        row_id(config, record)
+      end
+
+    assign(socket, :selectable_ids, ids)
+  end
+
+  defp selectable?(selectable, record) when is_function(selectable, 1), do: selectable.(record)
+  defp selectable?(selectable, _record), do: selectable
+
+  defp row_id(config, record), do: to_string(Map.fetch!(record, config.primary_key))
 
   # Synchronous, and a failed read crashes, until the slices for loading states and
   # errors. The controls' values are worked out here, with the records, rather than
@@ -285,6 +350,16 @@ defmodule Cinder.Next.Collection do
       <table>
         <thead>
           <tr>
+            <th :if={@config.selectable != false}>
+              <input
+                type="checkbox"
+                aria-label={dgettext("cinder", "Select all on this page")}
+                checked={State.page_selected?(@selected, @selectable_ids)}
+                disabled={@selectable_ids == MapSet.new()}
+                phx-click="select_page"
+                phx-target={@myself}
+              />
+            </th>
             <th
               :for={column <- @config.columns}
               aria-sort={column.sort && aria_sort(direction(@query.sort, column.field))}
@@ -306,6 +381,15 @@ defmodule Cinder.Next.Collection do
         </thead>
         <tbody>
           <tr :for={record <- @page.records}>
+            <td :if={@config.selectable != false}>
+              <.row_box
+                id={row_id(@config, record)}
+                collection_id={@id}
+                selected={@selected}
+                selectable_ids={@selectable_ids}
+                target={@myself}
+              />
+            </td>
             <td :for={column <- @columns}>{render_slot(column, record)}</td>
           </tr>
         </tbody>
@@ -325,6 +409,21 @@ defmodule Cinder.Next.Collection do
         </button>
       </nav>
     </div>
+    """
+  end
+
+  defp row_box(assigns) do
+    ~H"""
+    <input
+      type="checkbox"
+      id={"#{@collection_id}-select-#{@id}"}
+      aria-label={dgettext("cinder", "Select row")}
+      checked={@id in @selected}
+      disabled={@id not in @selectable_ids}
+      phx-click="select"
+      phx-value-id={@id}
+      phx-target={@target}
+    />
     """
   end
 

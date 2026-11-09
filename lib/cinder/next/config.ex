@@ -22,12 +22,17 @@ defmodule Cinder.Next.Config do
   # action doesn't page.
   # `action` is the read action's name, and `arguments` the ones the user gives
   # values for. `argument_inputs` are their controls, as `filters` are.
+  # `selectable` is as given (`false`, `true` or a function), and `primary_key` the
+  # attribute selected records are told apart by, when they can be.
   defstruct [
     :source,
     :action,
     :actor,
     :tenant,
     :scope,
+    :primary_key,
+    :on_selection_change,
+    selectable: false,
     columns: [],
     fields: [],
     filters: [],
@@ -75,6 +80,9 @@ defmodule Cinder.Next.Config do
       tenant: options[:tenant],
       scope: options[:scope],
       query_opts: options[:query_opts] || [],
+      selectable: options[:selectable],
+      primary_key: primary_key!(source, options),
+      on_selection_change: options[:on_selection_change],
       sort: %{
         mode: options[:sort][:mode] || :additive,
         default: default_sort(source, fields, columns)
@@ -93,6 +101,23 @@ defmodule Cinder.Next.Config do
       [name | _] ->
         raise ArgumentError,
               ~s(<:field name="#{name}"> is declared twice: each field is declared once)
+    end
+  end
+
+  # Only needed when records can be selected: a resource that can't be selected
+  # needn't have a primary key of one attribute
+  defp primary_key!(source, options) do
+    case {options[:selectable], Engine.primary_key(source)} do
+      {false, _primary_key} ->
+        nil
+
+      {_selectable, {:ok, key}} ->
+        key
+
+      {_selectable, {:error, message}} ->
+        raise ArgumentError,
+              ~s(<Cinder.Next.collection id="#{options[:id]}">: `selectable` can't be used: ) <>
+                message
     end
   end
 

@@ -105,4 +105,43 @@ defmodule Cinder.Next.StateTest do
       assert State.carry_over_page(%{@old | page_size: 10}, @old, true).page == 1
     end
   end
+
+  # The selectable ids are those of the page shown that can be selected
+  describe "toggle_selected/3" do
+    @selectable MapSet.new(["a", "b"])
+
+    test "a selectable id is selected, then cleared" do
+      selected = State.toggle_selected(MapSet.new(["z"]), "a", @selectable)
+      assert selected == MapSet.new(["a", "z"])
+      assert State.toggle_selected(selected, "a", @selectable) == MapSet.new(["z"])
+    end
+
+    # Not on the page shown, or not selectable: from a forged event
+    test "any other id is ignored" do
+      assert State.toggle_selected(MapSet.new(["z"]), "c", @selectable) == MapSet.new(["z"])
+      assert State.toggle_selected(MapSet.new(["z"]), "z", @selectable) == MapSet.new(["z"])
+    end
+  end
+
+  describe "select_page/2 and clear_page/2" do
+    test "add or remove the page's selectable ids, keeping others" do
+      assert State.select_page(MapSet.new(["a", "z"]), MapSet.new(["a", "b"])) ==
+               MapSet.new(["a", "b", "z"])
+
+      assert State.clear_page(MapSet.new(["a", "z"]), MapSet.new(["a", "b"])) ==
+               MapSet.new(["z"])
+    end
+  end
+
+  describe "page_selected?/2" do
+    test "whether every selectable id on the page is selected" do
+      assert State.page_selected?(MapSet.new(["a", "b", "z"]), MapSet.new(["a", "b"]))
+      refute State.page_selected?(MapSet.new(["a"]), MapSet.new(["a", "b"]))
+    end
+
+    # Its heading checkbox can't be checked, so it selects nothing
+    test "a page with nothing selectable isn't selected" do
+      refute State.page_selected?(MapSet.new(["z"]), MapSet.new())
+    end
+  end
 end

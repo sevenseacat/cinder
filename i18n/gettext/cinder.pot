@@ -209,3 +209,13 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr ""
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select all on this page"
+msgstr ""
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select row"
+msgstr ""

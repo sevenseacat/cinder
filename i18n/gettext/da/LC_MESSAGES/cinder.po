@@ -209,3 +209,13 @@ msgstr "Der opstod en fejl under indlæsning af data"
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Side %{current}"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select all on this page"
+msgstr "Vælg alle på denne side"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select row"
+msgstr "Vælg række"

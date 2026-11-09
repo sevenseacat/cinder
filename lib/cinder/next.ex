@@ -38,6 +38,14 @@ defmodule Cinder.Next do
     default: nil,
     doc: "The LiveView's `@url_state` (`use Cinder.UrlSync`), to keep its state in the URL"
 
+  attr :selectable, :any,
+    default: false,
+    doc: "Whether records can be selected: `true`, or a function given each record"
+
+  attr :on_selection_change, :atom,
+    default: nil,
+    doc: "A message to send the LiveView when the selection changes"
+
   slot :field,
     required: true,
     doc: "A field, shown as a column with its content for each record" do

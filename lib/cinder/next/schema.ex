@@ -83,6 +83,19 @@ defmodule Cinder.Next.Schema do
       doc:
         "The LiveView's `@url_state`, from `use Cinder.UrlSync`, " <>
           "to keep the sort, filters, search and page in the URL."
+    ],
+    selectable: [
+      type: {:or, [:boolean, {:fun, 1}]},
+      default: false,
+      doc:
+        "Whether records can be selected, with a box each: `true`, or a function " <>
+          "given each record, for only some. Records are told apart by their primary key."
+    ],
+    on_selection_change: [
+      type: :atom,
+      doc:
+        "A message to send the LiveView when the selection changes: " <>
+          "`{name, %{selected_ids:, selected_count:, component_id:}}`."
     ]
   ]
 

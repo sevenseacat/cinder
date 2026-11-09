@@ -538,6 +538,36 @@ defmodule Cinder.Next.ConfigTest do
     end
   end
 
+  describe "selection" do
+    defp selection(options) do
+      config = build([field("title")], [id: "albums", resource: Music.Album] ++ options)
+      Map.take(config, [:selectable, :primary_key, :on_selection_change])
+    end
+
+    test "nothing is selectable unless asked" do
+      assert selection([]) == %{selectable: false, primary_key: nil, on_selection_change: nil}
+    end
+
+    test "every record, or those a function picks, by their primary key" do
+      assert selection(selectable: true, on_selection_change: :picked) ==
+               %{selectable: true, primary_key: :id, on_selection_change: :picked}
+
+      picks = &(&1.title == "Blue")
+      assert %{selectable: ^picks, primary_key: :id} = selection(selectable: picks)
+    end
+
+    # No one field identifies a record, so the selection couldn't say which
+    test "a resource whose primary key isn't one attribute can't be selectable" do
+      options = [id: "codes", resource: TestCompositeKey]
+      assert build([field("code")], options).selectable == false
+
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="codes">: `selectable` can't be used: ) <>
+                     "TestCompositeKey's primary key isn't a single attribute: [:album_id, :position]",
+                   fn -> build([field("code")], [selectable: true] ++ options) end
+    end
+  end
+
   describe "arguments" do
     @by_genre [id: "albums", resource: Music.Album, action: :by_genre]
     @by_inputs [id: "albums", resource: Music.Album, action: :by_inputs]

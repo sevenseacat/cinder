@@ -10,6 +10,7 @@ defmodule Cinder.Next.CollectionTest do
       element: 3,
       render: 1,
       render_change: 2,
+      render_click: 1,
       render_click: 2,
       render_click: 3,
       render_component: 2,
@@ -690,6 +691,114 @@ defmodule Cinder.Next.CollectionTest do
       conn
       |> visit(path <> "?style=rock")
       |> assert_has("#albums td", text: "Abbey")
+    end
+  end
+
+  describe "selection" do
+    defp album_id(title) do
+      Music.Album |> Ash.Query.filter(title == ^title) |> Ash.read_one!() |> Map.fetch!(:id)
+    end
+
+    # Phoenix renders a `true` boolean attribute bare, so this finds the checked boxes
+    @checked "#albums tbody input[type=checkbox][checked]"
+
+    defp checked(session, 0), do: refute_has(session, @checked)
+    defp checked(session, count), do: assert_has(session, @checked, count: count)
+
+    defp click_box(session, selector) do
+      unwrap(session, fn view -> view |> element(selector) |> render_click() end)
+    end
+
+    # The parent hears of changes only when the test does: without a `handle_info`
+    # clause for the message, the fixture crashes, as a real parent would
+    defp selectable(selectable, opts \\ []) do
+      on_change = if opts[:forward_to], do: :picked
+
+      Fixture.register(
+        fn assigns ->
+          assigns = assign(assigns, selectable: selectable, on_change: on_change)
+
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            query={Ash.Query.sort(Music.Album, :title)}
+            actor={assigns[:actor]}
+            selectable={@selectable}
+            on_selection_change={@on_change}
+          >
+            <:field :let={album} name="title">{album.title}</:field>
+            <:field name="genre" filter column={false} />
+          </Cinder.Next.collection>
+          """
+        end,
+        opts
+      )
+    end
+
+    test "a record's box selects it, and the heading's selects or clears the page",
+         %{conn: conn} do
+      conn
+      |> visit(selectable(true))
+      |> assert_has("#albums th input[type=checkbox][aria-label='Select all on this page']")
+      |> assert_has("#albums tbody input[type=checkbox][aria-label='Select row']", count: 2)
+      |> click_box("#albums-select-#{album_id("Blue")}")
+      |> checked(1)
+      |> assert_has("#albums-select-#{album_id("Blue")}[checked]")
+      |> refute_has("#albums th input[checked]")
+      |> click_box("#albums th input")
+      |> checked(2)
+      |> assert_has("#albums th input[checked]")
+      |> click_box("#albums th input")
+      |> checked(0)
+    end
+
+    test "a record that can't be selected has a disabled box, and a forged event for it is ignored",
+         %{conn: conn} do
+      abbey = album_id("Abbey")
+      blue = album_id("Blue")
+
+      conn
+      |> visit(selectable(&(&1.genre == :jazz)))
+      |> assert_has("#albums-select-#{abbey}[disabled]")
+      # Blue's box, sending Abbey's id
+      |> unwrap(fn view ->
+        view |> element("#albums-select-#{blue}") |> render_click(%{"id" => abbey})
+      end)
+      |> checked(0)
+      |> click_box("#albums th input")
+      |> checked(1)
+      |> assert_has("#albums-select-#{blue}[checked]")
+    end
+
+    # As TanStack Table does: a filter hides selected records, it doesn't unselect them
+    test "the selection stays when filtering, and is cleared when the actor changes",
+         %{conn: conn} do
+      blue = album_id("Blue")
+
+      conn
+      |> visit(selectable(true))
+      |> click_box("#albums-select-#{blue}")
+      |> choose("Rock")
+      |> checked(0)
+      |> choose("Jazz")
+      |> assert_has("#albums-select-#{blue}[checked]")
+      |> unwrap(fn view ->
+        Fixture.run(view, &assign(&1, :actor, %{name: "Someone"}))
+        render(view)
+      end)
+      |> checked(0)
+    end
+
+    test "the parent hears of each change, and only of changes", %{conn: conn} do
+      blue = album_id("Blue")
+      session = visit(conn, selectable(true, forward_to: self()))
+
+      # Mounting changes nothing
+      refute_received {:picked, _payload}
+      click_box(session, "#albums-select-#{blue}")
+
+      expected = %{selected_ids: MapSet.new([blue]), selected_count: 1, component_id: "albums"}
+      assert_receive {:picked, ^expected}
     end
   end
 end
