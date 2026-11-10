@@ -13,7 +13,7 @@ defmodule Cinder.Engine do
   #
   # Turning form and URL strings into values belongs to `Cinder.Params`, not here.
 
-  alias Cinder.Engine.{Argument, Error, Field, Page, Query}
+  alias Cinder.Engine.{Argument, BulkAction, Error, Field, Page, Query}
   alias Cinder.Filters.Registry
   alias Cinder.QueryBuilder
 
@@ -115,6 +115,36 @@ defmodule Cinder.Engine do
 
       keys ->
         {:error, "#{inspect(resource)}'s primary key isn't a single attribute: #{inspect(keys)}"}
+    end
+  end
+
+  @doc """
+  Checks an action to run on `source`'s selected records: an update or destroy
+  action (an atom, or a string matched to their names), or a function, which is
+  the developer's to run and so isn't checked.
+  """
+  @spec bulk_action(Ash.Query.t() | module(), atom() | String.t() | function()) ::
+          {:ok, BulkAction.t()} | {:error, String.t()}
+  def bulk_action(_source, action) when is_function(action, 2) do
+    {:ok, %BulkAction{action: action}}
+  end
+
+  def bulk_action(source, action) do
+    resource = Ash.Query.new(source).resource
+
+    actions =
+      for %{type: type} = found <- Ash.Resource.Info.actions(resource),
+          type in [:update, :destroy],
+          do: found
+
+    case Enum.find(actions, &(to_string(&1.name) == to_string(action))) do
+      nil ->
+        {:error,
+         "#{inspect(resource)} has no update or destroy action #{inspect(action)} " <>
+           "(its update and destroy actions: #{Enum.map_join(actions, ", ", &inspect(&1.name))})"}
+
+      found ->
+        {:ok, %BulkAction{action: found.name, type: found.type}}
     end
   end
 

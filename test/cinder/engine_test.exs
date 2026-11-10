@@ -2,7 +2,7 @@ defmodule Cinder.EngineTest do
   use ExUnit.Case, async: true
 
   alias Cinder.Engine
-  alias Cinder.Engine.{Argument, Field}
+  alias Cinder.Engine.{Argument, BulkAction, Field}
 
   describe "field/2" do
     defp filter(name, declared \\ %{}) do
@@ -235,6 +235,31 @@ defmodule Cinder.EngineTest do
       assert Engine.primary_key(TestCompositeKey) ==
                {:error,
                 "TestCompositeKey's primary key isn't a single attribute: [:album_id, :position]"}
+    end
+  end
+
+  describe "bulk_action/2" do
+    test "an update or destroy action, by its name or as a string" do
+      assert Engine.bulk_action(Music.Album, :remaster) ==
+               {:ok, %BulkAction{action: :remaster, type: :update}}
+
+      assert Engine.bulk_action(Ash.Query.new(Music.Album), "destroy") ==
+               {:ok, %BulkAction{action: :destroy, type: :destroy}}
+    end
+
+    test "a function is the developer's to run, so isn't checked" do
+      fun = fn query, _opts -> {:ok, query} end
+      assert Engine.bulk_action(Music.Album, fun) == {:ok, %BulkAction{action: fun, type: nil}}
+    end
+
+    # On Artist, whose only update or destroy is `:destroy`, so the list doesn't change
+    test "an action that isn't one of the resource's updates or destroys is an error naming them" do
+      for action <- [:nope, "nope", :read] do
+        assert Engine.bulk_action(Music.Artist, action) ==
+                 {:error,
+                  "Music.Artist has no update or destroy action #{inspect(action)} " <>
+                    "(its update and destroy actions: :destroy)"}
+      end
     end
   end
 
