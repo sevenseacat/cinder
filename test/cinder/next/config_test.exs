@@ -706,6 +706,18 @@ defmodule Cinder.Next.ConfigTest do
                    fn -> build([field("title")], @by_genre, [argument("nope")]) end
     end
 
+    # It'd be ignored, and as a new closure on every render, would rebuild the config
+    test "content is an error, as its input is given with `input`" do
+      assert_raise ArgumentError,
+                   ~s(<:argument name="genre"> takes no content: give its input with `input`, ) <>
+                     ~s(as in <:argument name="genre" input={[label: "Genre"]} />),
+                   fn ->
+                     build([field("title")], @by_genre, [
+                       argument("genre", inner_block: fn _changed, _arg -> "" end)
+                     ])
+                   end
+    end
+
     test "an argument declared twice is an error" do
       assert_raise ArgumentError,
                    ~s(<:argument name="genre"> is declared twice: each argument is declared once),

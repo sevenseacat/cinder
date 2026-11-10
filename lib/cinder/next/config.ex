@@ -198,6 +198,8 @@ defmodule Cinder.Next.Config do
 
   # Each argument with its input's label
   defp arguments!(source, action, argument_slots, declared) do
+    Enum.each(argument_slots, &argument_without_content!/1)
+
     argument_slots
     |> Enum.map(&Schema.validate_argument!/1)
     |> tap(&arguments_once!/1)
@@ -237,6 +239,17 @@ defmodule Cinder.Next.Config do
 
       Map.put(taken, param, ~s(<:argument name="#{name}">) <> shared)
     end)
+  end
+
+  # Content would be ignored, and as a new closure on every render, would rebuild
+  # the config
+  defp argument_without_content!(slot) do
+    if slot[:inner_block] do
+      raise ArgumentError,
+            ~s(<:argument name="#{slot[:name]}"> takes no content: give its input with ) <>
+              ~s(`input`, as in <:argument name="#{slot[:name]}" ) <>
+              ~s(input={[label: "#{humanize(slot[:name])}"]} />)
+    end
   end
 
   defp arguments_once!(arguments) do
