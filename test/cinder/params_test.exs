@@ -168,6 +168,15 @@ defmodule Cinder.ParamsTest do
       assert query == %Query{@defaults | sort: [{"track_count", :desc}]}
     end
 
+    test "exclusive, only the first sort the collection can use is kept" do
+      params = %{"sort" => "price,-track_count,title"}
+      from_url = &Params.from_url(params, fields(), @defaults, &1)
+
+      assert from_url.(sort_mode: :exclusive).sort == [{"track_count", :desc}]
+      assert from_url.(sort_mode: :additive).sort == [{"track_count", :desc}, {"title", :asc}]
+      assert from_url.([]).sort == [{"track_count", :desc}, {"title", :asc}]
+    end
+
     test "with no page sizes given, only the default is allowed" do
       query = Params.from_url(%{"page_size" => "50"}, fields(), @defaults, [])
       assert query.page_size == 25

@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 ### Bug fixes
 
 * A form filter whose type raises while processing its input, or has no module, is now left out with an error logged, instead of filtering as text.
+* Tables with `sort_mode="exclusive"` now sort by only the first column when the URL lists several.
 
 ## v0.18.1 (2026-01-11)
 

@@ -102,7 +102,8 @@ defmodule Cinder.Next.Collection do
     opts = [
       search?: config.search != nil,
       pagination: config.pagination[:mode],
-      arguments: config.arguments
+      arguments: config.arguments,
+      sort_mode: config.sort.mode
     ]
 
     Params.from_url(params, config.fields, start(config), opts)

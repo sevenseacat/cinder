@@ -489,6 +489,28 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums th[aria-sort=descending]", text: "Title")
     end
 
+    test "exclusive, a URL's sorts after the first are ignored", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            resource={Music.Album}
+            sort={[mode: :exclusive]}
+            url_state={@url_state}
+          >
+            <:field :let={album} name="genre" sort>{album.genre}</:field>
+            <:field :let={album} name="title" sort>{album.title}</:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path <> "?sort=-genre,title")
+      |> assert_has("#albums th[aria-sort=descending]", text: "Genre")
+      |> assert_has("#albums th[aria-sort=none]", text: "Title")
+    end
+
     test "going back to the default takes it out of the URL", %{conn: conn} do
       path = synced()
 

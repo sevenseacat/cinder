@@ -104,12 +104,16 @@ defmodule Cinder.Params do
     * `search?` - whether the collection can be searched (default: `true`)
     * `pagination` - if given, the paging mode: `:offset` ignores a cursor,
       `:keyset` a page number, and `nil` (not paged) both
+    * `sort_mode` - `:exclusive` keeps only the first sort the collection can
+      use, as it only ever sorts by one field (default: `:additive`, all of them)
   """
   @spec from_url(%{String.t() => term()}, [Field.t()], Query.t(), keyword()) :: Query.t()
   def from_url(params, fields, %Query{} = defaults, opts) do
     sort =
       if Map.has_key?(params, "sort") do
-        UrlManager.decode_sort(params["sort"], Enum.map(fields, &Field.to_column_map/1))
+        params["sort"]
+        |> UrlManager.decode_sort(Enum.map(fields, &Field.to_column_map/1))
+        |> limit_sorts(Keyword.get(opts, :sort_mode, :additive))
       else
         defaults.sort
       end
@@ -153,6 +157,9 @@ defmodule Cinder.Params do
   defp filterable(fields) do
     for %Field{filter: filter, name: name} when filter != nil <- fields, do: name
   end
+
+  defp limit_sorts(sort, :exclusive), do: Enum.take(sort, 1)
+  defp limit_sorts(sort, _mode), do: sort
 
   # A URL may have both: `after` wins, as it does in `Cinder.UrlManager`
   defp url_cursor(params) do
