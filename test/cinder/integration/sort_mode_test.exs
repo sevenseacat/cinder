@@ -37,6 +37,27 @@ defmodule Cinder.Integration.SortModeTest do
     end
   end
 
+  test "an exclusive table sorts by only the first of several sorts in the URL", %{conn: conn} do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.collection resource={Music.Album} url_state={@url_state} sort_mode="exclusive">
+          <:col :let={album} field="title" sort>{album.title}</:col>
+          <:col :let={album} field="price" sort>{album.price}</:col>
+        </Cinder.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path <> "?sort=-price,title")
+
+    # Had the URL's second sort been kept, clicking title would flip it to -title
+    # alongside -price. With only -price kept, title becomes the one sort.
+    view |> element("[phx-click=toggle_sort][phx-value-key=title]") |> render_click()
+    url = assert_patch(view)
+
+    assert %{"sort" => "title"} = url |> URI.parse() |> Map.get(:query) |> URI.decode_query()
+  end
+
   test "sorting adds to the existing sort by default", %{conn: conn} do
     %{"sort" => sort} = sorted_after_clicking_title_then_price(conn, nil)
     assert sort |> String.split(",") |> Enum.sort() == ["price", "title"]

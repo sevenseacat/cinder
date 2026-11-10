@@ -6,6 +6,12 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+* Tables with `sort_mode="exclusive"` now sort by only the first column when the URL lists several.
+
 ## v0.18.1 (2026-01-11)
 
 ### Bug fixes

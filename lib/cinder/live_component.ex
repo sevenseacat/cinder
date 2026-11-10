@@ -956,6 +956,11 @@ defmodule Cinder.LiveComponent do
   # PRIVATE FUNCTIONS - URL State Decoding
   # ============================================================================
 
+  # A hand-edited URL can carry several sorts, but an exclusive table only ever
+  # sorts by one column, so keep just the first.
+  defp limit_sorts(sorts, :exclusive), do: Enum.take(sorts, 1)
+  defp limit_sorts(sorts, _sort_mode), do: sorts
+
   defp decode_url_state(socket, assigns) do
     if Map.has_key?(assigns, :url_raw_params) do
       raw_params = assigns.url_raw_params
@@ -964,7 +969,10 @@ defmodule Cinder.LiveComponent do
         Cinder.UrlManager.decode_filters(raw_params, socket.assigns.query_columns)
 
       decoded_sorts =
-        Cinder.UrlManager.decode_sort(Map.get(raw_params, "sort"), socket.assigns.columns)
+        raw_params
+        |> Map.get("sort")
+        |> Cinder.UrlManager.decode_sort(socket.assigns.columns)
+        |> limit_sorts(socket.assigns.sort_mode)
 
       decoded_state = %{
         filters: decoded_filters,
