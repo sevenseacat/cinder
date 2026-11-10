@@ -823,4 +823,67 @@ defmodule Cinder.Next.CollectionTest do
       assert_receive {:picked, ^expected}
     end
   end
+
+  describe "bulk actions" do
+    # A page each, to select records on more than one
+    defp with_bulk_actions(opts \\ []) do
+      on_change = if opts[:forward_to], do: :picked
+
+      Fixture.register(
+        fn assigns ->
+          assigns = assign(assigns, on_change: on_change)
+
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            query={Ash.Query.sort(Music.Album, :title)}
+            action="paginated"
+            pagination={[size: 1]}
+            selectable
+            on_selection_change={@on_change}
+          >
+            <:field :let={album} name="title">{album.title}</:field>
+            <:bulk_action action={:remaster} />
+            <:bulk_action action={:destroy} label="Delete" confirm="Delete {count} albums?" />
+          </Cinder.Next.collection>
+          """
+        end,
+        opts
+      )
+    end
+
+    test "the bar's actions are disabled until records are selected, and it counts every page's",
+         %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions())
+      |> assert_has("#albums-bulk[aria-label='Bulk actions'] button[disabled]", text: "Remaster")
+      |> assert_has("#albums-bulk button[disabled]", text: "Delete")
+      |> refute_has("#albums-bulk-count")
+      |> refute_has("#albums-bulk button", text: "Clear selection")
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> assert_has("#albums-bulk-count[aria-live=polite]", text: "1 selected")
+      |> refute_has("#albums-bulk button[disabled]")
+      |> click_button("Next page")
+      |> click_box("#albums-select-#{album_id("Blue")}")
+      |> assert_has("#albums-bulk-count", text: "2 selected")
+    end
+
+    test "Clear selection clears every page's, and tells the parent", %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("Next page")
+      |> click_box("#albums-select-#{album_id("Blue")}")
+      |> click_button("Clear selection")
+      |> checked(0)
+      |> refute_has("#albums-bulk-count")
+      |> assert_has("#albums-bulk button[disabled]", text: "Remaster")
+      |> click_button("Previous page")
+      |> checked(0)
+
+      assert_receive {:picked, %{selected_count: 2}}
+      assert_receive {:picked, %{selected_ids: none, selected_count: 0, component_id: "albums"}}
+      assert none == MapSet.new()
+    end
+  end
 end

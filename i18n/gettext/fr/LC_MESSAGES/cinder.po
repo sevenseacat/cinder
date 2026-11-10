@@ -177,6 +177,7 @@ msgid "No results found"
 msgstr "Aucun résultat trouvé"
 
 #: lib/cinder/filters/multi_select.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "%{count} selected"
 msgstr "%{count} sélectionné(s)"
@@ -216,3 +217,13 @@ msgstr "Tout sélectionner sur cette page"
 #, elixir-autogen, elixir-format
 msgid "Select row"
 msgstr "Sélectionner la ligne"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Bulk actions"
+msgstr "Actions groupées"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Clear selection"
+msgstr "Effacer la sélection"

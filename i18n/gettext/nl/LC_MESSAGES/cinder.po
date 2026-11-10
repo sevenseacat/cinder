@@ -180,6 +180,7 @@ msgid "No results found"
 msgstr "Geen resultaten gevonden"
 
 #: lib/cinder/filters/multi_select.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "%{count} selected"
 msgstr "%{count} geselecteerd"
@@ -219,3 +220,13 @@ msgstr "Alles op deze pagina selecteren"
 #, elixir-autogen, elixir-format
 msgid "Select row"
 msgstr "Rij selecteren"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Bulk actions"
+msgstr "Bulkacties"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Clear selection"
+msgstr "Selectie wissen"

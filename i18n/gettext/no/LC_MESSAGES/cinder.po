@@ -180,6 +180,7 @@ msgid "No results found"
 msgstr "Ingen resultater funnet"
 
 #: lib/cinder/filters/multi_select.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "%{count} selected"
 msgstr "%{count} valgt"
@@ -219,3 +220,13 @@ msgstr "Velg alle på denne siden"
 #, elixir-autogen, elixir-format
 msgid "Select row"
 msgstr "Velg rad"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Bulk actions"
+msgstr "Massehandlinger"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Clear selection"
+msgstr "Fjern valg"
