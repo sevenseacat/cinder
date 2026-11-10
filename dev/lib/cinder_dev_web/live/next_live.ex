@@ -33,6 +33,8 @@ defmodule CinderDevWeb.NextLive do
           {Calendar.strftime(album.release_date, "%d/%m/%Y")}
         </:field>
         <:field name="genre" filter={[type: :radio_group, prompt: "Any"]} column={false} />
+        <:bulk_action action={:remaster} />
+        <:bulk_action action={:destroy} label="Delete" confirm="Delete {count} albums?" />
       </Cinder.Next.collection>
 
       <%!-- Not synced to the URL: only one collection on a page can be, for now --%>
