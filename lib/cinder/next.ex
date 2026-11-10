@@ -72,6 +72,16 @@ defmodule Cinder.Next do
       doc: "Its input, as a filter's: `[type: ..., label: ..., ...]` with the type's options"
   end
 
+  slot :bulk_action, doc: "An action to run on the selected records, with a button" do
+    attr :action, :any,
+      required: true,
+      doc: "An update or destroy action, or a function given a query for the selected records"
+
+    attr :name, :string, doc: "What it goes by in events. Defaults to the action's name."
+    attr :label, :string, doc: "Its button's text. Defaults to the humanised name."
+    attr :confirm, :string, doc: "A question to confirm before it runs, with `{count}`"
+  end
+
   # Runs on every parent render, so it only hands everything on: the collection
   # works out what's changed. The id is checked here, as the LiveComponent can't
   # exist without one.
@@ -84,9 +94,10 @@ defmodule Cinder.Next do
     <.live_component
       module={Cinder.Next.Collection}
       id={@id}
-      options={assigns_to_attributes(assigns, [:field, :argument])}
+      options={assigns_to_attributes(assigns, [:field, :argument, :bulk_action])}
       fields={@field}
       arguments={@argument}
+      bulk_actions={@bulk_action}
     />
     """
   end

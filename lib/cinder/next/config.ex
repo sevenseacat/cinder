@@ -24,6 +24,8 @@ defmodule Cinder.Next.Config do
   # values for. `argument_inputs` are their controls, as `filters` are.
   # `selectable` is as given (`false`, `true` or a function), and `primary_key` the
   # attribute selected records are told apart by, when they can be.
+  # `bulk_actions` are what can run on the selected records, each with its name (in
+  # events), label and confirmation, and the engine's `Cinder.Engine.BulkAction`.
   defstruct [
     :source,
     :action,
@@ -38,6 +40,7 @@ defmodule Cinder.Next.Config do
     filters: [],
     arguments: [],
     argument_inputs: [],
+    bulk_actions: [],
     query_opts: [],
     search: nil,
     pagination: nil,
@@ -49,12 +52,12 @@ defmodule Cinder.Next.Config do
   closes over the parent's assigns, so it's new on every render, and is left out,
   as is `url_state`, which is the user's state rather than the config.
   """
-  def declarations(options, field_slots, argument_slots) do
+  def declarations(options, field_slots, argument_slots, bulk_action_slots) do
     {Keyword.delete(options, :url_state), Enum.map(field_slots, &Map.drop(&1, [:inner_block])),
-     argument_slots}
+     argument_slots, bulk_action_slots}
   end
 
-  def build(options, field_slots, argument_slots) do
+  def build(options, field_slots, argument_slots, bulk_action_slots) do
     # The schema fills in the page size, so whether `pagination` was given is asked first
     paginate? = options[:pagination] not in [nil, []]
     options = Schema.validate_collection!(options)
@@ -83,6 +86,7 @@ defmodule Cinder.Next.Config do
       selectable: options[:selectable],
       primary_key: primary_key!(source, options),
       on_selection_change: options[:on_selection_change],
+      bulk_actions: bulk_actions!(source, bulk_action_slots, options),
       sort: %{
         mode: options[:sort][:mode] || :additive,
         default: default_sort(source, fields, columns)
@@ -118,6 +122,67 @@ defmodule Cinder.Next.Config do
         raise ArgumentError,
               ~s(<Cinder.Next.collection id="#{options[:id]}">: `selectable` can't be used: ) <>
                 message
+    end
+  end
+
+  # Events name the action, rather than giving its place, so one behind an `:if`
+  # can't change which runs
+  defp bulk_actions!(source, slots, options) do
+    bulk_actions = Enum.map(slots, &bulk_action!(source, &1))
+
+    if bulk_actions != [] and options[:selectable] == false do
+      raise ArgumentError,
+            ~s(<Cinder.Next.collection id="#{options[:id]}">: bulk actions run on the ) <>
+              "selected records, so need `selectable`"
+    end
+
+    names = Enum.map(bulk_actions, & &1.name)
+
+    case names -- Enum.uniq(names) do
+      [] ->
+        bulk_actions
+
+      [name | _] ->
+        raise ArgumentError,
+              ~s(<:bulk_action name="#{name}"> is declared twice: ) <>
+                "give each bulk action its own `name`"
+    end
+  end
+
+  defp bulk_action!(source, slot) do
+    attributes = Schema.validate_bulk_action!(slot)
+    action = attributes[:action]
+    declaration = Schema.bulk_action_declaration(slot)
+
+    if slot[:inner_block] do
+      raise ArgumentError,
+            "#{declaration} takes no content: give its button's text as `label`, " <>
+              ~s(as in <:bulk_action label="Delete" />)
+    end
+
+    name =
+      cond do
+        attributes[:name] ->
+          attributes[:name]
+
+        is_function(action) ->
+          raise ArgumentError, "#{declaration} runs a function, so needs a `name` to go by"
+
+        true ->
+          to_string(action)
+      end
+
+    case Engine.bulk_action(source, action) do
+      {:ok, bulk_action} ->
+        %{
+          name: name,
+          label: attributes[:label] || humanize(name),
+          confirm: attributes[:confirm],
+          action: bulk_action
+        }
+
+      {:error, message} ->
+        raise ArgumentError, "#{declaration}: #{message}"
     end
   end
 

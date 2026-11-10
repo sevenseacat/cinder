@@ -21,5 +21,9 @@ defmodule Cinder.Next.SchemaTest do
     argument = Enum.find(component.slots, &(&1.name == :argument))
     argument_attrs = argument.attrs |> Enum.map(& &1.name) |> Enum.sort()
     assert argument_attrs == Schema.argument() |> Keyword.keys() |> Enum.sort()
+
+    bulk_action = Enum.find(component.slots, &(&1.name == :bulk_action))
+    bulk_action_attrs = bulk_action.attrs |> Enum.map(& &1.name) |> Enum.sort()
+    assert bulk_action_attrs == Schema.bulk_action() |> Keyword.keys() |> Enum.sort()
   end
 end

@@ -23,7 +23,14 @@ defmodule Cinder.Next.Collection do
     # taken; the config is only rebuilt, and the records reloaded, when what's
     # declared changes. Only the fields that are columns have cells. Synced to the
     # URL (`url_params` isn't `nil`), a change to the URL's params is applied too.
-    declarations = Config.declarations(assigns.options, assigns.fields, assigns.arguments)
+    declarations =
+      Config.declarations(
+        assigns.options,
+        assigns.fields,
+        assigns.arguments,
+        assigns.bulk_actions
+      )
+
     columns = Enum.reject(assigns.fields, &(&1[:column] == false))
     url_params = assigns.options[:url_state][:params]
     old = socket.assigns
@@ -32,7 +39,9 @@ defmodule Cinder.Next.Collection do
 
     cond do
       declarations != old[:declarations] ->
-        config = Config.build(assigns.options, assigns.fields, assigns.arguments)
+        config =
+          Config.build(assigns.options, assigns.fields, assigns.arguments, assigns.bulk_actions)
+
         query = query(old, config, if(url_changed?, do: url_params))
 
         socket =

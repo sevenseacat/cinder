@@ -162,9 +162,29 @@ defmodule Cinder.Next.Schema do
     ]
   ]
 
+  @bulk_action [
+    action: [
+      type: {:or, [:atom, :string, {:fun, 2}]},
+      required: true,
+      doc:
+        "What runs on the selected records: an update or destroy action, or a function " <>
+          "given a query for them and the options to run it with (`actor`, `tenant`, `scope`)."
+    ],
+    name: [
+      type: :string,
+      doc: "What it goes by in events, unique to the collection. Defaults to the action's name."
+    ],
+    label: [type: :string, doc: "Its button's text. Defaults to the humanised name."],
+    confirm: [
+      type: :string,
+      doc: "A question to confirm before it runs. `{count}` is how many records are selected."
+    ]
+  ]
+
   def collection, do: @collection
   def field, do: @field
   def argument, do: @argument
+  def bulk_action, do: @bulk_action
 
   @doc "The collection's options, checked."
   def validate_collection!(options) do
@@ -231,6 +251,21 @@ defmodule Cinder.Next.Schema do
     attributes
     |> validate!(@argument, ~s(<:argument name="#{slot[:name]}">))
     |> Keyword.update!(:input, &Keyword.put(&1, :options, input_options))
+  end
+
+  @doc "A `<:bulk_action>` slot entry's attributes, checked."
+  def validate_bulk_action!(slot) do
+    slot
+    |> Map.drop([:__slot__, :inner_block])
+    |> validate!(@bulk_action, bulk_action_declaration(slot))
+  end
+
+  @doc "How errors name a `<:bulk_action>`: by its name, or its action's."
+  def bulk_action_declaration(slot) do
+    case slot[:name] || slot[:action] do
+      unnamed when is_function(unnamed) or is_nil(unnamed) -> "<:bulk_action>"
+      name -> ~s(<:bulk_action name="#{name}">)
+    end
   end
 
   # Spark rejects keys its schema doesn't have, and a type's options can be anything

@@ -15,8 +15,16 @@ defmodule Cinder.Next.ConfigTest do
   defp argument(name, attrs \\ []),
     do: Map.merge(%{__slot__: :argument, name: name}, Map.new(attrs))
 
-  defp build(fields, options \\ [id: "albums", resource: Music.Album], arguments \\ []) do
-    Config.build(options, fields, arguments)
+  # A `<:bulk_action>` slot entry
+  defp bulk_action(attrs), do: Map.merge(%{__slot__: :bulk_action}, Map.new(attrs))
+
+  defp build(
+         fields,
+         options \\ [id: "albums", resource: Music.Album],
+         arguments \\ [],
+         bulk_actions \\ []
+       ) do
+    Config.build(options, fields, arguments, bulk_actions)
   end
 
   test "each column has a label, the humanised field unless one's given" do
@@ -565,6 +573,101 @@ defmodule Cinder.Next.ConfigTest do
                    ~s(<Cinder.Next.collection id="codes">: `selectable` can't be used: ) <>
                      "TestCompositeKey's primary key isn't a single attribute: [:album_id, :position]",
                    fn -> build([field("code")], [selectable: true] ++ options) end
+    end
+  end
+
+  describe "bulk actions" do
+    @selectable [id: "albums", resource: Music.Album, selectable: true]
+
+    defp bulk_actions(slots), do: build([field("title")], @selectable, [], slots).bulk_actions
+
+    test "none unless declared" do
+      assert build([field("title")]).bulk_actions == []
+    end
+
+    test "each <:bulk_action> is an action, named and labelled by it unless given" do
+      export = fn query, _opts -> {:ok, query} end
+
+      assert bulk_actions([
+               bulk_action(action: :remaster),
+               bulk_action(action: "destroy", label: "Delete", confirm: "Delete {count} albums?"),
+               bulk_action(action: export, name: "export_csv")
+             ]) == [
+               %{
+                 name: "remaster",
+                 label: "Remaster",
+                 confirm: nil,
+                 action: %Cinder.Engine.BulkAction{action: :remaster, type: :update}
+               },
+               %{
+                 name: "destroy",
+                 label: "Delete",
+                 confirm: "Delete {count} albums?",
+                 action: %Cinder.Engine.BulkAction{action: :destroy, type: :destroy}
+               },
+               %{
+                 name: "export_csv",
+                 label: "Export Csv",
+                 confirm: nil,
+                 action: %Cinder.Engine.BulkAction{action: export, type: nil}
+               }
+             ]
+    end
+
+    # On Artist, whose only update or destroy is `:destroy`, so the list doesn't change
+    test "an action that isn't an update or destroy is an error" do
+      options = [id: "artists", resource: Music.Artist, selectable: true]
+
+      assert_raise ArgumentError,
+                   ~s(<:bulk_action name="read">: Music.Artist has no update or destroy action ) <>
+                     "\"read\" (its update and destroy actions: :destroy)",
+                   fn -> build([field("name")], options, [], [bulk_action(action: "read")]) end
+    end
+
+    # The name says which action an event is for, and a function has none
+    test "a function needs a name" do
+      assert_raise ArgumentError,
+                   "<:bulk_action> runs a function, so needs a `name` to go by",
+                   fn -> bulk_actions([bulk_action(action: fn query, _opts -> query end)]) end
+    end
+
+    # It'd be ignored, and as a new closure on every render, would rebuild the config
+    test "content is an error, as its button's text is its `label`" do
+      assert_raise ArgumentError,
+                   ~s(<:bulk_action name="destroy"> takes no content: ) <>
+                     ~s(give its button's text as `label`, as in <:bulk_action label="Delete" />),
+                   fn ->
+                     bulk_actions([
+                       bulk_action(action: :destroy, inner_block: fn _changed, _arg -> "" end)
+                     ])
+                   end
+    end
+
+    test "a name declared twice is an error" do
+      assert_raise ArgumentError,
+                   ~s(<:bulk_action name="destroy"> is declared twice: ) <>
+                     "give each bulk action its own `name`",
+                   fn ->
+                     bulk_actions([bulk_action(action: :destroy), bulk_action(action: :destroy)])
+                   end
+    end
+
+    test "they run on selected records, so need records to be selectable" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: bulk actions run on the selected ) <>
+                     "records, so need `selectable`",
+                   fn ->
+                     build([field("title")], [id: "albums", resource: Music.Album], [], [
+                       bulk_action(action: :destroy)
+                     ])
+                   end
+    end
+
+    test "an option of the wrong type is an error naming it" do
+      assert_raise ArgumentError,
+                   ~s(<:bulk_action name="destroy">: invalid value for :confirm option: ) <>
+                     "expected string, got: true",
+                   fn -> bulk_actions([bulk_action(action: :destroy, confirm: true)]) end
     end
   end
 
