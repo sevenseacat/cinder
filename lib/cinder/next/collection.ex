@@ -53,14 +53,13 @@ defmodule Cinder.Next.Collection do
           |> select(selected(old, config))
 
         socket =
-          if read_again?(old, config, query) do
-            show(socket, query)
-          else
-            selectable_ids(socket)
+          cond do
+            !read_again?(old, config, query) -> selectable_ids(socket)
+            # A rebuild that moves the query (back to the first page, say) moves the URL too
+            !url_changed? and query != old[:query] -> show_now(socket, query)
+            true -> show(socket, query)
           end
 
-        # A rebuild that moves the query (back to the first page, say) moves the URL too
-        if url_params && !url_changed? && query != old.query, do: patch_url(socket, query)
         {:ok, socket}
 
       # A change to the app's own params changes nothing here
@@ -286,9 +285,36 @@ defmodule Cinder.Next.Collection do
     if status == :error do
       {:noreply, socket}
     else
-      {:noreply, socket |> select(MapSet.new()) |> show(query)}
+      {:noreply, socket |> select(MapSet.new()) |> show(query) |> leave_emptied_page()}
     end
   end
+
+  # An action that empties the page shown (deleting its records, or changing them so
+  # the read no longer reaches them) moves to the last page with records. Without a
+  # count to say which that is (an uncounted read, or keyset pages, whose cursors
+  # can't say), it's the first.
+  defp leave_emptied_page(socket) do
+    %{config: config, page: page, query: query} = socket.assigns
+
+    if page.records == [] and (query.page > 1 or query.cursor != nil) do
+      moved =
+        if config.pagination[:mode] == :keyset do
+          State.first_page(query)
+        else
+          %{query | page: last_page(page)}
+        end
+
+      show_now(socket, moved)
+    else
+      socket
+    end
+  end
+
+  defp last_page(%Engine.Page{count: count, page_size: size}) when is_integer(count) do
+    max(div(count + size - 1, size), 1)
+  end
+
+  defp last_page(_uncounted), do: 1
 
   defp bulk_result({:ok, {:ok, value}}), do: {:success, value, []}
   defp bulk_result({:ok, {:partial_success, bulk}}), do: {:partial_success, bulk, bulk.errors}
@@ -320,6 +346,16 @@ defmodule Cinder.Next.Collection do
   defp change(socket, query) do
     patch_url(socket, query)
     socket
+  end
+
+  # A move the collection makes itself (a rebuild, or leaving an emptied page) shows
+  # in this render. Synced, the URL follows: `patch_url/2` only asks the parent to
+  # patch, changing nothing here. Unlike `change/2`, which waits for the URL, this
+  # doesn't show the old records while it comes back, and the query that comes back
+  # is the one shown, so it isn't read again.
+  defp show_now(socket, query) do
+    if socket.assigns.url_params, do: patch_url(socket, query)
+    show(socket, query)
   end
 
   defp patch_url(%{assigns: %{config: config}}, query) do

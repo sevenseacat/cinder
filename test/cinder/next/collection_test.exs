@@ -873,24 +873,33 @@ defmodule Cinder.Next.CollectionTest do
     # A page each, to select records on more than one
     defp with_bulk_actions(opts \\ []) do
       {on_change, on_result} = if opts[:forward_to], do: {:picked, :done}, else: {nil, nil}
+      pagination = [size: 1, mode: Keyword.get(opts, :mode, :offset)]
 
       Fixture.register(
         fn assigns ->
-          assigns = assign(assigns, on_change: on_change, on_result: on_result)
+          assigns =
+            assign(assigns,
+              on_change: on_change,
+              on_result: on_result,
+              pagination: pagination,
+              synced: if(opts[:url?], do: assigns.url_state)
+            )
 
           ~H"""
           <Cinder.Next.collection
             id="albums"
             query={Ash.Query.sort(Music.Album, :title)}
             action="paginated"
-            pagination={[size: 1]}
+            pagination={@pagination}
             selectable
+            url_state={@synced}
             on_selection_change={@on_change}
             on_bulk_action_result={@on_result}
           >
             <:field :let={album} name="title" filter>{album.title}</:field>
             <:bulk_action action={:remaster} />
             <:bulk_action action={:destroy} label="Delete" confirm="Delete {count} albums?" />
+            <:bulk_action name="remove" action={:destroy} />
             <:bulk_action name="fail" action={&fail/2} />
           </Cinder.Next.collection>
           """
@@ -1004,6 +1013,40 @@ defmodule Cinder.Next.CollectionTest do
 
       refute_receive {:done, _payload}
       assert remastered() == []
+    end
+
+    # Rather than an empty page with records before it. Synced, the URL follows.
+    test "an action that empties the last pages shows the last page with records",
+         %{conn: conn} do
+      generate(album(title: "Cold"))
+      path = with_bulk_actions(forward_to: self(), url?: true)
+
+      conn
+      |> visit(path)
+      |> click_button("Next page")
+      |> click_box("#albums-select-#{album_id("Blue")}")
+      |> click_button("Next page")
+      |> click_box("#albums-select-#{album_id("Cold")}")
+      |> assert_path(path, query_params: %{page: "3"}, timeout: 500)
+      |> click_button("Remove")
+      |> tap(fn _session -> assert_receive {:done, %{status: :success}} end)
+      |> assert_has("#albums td", text: "Abbey")
+      |> assert_has("#albums tbody tr", count: 1)
+      |> refute_has("#albums nav")
+      |> assert_path(path, query_params: %{}, timeout: 500)
+    end
+
+    # A cursor can't say where the last page is
+    test "with keyset pages, an action that empties the page shows the first",
+         %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self(), mode: :keyset))
+      |> click_button("Next page")
+      |> click_box("#albums-select-#{album_id("Blue")}")
+      |> click_button("Remove")
+      |> tap(fn _session -> assert_receive {:done, %{status: :success}} end)
+      |> assert_has("#albums td", text: "Abbey")
+      |> assert_has("#albums tbody tr", count: 1)
     end
 
     # A declared confirm is never skipped, so until confirming is built, an action
