@@ -20,6 +20,7 @@ defmodule CinderDevWeb.NextLive do
         pagination={[mode: :keyset, size: 10]}
         url_state={@url_state}
         selectable={&(&1.genre != :classical)}
+        on_bulk_action_result={:bulk_action_done}
       >
         <:field :let={album} name="title" sort filter search>{album.title}</:field>
         <:field :let={album} name="artist.name" sort search>{album.artist.name}</:field>
@@ -31,6 +32,9 @@ defmodule CinderDevWeb.NextLive do
           filter
         >
           {Calendar.strftime(album.release_date, "%d/%m/%Y")}
+        </:field>
+        <:field :let={album} name="is_remastered" label="Remastered">
+          {if album.is_remastered, do: "Yes"}
         </:field>
         <:field name="genre" filter={[type: :radio_group, prompt: "Any"]} column={false} />
         <:bulk_action action={:remaster} />
@@ -46,5 +50,19 @@ defmodule CinderDevWeb.NextLive do
       </Cinder.Next.collection>
     </Layouts.app>
     """
+  end
+
+  @impl true
+  def handle_info({:bulk_action_done, result}, socket) do
+    %{bulk_action: name, status: status, selected_count: count, errors: errors} = result
+
+    {kind, message} =
+      case status do
+        :success -> {:info, "#{name}: ran on #{count} selected"}
+        :partial_success -> {:error, "#{name}: some of #{count} failed: #{inspect(errors)}"}
+        :error -> {:error, "#{name} failed: #{inspect(errors)}"}
+      end
+
+    {:noreply, put_flash(socket, kind, message)}
   end
 end
