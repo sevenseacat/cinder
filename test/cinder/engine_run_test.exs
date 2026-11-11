@@ -223,4 +223,68 @@ defmodule Cinder.EngineRunTest do
     assert album.title_lower == String.downcase(album.title)
     assert album.artist.name == "Run Artist"
   end
+
+  describe "run_bulk_action/4" do
+    defp ids(titles) do
+      for album <- Ash.read!(Music.Album), album.title in titles, do: to_string(album.id)
+    end
+
+    defp remastered do
+      Music.Album |> Ash.read!() |> Enum.filter(& &1.is_remastered) |> Enum.map(& &1.title)
+    end
+
+    defp titles_left, do: Music.Album |> Ash.read!() |> Enum.map(& &1.title) |> Enum.sort()
+
+    defp bulk(action, ids, opts \\ []) do
+      {source, opts} = Keyword.pop(opts, :source, Music.Album)
+      {:ok, bulk_action} = Engine.bulk_action(source, action)
+      Engine.run_bulk_action(source, bulk_action, ids, opts)
+    end
+
+    test "an update or a destroy runs on the selected records" do
+      assert {:ok, %Ash.BulkResult{status: :success}} = bulk(:remaster, ids(["Blue"]))
+      assert remastered() == ["Blue"]
+
+      assert {:ok, %Ash.BulkResult{status: :success}} = bulk(:destroy, ids(["Abbey", "Cold"]))
+      assert titles_left() == ["Blue"]
+    end
+
+    # As the records are read: a selected record the source query or the read action
+    # (with its arguments) can't read isn't acted on
+    test "only selected records the collection's read can reach" do
+      generate(album(title: "Jazzy", genre: :jazz))
+      generate(album(title: "Rocky", genre: :rock))
+      genre = %{type: :select, value: "jazz", operator: :equals}
+
+      opts = [
+        action: :by_genre,
+        arguments: [genre("style")],
+        argument_values: %{"style" => genre},
+        source: Ash.Query.filter(Music.Album, title != "Blue")
+      ]
+
+      bulk(:destroy, ids(["Blue", "Jazzy", "Rocky"]), opts)
+      assert titles_left() == ["Abbey", "Blue", "Cold", "Rocky"]
+    end
+
+    # A code interface takes a query in place of a record, and its options
+    test "a function gets a query for the selected records, and the options" do
+      opts = [actor: %{name: "Actor"}, action_opts: [return_errors?: false]]
+
+      action = fn query, opts ->
+        send(self(), {:ran, query |> Ash.read!() |> Enum.map(& &1.title), opts})
+        :done
+      end
+
+      assert bulk(action, ids(["Blue"]), opts) == {:ok, :done}
+
+      assert_received {:ran, ["Blue"],
+                       [bulk_options: [return_errors?: false], actor: %{name: "Actor"}]}
+    end
+
+    test "a failed action is an error" do
+      assert bulk(fn _query, _opts -> raise "Nope" end, ids(["Blue"])) == {:error, "Nope"}
+      assert bulk(fn _query, _opts -> {:error, :nope} end, ids(["Blue"])) == {:error, :nope}
+    end
+  end
 end

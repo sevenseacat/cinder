@@ -13,6 +13,7 @@ defmodule Cinder.Engine do
   #
   # Turning form and URL strings into values belongs to `Cinder.Params`, not here.
 
+  alias Cinder.BulkActionExecutor
   alias Cinder.Engine.{Argument, BulkAction, Error, Field, Page, Query}
   alias Cinder.Filters.Registry
   alias Cinder.QueryBuilder
@@ -325,6 +326,47 @@ defmodule Cinder.Engine do
     case QueryBuilder.build_and_execute(source, options) do
       {:ok, result} -> {:ok, page(result, query, options[:pagination_mode])}
       {:error, reason} -> {:error, error(reason, opts[:arguments] || [])}
+    end
+  end
+
+  @doc """
+  Runs `bulk_action` (from `bulk_action/2`) on the records whose primary keys are
+  `ids` (as strings), reached as the collection reads them: from `source`, with
+  its read action and that action's arguments. A selected record they can't read
+  isn't acted on. The user's filters and search aren't applied, as a record they
+  hide is still selected.
+
+  Options, as `run/4` takes them: `actor`, `tenant`, `scope`, `action`,
+  `arguments` and `query_opts` (only those the query takes when it's built). And:
+
+    * `argument_values` - the arguments' values, as `run/4`'s query has them
+    * `action_opts` - more options for the action: an update or destroy action's
+      are `Ash.bulk_update/4`'s or `Ash.bulk_destroy/4`'s (with `return_errors?:
+      true` unless given), and a function gets them as `bulk_options`, as a code
+      interface takes them
+
+  An update or destroy gives Ash's `Ash.BulkResult`, and a function what it
+  returns: `{:ok, result}`, or `{:partial_success, result}` when some records
+  failed and the rest changed, or `{:error, reason}`. A function that raises is an
+  error with its message.
+  """
+  @spec run_bulk_action(Ash.Query.t() | module(), BulkAction.t(), [String.t()], keyword()) ::
+          {:ok, term()} | {:partial_success, Ash.BulkResult.t()} | {:error, term()}
+  def run_bulk_action(source, %BulkAction{action: action}, ids, opts) do
+    {:ok, key} = primary_key(source)
+    {_load, read_opts} = opts |> Keyword.get(:query_opts, []) |> Keyword.pop(:load)
+    auth = Keyword.take(opts, [:actor, :tenant, :scope])
+
+    options =
+      [
+        action: opts[:action],
+        arguments: argument_values(opts[:argument_values] || %{}, opts[:arguments] || []),
+        read_opts: read_opts
+      ] ++ auth
+
+    with {:ok, query} <- QueryBuilder.build_query(source, options) do
+      execute_opts = [resource: query, ids: ids, id_field: key] ++ auth
+      BulkActionExecutor.execute(action, [action_opts: opts[:action_opts] || []] ++ execute_opts)
     end
   end
 
