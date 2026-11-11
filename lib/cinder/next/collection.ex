@@ -255,18 +255,12 @@ defmodule Cinder.Next.Collection do
   end
 
   # Too soon after asking is a slow double click on the action, not an answer, so
-  # it's ignored and the question stays. With nothing waiting, it's tampering.
-  def handle_event("confirm_bulk_action", _params, socket) do
+  # it's ignored and the question stays. With nothing waiting, or naming another
+  # action than the one waiting, it's tampering.
+  def handle_event("confirm_bulk_action", %{"name" => name}, socket) do
     %{confirming_bulk_action: confirming, selected: selected} = socket.assigns
 
-    delay =
-      Application.get_env(
-        :cinder,
-        :bulk_action_confirm_delay,
-        @default_bulk_action_confirm_delay
-      )
-
-    if confirming && now() - confirming.shown_at >= delay && MapSet.size(selected) > 0 do
+    if confirmed?(confirming, name) and MapSet.size(selected) > 0 do
       socket = assign(socket, :confirming_bulk_action, nil)
       {:noreply, run_bulk_action(socket, confirming.bulk_action)}
     else
@@ -277,6 +271,19 @@ defmodule Cinder.Next.Collection do
   def handle_event("cancel_bulk_action", _params, socket) do
     {:noreply, assign(socket, :confirming_bulk_action, nil)}
   end
+
+  defp confirmed?(%{bulk_action: %{name: name}, shown_at: shown_at}, name) do
+    delay =
+      Application.get_env(
+        :cinder,
+        :bulk_action_confirm_delay,
+        @default_bulk_action_confirm_delay
+      )
+
+    now() - shown_at >= delay
+  end
+
+  defp confirmed?(_confirming, _name), do: false
 
   # On the records selected, as they're read (see `Engine.run_bulk_action/4`)
   defp run_bulk_action(socket, bulk_action) do
@@ -666,7 +673,7 @@ defmodule Cinder.Next.Collection do
         label: bulk_action.label,
         message: String.replace(bulk_action.confirm, "{count}", to_string(count)),
         count: count,
-        confirm: JS.push("confirm_bulk_action", target: target),
+        confirm: JS.push("confirm_bulk_action", value: %{name: bulk_action.name}, target: target),
         cancel: JS.push("cancel_bulk_action", target: target)
       ],
       {__MODULE__, __ENV__.function, __ENV__.file, __ENV__.line}

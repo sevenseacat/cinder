@@ -1173,14 +1173,28 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums-bulk-confirm p", text: "Delete 1 albums?")
     end
 
-    test "confirming with nothing waiting is ignored", %{conn: conn} do
+    test "confirming with nothing waiting, or another action than the one waiting, is ignored",
+         %{conn: conn} do
+      confirm = fn name ->
+        fn view ->
+          render_click(with_target(view, "#albums"), "confirm_bulk_action", %{"name" => name})
+        end
+      end
+
       conn
       |> visit(with_bulk_actions(forward_to: self()))
       |> click_box("#albums-select-#{album_id("Abbey")}")
-      |> unwrap(fn view -> render_click(with_target(view, "#albums"), "confirm_bulk_action") end)
+      |> unwrap(confirm.("destroy"))
+      |> click_button("#albums-bulk button", "Delete")
+      |> tap(fn _session ->
+        Process.sleep(Application.fetch_env!(:cinder, :bulk_action_confirm_delay))
+      end)
+      |> unwrap(confirm.("remaster"))
+      |> assert_has("#albums-bulk-confirm")
 
       refute_receive {:done, _payload}
       assert Enum.count(Ash.read!(Music.Album)) == 2
+      assert remastered() == []
     end
 
     # An inline function closing over the parent's assigns is new on every change to
