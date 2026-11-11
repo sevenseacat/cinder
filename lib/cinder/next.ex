@@ -50,6 +50,10 @@ defmodule Cinder.Next do
     default: nil,
     doc: "A message to send the LiveView when a bulk action has run"
 
+  attr :bulk_action_confirm, :any,
+    default: nil,
+    doc: "A function component asking the user to confirm a bulk action"
+
   slot :field,
     required: true,
     doc: "A field, shown as a column with its content for each record" do

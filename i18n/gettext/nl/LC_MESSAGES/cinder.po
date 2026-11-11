@@ -230,3 +230,8 @@ msgstr "Bulkacties"
 #, elixir-autogen, elixir-format
 msgid "Clear selection"
 msgstr "Selectie wissen"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Annuleren"

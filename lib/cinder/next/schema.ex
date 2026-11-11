@@ -106,6 +106,16 @@ defmodule Cinder.Next.Schema do
           "changed) or `:error`. `selected_count` is how many records were selected: one the " <>
           "read no longer reaches is skipped, so for how many changed, give the action " <>
           "`action_opts={[return_records?: true]}` and count `result.records`."
+    ],
+    bulk_action_confirm: [
+      type: {:fun, 1},
+      doc:
+        "A function component that asks the user to confirm a bulk action with a `confirm`, " <>
+          "given `id`, `name`, `label`, `message` (the `confirm`, with `{count}` filled in), " <>
+          "`count`, and `confirm` and `cancel` (`Phoenix.LiveView.JS` commands, for `phx-click`). " <>
+          "For every collection, set `config :cinder, bulk_action_confirm: &...`. By default, a " <>
+          "modal `<dialog>`. Confirming sooner than `config :cinder, bulk_action_confirm_delay:` " <>
+          "milliseconds (500 by default) after it shows is ignored, as a slow double click."
     ]
   ]
 

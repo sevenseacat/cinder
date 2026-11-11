@@ -9,3 +9,6 @@ config :cinder, Cinder.TestEndpoint,
 config :phoenix_test, :endpoint, Cinder.TestEndpoint
 
 config :ash, default_string_length_count: :codepoints
+
+# Short, so a test waiting it out doesn't wait long
+config :cinder, bulk_action_confirm_delay: 200

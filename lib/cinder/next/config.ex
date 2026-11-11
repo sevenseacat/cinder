@@ -35,6 +35,7 @@ defmodule Cinder.Next.Config do
     :primary_key,
     :on_selection_change,
     :on_bulk_action_result,
+    :bulk_action_confirm,
     selectable: false,
     columns: [],
     fields: [],
@@ -61,7 +62,7 @@ defmodule Cinder.Next.Config do
   def build(options, field_slots, argument_slots, bulk_action_slots) do
     # The schema fills in the page size, so whether `pagination` was given is asked first
     paginate? = options[:pagination] not in [nil, []]
-    options = Schema.validate_collection!(options)
+    options = options |> with_app_confirm() |> Schema.validate_collection!()
     source = source!(options[:resource], options[:query])
     action = action!(source, options)
     declared = field_slots |> Enum.map(&declare!/1) |> once_each!()
@@ -88,12 +89,22 @@ defmodule Cinder.Next.Config do
       primary_key: primary_key!(source, options),
       on_selection_change: options[:on_selection_change],
       on_bulk_action_result: options[:on_bulk_action_result],
+      bulk_action_confirm: options[:bulk_action_confirm],
       bulk_actions: bulk_actions!(source, bulk_action_slots, options),
       sort: %{
         mode: options[:sort][:mode] || :additive,
         default: default_sort(source, fields, columns)
       }
     }
+  end
+
+  # The app's confirm component, unless the collection gives its own, checked as the
+  # collection's would be. With neither, Cinder's own is used.
+  defp with_app_confirm(options) do
+    case options[:bulk_action_confirm] || Application.get_env(:cinder, :bulk_action_confirm) do
+      nil -> Keyword.delete(options, :bulk_action_confirm)
+      confirm -> Keyword.put(options, :bulk_action_confirm, confirm)
+    end
   end
 
   # A `<:field>` declares its field, so a second one for a name would contradict it

@@ -73,6 +73,18 @@ defmodule Cinder.Next.ConfigTest do
                  end
   end
 
+  test "a bulk action confirm that isn't a function component is an error" do
+    assert_raise ArgumentError,
+                 ~s(<Cinder.Next.collection id="albums">: invalid value for :bulk_action_confirm option: expected function of arity 1, got: function of arity {:arity, 2}),
+                 fn ->
+                   build([field("title")],
+                     id: "albums",
+                     resource: Music.Album,
+                     bulk_action_confirm: &Map.get/2
+                   )
+                 end
+  end
+
   test "a column with no content is an error" do
     assert_raise ArgumentError,
                  ~s(<:field name="title"> needs content, such as <:field :let={record} name="title">{record.title}</:field>),

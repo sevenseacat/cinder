@@ -227,3 +227,8 @@ msgstr "Actions groupées"
 #, elixir-autogen, elixir-format
 msgid "Clear selection"
 msgstr "Effacer la sélection"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Annuler"

@@ -230,3 +230,8 @@ msgstr "Acciones masivas"
 #, elixir-autogen, elixir-format
 msgid "Clear selection"
 msgstr "Borrar selección"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "Cancelar"

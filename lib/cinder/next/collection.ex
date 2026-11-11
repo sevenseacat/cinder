@@ -12,11 +12,20 @@ defmodule Cinder.Next.Collection do
 
   alias Cinder.{Engine, Params, UrlSync}
   alias Cinder.Next.{Config, State}
+  alias Phoenix.LiveView.JS
+
+  # In milliseconds, before a bulk action's confirm is taken as an answer
+  @default_bulk_action_confirm_delay 500
 
   # Filter types render with a theme's classes, until theming is redone
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, theme: Cinder.Theme.merge("default"), running_bulk_action: nil)}
+    {:ok,
+     assign(socket,
+       theme: Cinder.Theme.merge("default"),
+       running_bulk_action: nil,
+       confirming_bulk_action: nil
+     )}
   end
 
   @impl true
@@ -224,17 +233,49 @@ defmodule Cinder.Next.Collection do
   end
 
   # An action that isn't declared, with nothing selected, or while one is running
-  # (from tampering: the buttons are disabled) is ignored. A declared confirm is
-  # never skipped, so until confirming is built, an action with one doesn't run.
+  # or waiting to be confirmed (from tampering: the buttons are disabled) is
+  # ignored. One with a confirm asks first.
   def handle_event("bulk_action", %{"name" => name}, socket) do
-    %{config: config, selected: selected, running_bulk_action: running} = socket.assigns
-    bulk_action = Enum.find(config.bulk_actions, &(&1.name == name))
+    %{selected: selected, running_bulk_action: running, confirming_bulk_action: confirming} =
+      socket.assigns
 
-    if bulk_action && bulk_action.confirm == nil && running == nil && MapSet.size(selected) > 0 do
-      {:noreply, run_bulk_action(socket, bulk_action)}
+    bulk_action = Enum.find(socket.assigns.config.bulk_actions, &(&1.name == name))
+
+    cond do
+      !bulk_action or running != nil or confirming != nil or MapSet.size(selected) == 0 ->
+        {:noreply, socket}
+
+      bulk_action.confirm ->
+        confirming = %{bulk_action: bulk_action, shown_at: now()}
+        {:noreply, assign(socket, :confirming_bulk_action, confirming)}
+
+      true ->
+        {:noreply, run_bulk_action(socket, bulk_action)}
+    end
+  end
+
+  # Too soon after asking is a slow double click on the action, not an answer, so
+  # it's ignored and the question stays. With nothing waiting, it's tampering.
+  def handle_event("confirm_bulk_action", _params, socket) do
+    %{confirming_bulk_action: confirming, selected: selected} = socket.assigns
+
+    delay =
+      Application.get_env(
+        :cinder,
+        :bulk_action_confirm_delay,
+        @default_bulk_action_confirm_delay
+      )
+
+    if confirming && now() - confirming.shown_at >= delay && MapSet.size(selected) > 0 do
+      socket = assign(socket, :confirming_bulk_action, nil)
+      {:noreply, run_bulk_action(socket, confirming.bulk_action)}
     else
       {:noreply, socket}
     end
+  end
+
+  def handle_event("cancel_bulk_action", _params, socket) do
+    {:noreply, assign(socket, :confirming_bulk_action, nil)}
   end
 
   # On the records selected, as they're read (see `Engine.run_bulk_action/4`)
@@ -316,6 +357,8 @@ defmodule Cinder.Next.Collection do
 
   defp last_page(_uncounted), do: 1
 
+  defp now, do: System.monotonic_time(:millisecond)
+
   defp bulk_result({:ok, {:ok, value}}), do: {:success, value, []}
   defp bulk_result({:ok, {:partial_success, bulk}}), do: {:partial_success, bulk, bulk.errors}
   defp bulk_result({:ok, {:error, reason}}), do: {:error, nil, List.wrap(reason)}
@@ -336,7 +379,9 @@ defmodule Cinder.Next.Collection do
       send(self(), {config.on_selection_change, payload})
     end
 
-    assign(socket, :selected, selected)
+    # With nothing selected, a waiting confirm has nothing left to act on
+    confirming = if MapSet.size(selected) > 0, do: socket.assigns.confirming_bulk_action
+    assign(socket, selected: selected, confirming_bulk_action: confirming)
   end
 
   # Synced, what the user does changes the URL, and shows when the URL comes back,
@@ -511,6 +556,8 @@ defmodule Cinder.Next.Collection do
         bulk_actions={@config.bulk_actions}
         count={MapSet.size(@selected)}
         running?={@running_bulk_action != nil}
+        confirming={@confirming_bulk_action}
+        confirm_component={@config.bulk_action_confirm || (&bulk_action_confirm/1)}
         target={@myself}
       />
       <table>
@@ -591,17 +638,63 @@ defmodule Cinder.Next.Collection do
           {dgettext("cinder", "Clear selection")}
         </button>
       </div>
+      {@confirming && confirm_prompt(assigns)}
       <button
         :for={bulk_action <- @bulk_actions}
         type="button"
         phx-click="bulk_action"
         phx-value-name={bulk_action.name}
         phx-target={@target}
-        disabled={@count == 0 or @running?}
+        disabled={@count == 0 or @running? or @confirming != nil}
       >
         {bulk_action.label}
       </button>
     </section>
+    """
+  end
+
+  # The confirm component (the developer's, or Cinder's own) is given these assigns.
+  # `component/3` is what `<.name>` compiles to, for a component held in a variable.
+  defp confirm_prompt(assigns) do
+    %{confirming: %{bulk_action: bulk_action}, count: count, target: target} = assigns
+
+    Phoenix.LiveView.TagEngine.component(
+      assigns.confirm_component,
+      [
+        id: "#{assigns.id}-confirm",
+        name: bulk_action.name,
+        label: bulk_action.label,
+        message: String.replace(bulk_action.confirm, "{count}", to_string(count)),
+        count: count,
+        confirm: JS.push("confirm_bulk_action", target: target),
+        cancel: JS.push("cancel_bulk_action", target: target)
+      ],
+      {__MODULE__, __ENV__.function, __ENV__.file, __ENV__.line}
+    )
+  end
+
+  # Rendered `open`, so it shows in place even in an app without Cinder's hooks; the
+  # hook reopens it as a modal (on top, the page inert), and Esc runs `cancel`. Cancel
+  # comes first and has focus, so Enter or Space cancels.
+  defp bulk_action_confirm(assigns) do
+    ~H"""
+    <dialog id={@id} open phx-hook=".BulkActionConfirm" data-cancel={@cancel}>
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".BulkActionConfirm">
+        export default {
+          mounted() {
+            this.el.addEventListener("cancel", (event) => {
+              event.preventDefault()
+              this.js().exec(this.el.dataset.cancel)
+            })
+            this.el.close()
+            this.el.showModal()
+          }
+        }
+      </script>
+      <p>{@message}</p>
+      <button type="button" phx-click={@cancel} autofocus>{dgettext("cinder", "Cancel")}</button>
+      <button type="button" phx-click={@confirm}>{@label}</button>
+    </dialog>
     """
   end
 

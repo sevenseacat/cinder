@@ -881,6 +881,7 @@ defmodule Cinder.Next.CollectionTest do
             assign(assigns,
               on_change: on_change,
               on_result: on_result,
+              confirm: opts[:confirm],
               pagination: pagination,
               synced: if(opts[:url?], do: assigns.url_state)
             )
@@ -895,6 +896,7 @@ defmodule Cinder.Next.CollectionTest do
             url_state={@synced}
             on_selection_change={@on_change}
             on_bulk_action_result={@on_result}
+            bulk_action_confirm={@confirm}
           >
             <:field :let={album} name="title" filter>{album.title}</:field>
             <:bulk_action action={:remaster} />
@@ -1049,16 +1051,136 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums tbody tr", count: 1)
     end
 
-    # A declared confirm is never skipped, so until confirming is built, an action
-    # that has one doesn't run
-    test "an action with a confirm doesn't run without one", %{conn: conn} do
+    # Rendered open, so it works without the hook, which makes it a modal
+    # (LiveViewTest doesn't run hooks)
+    test "an action with a confirm asks first in a dialog, with the bar's actions disabled, and Cancel closes it",
+         %{conn: conn} do
       conn
       |> visit(with_bulk_actions(forward_to: self()))
       |> click_box("#albums-select-#{album_id("Abbey")}")
-      |> click_button("Delete")
+      |> click_button("Next page")
+      |> click_box("#albums-select-#{album_id("Blue")}")
+      |> click_button("#albums-bulk button", "Delete")
+      |> assert_has("dialog#albums-bulk-confirm[open] p", text: "Delete 2 albums?")
+      |> assert_has("#albums-bulk-confirm button:first-of-type[autofocus]", text: "Cancel")
+      |> assert_has("#albums-bulk-confirm button:last-of-type", text: "Delete")
+      |> assert_has("#albums-bulk button[disabled]", text: "Remaster")
+      |> click_button("Cancel")
+      |> refute_has("#albums-bulk-confirm")
+      |> refute_has("#albums-bulk button[disabled]")
+      |> assert_has("#albums-bulk-count", text: "2 selected")
 
       refute_receive {:done, _payload}
-      assert Enum.any?(Ash.read!(Music.Album), &(&1.title == "Abbey"))
+      assert Enum.count(Ash.read!(Music.Album)) == 2
+    end
+
+    # A slow double click on an action would land its second click on confirming
+    test "confirming before the delay is ignored, and after it runs the action", %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("#albums-bulk button", "Delete")
+      |> click_button("#albums-bulk-confirm button", "Delete")
+      |> assert_has("#albums-bulk-confirm")
+      |> tap(fn _session ->
+        refute_receive {:done, _payload}
+        Process.sleep(Application.fetch_env!(:cinder, :bulk_action_confirm_delay))
+      end)
+      |> click_button("#albums-bulk-confirm button", "Delete")
+      |> tap(fn _session ->
+        assert_receive {:done, payload}
+        assert %{result: %Ash.BulkResult{status: :success}} = payload
+
+        assert Map.delete(payload, :result) == %{
+                 bulk_action: "destroy",
+                 status: :success,
+                 selected_count: 1,
+                 errors: [],
+                 component_id: "albums"
+               }
+      end)
+      |> refute_has("#albums-bulk-confirm")
+
+      assert Enum.map(Ash.read!(Music.Album), & &1.title) == ["Blue"]
+    end
+
+    # A developer's own confirm, as an app's would be
+    defp ask(assigns) do
+      ~H"""
+      <div id={@id} data-name={@name} data-count={@count}>
+        <p>{@message}</p>
+        <button phx-click={@cancel}>No</button>
+        <button phx-click={@confirm}>Yes, {@label}</button>
+      </div>
+      """
+    end
+
+    defp ask_differently(assigns) do
+      ~H"""
+      <div id={@id}>Sure?</div>
+      """
+    end
+
+    test "a collection's own confirm component asks instead, and its buttons answer",
+         %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self(), confirm: &ask/1))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("#albums-bulk button", "Delete")
+      |> assert_has("#albums-bulk-confirm[data-name=destroy][data-count='1'] p",
+        text: "Delete 1 albums?"
+      )
+      |> refute_has("dialog")
+      |> click_button("No")
+      |> refute_has("#albums-bulk-confirm")
+      |> click_button("#albums-bulk button", "Delete")
+      |> tap(fn _session ->
+        Process.sleep(Application.fetch_env!(:cinder, :bulk_action_confirm_delay))
+      end)
+      |> click_button("Yes, Delete")
+      |> tap(fn _session ->
+        assert_receive {:done, %{bulk_action: "destroy", status: :success}}
+      end)
+
+      assert Enum.map(Ash.read!(Music.Album), & &1.title) == ["Blue"]
+    end
+
+    # A component that isn't modal leaves the bar usable, and there's nothing left to confirm
+    test "clearing the selection while a confirm waits dismisses it", %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(confirm: &ask/1))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("#albums-bulk button", "Delete")
+      |> click_button("Clear selection")
+      |> refute_has("#albums-bulk-confirm")
+    end
+
+    test "the app's confirm component is used everywhere, unless a collection gives its own",
+         %{conn: conn} do
+      Application.put_env(:cinder, :bulk_action_confirm, &ask_differently/1)
+      on_exit(fn -> Application.delete_env(:cinder, :bulk_action_confirm) end)
+
+      conn
+      |> visit(with_bulk_actions())
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("#albums-bulk button", "Delete")
+      |> assert_has("#albums-bulk-confirm", text: "Sure?")
+
+      conn
+      |> visit(with_bulk_actions(confirm: &ask/1))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("#albums-bulk button", "Delete")
+      |> assert_has("#albums-bulk-confirm p", text: "Delete 1 albums?")
+    end
+
+    test "confirming with nothing waiting is ignored", %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> unwrap(fn view -> render_click(with_target(view, "#albums"), "confirm_bulk_action") end)
+
+      refute_receive {:done, _payload}
+      assert Enum.count(Ash.read!(Music.Album)) == 2
     end
 
     # An inline function closing over the parent's assigns is new on every change to
