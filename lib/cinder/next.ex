@@ -64,7 +64,10 @@ defmodule Cinder.Next do
     attr :search, :boolean, doc: "Search the field from the search box"
   end
 
-  slot :argument, doc: "A read action argument, with an input for its value" do
+  slot :argument,
+    doc:
+      "A read action argument, with an input for its value. Unlike a filter's, a new " <>
+        "value clears the selection, as it changes what the action reads." do
     attr :name, :string, required: true
     attr :param, :string, doc: "What it goes by in the form and the URL, if not its name"
 

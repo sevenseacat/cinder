@@ -811,6 +811,51 @@ defmodule Cinder.Next.CollectionTest do
       |> checked(0)
     end
 
+    # Arguments decide what the read action reads, as the action does, so a bulk
+    # action only reaches records selected under the arguments it runs with
+    test "changing an argument clears the selection, synced to the URL or not",
+         %{conn: conn} do
+      blue = album_id("Blue")
+      cleared = %{selected_ids: MapSet.new(), selected_count: 0, component_id: "albums"}
+
+      for url? <- [false, true] do
+        path =
+          Fixture.register(
+            fn assigns ->
+              assigns = assign(assigns, synced: if(url?, do: assigns.url_state))
+
+              ~H"""
+              <Cinder.Next.collection
+                id="albums"
+                resource={Music.Album}
+                action={:by_genre}
+                selectable
+                url_state={@synced}
+                on_selection_change={:picked}
+              >
+                <:field :let={album} name="title" filter>{album.title}</:field>
+                <:argument name="genre" />
+              </Cinder.Next.collection>
+              """
+            end,
+            forward_to: self()
+          )
+
+        conn
+        |> visit(path)
+        |> choose("Jazz")
+        |> click_box("#albums-select-#{blue}")
+        |> fill_in("Title", with: "B")
+        |> checked(1)
+        |> choose("Rock")
+        |> choose("Jazz")
+        |> checked(0)
+
+        assert_receive {:picked, %{selected_count: 1}}
+        assert_receive {:picked, ^cleared}
+      end
+    end
+
     test "the parent hears of each change, and only of changes", %{conn: conn} do
       blue = album_id("Blue")
       session = visit(conn, selectable(true, forward_to: self()))

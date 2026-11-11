@@ -255,7 +255,19 @@ defmodule Cinder.Next.Collection do
     UrlSync.patch(params, owns: Params.url_keys(config.fields, opts))
   end
 
-  defp show(socket, query), do: socket |> assign(:query, query) |> load() |> selectable_ids()
+  defp show(socket, query) do
+    socket |> new_arguments(query) |> assign(:query, query) |> load() |> selectable_ids()
+  end
+
+  # Arguments decide what the read action reads, as the action does, so new values
+  # clear the selection as a new action would: a bulk action then only reaches
+  # records selected under the arguments it runs with
+  defp new_arguments(%{assigns: %{query: %{arguments: old}}} = socket, %{arguments: new})
+       when old != new do
+    select(socket, MapSet.new())
+  end
+
+  defp new_arguments(socket, _query), do: socket
 
   # The ids of the page's records that can be selected: the only ones the boxes can
   # change. Ids are kept as the strings the boxes carry.
