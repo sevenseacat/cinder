@@ -150,6 +150,18 @@ defmodule Cinder.Engine do
   end
 
   @doc """
+  The options a caller may give in `run_bulk_action/4`'s `action_opts`, as a
+  `Spark.Options` schema: `Ash.bulk_update/4`'s or `Ash.bulk_destroy/4`'s, without
+  the ones the engine sets. A function's are its own, so they have no schema.
+  """
+  @spec bulk_action_opts(BulkAction.t()) :: keyword() | nil
+  def bulk_action_opts(%BulkAction{type: :update}), do: bulk_opts(Ash.bulk_update_opts())
+  def bulk_action_opts(%BulkAction{type: :destroy}), do: bulk_opts(Ash.bulk_destroy_opts())
+  def bulk_action_opts(%BulkAction{type: nil}), do: nil
+
+  defp bulk_opts(schema), do: Keyword.drop(schema, [:actor, :tenant, :scope])
+
+  @doc """
   The read action `source` is read with: the query's, or `action` (an atom, or a
   string matched to the resource's read actions' names), or the primary read.
 

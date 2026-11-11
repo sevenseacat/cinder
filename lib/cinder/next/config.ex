@@ -174,15 +174,40 @@ defmodule Cinder.Next.Config do
 
     case Engine.bulk_action(source, action) do
       {:ok, bulk_action} ->
+        action_opts = attributes[:action_opts] || []
+        check_action_opts!(action_opts, Engine.bulk_action_opts(bulk_action), declaration)
+
         %{
           name: name,
           label: attributes[:label] || humanize(name),
           confirm: attributes[:confirm],
-          action: bulk_action
+          action: bulk_action,
+          action_opts: action_opts
         }
 
       {:error, message} ->
         raise ArgumentError, "#{declaration}: #{message}"
+    end
+  end
+
+  # Checking fills in Ash's defaults, which are Ash's to apply, so the options are
+  # only checked, and kept as given
+  defp check_action_opts!(_action_opts, nil, _declaration), do: :ok
+
+  defp check_action_opts!(action_opts, schema, declaration) do
+    # The schema would only call these unknown
+    case Enum.find(Keyword.keys(action_opts), &(&1 in [:actor, :tenant, :scope])) do
+      nil ->
+        :ok
+
+      key ->
+        raise ArgumentError,
+              "#{declaration}: give `#{key}` as the collection's own attribute, not in `action_opts`"
+    end
+
+    case Spark.Options.validate(action_opts, schema) do
+      {:ok, _validated} -> :ok
+      {:error, error} -> raise ArgumentError, "#{declaration}: #{Exception.message(error)}"
     end
   end
 

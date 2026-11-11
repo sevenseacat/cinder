@@ -178,6 +178,13 @@ defmodule Cinder.Next.Schema do
     confirm: [
       type: :string,
       doc: "A question to confirm before it runs. `{count}` is how many records are selected."
+    ],
+    action_opts: [
+      type: :keyword_list,
+      doc:
+        "More options to run it with: `Ash.bulk_update/4`'s or `Ash.bulk_destroy/4`'s for " <>
+          "an update or destroy action, and a function gets them as `bulk_options`, as a " <>
+          "code interface takes them."
     ]
   ]
 

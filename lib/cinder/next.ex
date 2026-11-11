@@ -83,6 +83,9 @@ defmodule Cinder.Next do
     attr :name, :string, doc: "What it goes by in events. Defaults to the action's name."
     attr :label, :string, doc: "Its button's text. Defaults to the humanised name."
     attr :confirm, :string, doc: "A question to confirm before it runs, with `{count}`"
+
+    attr :action_opts, :list,
+      doc: "More options for the action: Ash's bulk update or destroy options, or the function's"
   end
 
   # Runs on every parent render, so it only hands everything on: the collection
