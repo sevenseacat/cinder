@@ -34,6 +34,7 @@ defmodule Cinder.Next.Config do
     :scope,
     :primary_key,
     :on_selection_change,
+    :on_bulk_action_result,
     selectable: false,
     columns: [],
     fields: [],
@@ -86,6 +87,7 @@ defmodule Cinder.Next.Config do
       selectable: options[:selectable],
       primary_key: primary_key!(source, options),
       on_selection_change: options[:on_selection_change],
+      on_bulk_action_result: options[:on_bulk_action_result],
       bulk_actions: bulk_actions!(source, bulk_action_slots, options),
       sort: %{
         mode: options[:sort][:mode] || :additive,

@@ -872,11 +872,11 @@ defmodule Cinder.Next.CollectionTest do
   describe "bulk actions" do
     # A page each, to select records on more than one
     defp with_bulk_actions(opts \\ []) do
-      on_change = if opts[:forward_to], do: :picked
+      {on_change, on_result} = if opts[:forward_to], do: {:picked, :done}, else: {nil, nil}
 
       Fixture.register(
         fn assigns ->
-          assigns = assign(assigns, on_change: on_change)
+          assigns = assign(assigns, on_change: on_change, on_result: on_result)
 
           ~H"""
           <Cinder.Next.collection
@@ -886,10 +886,12 @@ defmodule Cinder.Next.CollectionTest do
             pagination={[size: 1]}
             selectable
             on_selection_change={@on_change}
+            on_bulk_action_result={@on_result}
           >
-            <:field :let={album} name="title">{album.title}</:field>
+            <:field :let={album} name="title" filter>{album.title}</:field>
             <:bulk_action action={:remaster} />
             <:bulk_action action={:destroy} label="Delete" confirm="Delete {count} albums?" />
+            <:bulk_action name="fail" action={&fail/2} />
           </Cinder.Next.collection>
           """
         end,
@@ -929,6 +931,91 @@ defmodule Cinder.Next.CollectionTest do
       assert_receive {:picked, %{selected_count: 2}}
       assert_receive {:picked, %{selected_ids: none, selected_count: 0, component_id: "albums"}}
       assert none == MapSet.new()
+    end
+
+    defp fail(_query, _opts), do: {:error, :nope}
+
+    defp remastered do
+      for %{is_remastered: true, title: title} <- Ash.read!(Music.Album), do: title
+    end
+
+    # Filters hide selected records, they don't unselect them, so it runs on them too
+    test "running an action changes every selected record, clears the selection, and tells the parent",
+         %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("Next page")
+      |> click_box("#albums-select-#{album_id("Blue")}")
+      |> fill_in("Title", with: "Blue")
+      |> click_button("Remaster")
+      |> tap(fn _session ->
+        assert_receive {:done, payload}
+        assert %{result: %Ash.BulkResult{status: :success}} = payload
+
+        assert Map.delete(payload, :result) == %{
+                 bulk_action: "remaster",
+                 status: :success,
+                 selected_count: 2,
+                 errors: [],
+                 component_id: "albums"
+               }
+      end)
+      |> checked(0)
+      |> refute_has("#albums-bulk-count")
+
+      assert Enum.sort(remastered()) == ["Abbey", "Blue"]
+      assert_receive {:picked, %{selected_count: 0}}
+    end
+
+    # Nothing changed, so the user can try again
+    test "a failed action keeps the selection, and tells the parent", %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("Fail")
+      |> tap(fn _session ->
+        assert_receive {:done, payload}
+
+        assert payload == %{
+                 bulk_action: "fail",
+                 status: :error,
+                 selected_count: 1,
+                 result: nil,
+                 errors: [:nope],
+                 component_id: "albums"
+               }
+      end)
+      |> assert_has("#albums-bulk-count", text: "1 selected")
+    end
+
+    # From tampering: the buttons only send declared names, and are disabled until
+    # something's selected
+    test "an action that isn't declared, or with nothing selected, is ignored", %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> unwrap(fn view ->
+        render_click(with_target(view, "#albums"), "bulk_action", %{"name" => "remaster"})
+      end)
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> unwrap(fn view ->
+        render_click(with_target(view, "#albums"), "bulk_action", %{"name" => "nope"})
+      end)
+
+      refute_receive {:done, _payload}
+      assert remastered() == []
+    end
+
+    # A declared confirm is never skipped, so until confirming is built, an action
+    # that has one doesn't run
+    test "an action with a confirm doesn't run without one", %{conn: conn} do
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("Delete")
+
+      refute_receive {:done, _payload}
+      assert Enum.any?(Ash.read!(Music.Album), &(&1.title == "Abbey"))
     end
 
     # An inline function closing over the parent's assigns is new on every change to

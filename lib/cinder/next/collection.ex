@@ -15,7 +15,9 @@ defmodule Cinder.Next.Collection do
 
   # Filter types render with a theme's classes, until theming is redone
   @impl true
-  def mount(socket), do: {:ok, assign(socket, :theme, Cinder.Theme.merge("default"))}
+  def mount(socket) do
+    {:ok, assign(socket, theme: Cinder.Theme.merge("default"), running_bulk_action: nil)}
+  end
 
   @impl true
   def update(assigns, socket) do
@@ -222,6 +224,77 @@ defmodule Cinder.Next.Collection do
     {:noreply, select(socket, MapSet.new())}
   end
 
+  # An action that isn't declared, with nothing selected, or while one is running
+  # (from tampering: the buttons are disabled) is ignored. A declared confirm is
+  # never skipped, so until confirming is built, an action with one doesn't run.
+  def handle_event("bulk_action", %{"name" => name}, socket) do
+    %{config: config, selected: selected, running_bulk_action: running} = socket.assigns
+    bulk_action = Enum.find(config.bulk_actions, &(&1.name == name))
+
+    if bulk_action && bulk_action.confirm == nil && running == nil && MapSet.size(selected) > 0 do
+      {:noreply, run_bulk_action(socket, bulk_action)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # On the records selected, as they're read (see `Engine.run_bulk_action/4`)
+  defp run_bulk_action(socket, bulk_action) do
+    %{config: config, query: query, selected: selected} = socket.assigns
+    ids = MapSet.to_list(selected)
+    running = %{name: bulk_action.name, selected_count: MapSet.size(selected)}
+
+    opts =
+      [
+        action: config.action,
+        arguments: config.arguments,
+        argument_values: query.arguments,
+        query_opts: config.query_opts,
+        action_opts: bulk_action.action_opts
+      ] ++ Enum.to_list(Map.take(config, [:actor, :tenant, :scope]))
+
+    socket
+    |> assign(:running_bulk_action, running)
+    |> start_async(:bulk_action, fn ->
+      Engine.run_bulk_action(config.source, bulk_action.action, ids, opts)
+    end)
+  end
+
+  # After a success or a partial success, the selected records have changed, so
+  # they're no longer what was selected. After an error nothing changed, so the
+  # user can try again.
+  @impl true
+  def handle_async(:bulk_action, result, socket) do
+    {status, value, errors} = bulk_result(result)
+    %{config: config, running_bulk_action: running, query: query} = socket.assigns
+
+    if config.on_bulk_action_result do
+      payload = %{
+        bulk_action: running.name,
+        status: status,
+        selected_count: running.selected_count,
+        result: value,
+        errors: errors,
+        component_id: socket.assigns.id
+      }
+
+      send(self(), {config.on_bulk_action_result, payload})
+    end
+
+    socket = assign(socket, :running_bulk_action, nil)
+
+    if status == :error do
+      {:noreply, socket}
+    else
+      {:noreply, socket |> select(MapSet.new()) |> show(query)}
+    end
+  end
+
+  defp bulk_result({:ok, {:ok, value}}), do: {:success, value, []}
+  defp bulk_result({:ok, {:partial_success, bulk}}), do: {:partial_success, bulk, bulk.errors}
+  defp bulk_result({:ok, {:error, reason}}), do: {:error, nil, List.wrap(reason)}
+  defp bulk_result({:exit, reason}), do: {:error, nil, [reason]}
+
   defp cursor(%{more?: true, last_cursor: cursor}, "next_page"), do: {:after, cursor}
   defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
   defp cursor(_page, _direction), do: nil
@@ -401,6 +474,7 @@ defmodule Cinder.Next.Collection do
         id={"#{@id}-bulk"}
         bulk_actions={@config.bulk_actions}
         count={MapSet.size(@selected)}
+        running?={@running_bulk_action != nil}
         target={@myself}
       />
       <table>
@@ -481,7 +555,14 @@ defmodule Cinder.Next.Collection do
           {dgettext("cinder", "Clear selection")}
         </button>
       </div>
-      <button :for={bulk_action <- @bulk_actions} type="button" disabled={@count == 0}>
+      <button
+        :for={bulk_action <- @bulk_actions}
+        type="button"
+        phx-click="bulk_action"
+        phx-value-name={bulk_action.name}
+        phx-target={@target}
+        disabled={@count == 0 or @running?}
+      >
         {bulk_action.label}
       </button>
     </section>

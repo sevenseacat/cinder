@@ -46,6 +46,10 @@ defmodule Cinder.Next do
     default: nil,
     doc: "A message to send the LiveView when the selection changes"
 
+  attr :on_bulk_action_result, :atom,
+    default: nil,
+    doc: "A message to send the LiveView when a bulk action has run"
+
   slot :field,
     required: true,
     doc: "A field, shown as a column with its content for each record" do
