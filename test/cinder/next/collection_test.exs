@@ -885,5 +885,30 @@ defmodule Cinder.Next.CollectionTest do
       assert_receive {:picked, %{selected_ids: none, selected_count: 0, component_id: "albums"}}
       assert none == MapSet.new()
     end
+
+    # An inline function closing over the parent's assigns is new on every change to
+    # them; the new one is kept, but it doesn't change what's read
+    test "a parent render giving an action a new function doesn't read the records again",
+         %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album} selectable>
+            <:field :let={album} name="title">{album.title}</:field>
+            <:bulk_action name="export" action={fn query, _opts -> {query, assigns[:user]} end} />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      session = conn |> visit(path) |> assert_has("#albums tbody tr", count: 2)
+      generate(album(title: "Zebra", artist_id: generate(artist()).id))
+
+      session
+      |> unwrap(fn view ->
+        Fixture.run(view, &assign(&1, :user, "Someone"))
+        render(view)
+      end)
+      |> assert_has("#albums tbody tr", count: 2)
+    end
   end
 end

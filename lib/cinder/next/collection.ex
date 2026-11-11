@@ -20,9 +20,10 @@ defmodule Cinder.Next.Collection do
   @impl true
   def update(assigns, socket) do
     # The fields' inner blocks are new on every parent render, so they're always
-    # taken; the config is only rebuilt, and the records reloaded, when what's
-    # declared changes. Only the fields that are columns have cells. Synced to the
-    # URL (`url_params` isn't `nil`), a change to the URL's params is applied too.
+    # taken; the config is only rebuilt when what's declared changes, and the records
+    # only read again when that changes what's read. Only the fields that are columns
+    # have cells. Synced to the URL (`url_params` isn't `nil`), a change to the URL's
+    # params is applied too.
     declarations =
       Config.declarations(
         assigns.options,
@@ -48,7 +49,13 @@ defmodule Cinder.Next.Collection do
           socket
           |> assign(declarations: declarations, config: config)
           |> select(selected(old, config))
-          |> show(query)
+
+        socket =
+          if read_again?(old, config, query) do
+            show(socket, query)
+          else
+            selectable_ids(socket)
+          end
 
         # A rebuild that moves the query (back to the first page, say) moves the URL too
         if url_params && !url_changed? && query != old.query, do: patch_url(socket, query)
@@ -117,6 +124,15 @@ defmodule Cinder.Next.Collection do
 
     Params.from_url(params, config.fields, start(config), opts)
   end
+
+  # A function declared inline (a bulk action's, or `selectable`) closes over the
+  # parent's assigns, so it's new whenever they change. The new one is kept, but
+  # unless it changes what the read is given, the records are the same.
+  defp read_again?(%{config: old_config, query: old_query}, config, query) do
+    read_inputs(old_config, old_query) != read_inputs(config, query)
+  end
+
+  defp read_again?(_new_collection, _config, _query), do: true
 
   # What decides the records read, besides the query
   defp read(config) do
@@ -262,14 +278,6 @@ defmodule Cinder.Next.Collection do
   # in `render/1`, where they'd be new on every render.
   defp load(socket) do
     %{config: config, query: query} = socket.assigns
-    opts = Map.take(config, [:action, :actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
-
-    opts =
-      [
-        search_fn: config.search[:fn],
-        pagination: config.pagination[:mode] || :offset,
-        count?: config.pagination[:count?] == true
-      ] ++ opts
 
     socket =
       assign(socket,
@@ -282,15 +290,30 @@ defmodule Cinder.Next.Collection do
     if Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) do
       assign(socket, page: %Engine.Page{}, argument_errors: %{})
     else
-      run(socket, opts)
+      run(socket)
     end
   end
 
-  defp run(socket, opts) do
-    %{config: config, query: query} = socket.assigns
-    opts = [arguments: config.arguments] ++ opts
+  # What a read is given: the same inputs read the same records
+  defp read_inputs(config, query) do
+    opts = Map.take(config, [:action, :actor, :tenant, :scope, :query_opts]) |> Enum.to_list()
 
-    case {Engine.run(config.source, config.fields, query, opts), query.cursor} do
+    opts =
+      [
+        arguments: config.arguments,
+        search_fn: config.search[:fn],
+        pagination: config.pagination[:mode] || :offset,
+        count?: config.pagination[:count?] == true
+      ] ++ opts
+
+    {config.source, config.fields, query, opts}
+  end
+
+  defp run(socket) do
+    %{config: config, query: query} = socket.assigns
+    {source, fields, query, opts} = read_inputs(config, query)
+
+    case {Engine.run(source, fields, query, opts), query.cursor} do
       {{:ok, page}, _cursor} ->
         assign(socket, page: page, argument_errors: %{})
 
