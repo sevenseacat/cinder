@@ -99,12 +99,11 @@ defmodule Cinder.Next.Config do
   end
 
   # The app's confirm component, unless the collection gives its own, checked as the
-  # collection's would be. With neither, Cinder's own is used.
+  # collection's would be. With neither (`nil`, which the schema drops as not given),
+  # Cinder's own is used.
   defp with_app_confirm(options) do
-    case options[:bulk_action_confirm] || Application.get_env(:cinder, :bulk_action_confirm) do
-      nil -> Keyword.delete(options, :bulk_action_confirm)
-      confirm -> Keyword.put(options, :bulk_action_confirm, confirm)
-    end
+    confirm = options[:bulk_action_confirm] || Application.get_env(:cinder, :bulk_action_confirm)
+    Keyword.put(options, :bulk_action_confirm, confirm)
   end
 
   # A `<:field>` declares its field, so a second one for a name would contradict it

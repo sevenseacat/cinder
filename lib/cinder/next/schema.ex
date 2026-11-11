@@ -4,8 +4,8 @@
 
 defmodule Cinder.Next.Schema do
   @moduledoc false
-  # What each of a collection's options is: its type, whether it's required, and its
-  # docs, as `Spark.Options` schemas. Only each option on its own: rules about
+  # What each of a collection's options is: its type, whether it's required, and a
+  # line on it, as `Spark.Options` schemas. The public docs are `Cinder.Next`'s. Only each option on its own: rules about
   # several options together are `Cinder.Next.Config`'s. Errors name the declaration
   # they're about.
 
@@ -51,14 +51,7 @@ defmodule Cinder.Next.Schema do
              type: :string,
              doc: "The search box's placeholder. Defaults to \"Search...\"."
            ],
-           fn: [
-             type: {:fun, 3},
-             doc:
-               "Searches instead of a case-insensitive `contains` on each searchable field: " <>
-                 "called with the `Ash.Query`, the searchable fields " <>
-                 "(`%{name: \"artist.name\", expr: <Ash expression>}`), and the text. " <>
-                 "Returns the query."
-           ]
+           fn: [type: {:fun, 3}, doc: "Searches instead of a `contains` on each field."]
          ]},
       default: [],
       doc: "How the collection searches. It has a search box if any field is searchable."
@@ -93,29 +86,15 @@ defmodule Cinder.Next.Schema do
     ],
     on_selection_change: [
       type: :atom,
-      doc:
-        "A message to send the LiveView when the selection changes: " <>
-          "`{name, %{selected_ids:, selected_count:, component_id:}}`."
+      doc: "A message to send the LiveView when the selection changes."
     ],
     on_bulk_action_result: [
       type: :atom,
-      doc:
-        "A message to send the LiveView when a bulk action has run: " <>
-          "`{name, %{bulk_action:, status:, selected_count:, result:, errors:, component_id:}}`. " <>
-          "`status` is `:success`, `:partial_success` (some records failed, and the rest " <>
-          "changed) or `:error`. `selected_count` is how many records were selected: one the " <>
-          "read no longer reaches is skipped, so for how many changed, give the action " <>
-          "`action_opts={[return_records?: true]}` and count `result.records`."
+      doc: "A message to send the LiveView when a bulk action has run."
     ],
     bulk_action_confirm: [
       type: {:fun, 1},
-      doc:
-        "A function component that asks the user to confirm a bulk action with a `confirm`, " <>
-          "given `id`, `name`, `label`, `message` (the `confirm`, with `{count}` filled in), " <>
-          "`count`, and `confirm` and `cancel` (`Phoenix.LiveView.JS` commands, for `phx-click`). " <>
-          "For every collection, set `config :cinder, bulk_action_confirm: &...`. By default, a " <>
-          "modal `<dialog>`. Confirming sooner than `config :cinder, bulk_action_confirm_delay:` " <>
-          "milliseconds (500 by default) after it shows is ignored, as a slow double click."
+      doc: "A function component asking the user to confirm a bulk action."
     ]
   ]
 
@@ -311,7 +290,7 @@ defmodule Cinder.Next.Schema do
   defp shorthand({key, false}) when key in [:sort, :filter], do: []
   defp shorthand(attribute), do: [attribute]
 
-  # Unset attrs arrive as `nil`, which means "not given"
+  # An attr given as `nil` means "not given"
   defp validate!(options, schema, declaration) do
     options = Enum.reject(options, fn {_key, value} -> is_nil(value) end)
 
