@@ -342,16 +342,19 @@ defmodule Cinder.Engine do
   end
 
   @doc """
-  Runs `bulk_action` (from `bulk_action/2`) on the records whose primary keys are
-  `ids` (as strings), reached as the collection reads them: from `source`, with
-  its read action and that action's arguments. A selected record they can't read
-  isn't acted on. The user's filters and search aren't applied, as a record they
-  hide is still selected.
+  Runs `bulk_action` (from `bulk_action/2`) on the selected records, reached as
+  the collection reads them: from `source`, with its read action and `query`'s
+  arguments. A selected record they can't read isn't acted on. The selection is:
+
+    * `{:ids, ids}` - the records with these primary keys (as strings). `query`'s
+      filters and search aren't applied, as a record they hide is still selected.
+    * `{:all_except, ids}` - every record `query`'s filters and search match, on
+      `fields`, except those with these primary keys
 
   Options, as `run/4` takes them: `actor`, `tenant`, `scope`, `action`,
-  `arguments` and `query_opts` (only those the query takes when it's built). And:
+  `arguments`, `search_fn` and `query_opts` (only those the query takes when it's
+  built). And:
 
-    * `argument_values` - the arguments' values, as `run/4`'s query has them
     * `action_opts` - more options for the action: an update or destroy action's
       are `Ash.bulk_update/4`'s or `Ash.bulk_destroy/4`'s (with `return_errors?:
       true` unless given), and a function gets them as `bulk_options`, as a code
@@ -362,9 +365,22 @@ defmodule Cinder.Engine do
   failed and the rest changed, or `{:error, reason}`. A function that raises is an
   error with its message.
   """
-  @spec run_bulk_action(Ash.Query.t() | module(), BulkAction.t(), [String.t()], keyword()) ::
-          {:ok, term()} | {:partial_success, Ash.BulkResult.t()} | {:error, term()}
-  def run_bulk_action(source, %BulkAction{action: action}, ids, opts) do
+  @spec run_bulk_action(
+          Ash.Query.t() | module(),
+          [Field.t()],
+          Query.t(),
+          BulkAction.t(),
+          {:ids | :all_except, [String.t()]},
+          keyword()
+        ) :: {:ok, term()} | {:partial_success, Ash.BulkResult.t()} | {:error, term()}
+  def run_bulk_action(
+        source,
+        fields,
+        %Query{} = query,
+        %BulkAction{action: action},
+        selection,
+        opts
+      ) do
     {:ok, key} = primary_key(source)
     {_load, read_opts} = opts |> Keyword.get(:query_opts, []) |> Keyword.pop(:load)
     auth = Keyword.take(opts, [:actor, :tenant, :scope])
@@ -372,15 +388,29 @@ defmodule Cinder.Engine do
     options =
       [
         action: opts[:action],
-        arguments: argument_values(opts[:argument_values] || %{}, opts[:arguments] || []),
+        arguments: argument_values(query.arguments, opts[:arguments] || []),
         read_opts: read_opts
-      ] ++ auth
+      ] ++ matching(selection, source, fields, query, opts) ++ auth
 
-    with {:ok, query} <- QueryBuilder.build_query(source, options) do
-      execute_opts = [resource: query, ids: ids, id_field: key] ++ auth
+    with {:ok, built} <- QueryBuilder.build_query(source, options) do
+      execute_opts = [resource: built, id_field: key] ++ selected(selection) ++ auth
       BulkActionExecutor.execute(action, [action_opts: opts[:action_opts] || []] ++ execute_opts)
     end
   end
+
+  defp matching({:ids, _ids}, _source, _fields, _query, _opts), do: []
+
+  defp matching({:all_except, _ids}, source, fields, query, opts) do
+    [
+      columns: Enum.map(fields, &Field.to_column_map/1),
+      filters: query.filters,
+      search_term: query.search,
+      search_fn: search_fn(opts[:search_fn], source, fields)
+    ]
+  end
+
+  defp selected({:ids, ids}), do: [ids: ids]
+  defp selected({:all_except, ids}), do: [except: ids]
 
   # The action takes each by its name
   defp argument_values(values, arguments) do

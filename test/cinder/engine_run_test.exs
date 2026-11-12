@@ -224,29 +224,69 @@ defmodule Cinder.EngineRunTest do
     assert album.artist.name == "Run Artist"
   end
 
-  describe "run_bulk_action/4" do
+  describe "run_bulk_action/6" do
     defp ids(titles) do
       for album <- Ash.read!(Music.Album), album.title in titles, do: to_string(album.id)
     end
 
     defp remastered do
-      Music.Album |> Ash.read!() |> Enum.filter(& &1.is_remastered) |> Enum.map(& &1.title)
+      Music.Album
+      |> Ash.read!()
+      |> Enum.filter(& &1.is_remastered)
+      |> Enum.map(& &1.title)
+      |> Enum.sort()
     end
 
     defp titles_left, do: Music.Album |> Ash.read!() |> Enum.map(& &1.title) |> Enum.sort()
 
-    defp bulk(action, ids, opts \\ []) do
+    defp bulk(action, selection, opts \\ []) do
       {source, opts} = Keyword.pop(opts, :source, Music.Album)
+      {fields, opts} = Keyword.pop(opts, :fields, fields())
+      {query, opts} = Keyword.pop(opts, :query, %Query{})
       {:ok, bulk_action} = Engine.bulk_action(source, action)
-      Engine.run_bulk_action(source, bulk_action, ids, opts)
+      Engine.run_bulk_action(source, fields, query, bulk_action, selection, opts)
     end
 
     test "an update or a destroy runs on the selected records" do
-      assert {:ok, %Ash.BulkResult{status: :success}} = bulk(:remaster, ids(["Blue"]))
+      assert {:ok, %Ash.BulkResult{status: :success}} = bulk(:remaster, {:ids, ids(["Blue"])})
       assert remastered() == ["Blue"]
 
-      assert {:ok, %Ash.BulkResult{status: :success}} = bulk(:destroy, ids(["Abbey", "Cold"]))
+      assert {:ok, %Ash.BulkResult{status: :success}} =
+               bulk(:destroy, {:ids, ids(["Abbey", "Cold"])})
+
       assert titles_left() == ["Blue"]
+    end
+
+    # Selected ids are acted on wherever the user's filters and search have left them
+    test "selected records are acted on even when the filters and search hide them" do
+      bulk(:remaster, {:ids, ids(["Blue", "Cold"])}, query: %Query{search: "Abbey"})
+      assert remastered() == ["Blue", "Cold"]
+    end
+
+    # Each part matters: the filter keeps Abbey, the search Cold, the source query
+    # Bluebird, and the exception Bonus
+    test "all matching acts on the records the filters and search match, within the source query, except those excepted" do
+      generate(album(title: "Bonus", price: Decimal.new("20.00")))
+      generate(album(title: "Bluebird", price: Decimal.new("20.00")))
+
+      fields = fields(%{"title" => %{searchable?: true}, "price" => %{filter: %{}}})
+      filters = Cinder.Params.filters_from_params(%{"price_min" => "10"}, fields)
+
+      opts = [
+        fields: fields,
+        query: %Query{filters: filters, search: "b"},
+        source: Ash.Query.filter(Music.Album, title != "Bluebird")
+      ]
+
+      assert {:ok, %Ash.BulkResult{status: :success}} =
+               bulk(:destroy, {:all_except, ids(["Bonus"])}, opts)
+
+      assert titles_left() == ["Abbey", "Bluebird", "Bonus", "Cold"]
+    end
+
+    test "all matching, with nothing excepted, acts on every matching record" do
+      bulk(:remaster, {:all_except, []}, query: %Query{search: "b"})
+      assert remastered() == ["Abbey", "Blue"]
     end
 
     # As the records are read: a selected record the source query or the read action
@@ -259,12 +299,19 @@ defmodule Cinder.EngineRunTest do
       opts = [
         action: :by_genre,
         arguments: [genre("style")],
-        argument_values: %{"style" => genre},
+        query: %Query{arguments: %{"style" => genre}},
         source: Ash.Query.filter(Music.Album, title != "Blue")
       ]
 
-      bulk(:destroy, ids(["Blue", "Jazzy", "Rocky"]), opts)
+      bulk(:destroy, {:ids, ids(["Blue", "Jazzy", "Rocky"])}, opts)
       assert titles_left() == ["Abbey", "Blue", "Cold", "Rocky"]
+
+      # The other albums' genres are random, so the search narrows it to these two
+      generate(album(title: "Jazzier", genre: :jazz))
+      generate(album(title: "Jazz Rock", genre: :rock))
+      query = %Query{arguments: %{"style" => genre}, search: "Jazz"}
+      bulk(:destroy, {:all_except, []}, Keyword.put(opts, :query, query))
+      assert titles_left() == ["Abbey", "Blue", "Cold", "Jazz Rock", "Rocky"]
     end
 
     # A code interface takes a query in place of a record, and its options
@@ -276,15 +323,17 @@ defmodule Cinder.EngineRunTest do
         :done
       end
 
-      assert bulk(action, ids(["Blue"]), opts) == {:ok, :done}
+      assert bulk(action, {:ids, ids(["Blue"])}, opts) == {:ok, :done}
 
       assert_received {:ran, ["Blue"],
                        [bulk_options: [return_errors?: false], actor: %{name: "Actor"}]}
     end
 
     test "a failed action is an error" do
-      assert bulk(fn _query, _opts -> raise "Nope" end, ids(["Blue"])) == {:error, "Nope"}
-      assert bulk(fn _query, _opts -> {:error, :nope} end, ids(["Blue"])) == {:error, :nope}
+      assert bulk(fn _query, _opts -> raise "Nope" end, {:ids, ids(["Blue"])}) == {:error, "Nope"}
+
+      assert bulk(fn _query, _opts -> {:error, :nope} end, {:ids, ids(["Blue"])}) ==
+               {:error, :nope}
     end
   end
 end

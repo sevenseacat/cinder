@@ -285,25 +285,18 @@ defmodule Cinder.Next.Collection do
 
   defp confirmed?(_confirming, _name), do: false
 
-  # On the records selected, as they're read (see `Engine.run_bulk_action/4`)
+  # On the records selected, as they're read (see `Engine.run_bulk_action/6`)
   defp run_bulk_action(socket, bulk_action) do
     %{config: config, query: query, selected: selected} = socket.assigns
-    ids = MapSet.to_list(selected)
+    {source, fields, query, opts} = read_inputs(config, query)
+    selection = {:ids, MapSet.to_list(selected)}
+    opts = [action_opts: bulk_action.action_opts] ++ opts
     running = %{name: bulk_action.name, selected_count: MapSet.size(selected)}
-
-    opts =
-      [
-        action: config.action,
-        arguments: config.arguments,
-        argument_values: query.arguments,
-        query_opts: config.query_opts,
-        action_opts: bulk_action.action_opts
-      ] ++ Enum.to_list(Map.take(config, [:actor, :tenant, :scope]))
 
     socket
     |> assign(:running_bulk_action, running)
     |> start_async(:bulk_action, fn ->
-      Engine.run_bulk_action(config.source, bulk_action.action, ids, opts)
+      Engine.run_bulk_action(source, fields, query, bulk_action.action, selection, opts)
     end)
   end
 
