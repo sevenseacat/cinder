@@ -17,15 +17,12 @@ defmodule Cinder.Next.Collection do
   # In milliseconds, before a bulk action's confirm is taken as an answer
   @default_bulk_action_confirm_delay 500
 
-  # Filter types render with a theme's classes, until theming is redone
+  # Filter types render with a theme's classes, until theming is redone. A bulk
+  # action is `:idle`, `{:confirming, bulk_action, asked_at}` (in milliseconds) or
+  # `{:running, bulk_action, selected_count}`: one at a time.
   @impl true
   def mount(socket) do
-    {:ok,
-     assign(socket,
-       theme: Cinder.Theme.merge("default"),
-       running_bulk_action: nil,
-       confirming_bulk_action: nil
-     )}
+    {:ok, assign(socket, theme: Cinder.Theme.merge("default"), bulk_action: :idle)}
   end
 
   @impl true
@@ -232,17 +229,15 @@ defmodule Cinder.Next.Collection do
   # or waiting to be confirmed (from tampering: the buttons are disabled) is
   # ignored. One with a confirm asks first.
   def handle_event("bulk_action", %{"name" => name}, socket) do
-    %{running_bulk_action: running, confirming_bulk_action: confirming} = socket.assigns
-    bulk_action = Enum.find(socket.assigns.config.bulk_actions, &(&1.name == name))
+    %{bulk_action: state, config: config, selection: selection} = socket.assigns
+    bulk_action = Enum.find(config.bulk_actions, &(&1.name == name))
 
     cond do
-      !bulk_action or running != nil or confirming != nil or
-          RowSelection.count(socket.assigns.selection) == 0 ->
+      !bulk_action or state != :idle or RowSelection.count(selection) == 0 ->
         {:noreply, socket}
 
       bulk_action.confirm ->
-        confirming = %{bulk_action: bulk_action, shown_at: now()}
-        {:noreply, assign(socket, :confirming_bulk_action, confirming)}
+        {:noreply, assign(socket, :bulk_action, {:confirming, bulk_action, now()})}
 
       true ->
         {:noreply, run_bulk_action(socket, bulk_action)}
@@ -253,43 +248,37 @@ defmodule Cinder.Next.Collection do
   # it's ignored and the question stays. With nothing waiting, or naming another
   # action than the one waiting, it's tampering.
   def handle_event("confirm_bulk_action", %{"name" => name}, socket) do
-    confirming = socket.assigns.confirming_bulk_action
-
-    if confirmed?(confirming, name) and RowSelection.count(socket.assigns.selection) > 0 do
-      socket = assign(socket, :confirming_bulk_action, nil)
-      {:noreply, run_bulk_action(socket, confirming.bulk_action)}
+    with {:confirming, %{name: ^name} = bulk_action, asked_at} <- socket.assigns.bulk_action,
+         true <- now() - asked_at >= confirm_delay(),
+         true <- RowSelection.count(socket.assigns.selection) > 0 do
+      {:noreply, run_bulk_action(socket, bulk_action)}
     else
-      {:noreply, socket}
+      _not_an_answer -> {:noreply, socket}
     end
   end
 
+  # Only a confirm can be cancelled: a running action isn't stopped
   def handle_event("cancel_bulk_action", _params, socket) do
-    {:noreply, assign(socket, :confirming_bulk_action, nil)}
+    case socket.assigns.bulk_action do
+      {:confirming, _bulk_action, _asked_at} -> {:noreply, assign(socket, :bulk_action, :idle)}
+      _not_confirming -> {:noreply, socket}
+    end
   end
 
-  defp confirmed?(%{bulk_action: %{name: name}, shown_at: shown_at}, name) do
-    delay =
-      Application.get_env(
-        :cinder,
-        :bulk_action_confirm_delay,
-        @default_bulk_action_confirm_delay
-      )
-
-    now() - shown_at >= delay
+  defp confirm_delay do
+    Application.get_env(:cinder, :bulk_action_confirm_delay, @default_bulk_action_confirm_delay)
   end
-
-  defp confirmed?(_confirming, _name), do: false
 
   # On the records selected, as they're read (see `Engine.run_bulk_action/6`)
   defp run_bulk_action(socket, bulk_action) do
     %{config: config, query: query, selection: selection} = socket.assigns
     {source, fields, query, opts} = read_inputs(config, query)
     opts = [action_opts: bulk_action.action_opts] ++ opts
-    running = %{name: bulk_action.name, selected_count: RowSelection.count(selection)}
+    running = {:running, bulk_action, RowSelection.count(selection)}
     selection = RowSelection.to_engine(selection)
 
     socket
-    |> assign(:running_bulk_action, running)
+    |> assign(:bulk_action, running)
     |> start_async(:bulk_action, fn ->
       Engine.run_bulk_action(source, fields, query, bulk_action.action, selection, opts)
     end)
@@ -301,13 +290,13 @@ defmodule Cinder.Next.Collection do
   @impl true
   def handle_async(:bulk_action, result, socket) do
     {status, value, errors} = bulk_result(result)
-    %{config: config, running_bulk_action: running, query: query} = socket.assigns
+    %{config: config, bulk_action: {:running, bulk_action, count}, query: query} = socket.assigns
 
     if config.on_bulk_action_result do
       payload = %{
-        bulk_action: running.name,
+        bulk_action: bulk_action.name,
         status: status,
-        selected_count: running.selected_count,
+        selected_count: count,
         result: value,
         errors: errors,
         component_id: socket.assigns.id
@@ -316,7 +305,7 @@ defmodule Cinder.Next.Collection do
       send(self(), {config.on_bulk_action_result, payload})
     end
 
-    socket = assign(socket, :running_bulk_action, nil)
+    socket = assign(socket, :bulk_action, :idle)
 
     if status == :error do
       {:noreply, socket}
@@ -376,8 +365,13 @@ defmodule Cinder.Next.Collection do
     end
 
     # With nothing selected, a waiting confirm has nothing left to act on
-    confirming = if RowSelection.count(selection) > 0, do: socket.assigns.confirming_bulk_action
-    assign(socket, selection: selection, confirming_bulk_action: confirming)
+    bulk_action =
+      case {socket.assigns.bulk_action, RowSelection.count(selection)} do
+        {{:confirming, _bulk_action, _asked_at}, 0} -> :idle
+        {state, _count} -> state
+      end
+
+    assign(socket, selection: selection, bulk_action: bulk_action)
   end
 
   # Synced, what the user does changes the URL, and shows when the URL comes back,
@@ -539,8 +533,7 @@ defmodule Cinder.Next.Collection do
         count={RowSelection.count(@selection)}
         everything?={RowSelection.everything?(@selection)}
         matching={RowSelection.all_matching_offer(@selection)}
-        running?={@running_bulk_action != nil}
-        confirming={@confirming_bulk_action}
+        bulk_action={@bulk_action}
         confirm_component={@config.bulk_action_confirm || (&bulk_action_confirm/1)}
         target={@myself}
       />
@@ -637,14 +630,14 @@ defmodule Cinder.Next.Collection do
           {dgettext("cinder", "Clear selection")}
         </button>
       </div>
-      {@confirming && confirm_prompt(assigns)}
+      {confirm_prompt(assigns)}
       <button
         :for={bulk_action <- @bulk_actions}
         type="button"
         phx-click="bulk_action"
         phx-value-name={bulk_action.name}
         phx-target={@target}
-        disabled={@count == 0 or @running? or @confirming != nil}
+        disabled={@count == 0 or @bulk_action != :idle}
       >
         {bulk_action.label}
       </button>
@@ -654,8 +647,8 @@ defmodule Cinder.Next.Collection do
 
   # The confirm component (the developer's, or Cinder's own) is given these assigns.
   # `component/3` is what `<.name>` compiles to, for a component held in a variable.
-  defp confirm_prompt(assigns) do
-    %{confirming: %{bulk_action: bulk_action}, count: count, target: target} = assigns
+  defp confirm_prompt(%{bulk_action: {:confirming, bulk_action, _asked_at}} = assigns) do
+    %{count: count, target: target} = assigns
 
     Phoenix.LiveView.TagEngine.component(
       assigns.confirm_component,
@@ -671,6 +664,8 @@ defmodule Cinder.Next.Collection do
       {__MODULE__, __ENV__.function, __ENV__.file, __ENV__.line}
     )
   end
+
+  defp confirm_prompt(_not_confirming), do: nil
 
   # Rendered `open`, so it shows in place even in an app without Cinder's hooks; the
   # hook reopens it as a modal (on top, the page inert), and Esc runs `cancel`. Cancel

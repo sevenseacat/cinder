@@ -888,6 +888,16 @@ defmodule Cinder.Next.CollectionTest do
     defp with_bulk_actions(opts \\ []) do
       {on_change, on_result} = if opts[:forward_to], do: {:picked, :done}, else: {nil, nil}
       pagination = [size: 1, mode: Keyword.get(opts, :mode, :offset)]
+      test = self()
+
+      # Runs until the test lets it finish
+      wait = fn _query, _opts ->
+        send(test, {:waiting, self()})
+
+        receive do
+          :finish -> :done
+        end
+      end
 
       Fixture.register(
         fn assigns ->
@@ -897,7 +907,8 @@ defmodule Cinder.Next.CollectionTest do
               on_result: on_result,
               confirm: opts[:confirm],
               pagination: pagination,
-              synced: if(opts[:url?], do: assigns.url_state)
+              synced: if(opts[:url?], do: assigns.url_state),
+              wait: wait
             )
 
           ~H"""
@@ -917,6 +928,7 @@ defmodule Cinder.Next.CollectionTest do
             <:bulk_action action={:destroy} label="Delete" confirm="Delete {count} albums?" />
             <:bulk_action name="remove" action={:destroy} />
             <:bulk_action name="fail" action={&fail/2} />
+            <:bulk_action name="wait" action={@wait} />
           </Cinder.Next.collection>
           """
         end,
@@ -1028,6 +1040,31 @@ defmodule Cinder.Next.CollectionTest do
       end)
 
       refute_receive {:done, _payload}
+      assert remastered() == []
+    end
+
+    # One at a time: the bar's actions are disabled while one runs, so these are from
+    # tampering
+    test "while an action runs, cancelling it or starting another changes nothing",
+         %{conn: conn} do
+      session =
+        conn
+        |> visit(with_bulk_actions(forward_to: self()))
+        |> click_box("#albums-select-#{album_id("Abbey")}")
+        |> click_button("Wait")
+
+      assert_receive {:waiting, action}
+
+      session
+      |> unwrap(fn view ->
+        target = with_target(view, "#albums")
+        render_click(target, "cancel_bulk_action", %{})
+        render_click(target, "bulk_action", %{"name" => "remaster"})
+      end)
+      |> assert_has("#albums-bulk button[disabled]", text: "Remaster")
+
+      send(action, :finish)
+      assert_receive {:done, %{bulk_action: "wait", status: :success, result: :done}}
       assert remastered() == []
     end
 
