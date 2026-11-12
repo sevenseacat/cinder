@@ -1253,7 +1253,7 @@ defmodule Cinder.Next.CollectionTest do
             assign(assigns,
               action: Keyword.get(opts, :action, "paginated"),
               pagination: [size: 2, mode: Keyword.get(opts, :mode, :offset)],
-              selectable: Keyword.get(opts, :selectable, true)
+              selectable: Map.get(assigns, :selectable, Keyword.get(opts, :selectable, true))
             )
 
           ~H"""
@@ -1418,6 +1418,23 @@ defmodule Cinder.Next.CollectionTest do
 
     test "isn't offered with every matching record on the page", %{conn: conn} do
       conn |> visit(all_matching()) |> not_offered()
+    end
+
+    # Nor can a function decide which of them a bulk action runs on
+    test "ends when the parent makes `selectable` a function", %{conn: conn} do
+      more_albums()
+
+      conn
+      |> visit(all_matching())
+      |> click_box("#albums th input")
+      |> click_button("Select all 5 matching")
+      |> unwrap(fn view ->
+        Fixture.run(view, &assign(&1, :selectable, fn album -> album.genre == :jazz end))
+        render(view)
+      end)
+      |> refute_has("#albums-bulk-count")
+
+      assert_receive {:picked, %{all_matching?: false, selected_count: 0}}
     end
   end
 end
