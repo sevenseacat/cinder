@@ -17,6 +17,9 @@ defmodule Cinder.Next.Collection do
   # In milliseconds, before a bulk action's confirm is taken as an answer
   @default_bulk_action_confirm_delay 500
 
+  # A selection is the ids picked, or all matching except some (see `State`)
+  @nothing_selected {:ids, MapSet.new()}
+
   # Filter types render with a theme's classes, until theming is redone
   @impl true
   def mount(socket) do
@@ -59,7 +62,7 @@ defmodule Cinder.Next.Collection do
         socket =
           socket
           |> assign(declarations: declarations, config: config)
-          |> select(selected(old, config))
+          |> select(selection(old, config))
 
         socket =
           cond do
@@ -113,11 +116,15 @@ defmodule Cinder.Next.Collection do
 
   # The selection survives a rebuild that reads the same records, while records can
   # still be selected. A new collection has none.
-  defp selected(%{config: old, selected: selected}, config) do
-    if config.selectable != false and read(old) == read(config), do: selected, else: MapSet.new()
+  defp selection(%{config: old, selection: selection}, config) do
+    if config.selectable != false and read(old) == read(config) do
+      selection
+    else
+      @nothing_selected
+    end
   end
 
-  defp selected(_assigns, _config), do: MapSet.new()
+  defp selection(_assigns, _config), do: @nothing_selected
 
   defp start(config) do
     %Engine.Query{sort: config.sort.default, page_size: config.pagination[:size]}
@@ -209,40 +216,47 @@ defmodule Cinder.Next.Collection do
   # Only the page shown's records that can be selected can be (`selectable_ids`), so a
   # forged id changes nothing
   def handle_event("select", %{"id" => id}, socket) do
-    %{selected: selected, selectable_ids: selectable} = socket.assigns
-    {:noreply, select(socket, State.toggle_selected(selected, id, selectable))}
+    %{selection: selection, selectable_ids: selectable} = socket.assigns
+    {:noreply, select(socket, State.toggle_selected(selection, id, selectable))}
   end
 
   # The page's box is checked when all of the page is selected, so clicking it clears
   # the page, and otherwise selects it
   def handle_event("select_page", _params, socket) do
-    %{selected: selected, selectable_ids: selectable} = socket.assigns
+    %{selection: selection, selectable_ids: selectable} = socket.assigns
 
-    selected =
-      if State.page_selected?(selected, selectable) do
-        State.clear_page(selected, selectable)
+    selection =
+      if State.page_selected?(selection, selectable) do
+        State.clear_page(selection, selectable)
       else
-        State.select_page(selected, selectable)
+        State.select_page(selection, selectable)
       end
 
-    {:noreply, select(socket, selected)}
+    {:noreply, select(socket, selection)}
+  end
+
+  # Only when it's offered (from tampering otherwise)
+  def handle_event("select_all_matching", _params, socket) do
+    if all_matching_offered?(socket.assigns) do
+      {:noreply, select(socket, {:all_except, MapSet.new()})}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("clear_selection", _params, socket) do
-    {:noreply, select(socket, MapSet.new())}
+    {:noreply, select(socket, @nothing_selected)}
   end
 
   # An action that isn't declared, with nothing selected, or while one is running
   # or waiting to be confirmed (from tampering: the buttons are disabled) is
   # ignored. One with a confirm asks first.
   def handle_event("bulk_action", %{"name" => name}, socket) do
-    %{selected: selected, running_bulk_action: running, confirming_bulk_action: confirming} =
-      socket.assigns
-
+    %{running_bulk_action: running, confirming_bulk_action: confirming} = socket.assigns
     bulk_action = Enum.find(socket.assigns.config.bulk_actions, &(&1.name == name))
 
     cond do
-      !bulk_action or running != nil or confirming != nil or MapSet.size(selected) == 0 ->
+      !bulk_action or running != nil or confirming != nil or selected_count(socket.assigns) == 0 ->
         {:noreply, socket}
 
       bulk_action.confirm ->
@@ -258,9 +272,9 @@ defmodule Cinder.Next.Collection do
   # it's ignored and the question stays. With nothing waiting, or naming another
   # action than the one waiting, it's tampering.
   def handle_event("confirm_bulk_action", %{"name" => name}, socket) do
-    %{confirming_bulk_action: confirming, selected: selected} = socket.assigns
+    confirming = socket.assigns.confirming_bulk_action
 
-    if confirmed?(confirming, name) and MapSet.size(selected) > 0 do
+    if confirmed?(confirming, name) and selected_count(socket.assigns) > 0 do
       socket = assign(socket, :confirming_bulk_action, nil)
       {:noreply, run_bulk_action(socket, confirming.bulk_action)}
     else
@@ -287,11 +301,11 @@ defmodule Cinder.Next.Collection do
 
   # On the records selected, as they're read (see `Engine.run_bulk_action/6`)
   defp run_bulk_action(socket, bulk_action) do
-    %{config: config, query: query, selected: selected} = socket.assigns
+    %{config: config, query: query, selection: {kind, ids}} = socket.assigns
     {source, fields, query, opts} = read_inputs(config, query)
-    selection = {:ids, MapSet.to_list(selected)}
+    selection = {kind, MapSet.to_list(ids)}
     opts = [action_opts: bulk_action.action_opts] ++ opts
-    running = %{name: bulk_action.name, selected_count: MapSet.size(selected)}
+    running = %{name: bulk_action.name, selected_count: selected_count(socket.assigns)}
 
     socket
     |> assign(:running_bulk_action, running)
@@ -326,7 +340,7 @@ defmodule Cinder.Next.Collection do
     if status == :error do
       {:noreply, socket}
     else
-      {:noreply, socket |> select(MapSet.new()) |> show(query) |> leave_emptied_page()}
+      {:noreply, socket |> select(@nothing_selected) |> show(query) |> leave_emptied_page()}
     end
   end
 
@@ -370,18 +384,43 @@ defmodule Cinder.Next.Collection do
 
   # The parent hears of each change, if it asked to. A new collection has selected
   # nothing, so mounting one isn't a change.
-  defp select(socket, selected) do
+  defp select(socket, {kind, ids} = selection) do
     %{config: config, id: id} = socket.assigns
+    count = selected_count(Map.put(socket.assigns, :selection, selection))
 
-    if config.on_selection_change && selected != (socket.assigns[:selected] || MapSet.new()) do
-      count = MapSet.size(selected)
-      payload = %{selected_ids: selected, selected_count: count, component_id: id}
+    if config.on_selection_change &&
+         selection != (socket.assigns[:selection] || @nothing_selected) do
+      all? = kind == :all_except
+
+      payload = %{
+        selected_ids: if(all?, do: MapSet.new(), else: ids),
+        selected_count: count,
+        all_matching?: all?,
+        excluded_ids: if(all?, do: ids, else: MapSet.new()),
+        component_id: id
+      }
+
       send(self(), {config.on_selection_change, payload})
     end
 
     # With nothing selected, a waiting confirm has nothing left to act on
-    confirming = if MapSet.size(selected) > 0, do: socket.assigns.confirming_bulk_action
-    assign(socket, selected: selected, confirming_bulk_action: confirming)
+    confirming = if count > 0, do: socket.assigns.confirming_bulk_action
+    assign(socket, selection: selection, confirming_bulk_action: confirming)
+  end
+
+  # Of the records matching, as last counted
+  defp selected_count(%{selection: selection} = assigns) do
+    State.selected_count(selection, assigns[:page] && assigns.page.count)
+  end
+
+  # Once the whole page is picked, and more records match: only when the count says
+  # how many (not keyset pages, or an action that can't count), and when any record
+  # can be selected (a `selectable` function can't be asked of records not read)
+  defp all_matching_offered?(assigns) do
+    %{config: config, page: page, selection: selection, selectable_ids: selectable} = assigns
+
+    match?({:ids, _ids}, selection) and config.selectable == true and is_integer(page.count) and
+      page.count > MapSet.size(selectable) and State.page_selected?(selection, selectable)
   end
 
   # Synced, what the user does changes the URL, and shows when the URL comes back,
@@ -410,18 +449,30 @@ defmodule Cinder.Next.Collection do
   end
 
   defp show(socket, query) do
-    socket |> new_arguments(query) |> assign(:query, query) |> load() |> selectable_ids()
+    socket |> new_matching(query) |> assign(:query, query) |> load() |> selectable_ids()
   end
 
   # Arguments decide what the read action reads, as the action does, so new values
   # clear the selection as a new action would: a bulk action then only reaches
-  # records selected under the arguments it runs with
-  defp new_arguments(%{assigns: %{query: %{arguments: old}}} = socket, %{arguments: new})
-       when old != new do
-    select(socket, MapSet.new())
+  # records selected under the arguments it runs with. The filters and search decide
+  # what all matching is, so new ones clear that; ids picked stay, as a filter hides
+  # a record without unselecting it.
+  defp new_matching(%{assigns: %{query: old, selection: selection}} = socket, new) do
+    all_matching? = match?({:all_except, _ids}, selection)
+
+    cond do
+      old.arguments != new.arguments ->
+        select(socket, @nothing_selected)
+
+      all_matching? and {old.filters, old.search} != {new.filters, new.search} ->
+        select(socket, @nothing_selected)
+
+      true ->
+        socket
+    end
   end
 
-  defp new_arguments(socket, _query), do: socket
+  defp new_matching(socket, _query), do: socket
 
   # The ids of the page's records that can be selected: the only ones the boxes can
   # change. Ids are kept as the strings the boxes carry.
@@ -554,7 +605,9 @@ defmodule Cinder.Next.Collection do
         :if={@config.bulk_actions != []}
         id={"#{@id}-bulk"}
         bulk_actions={@config.bulk_actions}
-        count={MapSet.size(@selected)}
+        count={selected_count(assigns)}
+        all_matching?={@selection == {:all_except, MapSet.new()}}
+        matching={all_matching_offered?(assigns) && @page.count}
         running?={@running_bulk_action != nil}
         confirming={@confirming_bulk_action}
         confirm_component={@config.bulk_action_confirm || (&bulk_action_confirm/1)}
@@ -567,7 +620,7 @@ defmodule Cinder.Next.Collection do
               <input
                 type="checkbox"
                 aria-label={dgettext("cinder", "Select all on this page")}
-                checked={State.page_selected?(@selected, @selectable_ids)}
+                checked={State.page_selected?(@selection, @selectable_ids)}
                 disabled={@selectable_ids == MapSet.new()}
                 phx-click="select_page"
                 phx-target={@myself}
@@ -598,7 +651,7 @@ defmodule Cinder.Next.Collection do
               <.row_box
                 id={row_id(@config, record)}
                 collection_id={@id}
-                selected={@selected}
+                selection={@selection}
                 selectable_ids={@selectable_ids}
                 target={@myself}
               />
@@ -633,7 +686,23 @@ defmodule Cinder.Next.Collection do
     ~H"""
     <section id={@id} aria-label={dgettext("cinder", "Bulk actions")}>
       <div :if={@count > 0} id={"#{@id}-count"} aria-live="polite">
-        <p>{dgettext("cinder", "%{count} selected", count: @count)}</p>
+        <p :if={!@all_matching?}>{dgettext("cinder", "%{count} selected", count: @count)}</p>
+        <p :if={@all_matching?}>
+          {dngettext("cinder", "All %{count} selected", "All %{count} selected", @count)}
+        </p>
+        <button
+          :if={@matching}
+          type="button"
+          phx-click="select_all_matching"
+          phx-target={@target}
+        >
+          {dngettext(
+            "cinder",
+            "Select all %{count} matching",
+            "Select all %{count} matching",
+            @matching
+          )}
+        </button>
         <button type="button" phx-click="clear_selection" phx-target={@target}>
           {dgettext("cinder", "Clear selection")}
         </button>
@@ -704,7 +773,7 @@ defmodule Cinder.Next.Collection do
       type="checkbox"
       id={"#{@collection_id}-select-#{@id}"}
       aria-label={dgettext("cinder", "Select row")}
-      checked={@id in @selected}
+      checked={State.selected?(@selection, @id)}
       disabled={@id not in @selectable_ids}
       phx-click="select"
       phx-value-id={@id}

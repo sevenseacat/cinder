@@ -235,3 +235,17 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr ""
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "All %{count} selected"
+msgid_plural "All %{count} selected"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select all %{count} matching"
+msgid_plural "Select all %{count} matching"
+msgstr[0] ""
+msgstr[1] ""

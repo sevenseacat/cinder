@@ -232,3 +232,17 @@ msgstr "Effacer la sélection"
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr "Annuler"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "All %{count} selected"
+msgid_plural "All %{count} selected"
+msgstr[0] "Les %{count} sélectionnés"
+msgstr[1] "Les %{count} sélectionnés"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select all %{count} matching"
+msgid_plural "Select all %{count} matching"
+msgstr[0] "Sélectionner les %{count} résultats"
+msgstr[1] "Sélectionner les %{count} résultats"

@@ -235,3 +235,17 @@ msgstr "Ryd valg"
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr "Annuller"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "All %{count} selected"
+msgid_plural "All %{count} selected"
+msgstr[0] "Alle %{count} valgt"
+msgstr[1] "Alle %{count} valgt"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select all %{count} matching"
+msgid_plural "Select all %{count} matching"
+msgstr[0] "Vælg alle %{count} resultater"
+msgstr[1] "Vælg alle %{count} resultater"

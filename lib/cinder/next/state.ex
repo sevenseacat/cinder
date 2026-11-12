@@ -5,9 +5,9 @@
 defmodule Cinder.Next.State do
   @moduledoc false
   # How a collection's state changes as the user works with it, as pure functions.
-  # For now its state is a `Cinder.Engine.Query` and the selected ids (a `MapSet` of
-  # the strings the boxes carry), kept apart; once there's more state that isn't
-  # query (layout, hidden columns), this becomes the struct holding it all.
+  # For now its state is a `Cinder.Engine.Query` and the selection, kept apart; once
+  # there's more state that isn't query (layout, hidden columns), this becomes the
+  # struct holding it all.
 
   @doc """
   The sort after clicking `field`, whose sort cycles through `cycle`. Additive
@@ -75,30 +75,48 @@ defmodule Cinder.Next.State do
   @doc "The query on its first page, as after anything that changes which records match."
   def first_page(query), do: %{query | page: 1, cursor: nil}
 
+  # A selection is `{:ids, ids}`, the ids picked, or `{:all_except, ids}`, every
+  # record matching the query except these, as `Cinder.Engine.run_bulk_action/6`
+  # takes it. Either way, `ids` is a `MapSet` of the strings the boxes carry.
+
+  @doc "Whether the record with `id` is selected."
+  def selected?({:ids, ids}, id), do: id in ids
+  def selected?({:all_except, ids}, id), do: id not in ids
+
+  @doc "How many records are selected, of `count` matching (`nil` if not counted)."
+  def selected_count({:ids, ids}, _count), do: MapSet.size(ids)
+  def selected_count({:all_except, _ids}, nil), do: 0
+  def selected_count({:all_except, ids}, count), do: max(count - MapSet.size(ids), 0)
+
   @doc """
-  The selected ids after a record's box is clicked: `id` selected, or cleared if it
+  The selection after a record's box is clicked: `id` selected, or cleared if it
   was. Only an id in `selectable` (the page shown's records that can be selected)
   can be, so any other, from a forged event, changes nothing.
   """
-  def toggle_selected(selected, id, selectable) do
+  def toggle_selected({kind, ids} = selection, id, selectable) do
     cond do
-      id not in selectable -> selected
-      id in selected -> MapSet.delete(selected, id)
-      true -> MapSet.put(selected, id)
+      id not in selectable -> selection
+      id in ids -> {kind, MapSet.delete(ids, id)}
+      true -> {kind, MapSet.put(ids, id)}
     end
   end
 
-  @doc "The selected ids with every one of `selectable` (the page's) added."
-  def select_page(selected, selectable), do: MapSet.union(selected, selectable)
+  @doc "The selection with every one of `selectable` (the page's) selected."
+  def select_page({:ids, ids}, selectable), do: {:ids, MapSet.union(ids, selectable)}
 
-  @doc "The selected ids with every one of `selectable` (the page's) removed."
-  def clear_page(selected, selectable), do: MapSet.difference(selected, selectable)
+  def select_page({:all_except, ids}, selectable) do
+    {:all_except, MapSet.difference(ids, selectable)}
+  end
+
+  @doc "The selection with every one of `selectable` (the page's) cleared."
+  def clear_page({:ids, ids}, selectable), do: {:ids, MapSet.difference(ids, selectable)}
+  def clear_page({:all_except, ids}, selectable), do: {:all_except, MapSet.union(ids, selectable)}
 
   @doc """
   Whether every one of `selectable` (the page's) is selected, so the page's box is
   checked. A page with nothing selectable isn't.
   """
-  def page_selected?(selected, selectable) do
-    MapSet.size(selectable) > 0 and MapSet.subset?(selectable, selected)
+  def page_selected?(selection, selectable) do
+    MapSet.size(selectable) > 0 and Enum.all?(selectable, &selected?(selection, &1))
   end
 end

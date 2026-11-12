@@ -816,7 +816,14 @@ defmodule Cinder.Next.CollectionTest do
     test "changing an argument clears the selection, synced to the URL or not",
          %{conn: conn} do
       blue = album_id("Blue")
-      cleared = %{selected_ids: MapSet.new(), selected_count: 0, component_id: "albums"}
+
+      cleared = %{
+        selected_ids: MapSet.new(),
+        selected_count: 0,
+        all_matching?: false,
+        excluded_ids: MapSet.new(),
+        component_id: "albums"
+      }
 
       for url? <- [false, true] do
         path =
@@ -864,7 +871,14 @@ defmodule Cinder.Next.CollectionTest do
       refute_received {:picked, _payload}
       click_box(session, "#albums-select-#{blue}")
 
-      expected = %{selected_ids: MapSet.new([blue]), selected_count: 1, component_id: "albums"}
+      expected = %{
+        selected_ids: MapSet.new([blue]),
+        selected_count: 1,
+        all_matching?: false,
+        excluded_ids: MapSet.new(),
+        component_id: "albums"
+      }
+
       assert_receive {:picked, ^expected}
     end
   end
@@ -1220,6 +1234,190 @@ defmodule Cinder.Next.CollectionTest do
         render(view)
       end)
       |> assert_has("#albums tbody tr", count: 2)
+    end
+  end
+
+  describe "selecting all matching" do
+    # Two a page, so more can match than the page shows. Abbey (rock) and Blue (jazz)
+    # are the setup's.
+    defp more_albums do
+      for {title, genre} <- [{"Cold", :jazz}, {"Dawn", :rock}, {"Echo", :jazz}] do
+        generate(album(title: title, genre: genre))
+      end
+    end
+
+    defp all_matching(opts \\ []) do
+      Fixture.register(
+        fn assigns ->
+          assigns =
+            assign(assigns,
+              action: Keyword.get(opts, :action, "paginated"),
+              pagination: [size: 2, mode: Keyword.get(opts, :mode, :offset)],
+              selectable: Keyword.get(opts, :selectable, true)
+            )
+
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            query={Ash.Query.sort(Music.Album, :title)}
+            action={@action}
+            pagination={@pagination}
+            selectable={@selectable}
+            on_selection_change={:picked}
+            on_bulk_action_result={:done}
+          >
+            <:field :let={album} name="title" sort search>{album.title}</:field>
+            <:field name="genre" filter column={false} />
+            <:bulk_action action={:destroy} label="Delete" confirm="Delete {count} albums?" />
+            <:bulk_action name="remove" action={:destroy} />
+          </Cinder.Next.collection>
+          """
+        end,
+        forward_to: self()
+      )
+    end
+
+    defp titles_left, do: Music.Album |> Ash.read!() |> Enum.map(& &1.title) |> Enum.sort()
+
+    defp select_all_matching(view) do
+      render_click(with_target(view, "#albums"), "select_all_matching", %{})
+    end
+
+    test "is offered once the whole page is selected, and selects every matching record",
+         %{conn: conn} do
+      more_albums()
+
+      conn
+      |> visit(all_matching())
+      |> refute_has("#albums-bulk button", text: "matching")
+      |> click_box("#albums th input")
+      |> assert_has("#albums-bulk-count", text: "2 selected")
+      |> click_button("Select all 5 matching")
+      |> assert_has("#albums-bulk-count", text: "All 5 selected")
+      |> refute_has("#albums-bulk button", text: "matching")
+      |> checked(2)
+      |> click_button("Next page")
+      |> checked(2)
+      |> assert_has("#albums th input[checked]")
+
+      assert_receive {:picked,
+                      %{
+                        selected_ids: none,
+                        selected_count: 5,
+                        all_matching?: true,
+                        excluded_ids: none,
+                        component_id: "albums"
+                      }}
+
+      assert none == MapSet.new()
+    end
+
+    # The confirm and the result count what's selected, and the action leaves out the
+    # record unticked, on whichever page
+    test "a record unticked is left out, and the action runs on every other matching one",
+         %{conn: conn} do
+      more_albums()
+      blue = album_id("Blue")
+
+      conn
+      |> visit(all_matching())
+      |> choose("Jazz")
+      |> click_box("#albums th input")
+      |> click_button("Select all 3 matching")
+      |> click_box("#albums-select-#{blue}")
+      |> assert_has("#albums-bulk-count", text: "2 selected")
+      |> refute_has("#albums th input[checked]")
+      |> click_button("#albums-bulk button", "Delete")
+      |> assert_has("#albums-bulk-confirm p", text: "Delete 2 albums?")
+      |> tap(fn _session ->
+        Process.sleep(Application.fetch_env!(:cinder, :bulk_action_confirm_delay))
+      end)
+      |> click_button("#albums-bulk-confirm button", "Delete")
+      |> tap(fn _session ->
+        assert_receive {:done, %{status: :success, selected_count: 2}}
+      end)
+      |> refute_has("#albums-bulk-count")
+
+      assert titles_left() == ["Abbey", "Blue", "Dawn"]
+
+      assert_receive {:picked, %{all_matching?: true, excluded_ids: excluded, selected_count: 2}}
+
+      assert excluded == MapSet.new([blue])
+    end
+
+    # "All 3 matching" means 3: records picked before, now filtered out, aren't added
+    test "replaces the records picked before", %{conn: conn} do
+      more_albums()
+
+      conn
+      |> visit(all_matching())
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> choose("Jazz")
+      |> click_box("#albums th input")
+      |> assert_has("#albums-bulk-count", text: "3 selected")
+      |> click_button("Select all 3 matching")
+      |> assert_has("#albums-bulk-count", text: "All 3 selected")
+      |> click_button("Remove")
+      |> tap(fn _session -> assert_receive {:done, %{status: :success, selected_count: 3}} end)
+
+      assert titles_left() == ["Abbey", "Dawn"]
+    end
+
+    # What matches is what the filters and search say, so changing them changes what
+    # was selected. Sorting and paging show the same records differently.
+    test "is cleared by a filter or search change, and kept by a sort or page change",
+         %{conn: conn} do
+      more_albums()
+
+      session =
+        conn
+        |> visit(all_matching())
+        |> click_box("#albums th input")
+        |> click_button("Select all 5 matching")
+        |> click_button("Next page")
+        |> click_button("Title")
+        |> assert_has("#albums-bulk-count", text: "All 5 selected")
+        |> fill_in("Search", with: "o")
+        |> checked(0)
+        |> refute_has("#albums-bulk-count")
+
+      assert_receive {:picked, %{all_matching?: false, selected_count: 0}}
+
+      session
+      |> fill_in("Search", with: "")
+      |> click_box("#albums th input")
+      |> click_button("Select all 5 matching")
+      |> choose("Rock")
+      |> checked(0)
+      |> refute_has("#albums-bulk-count")
+    end
+
+    # Nor can it be forced
+    defp not_offered(session) do
+      session
+      |> click_box("#albums th input")
+      |> assert_has("#albums-bulk-count")
+      |> refute_has("#albums-bulk button", text: "matching")
+      |> unwrap(&select_all_matching/1)
+      |> refute_has("#albums-bulk-count", text: "All")
+    end
+
+    # A "select all" that might be 10 records or 10,000 can't be offered without
+    # saying which, and a function can't be checked against records not read
+    test "isn't offered without a count, or with a selectable function", %{conn: conn} do
+      more_albums()
+
+      for path <- [
+            all_matching(mode: :keyset),
+            all_matching(action: "uncountable"),
+            all_matching(selectable: &(&1.genre == :jazz))
+          ] do
+        conn |> visit(path) |> not_offered()
+      end
+    end
+
+    test "isn't offered with every matching record on the page", %{conn: conn} do
+      conn |> visit(all_matching()) |> not_offered()
     end
   end
 end

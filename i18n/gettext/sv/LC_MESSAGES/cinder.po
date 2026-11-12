@@ -235,3 +235,17 @@ msgstr "Rensa markering"
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr "Avbryt"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "All %{count} selected"
+msgid_plural "All %{count} selected"
+msgstr[0] "Alla %{count} valda"
+msgstr[1] "Alla %{count} valda"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Select all %{count} matching"
+msgid_plural "Select all %{count} matching"
+msgstr[0] "Välj alla %{count} träffar"
+msgstr[1] "Välj alla %{count} träffar"
