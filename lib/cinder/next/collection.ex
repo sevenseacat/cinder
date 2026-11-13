@@ -56,14 +56,14 @@ defmodule Cinder.Next.Collection do
         socket =
           socket
           |> assign(declarations: declarations, config: config)
-          |> select(selection(old, config))
+          |> change_selection(selection(old, config))
 
         socket =
           cond do
-            !read_again?(old, config, query) -> page_selection(socket)
+            !read_again?(old, config, query) -> after_read(socket)
             # A rebuild that moves the query (back to the first page, say) moves the URL too
-            !url_changed? and query != old[:query] -> show_now(socket, query)
-            true -> show(socket, query)
+            !url_changed? and query != old[:query] -> move(socket, query)
+            true -> change_query(socket, query)
           end
 
         {:ok, socket}
@@ -71,7 +71,7 @@ defmodule Cinder.Next.Collection do
       # A change to the app's own params changes nothing here
       url_changed? ->
         query = from_url(url_params, old.config)
-        {:ok, if(query == old.query, do: socket, else: show(socket, query))}
+        {:ok, if(query == old.query, do: socket, else: change_query(socket, query))}
 
       true ->
         {:ok, socket}
@@ -162,7 +162,7 @@ defmodule Cinder.Next.Collection do
 
       column ->
         sort = State.toggle_sort(query.sort, field, column.sort.cycle, config.sort.mode)
-        {:noreply, change(socket, State.first_page(%{query | sort: sort}))}
+        {:noreply, request(socket, State.first_page(%{query | sort: sort}))}
     end
   end
 
@@ -181,7 +181,7 @@ defmodule Cinder.Next.Collection do
     }
 
     query = State.first_page(query)
-    {:noreply, change(socket, query)}
+    {:noreply, request(socket, query)}
   end
 
   # An offset page comes from the client, so one that isn't a positive number is
@@ -189,7 +189,7 @@ defmodule Cinder.Next.Collection do
   def handle_event("page", %{"page" => page}, socket) do
     with %{mode: :offset} <- socket.assigns.config.pagination,
          {page, ""} when page > 0 <- Integer.parse(page) do
-      {:noreply, change(socket, %{socket.assigns.query | page: page})}
+      {:noreply, request(socket, %{socket.assigns.query | page: page})}
     else
       _not_a_page -> {:noreply, socket}
     end
@@ -201,7 +201,7 @@ defmodule Cinder.Next.Collection do
 
     with %{mode: :keyset} <- config.pagination,
          {_direction, _cursor} = cursor <- cursor(page, direction) do
-      {:noreply, change(socket, %{query | cursor: cursor})}
+      {:noreply, request(socket, %{query | cursor: cursor})}
     else
       _no_page_that_way -> {:noreply, socket}
     end
@@ -210,19 +210,20 @@ defmodule Cinder.Next.Collection do
   # A forged id, or all matching when it isn't offered, changes nothing (see
   # `RowSelection`)
   def handle_event("select", %{"id" => id}, socket) do
-    {:noreply, select(socket, RowSelection.toggle(socket.assigns.selection, id))}
+    {:noreply, change_selection(socket, RowSelection.toggle(socket.assigns.selection, id))}
   end
 
   def handle_event("select_page", _params, socket) do
-    {:noreply, select(socket, RowSelection.toggle_page(socket.assigns.selection))}
+    {:noreply, change_selection(socket, RowSelection.toggle_page(socket.assigns.selection))}
   end
 
   def handle_event("select_all_matching", _params, socket) do
-    {:noreply, select(socket, RowSelection.select_all_matching(socket.assigns.selection))}
+    selection = RowSelection.select_all_matching(socket.assigns.selection)
+    {:noreply, change_selection(socket, selection)}
   end
 
   def handle_event("clear_selection", _params, socket) do
-    {:noreply, select(socket, RowSelection.clear(socket.assigns.selection))}
+    {:noreply, change_selection(socket, RowSelection.clear(socket.assigns.selection))}
   end
 
   # An action that isn't declared, with nothing selected, or while one is running
@@ -311,7 +312,8 @@ defmodule Cinder.Next.Collection do
       {:noreply, socket}
     else
       selection = RowSelection.clear(socket.assigns.selection)
-      {:noreply, socket |> select(selection) |> show(query) |> leave_emptied_page()}
+      socket = socket |> change_selection(selection) |> change_query(query)
+      {:noreply, leave_emptied_page(socket)}
     end
   end
 
@@ -330,7 +332,7 @@ defmodule Cinder.Next.Collection do
           %{query | page: last_page(page)}
         end
 
-      show_now(socket, moved)
+      move(socket, moved)
     else
       socket
     end
@@ -353,9 +355,12 @@ defmodule Cinder.Next.Collection do
   defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
   defp cursor(_page, _direction), do: nil
 
-  # The parent hears of each change, if it asked to. A new collection has selected
-  # nothing, so mounting one isn't a change.
-  defp select(socket, selection) do
+  ## How what the user does reaches the page
+
+  # Every change to the selection, and the reactions to it. The parent hears of each
+  # change, if it asked to. A new collection has selected nothing, so mounting one
+  # isn't a change.
+  defp change_selection(socket, selection) do
     %{config: config, id: id} = socket.assigns
     old = socket.assigns[:selection] || selection
 
@@ -374,23 +379,23 @@ defmodule Cinder.Next.Collection do
     assign(socket, selection: selection, bulk_action: bulk_action)
   end
 
-  # Synced, what the user does changes the URL, and shows when the URL comes back,
-  # so the new records and the new URL arrive in one render
-  defp change(%{assigns: %{url_params: nil}} = socket, query), do: show(socket, query)
+  # A query the user asks for. Synced, it changes the URL, and the query changes when
+  # the URL comes back, so the new records and the new URL arrive in one render.
+  defp request(%{assigns: %{url_params: nil}} = socket, query), do: change_query(socket, query)
 
-  defp change(socket, query) do
+  defp request(socket, query) do
     patch_url(socket, query)
     socket
   end
 
-  # A move the collection makes itself (a rebuild, or leaving an emptied page) shows
-  # in this render. Synced, the URL follows: `patch_url/2` only asks the parent to
-  # patch, changing nothing here. Unlike `change/2`, which waits for the URL, this
-  # doesn't show the old records while it comes back, and the query that comes back
-  # is the one shown, so it isn't read again.
-  defp show_now(socket, query) do
+  # A move the collection makes itself (a rebuild, or leaving an emptied page),
+  # shown in this render. Synced, the URL follows: `patch_url/2` only asks the parent
+  # to patch, changing nothing here. Unlike `request/2`, which waits for the URL,
+  # this doesn't show the old records while it comes back, and the query that comes
+  # back is the one shown, so it isn't read again.
+  defp move(socket, query) do
     if socket.assigns.url_params, do: patch_url(socket, query)
-    show(socket, query)
+    change_query(socket, query)
   end
 
   defp patch_url(%{assigns: %{config: config}}, query) do
@@ -399,19 +404,27 @@ defmodule Cinder.Next.Collection do
     UrlSync.patch(params, owns: Params.url_keys(config.fields, opts))
   end
 
-  defp show(socket, query) do
-    socket |> new_matching(query) |> assign(:query, query) |> load() |> page_selection()
+  # Every new query (or the same one read again), and the reactions to it, then the
+  # read
+  defp change_query(socket, query) do
+    old = socket.assigns[:query]
+
+    # A new query can make the selection stale (see `RowSelection.for_query/3`); a
+    # new collection has no query before it
+    socket =
+      if old do
+        change_selection(socket, RowSelection.for_query(socket.assigns.selection, old, query))
+      else
+        socket
+      end
+
+    socket |> assign(:query, query) |> load() |> after_read()
   end
 
-  # A new query can make the selection stale (see `RowSelection.for_query/3`)
-  defp new_matching(%{assigns: %{query: old, selection: selection}} = socket, new) do
-    select(socket, RowSelection.for_query(selection, old, new))
-  end
-
-  defp new_matching(socket, _query), do: socket
-
-  # Which of the page's records can be selected, and how many match
-  defp page_selection(%{assigns: %{page: page, selection: selection}} = socket) do
+  # Every page read (or the same page, when a rebuild changes what can be done with
+  # it), and the reactions to it: the selection takes which of its records can be
+  # selected, and how many match
+  defp after_read(%{assigns: %{page: page, selection: selection}} = socket) do
     assign(socket, :selection, RowSelection.for_page(selection, page))
   end
 
@@ -470,7 +483,7 @@ defmodule Cinder.Next.Collection do
       # Only a cursor from the URL can fail to read (the others are a page's own), and
       # what the user puts in the URL is dropped
       {{:error, _error}, {_direction, _cursor}} ->
-        show(socket, State.first_page(query))
+        change_query(socket, State.first_page(query))
     end
   end
 
