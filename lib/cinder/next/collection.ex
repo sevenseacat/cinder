@@ -78,25 +78,9 @@ defmodule Cinder.Next.Collection do
     end
   end
 
-  # A rebuild, when the declarations change after mount: the user's sort, filters,
-  # arguments and search carry over, and the page too if the records would be the same
+  # A rebuild, when the declarations change after mount (see `State.carry_over/4`)
   defp query(%{config: old, query: query}, config, nil) do
-    sortable = for %Engine.Field{sortable?: true, name: name} <- config.fields, do: name
-    filterable = for %{column: column} <- config.filters, do: column.field
-    searchable = for %Engine.Field{searchable?: true, name: name} <- config.fields, do: name
-    arguments = for %Engine.Argument{param: param} <- config.arguments, do: param
-    sort = State.carry_over_sort(query.sort, old.sort.default, config.sort.default, sortable)
-
-    carried = %{
-      query
-      | sort: sort,
-        filters: State.carry_over_inputs(query.filters, filterable),
-        arguments: State.carry_over_inputs(query.arguments, arguments),
-        search: State.carry_over_search(query.search, searchable),
-        page_size: config.pagination[:size]
-    }
-
-    State.carry_over_page(carried, query, read(old) == read(config))
+    State.carry_over(query, old, config, read(old) == read(config))
   end
 
   # On mount, or when the URL changes with the declarations: what the URL says

@@ -9,6 +9,9 @@ defmodule Cinder.Next.State do
   # query (layout, hidden columns), this becomes the struct holding it all. The
   # selection is `Cinder.Next.RowSelection`'s.
 
+  alias Cinder.Engine.{Argument, Field}
+  alias Cinder.Next.Config
+
   @doc """
   The sort after clicking `field`, whose sort cycles through `cycle`. Additive
   (`mode`), the column clicked becomes the main sort and the others break its
@@ -37,38 +40,40 @@ defmodule Cinder.Next.State do
   end
 
   @doc """
-  The sort to keep when the declarations change: the new default if the user
-  hadn't changed it from the old one, or else theirs, minus fields that are no
-  longer sortable.
+  The query when the declarations change from `old` to `config`. The user's sort,
+  filters, argument values and search carry over, minus what's no longer
+  declared, though a sort the user hadn't changed from the old default becomes the
+  new one. The page size is the new config's. The page carries over too, if the
+  records are the same (`same_records?`) and nothing else changed, and otherwise
+  it's the first.
   """
-  def carry_over_sort(sort, old_default, new_default, sortable) do
+  def carry_over(query, %Config{} = old, %Config{} = config, same_records?) do
+    sortable = for %Field{sortable?: true, name: name} <- config.fields, do: name
+    filterable = for %{column: column} <- config.filters, do: column.field
+    searchable? = Enum.any?(config.fields, & &1.searchable?)
+    arguments = for %Argument{param: param} <- config.arguments, do: param
+
+    carried = %{
+      query
+      | sort: carry_over_sort(query.sort, old.sort.default, config.sort.default, sortable),
+        filters: Map.take(query.filters, filterable),
+        arguments: Map.take(query.arguments, arguments),
+        search: if(searchable?, do: query.search, else: ""),
+        page_size: config.pagination[:size]
+    }
+
+    if same_records? and first_page(carried) == first_page(query) do
+      carried
+    else
+      first_page(carried)
+    end
+  end
+
+  defp carry_over_sort(sort, old_default, new_default, sortable) do
     if sort == old_default do
       new_default
     else
       Enum.filter(sort, fn {field, _direction} -> field in sortable end)
-    end
-  end
-
-  @doc """
-  The filters, or argument values, to keep when the declarations change: those
-  whose field is still filterable, or whose argument is still declared.
-  """
-  def carry_over_inputs(values, names), do: Map.take(values, names)
-
-  @doc "The search to keep when the declarations change: all of it, while any field is searchable."
-  def carry_over_search(_search, []), do: ""
-  def carry_over_search(search, _searchable), do: search
-
-  @doc """
-  The page to keep when the declarations change: the same one if the read gives the
-  same records (`same_source?`, and nothing in `query` but the page changed from
-  `old`), or else the first.
-  """
-  def carry_over_page(query, old, same_source?) do
-    if same_source? and first_page(query) == first_page(old) do
-      query
-    else
-      first_page(query)
     end
   end
 
