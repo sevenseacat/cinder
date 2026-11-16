@@ -171,11 +171,25 @@ defmodule Cinder.Next.StateTest do
                {1, {:after, "abc"}}
     end
 
+    test "only the first sort, when the collection sorts by one field at a time" do
+      params = %{"sort" => "-title,genre"}
+      fields = [field("title", sort: true), field("genre", sort: true)]
+      assert State.from_url(params, config(fields)).sort == [{"title", :desc}, {"genre", :asc}]
+
+      assert State.from_url(params, config(fields, sort: [mode: :exclusive])).sort ==
+               [{"title", :desc}]
+    end
+
     test "a page size, only when it's offered" do
       config = config(fields(), pagination: [size: 25, size_options: [10, 25]])
       assert State.from_url(%{"page_size" => "10"}, config).page_size == 10
       assert State.from_url(%{"page_size" => "50"}, config).page_size == 25
     end
+  end
+
+  test "first_page/1, by page number or by keyset" do
+    assert State.first_page(%Query{page: 3}) == %Query{page: 1}
+    assert State.first_page(%Query{cursor: {:after, "abc"}}) == %Query{page: 1}
   end
 
   describe "change_page_size/3" do

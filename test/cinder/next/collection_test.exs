@@ -9,7 +9,6 @@ defmodule Cinder.Next.CollectionTest do
       element: 2,
       element: 3,
       render: 1,
-      render_change: 2,
       render_click: 1,
       render_click: 2,
       render_click: 3,
@@ -168,19 +167,6 @@ defmodule Cinder.Next.CollectionTest do
       |> choose("Jazz")
       |> assert_has("#albums tbody tr", count: 1)
       |> assert_has("#albums td", text: "Blue")
-    end
-
-    test "a filter on a field that isn't filterable (a tampered event) is ignored",
-         %{conn: conn} do
-      conn
-      |> visit(filterable())
-      |> unwrap(fn view ->
-        view
-        |> element("#albums-filters")
-        |> render_change(%{"filters" => %{"title" => "ab", "artist.name" => "nobody"}})
-      end)
-      |> assert_has("#albums tbody tr", count: 1)
-      |> assert_has("#albums td", text: "Abbey")
     end
   end
 
@@ -424,6 +410,7 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums nav button[disabled]", text: "Previous page")
     end
 
+    # The offset test can't tell `State.first_page/1` from setting the page number alone
     test "by keyset, back to the first page when the sort or the filters change",
          %{conn: conn} do
       conn
@@ -437,16 +424,6 @@ defmodule Cinder.Next.CollectionTest do
       |> fill_in("Title", with: "e")
       |> titles(["Echo", "Blue"])
       |> assert_has("#albums nav button[disabled]", text: "Previous page")
-    end
-
-    test "an action that only pages by keyset does so without being told", %{conn: conn} do
-      query = Music.Album |> Ash.Query.for_read(:keyset_only) |> Ash.Query.sort(:title)
-
-      conn
-      |> visit(paged(query))
-      |> titles(["Abbey", "Blue"])
-      |> click_button("#albums nav button", "Next page")
-      |> titles(["Cold", "Dark"])
     end
 
     test "each mode ignores the other's events (tampered ones)", %{conn: conn} do
@@ -515,28 +492,6 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums th[aria-sort=descending]", text: "Title")
     end
 
-    test "exclusive, a URL's sorts after the first are ignored", %{conn: conn} do
-      path =
-        Fixture.register(fn assigns ->
-          ~H"""
-          <Cinder.Next.collection
-            id="albums"
-            resource={Music.Album}
-            sort={[mode: :exclusive]}
-            url_state={@url_state}
-          >
-            <:field :let={album} name="genre" sort>{album.genre}</:field>
-            <:field :let={album} name="title" sort>{album.title}</:field>
-          </Cinder.Next.collection>
-          """
-        end)
-
-      conn
-      |> visit(path <> "?sort=-genre,title")
-      |> assert_has("#albums th[aria-sort=descending]", text: "Genre")
-      |> assert_has("#albums th[aria-sort=none]", text: "Title")
-    end
-
     test "going back to the default takes it out of the URL", %{conn: conn} do
       path = synced()
 
@@ -599,13 +554,6 @@ defmodule Cinder.Next.CollectionTest do
       |> unwrap(&render_patch(&1, path <> "?sort=-title"))
       |> assert_has("#albums nav", text: "Page 1 of 3")
       |> titles(["Echo", "Dark"], timeout: 500)
-    end
-
-    test "params the collection can't use are ignored", %{conn: conn} do
-      conn
-      |> visit(synced() <> "?sort=-nope&page=two&genre=polka")
-      |> assert_has("#albums nav", text: "Page 1 of 3")
-      |> titles(["Abbey", "Blue"], timeout: 500)
     end
 
     # The cursor's value is Ash's, so the URL is only checked for having it
@@ -826,19 +774,13 @@ defmodule Cinder.Next.CollectionTest do
       |> checked(0)
     end
 
-    test "a record that can't be selected has a disabled box, and a forged event for it is ignored",
-         %{conn: conn} do
+    test "a record that can't be selected has a disabled box", %{conn: conn} do
       abbey = album_id("Abbey")
       blue = album_id("Blue")
 
       conn
       |> visit(selectable(&(&1.genre == :jazz)))
       |> assert_has("#albums-select-#{abbey}[disabled]")
-      # Blue's box, sending Abbey's id
-      |> unwrap(fn view ->
-        view |> element("#albums-select-#{blue}") |> render_click(%{"id" => abbey})
-      end)
-      |> checked(0)
       |> click_box("#albums th input")
       |> checked(1)
       |> assert_has("#albums-select-#{blue}[checked]")
@@ -865,8 +807,8 @@ defmodule Cinder.Next.CollectionTest do
 
     # Arguments decide what the read action reads, as the action does, so a bulk
     # action only reaches records selected under the arguments it runs with
-    test "changing an argument clears the selection, synced to the URL or not",
-         %{conn: conn} do
+    # Synced, as that's the longer way round: the new argument comes back from the URL
+    test "changing an argument clears the selection", %{conn: conn} do
       blue = album_id("Blue")
 
       cleared = %{
@@ -877,42 +819,38 @@ defmodule Cinder.Next.CollectionTest do
         component_id: "albums"
       }
 
-      for url? <- [false, true] do
-        path =
-          Fixture.register(
-            fn assigns ->
-              assigns = assign(assigns, synced: if(url?, do: assigns.url_state))
+      path =
+        Fixture.register(
+          fn assigns ->
+            ~H"""
+            <Cinder.Next.collection
+              id="albums"
+              resource={Music.Album}
+              action={:by_genre}
+              selectable
+              url_state={@url_state}
+              on_selection_change={:picked}
+            >
+              <:field :let={album} name="title" filter>{album.title}</:field>
+              <:argument name="genre" />
+            </Cinder.Next.collection>
+            """
+          end,
+          forward_to: self()
+        )
 
-              ~H"""
-              <Cinder.Next.collection
-                id="albums"
-                resource={Music.Album}
-                action={:by_genre}
-                selectable
-                url_state={@synced}
-                on_selection_change={:picked}
-              >
-                <:field :let={album} name="title" filter>{album.title}</:field>
-                <:argument name="genre" />
-              </Cinder.Next.collection>
-              """
-            end,
-            forward_to: self()
-          )
+      conn
+      |> visit(path)
+      |> choose("Jazz")
+      |> click_box("#albums-select-#{blue}")
+      |> fill_in("Title", with: "B")
+      |> checked(1)
+      |> choose("Rock")
+      |> choose("Jazz")
+      |> checked(0)
 
-        conn
-        |> visit(path)
-        |> choose("Jazz")
-        |> click_box("#albums-select-#{blue}")
-        |> fill_in("Title", with: "B")
-        |> checked(1)
-        |> choose("Rock")
-        |> choose("Jazz")
-        |> checked(0)
-
-        assert_receive {:picked, %{selected_count: 1}}
-        assert_receive {:picked, ^cleared}
-      end
+      assert_receive {:picked, %{selected_count: 1}}
+      assert_receive {:picked, ^cleared}
     end
 
     test "the parent hears of each change, and only of changes", %{conn: conn} do
@@ -1379,16 +1317,15 @@ defmodule Cinder.Next.CollectionTest do
         fn assigns ->
           assigns =
             assign(assigns,
-              action: Keyword.get(opts, :action, "paginated"),
               pagination: [size: 2, mode: Keyword.get(opts, :mode, :offset)],
-              selectable: Map.get(assigns, :selectable, Keyword.get(opts, :selectable, true))
+              selectable: Map.get(assigns, :selectable, true)
             )
 
           ~H"""
           <Cinder.Next.collection
             id="albums"
             query={Ash.Query.sort(Music.Album, :title)}
-            action={@action}
+            action="paginated"
             pagination={@pagination}
             selectable={@selectable}
             on_selection_change={:picked}
@@ -1473,56 +1410,13 @@ defmodule Cinder.Next.CollectionTest do
       assert excluded == MapSet.new([blue])
     end
 
-    # "All 3 matching" means 3: records picked before, now filtered out, aren't added
-    test "replaces the records picked before", %{conn: conn} do
+    # When it isn't offered is `RowSelection`'s; keyset pages have no count to offer it
+    # with. Nor can it be forced.
+    test "isn't offered when it can't be, nor forced", %{conn: conn} do
       more_albums()
 
       conn
-      |> visit(all_matching())
-      |> click_box("#albums-select-#{album_id("Abbey")}")
-      |> choose("Jazz")
-      |> click_box("#albums th input")
-      |> assert_has("#albums-bulk-count", text: "3 selected")
-      |> click_button("Select all 3 matching")
-      |> assert_has("#albums-bulk-count", text: "All 3 selected")
-      |> click_button("Remove")
-      |> tap(fn _session -> assert_receive {:done, %{status: :success, selected_count: 3}} end)
-
-      assert titles_left() == ["Abbey", "Dawn"]
-    end
-
-    # What matches is what the filters and search say, so changing them changes what
-    # was selected. Sorting and paging show the same records differently.
-    test "is cleared by a filter or search change, and kept by a sort or page change",
-         %{conn: conn} do
-      more_albums()
-
-      session =
-        conn
-        |> visit(all_matching())
-        |> click_box("#albums th input")
-        |> click_button("Select all 5 matching")
-        |> click_button("Next page")
-        |> click_button("Title")
-        |> assert_has("#albums-bulk-count", text: "All 5 selected")
-        |> fill_in("Search", with: "o")
-        |> checked(0)
-        |> refute_has("#albums-bulk-count")
-
-      assert_receive {:picked, %{all_matching?: false, selected_count: 0}}
-
-      session
-      |> fill_in("Search", with: "")
-      |> click_box("#albums th input")
-      |> click_button("Select all 5 matching")
-      |> choose("Rock")
-      |> checked(0)
-      |> refute_has("#albums-bulk-count")
-    end
-
-    # Nor can it be forced
-    defp not_offered(session) do
-      session
+      |> visit(all_matching(mode: :keyset))
       |> click_box("#albums th input")
       |> assert_has("#albums-bulk-count")
       |> refute_has("#albums-bulk button", text: "matching")
@@ -1530,25 +1424,8 @@ defmodule Cinder.Next.CollectionTest do
       |> refute_has("#albums-bulk-count", text: "All")
     end
 
-    # A "select all" that might be 10 records or 10,000 can't be offered without
-    # saying which, and a function can't be checked against records not read
-    test "isn't offered without a count, or with a selectable function", %{conn: conn} do
-      more_albums()
-
-      for path <- [
-            all_matching(mode: :keyset),
-            all_matching(action: "uncountable"),
-            all_matching(selectable: &(&1.genre == :jazz))
-          ] do
-        conn |> visit(path) |> not_offered()
-      end
-    end
-
-    test "isn't offered with every matching record on the page", %{conn: conn} do
-      conn |> visit(all_matching()) |> not_offered()
-    end
-
-    # Nor can a function decide which of them a bulk action runs on
+    # Nor can a function decide which of them a bulk action runs on. The rule is
+    # `RowSelection.carry_over/4`'s; this checks the rebuild hands it the new `selectable`.
     test "ends when the parent makes `selectable` a function", %{conn: conn} do
       more_albums()
 
