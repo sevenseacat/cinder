@@ -30,7 +30,8 @@ defmodule Cinder.Next.State do
       search?: config.search != nil,
       pagination: config.pagination[:mode],
       arguments: config.arguments,
-      sort_mode: config.sort.mode
+      sort_mode: config.sort.mode,
+      page_sizes: config.pagination[:size_options]
     ]
 
     Params.from_url(params, config.fields, start(config), opts)
@@ -74,12 +75,25 @@ defmodule Cinder.Next.State do
   end
 
   @doc """
+  The query after choosing a page size (the form's string), on the first page. One
+  that isn't offered (from a tampered event), or is the size shown, is ignored.
+  """
+  def change_page_size(query, size, %Config{} = config) do
+    with %{size_options: options} <- config.pagination,
+         {size, ""} <- Integer.parse(size),
+         true <- size in options and size != query.page_size do
+      {:ok, first_page(%{query | page_size: size})}
+    else
+      _ignored -> :ignore
+    end
+  end
+
+  @doc """
   The query when the declarations change from `old` to `config`. The user's sort,
-  filters, argument values and search carry over, minus what's no longer
-  declared, though a sort the user hadn't changed from the old default becomes the
-  new one. The page size is the new config's. The page carries over too, if the
-  records are the same (`same_records?`) and nothing else changed, and otherwise
-  it's the first.
+  filters, argument values, search and page size carry over, minus what's no longer
+  declared or offered, though a sort or a page size the user hadn't changed from the
+  old default becomes the new one. The page carries over too, if the records are the
+  same (`same_records?`) and nothing else changed, and otherwise it's the first.
   """
   def carry_over(query, %Config{} = old, %Config{} = config, same_records?) do
     sortable = for %Field{sortable?: true, name: name} <- config.fields, do: name
@@ -93,7 +107,7 @@ defmodule Cinder.Next.State do
         filters: Map.take(query.filters, filterable),
         arguments: Map.take(query.arguments, arguments),
         search: if(searchable?, do: query.search, else: ""),
-        page_size: config.pagination[:size]
+        page_size: carry_over_page_size(query.page_size, old.pagination, config.pagination)
     }
 
     if same_records? and first_page(carried) == first_page(query) do
@@ -109,6 +123,11 @@ defmodule Cinder.Next.State do
     else
       Enum.filter(sort, fn {field, _direction} -> field in sortable end)
     end
+  end
+
+  # Either may be `nil`, when the action doesn't page
+  defp carry_over_page_size(size, old, new) do
+    if size != old[:size] and size in (new[:size_options] || []), do: size, else: new[:size]
   end
 
   @doc "The query on its first page, as after anything that changes which records match."

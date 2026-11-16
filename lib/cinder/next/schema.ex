@@ -64,7 +64,11 @@ defmodule Cinder.Next.Schema do
              type: {:in, [:offset, :keyset]},
              doc: "`:offset` or `:keyset`. By default, offset if the read action can, or keyset."
            ],
-           size: [type: :pos_integer, default: 25, doc: "How many records a page shows."]
+           size: [type: :pos_integer, default: 25, doc: "How many records a page shows."],
+           size_options: [
+             type: {:list, :pos_integer},
+             doc: "The sizes the user can choose from, `size` among them."
+           ]
          ]},
       default: [],
       doc:

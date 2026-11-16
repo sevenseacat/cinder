@@ -18,8 +18,9 @@ defmodule Cinder.Next.Config do
   # `filters` are the filter controls: the column map their type renders from (with
   # the column's label), and the type's module.
   # `search` is the search box's options, or `nil` when no field is searchable.
-  # `pagination` is the mode, the page size and whether to count, or `nil` when the
-  # action doesn't page.
+  # `pagination` is the mode, the page size, the sizes the user can choose from (only
+  # it, if none were given) and whether to count, or `nil` when the action doesn't
+  # page.
   # `action` is the read action's name, and `arguments` the ones the user gives
   # values for. `argument_inputs` are their controls, as `filters` are.
   # `selectable` is as given (`false`, `true` or a function), and `primary_key` the
@@ -330,7 +331,12 @@ defmodule Cinder.Next.Config do
 
     case first_mode(source, action, modes) do
       {:ok, mode, %{count?: count?}} ->
-        %{mode: mode, size: options[:pagination][:size], count?: mode == :offset and count?}
+        %{
+          mode: mode,
+          size: options[:pagination][:size],
+          size_options: size_options!(options),
+          count?: mode == :offset and count?
+        }
 
       {:error, message} when paginate? ->
         raise ArgumentError,
@@ -340,6 +346,20 @@ defmodule Cinder.Next.Config do
       {:error, _message} ->
         nil
     end
+  end
+
+  # Only `size` when there's nothing to choose from
+  defp size_options!(options) do
+    size = options[:pagination][:size]
+    size_options = options[:pagination][:size_options] || [size]
+
+    if size not in size_options do
+      raise ArgumentError,
+            ~s(<Cinder.Next.collection id="#{options[:id]}">: `pagination`'s `size` \(#{size}\) ) <>
+              "must be one of its `size_options` (#{inspect(size_options, charlists: :as_lists)})"
+    end
+
+    size_options
   end
 
   # The first mode the action can page by, or the last one's error

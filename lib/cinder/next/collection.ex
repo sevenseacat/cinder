@@ -194,6 +194,14 @@ defmodule Cinder.Next.Collection do
     end
   end
 
+  # Which sizes can be chosen, and what one does to the page, are `State`'s
+  def handle_event("page_size", %{"page_size" => size}, socket) do
+    case State.change_page_size(socket.assigns.query, size, socket.assigns.config) do
+      {:ok, query} -> {:noreply, request(socket, query)}
+      :ignore -> {:noreply, socket}
+    end
+  end
+
   # Keyset pages go from the cursors of the page shown, kept on the server
   def handle_event(direction, _params, socket) when direction in ["next_page", "previous_page"] do
     %{config: config, page: page, query: query} = socket.assigns
@@ -599,19 +607,32 @@ defmodule Cinder.Next.Collection do
           </tr>
         </tbody>
       </table>
-      <nav :if={@config.pagination && (@page.previous? or @page.more?)} aria-label="Pagination">
-        <button
-          type="button"
-          phx-target={@myself}
-          disabled={!@page.previous?}
-          {page_click(@page, :previous)}
-        >
-          {dgettext("cinder", "Previous page")}
-        </button>
-        <span :if={@page.page}>{page_of(@page)}</span>
-        <button type="button" phx-target={@myself} disabled={!@page.more?} {page_click(@page, :next)}>
-          {dgettext("cinder", "Next page")}
-        </button>
+      <%!-- The page size can be chosen even on one page, so a user who chose more can go back to fewer --%>
+      <nav
+        :if={@config.pagination && (@page.previous? or @page.more? or size_choice?(@config))}
+        aria-label="Pagination"
+      >
+        <div :if={@page.previous? or @page.more?}>
+          <button
+            type="button"
+            phx-target={@myself}
+            disabled={!@page.previous?}
+            {page_click(@page, :previous)}
+          >
+            {dgettext("cinder", "Previous page")}
+          </button>
+          <span :if={@page.page}>{page_of(@page)}</span>
+          <button type="button" phx-target={@myself} disabled={!@page.more?} {page_click(@page, :next)}>
+            {dgettext("cinder", "Next page")}
+          </button>
+        </div>
+        <.page_size
+          :if={size_choice?(@config)}
+          id={"#{@id}-page-size"}
+          sizes={@config.pagination.size_options}
+          size={@query.page_size}
+          target={@myself}
+        />
       </nav>
     </div>
     """
@@ -720,6 +741,29 @@ defmodule Cinder.Next.Collection do
       phx-value-id={@id}
       phx-target={@target}
     />
+    """
+  end
+
+  defp size_choice?(%{pagination: %{size_options: [_, _ | _]}}), do: true
+  defp size_choice?(_config), do: false
+
+  # Split, so a translation can put the size where its language needs it
+  defp page_size(assigns) do
+    [before, after_sizes] =
+      String.split(dgettext("cinder", "Show {selector} per page"), "{selector}")
+
+    assigns = assign(assigns, before: before, after_sizes: after_sizes)
+
+    ~H"""
+    <form id={@id} phx-change="page_size" phx-target={@target}>
+      <label>
+        {@before}
+        <select name="page_size">
+          <option :for={size <- @sizes} value={size} selected={size == @size}>{size}</option>
+        </select>
+        {@after_sizes}
+      </label>
+    </form>
     """
   end
 

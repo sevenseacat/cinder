@@ -352,6 +352,32 @@ defmodule Cinder.Next.CollectionTest do
       |> refute_has("#albums nav")
     end
 
+    # Which sizes, and what a new one does to the page, are `State`'s
+    defp page_size(session, size), do: select(session, "Show", option: size, exact: false)
+
+    test "the page size can be chosen when there are size options, even on one page",
+         %{conn: conn} do
+      conn
+      |> visit(paged())
+      |> refute_has("#albums select")
+
+      conn
+      |> visit(paged(Ash.Query.sort(Music.Album, :title), size: 5, size_options: [2, 5]))
+      |> titles(["Abbey", "Blue", "Cold", "Dark", "Echo"])
+      |> refute_has("#albums nav button")
+      |> page_size("2")
+      |> titles(["Abbey", "Blue"])
+    end
+
+    test "choosing a page size shows the first page of that many", %{conn: conn} do
+      conn
+      |> visit(paged(Ash.Query.sort(Music.Album, :title), size: 2, size_options: [2, 3]))
+      |> click_button("#albums nav button", "Next page")
+      |> page_size("3")
+      |> assert_has("#albums nav", text: "Page 1 of 2")
+      |> titles(["Abbey", "Blue", "Cold"])
+    end
+
     test "an action that doesn't paginate shows every record", %{conn: conn} do
       conn
       |> visit(paged(Ash.Query.for_read(Music.Album, :by_context), []))
@@ -526,6 +552,18 @@ defmodule Cinder.Next.CollectionTest do
       |> fill_in("Title", with: "")
       |> assert_path(path, query_params: %{search: "e"}, timeout: 500)
       |> fill_in("Search", with: "")
+      |> assert_path(path, query_params: %{}, timeout: 500)
+    end
+
+    test "a page size goes in the URL, and back at the default leaves it", %{conn: conn} do
+      path = synced(size: 2, size_options: [2, 3])
+
+      conn
+      |> visit(path)
+      |> page_size("3")
+      |> assert_path(path, query_params: %{page_size: "3"}, timeout: 500)
+      |> titles(["Abbey", "Blue", "Cold"], timeout: 500)
+      |> page_size("2")
       |> assert_path(path, query_params: %{}, timeout: 500)
     end
 

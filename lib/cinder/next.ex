@@ -35,7 +35,9 @@ defmodule Cinder.Next do
     default: [],
     doc: "How the collection searches: `[label: ..., placeholder: ..., fn: ...]`"
 
-  attr :pagination, :list, default: [], doc: "How the collection pages: `[mode: ..., size: ...]`"
+  attr :pagination, :list,
+    default: [],
+    doc: "How the collection pages: `[mode: ..., size: ..., size_options: [...]]`"
 
   attr :url_state, :map,
     doc: "The LiveView's `@url_state` (`use Cinder.UrlSync`), to keep its state in the URL"
@@ -184,13 +186,21 @@ defmodule Cinder.Next do
   ## Pagination
 
   ```heex
-  <Cinder.Next.collection id="albums" resource={MyApp.Album} pagination={[mode: :keyset, size: 10]}>
+  <Cinder.Next.collection
+    id="albums"
+    resource={MyApp.Album}
+    pagination={[mode: :keyset, size: 10, size_options: [10, 25, 50]]}
+  >
   ```
 
   A collection pages when its read action can: by offset if it can, or else by keyset,
   25 records a page. Offset pages show "Page 2 of 13" when the action can count. An
   action that can't page shows every record, and giving `pagination` for it, or a mode
   it can't page by, is an error.
+
+  With `size_options`, the user can choose how many records a page shows, starting
+  at `size`, which must be one of them. Choosing goes back to the first page, and
+  keeps the selection.
 
   ## Keeping it in the URL
 
@@ -210,7 +220,7 @@ defmodule Cinder.Next do
   ```
 
   With `use Cinder.UrlSync` and `url_state={@url_state}`, the sort, filters, search,
-  argument values and page are kept in the URL, so they can be bookmarked and shared,
+  argument values, page and page size are kept in the URL, so they can be bookmarked and shared,
   and back and forward work. The app's own params are kept. For now, only one
   collection on a page can be kept in the URL.
 

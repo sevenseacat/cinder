@@ -460,23 +460,52 @@ defmodule Cinder.Next.ConfigTest do
     end
 
     test "by offset, 25 records a page, counted, unless the size is given" do
-      assert build([field("title")]).pagination == %{mode: :offset, size: 25, count?: true}
+      assert build([field("title")]).pagination ==
+               %{mode: :offset, size: 25, size_options: [25], count?: true}
 
       assert pagination(Ash.Query.new(Music.Album), size: 10) ==
-               %{mode: :offset, size: 10, count?: true}
+               %{mode: :offset, size: 10, size_options: [10], count?: true}
+    end
+
+    test "the sizes the user can choose from, as given" do
+      assert pagination(Ash.Query.new(Music.Album), size: 25, size_options: [50, 10, 25]) ==
+               %{mode: :offset, size: 25, size_options: [50, 10, 25], count?: true}
+    end
+
+    test "a size that isn't one of the size options is an error" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: `pagination`'s `size` \(25\) ) <>
+                     "must be one of its `size_options` ([10, 50])",
+                   fn -> pagination(Ash.Query.new(Music.Album), size_options: [10, 50]) end
+    end
+
+    test "size options that aren't positive integers are an error" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: invalid list in :size_options option: ) <>
+                     "invalid value for list element at position 1: " <>
+                     "expected positive integer, got: 0 (in options [:pagination])",
+                   fn ->
+                     pagination(Ash.Query.new(Music.Album), size: 25, size_options: [25, 0])
+                   end
     end
 
     test "an action that can't count pages without a count" do
       query = Ash.Query.for_read(Music.Album, :uncountable)
-      assert pagination(query, []) == %{mode: :offset, size: 25, count?: false}
+
+      assert pagination(query, []) == %{
+               mode: :offset,
+               size: 25,
+               size_options: [25],
+               count?: false
+             }
     end
 
     test "by keyset when asked, or when the action only pages that way, without a count" do
       assert pagination(Ash.Query.new(Music.Album), mode: :keyset) ==
-               %{mode: :keyset, size: 25, count?: false}
+               %{mode: :keyset, size: 25, size_options: [25], count?: false}
 
       assert pagination(Ash.Query.for_read(Music.Album, :keyset_only), []) ==
-               %{mode: :keyset, size: 25, count?: false}
+               %{mode: :keyset, size: 25, size_options: [25], count?: false}
     end
 
     test "a mode the action can't page by is an error" do
@@ -535,7 +564,7 @@ defmodule Cinder.Next.ConfigTest do
 
     test "pagination is the `action`'s" do
       config = build([field("title")], id: "albums", resource: Music.Album, action: :keyset_only)
-      assert config.pagination == %{mode: :keyset, size: 25, count?: false}
+      assert config.pagination == %{mode: :keyset, size: 25, size_options: [25], count?: false}
     end
 
     test "an action that isn't one of the resource's reads is an error" do

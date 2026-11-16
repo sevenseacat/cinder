@@ -119,6 +119,7 @@ msgstr "Mínimo"
 msgid "Search %{label}..."
 msgstr "Pesquisar %{label}..."
 
+#: lib/cinder/next/collection.ex
 #: lib/cinder/renderers/pagination.ex
 #, elixir-autogen, elixir-format
 msgid "Show {selector} per page"

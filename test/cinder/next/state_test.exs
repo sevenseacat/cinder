@@ -119,6 +119,27 @@ defmodule Cinder.Next.StateTest do
       assert State.carry_over(@query, old, new, true).sort == [{"title", :asc}]
     end
 
+    test "the user's page size stays while it's offered, and the page with it" do
+      sizes = [size: 25, size_options: [10, 25]]
+      query = %{@query | page_size: 10}
+      old = config(fields(), pagination: sizes)
+      new = config(fields() ++ [field("price")], pagination: sizes)
+      assert State.carry_over(query, old, new, true) == query
+    end
+
+    test "a page size still at the old default becomes the new one" do
+      old = config(fields(), pagination: [size: 25, size_options: [25, 50]])
+      new = config(fields(), pagination: [size: 50, size_options: [25, 50]])
+      assert State.carry_over(@query, old, new, true) == %{@query | page_size: 50, page: 1}
+    end
+
+    test "a page size no longer offered becomes the default" do
+      query = %{@query | page_size: 10}
+      old = config(fields(), pagination: [size: 25, size_options: [10, 25]])
+      new = config(fields(), pagination: [size: 25, size_options: [25, 50]])
+      assert State.carry_over(query, old, new, true) == %{@query | page_size: 25, page: 1}
+    end
+
     # Under its `param`, as the form and the URL give it
     test "an argument's value stays while it's declared" do
       query = %{@query | arguments: %{"style" => @rock}}
@@ -148,6 +169,35 @@ defmodule Cinder.Next.StateTest do
 
       assert {State.from_url(params, keyset).page, State.from_url(params, keyset).cursor} ==
                {1, {:after, "abc"}}
+    end
+
+    test "a page size, only when it's offered" do
+      config = config(fields(), pagination: [size: 25, size_options: [10, 25]])
+      assert State.from_url(%{"page_size" => "10"}, config).page_size == 10
+      assert State.from_url(%{"page_size" => "50"}, config).page_size == 25
+    end
+  end
+
+  describe "change_page_size/3" do
+    test "an offered size, on the first page" do
+      config = config(fields(), pagination: [size: 25, size_options: [10, 25]])
+
+      assert State.change_page_size(@query, "10", config) ==
+               {:ok, %{@query | page_size: 10, page: 1}}
+
+      keyset = %{@query | page: 1, cursor: {:after, "abc"}}
+
+      assert State.change_page_size(keyset, "10", config) ==
+               {:ok, %{keyset | page_size: 10, cursor: nil}}
+    end
+
+    # From a tampered event, or the same size again
+    test "a size that isn't offered, or isn't new, changes nothing" do
+      config = config(fields(), pagination: [size: 25, size_options: [10, 25]])
+
+      for size <- ["50", "ten", "", "25"] do
+        assert State.change_page_size(@query, size, config) == :ignore
+      end
     end
   end
 end

@@ -165,8 +165,8 @@ defmodule Cinder.Next.RowSelectionTest do
     assert RowSelection.for_query(all_except([]), old, %{old | filters: jazz}) == shown()
     assert RowSelection.for_query(all_except([]), old, %{old | search: "b"}) == shown()
 
-    assert RowSelection.for_query(all_except([]), old, %{old | sort: [{"title", :asc}], page: 2}) ==
-             all_except([])
+    sorted_and_paged = %{old | sort: [{"title", :asc}], page: 2, page_size: 10}
+    assert RowSelection.for_query(all_except([]), old, sorted_and_paged) == all_except([])
   end
 
   test "changed?/2 compares what's picked, not the page" do

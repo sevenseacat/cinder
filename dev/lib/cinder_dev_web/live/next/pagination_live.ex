@@ -16,12 +16,12 @@ defmodule CinderDevWeb.Next.PaginationLive do
       query_params={@query_params}
     >
       <h2 class="text-lg font-semibold">Offset, with a page-size selector (URL-synced)</h2>
-      <Layouts.parity not_yet={["The page size selector (`size_options`)", "Themes"]} />
+      <Layouts.parity not_yet={["Themes"]} />
       <Cinder.Next.collection
         id="albums-offset"
         resource={Music.Album}
         url_state={@url_state}
-        pagination={[size: 10]}
+        pagination={[size: 10, size_options: [10, 25, 50]]}
       >
         <:field :let={album} name="title" sort>{album.title}</:field>
         <:field :let={album} name="release_date" sort>{album.release_date}</:field>
