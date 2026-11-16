@@ -23,7 +23,8 @@ defmodule Cinder.Next.Collection do
   # actions' state is `Cinder.Next.BulkActionState`'s.
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, theme: Cinder.Theme.merge("default"), bulk_action: :idle)}
+    {:ok,
+     assign(socket, theme: Cinder.Theme.merge("default"), bulk_action: :idle, loading?: false)}
   end
 
   # The fields' inner blocks are new on every parent render, so they're always
@@ -241,6 +242,12 @@ defmodule Cinder.Next.Collection do
   defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
   defp cursor(_page, _direction), do: nil
 
+  # What's done in the background: a read, or a bulk action
+  @impl true
+  def handle_async(:read, {:ok, result}, socket), do: {:noreply, read_done(socket, result)}
+  def handle_async(:read, {:exit, reason}, _socket), do: exit(reason)
+  def handle_async(:bulk_action, result, socket), do: {:noreply, bulk_action_done(socket, result)}
+
   ## Bulk actions
 
   defp confirm_delay do
@@ -265,8 +272,7 @@ defmodule Cinder.Next.Collection do
   # After a success or a partial success, the selected records have changed, so
   # they're no longer what was selected. After an error nothing changed, so the
   # user can try again.
-  @impl true
-  def handle_async(:bulk_action, result, socket) do
+  defp bulk_action_done(socket, result) do
     {status, value, errors} = bulk_result(result)
     %{config: config, bulk_action: {:running, bulk_action, count}, query: query} = socket.assigns
 
@@ -286,11 +292,10 @@ defmodule Cinder.Next.Collection do
     socket = assign(socket, :bulk_action, :idle)
 
     if status == :error do
-      {:noreply, socket}
+      socket
     else
       selection = RowSelection.clear(socket.assigns.selection)
-      socket = socket |> change_selection(selection) |> change_query(query)
-      {:noreply, leave_emptied_page(socket)}
+      socket |> change_selection(selection) |> change_query(query)
     end
   end
 
@@ -368,7 +373,7 @@ defmodule Cinder.Next.Collection do
         socket
       end
 
-    socket |> assign(:query, query) |> read() |> after_read()
+    socket |> assign(:query, query) |> read()
   end
 
   # Every page read (or the same page, when a rebuild changes what can be done with
@@ -380,9 +385,12 @@ defmodule Cinder.Next.Collection do
 
   ## Reading
 
-  # Synchronous, and a failed read crashes, until the slices for loading states and
-  # errors. The controls' values are worked out here, with the records, rather than
-  # in `render/1`, where they'd be new on every render.
+  # In the background, so the records shown stay until the new ones arrive, and a
+  # later read supersedes one still running. Before the page renders when Ash's
+  # `disable_async?` is set (as apps do in their tests), or for the first page with
+  # `initial_load: :sync`. A failed read crashes, until the errors slice. The
+  # controls' values are worked out here, rather than in `render/1`, where they'd be
+  # new on every render.
   defp read(socket) do
     %{config: config, query: query} = socket.assigns
 
@@ -392,12 +400,24 @@ defmodule Cinder.Next.Collection do
         argument_values: Params.filter_values(query.arguments, config.arguments)
       )
 
-    # A read missing a required argument would fail, and a form doesn't say a field
-    # is required before it's used
-    if Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) do
-      assign(socket, page: %Engine.Page{}, argument_errors: %{})
-    else
-      run(socket)
+    {source, fields, query, opts} = read_inputs(config, query)
+    run = fn -> Engine.run(source, fields, query, opts) end
+
+    cond do
+      # A read missing a required argument would fail, and a form doesn't say a field
+      # is required before it's used
+      Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) ->
+        read_done(socket, {:ok, %Engine.Page{}})
+
+      Application.get_env(:ash, :disable_async?) == true or
+          (config.initial_load == :sync and socket.assigns[:page] == nil) ->
+        read_done(socket, run.())
+
+      true ->
+        socket
+        |> assign(:loading?, true)
+        |> assign_new(:page, fn -> %Engine.Page{} end)
+        |> start_async(:read, run)
     end
   end
 
@@ -416,13 +436,17 @@ defmodule Cinder.Next.Collection do
     {config.source, config.fields, query, opts}
   end
 
-  defp run(socket) do
-    %{config: config, query: query} = socket.assigns
-    {source, fields, query, opts} = read_inputs(config, query)
+  # A read's result, and the reactions to it: the selection takes which of its
+  # records can be selected and how many match, and a page past the first that
+  # came back empty (its records deleted by a bulk action, or a URL asking for a
+  # page past the last) moves to one with records
+  defp read_done(socket, result) do
+    socket = assign(socket, :loading?, false)
+    query = socket.assigns.query
 
-    case {Engine.run(source, fields, query, opts), query.cursor} do
+    case {result, query.cursor} do
       {{:ok, page}, _cursor} ->
-        assign(socket, page: page, argument_errors: %{})
+        socket |> assign(page: page, argument_errors: %{}) |> after_read() |> leave_emptied_page()
 
       # What the user can fix: a value the action can't use. Ash's messages, until
       # they're translated.
@@ -430,7 +454,7 @@ defmodule Cinder.Next.Collection do
         errors =
           Map.new(inputs, fn {name, errors} -> {name, Enum.map(errors, &interpolate/1)} end)
 
-        assign(socket, page: %Engine.Page{}, argument_errors: errors)
+        socket |> assign(page: %Engine.Page{}, argument_errors: errors) |> after_read()
 
       # Only a cursor from the URL can fail to read (the others are a page's own), and
       # what the user puts in the URL is dropped, from the URL too
@@ -504,7 +528,7 @@ defmodule Cinder.Next.Collection do
         confirm_component={@config.bulk_action_confirm || (&bulk_action_confirm/1)}
         target={@myself}
       />
-      <table>
+      <table aria-busy={@loading? && "true"}>
         <thead>
           <tr>
             <th :if={@config.selectable != false}>
@@ -550,6 +574,9 @@ defmodule Cinder.Next.Collection do
           </tr>
         </tbody>
       </table>
+      <%!-- Always there, so it's a live region before its text changes. Until theming
+      puts it over the table, what's below moves as it fills and empties. --%>
+      <p id={"#{@id}-loading"} role="status">{if @loading?, do: dgettext("cinder", "Loading...")}</p>
       <%!-- The page size can be chosen even on one page, so a user who chose more can go back to fewer --%>
       <nav
         :if={@config.pagination && (@page.previous? or @page.more? or size_choice?(@config))}

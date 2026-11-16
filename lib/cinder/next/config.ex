@@ -37,6 +37,7 @@ defmodule Cinder.Next.Config do
     :on_selection_change,
     :on_bulk_action_result,
     :bulk_action_confirm,
+    :initial_load,
     selectable: false,
     columns: [],
     fields: [],
@@ -77,7 +78,7 @@ defmodule Cinder.Next.Config do
   def build(options, field_slots, argument_slots, bulk_action_slots) do
     # The schema fills in the page size, so whether `pagination` was given is asked first
     paginate? = options[:pagination] not in [nil, []]
-    options = options |> with_app_confirm() |> Schema.validate_collection!()
+    options = options |> with_app_defaults() |> Schema.validate_collection!()
     source = source!(options[:resource], options[:query])
     action = action!(source, options)
     declared = field_slots |> Enum.map(&declare!/1) |> once_each!()
@@ -101,6 +102,7 @@ defmodule Cinder.Next.Config do
       scope: options[:scope],
       query_opts: options[:query_opts] || [],
       selectable: options[:selectable],
+      initial_load: options[:initial_load],
       primary_key: primary_key!(source, options),
       on_selection_change: options[:on_selection_change],
       on_bulk_action_result: options[:on_bulk_action_result],
@@ -113,12 +115,13 @@ defmodule Cinder.Next.Config do
     }
   end
 
-  # The app's confirm component, unless the collection gives its own, checked as the
-  # collection's would be. With neither (`nil`, which the schema drops as not given),
-  # Cinder's own is used.
-  defp with_app_confirm(options) do
+  # The app's defaults (its confirm component, when the first page is read), unless
+  # the collection gives its own, checked as the collection's would be. With neither
+  # (`nil`, which the schema drops as not given), Cinder's own is used.
+  defp with_app_defaults(options) do
     confirm = options[:bulk_action_confirm] || Application.get_env(:cinder, :bulk_action_confirm)
-    Keyword.put(options, :bulk_action_confirm, confirm)
+    initial_load = options[:initial_load] || Application.get_env(:cinder, :default_initial_load)
+    Keyword.merge(options, bulk_action_confirm: confirm, initial_load: initial_load)
   end
 
   # A `<:field>` declares its field, so a second one for a name would contradict it

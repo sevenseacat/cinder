@@ -161,6 +161,7 @@ msgid "Clear search"
 msgstr "Effacer la recherche"
 
 #: lib/cinder/collection.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "Loading..."
 msgstr "Chargement..."

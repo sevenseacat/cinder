@@ -164,6 +164,7 @@ msgid "Clear search"
 msgstr "Zoekopdracht wissen"
 
 #: lib/cinder/collection.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "Loading..."
 msgstr "Laden..."

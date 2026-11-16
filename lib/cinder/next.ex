@@ -39,6 +39,9 @@ defmodule Cinder.Next do
     default: [],
     doc: "How the collection pages: `[mode: ..., size: ..., size_options: [...]]`"
 
+  attr :initial_load, :any,
+    doc: "When the first page is read: `:async` (after the page renders) or `:sync` (before)"
+
   attr :url_state, :map,
     doc: "The LiveView's `@url_state` (`use Cinder.UrlSync`), to keep its state in the URL"
 
@@ -201,6 +204,22 @@ defmodule Cinder.Next do
   With `size_options`, the user can choose how many records a page shows, starting
   at `size`, which must be one of them. Choosing goes back to the first page, and
   keeps the selection.
+
+  A page past the last with records, from an old link or after a bulk action deleted
+  its records, shows the last page with records instead.
+
+  ## Loading
+
+  ```heex
+  <Cinder.Next.collection id="albums" resource={MyApp.Album} initial_load={:sync}>
+  ```
+
+  Records are read in the background, after the page renders: it says it's loading,
+  and the records shown stay until the new ones arrive. With `initial_load={:sync}`,
+  the first page is read before the page renders, so it's in the page's HTML;
+  `config :cinder, default_initial_load: :sync` does that for every collection. In
+  tests with `config :ash, disable_async?: true`, every read is done before the page
+  renders.
 
   ## Keeping it in the URL
 

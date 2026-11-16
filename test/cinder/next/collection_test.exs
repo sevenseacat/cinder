@@ -1,14 +1,19 @@
 defmodule Cinder.Next.CollectionTest do
   # The Music records are shared ETS data
   use Cinder.ConnCase, async: false
+  use Mimic
 
   require Ash.Query
+
+  import Phoenix.ConnTest, only: [get: 2, html_response: 2]
 
   import Phoenix.LiveViewTest,
     only: [
       element: 2,
       element: 3,
+      live: 2,
       render: 1,
+      render_async: 1,
       render_click: 1,
       render_click: 2,
       render_click: 3,
@@ -439,6 +444,84 @@ defmodule Cinder.Next.CollectionTest do
     end
   end
 
+  describe "loading" do
+    # Every other test here reads as it renders (see `Cinder.ConnCase`)
+    setup {Cinder.TestHelpers, :enable_async_loading}
+
+    defp loading(initial_load \\ nil) do
+      Fixture.register(fn assigns ->
+        assigns = assign(assigns, initial_load: initial_load)
+
+        ~H"""
+        <Cinder.Next.collection
+          id="albums"
+          query={Ash.Query.sort(Music.Album, :title)}
+          initial_load={@initial_load}
+        >
+          <:field :let={album} name="title" sort>{album.title}</:field>
+        </Cinder.Next.collection>
+        """
+      end)
+    end
+
+    defp page_html(conn, path), do: conn |> get(path) |> html_response(200)
+
+    test "the page's HTML says it's loading, with no rows, and they arrive once it's connected",
+         %{conn: conn} do
+      path = loading()
+      html = page_html(conn, path)
+      assert html =~ ~s(aria-busy="true")
+      assert html =~ "Loading..."
+      refute html =~ "Abbey"
+
+      conn
+      |> visit(path)
+      |> assert_has("#albums td", text: "Abbey", timeout: 1000)
+      |> refute_has("#albums table[aria-busy]")
+      |> refute_has("#albums", text: "Loading...")
+    end
+
+    test "read first, by the collection or the app's default, the page's HTML has the rows",
+         %{conn: conn} do
+      assert page_html(conn, loading(:sync)) =~ "Abbey"
+
+      Cinder.TestHelpers.put_app_env(:default_initial_load, :sync)
+      assert page_html(conn, loading()) =~ "Abbey"
+    end
+
+    # The read is paused, so what's shown while it's in flight can't race its result
+    test "while a read is in flight, the rows shown stay, marked busy", %{conn: conn} do
+      {:ok, view, _html} = live(conn, loading())
+      render_async(view)
+
+      test_pid = self()
+      allow(Ash, test_pid, view.pid)
+
+      expect(Ash, :read, fn query, opts ->
+        send(test_pid, {:reading, self()})
+
+        receive do
+          :continue -> call_original(Ash, :read, [query, opts])
+        after
+          5_000 -> raise "the test didn't let the read finish"
+        end
+      end)
+
+      view |> element("#albums th button", "Title") |> render_click()
+      assert_receive {:reading, read}
+
+      html = render(view)
+      assert html =~ ~s(aria-busy="true")
+      assert html =~ "Loading..."
+      assert html =~ ~r/Abbey.*Blue/s
+
+      send(read, :continue)
+      html = render_async(view)
+      refute html =~ "aria-busy"
+      assert html =~ ~r/Blue.*Abbey/s
+    end
+  end
+
   describe "URL sync" do
     # With the two albums from the main setup, five, in pages of two
     setup do
@@ -554,6 +637,16 @@ defmodule Cinder.Next.CollectionTest do
       |> unwrap(&render_patch(&1, path <> "?sort=-title"))
       |> assert_has("#albums nav", text: "Page 1 of 3")
       |> titles(["Echo", "Dark"], timeout: 500)
+    end
+
+    test "a page past the last shows the last, and the URL follows", %{conn: conn} do
+      path = synced()
+
+      conn
+      |> visit(path <> "?page=9")
+      |> assert_has("#albums nav", text: "Page 3 of 3")
+      |> titles(["Echo"])
+      |> assert_path(path, query_params: %{page: "3"}, timeout: 500)
     end
 
     # The cursor's value is Ash's, so the URL is only checked for having it

@@ -75,6 +75,14 @@ defmodule Cinder.Next.Schema do
         "How the collection pages, if the read action can. " <>
           "Giving this for an action that can't page that way is an error."
     ],
+    initial_load: [
+      type: {:custom, __MODULE__, :one_of, [[:async, :sync]]},
+      default: :async,
+      doc:
+        "When the first page is read: `:async`, after the page renders, or `:sync`, " <>
+          "before, so it's in the page's HTML. Defaults to " <>
+          "`config :cinder, default_initial_load:`, or `:async`."
+    ],
     url_state: [
       type: {:or, [nil, :map]},
       doc:
@@ -206,6 +214,17 @@ defmodule Cinder.Next.Schema do
     options
     |> validate!(@collection, declaration)
     |> Keyword.replace(:query_opts, options[:query_opts])
+  end
+
+  @doc """
+  A Spark custom type, like `{:in, choices}` for a list of atoms, that also takes
+  each atom's string: `initial_load="sync"` as well as `initial_load={:sync}`.
+  """
+  def one_of(value, choices) do
+    case Enum.find(choices, &(&1 == value or Atom.to_string(&1) == value)) do
+      nil -> {:error, "expected one of #{inspect(choices)}, got: #{inspect(value)}"}
+      choice -> {:ok, choice}
+    end
   end
 
   # Before the schema, which would only call these unknown: `select`, and the

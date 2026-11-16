@@ -1,7 +1,7 @@
 defmodule CinderDevWeb.Next.StatesLive do
   @moduledoc """
-  The States page in the new shell (`Cinder.Next`). It reads synchronously for now, so
-  the slow collection holds up the whole page, and a failing read would crash it.
+  The States page in the new shell (`Cinder.Next`). A failing read would crash it, for
+  now.
   """
   use CinderDevWeb, :live_view
 
@@ -23,7 +23,6 @@ defmodule CinderDevWeb.Next.StatesLive do
     >
       <h2 class="text-lg font-semibold">Loading (the read action takes 1.5s)</h2>
       <Layouts.parity not_yet={[
-        "Reading in the background: the whole page waits for this read",
         "A `<:loading>` slot",
         "Themes"
       ]} />

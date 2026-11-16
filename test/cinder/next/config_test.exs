@@ -454,6 +454,27 @@ defmodule Cinder.Next.ConfigTest do
     end
   end
 
+  describe "the first read" do
+    defp initial_load(value) do
+      build([field("title")], id: "albums", resource: Music.Album, initial_load: value)
+    end
+
+    # The app's default (`config :cinder, default_initial_load:`) is tested with the
+    # collection, as application env is global and these tests are async
+    test "is after the page renders, unless the collection reads it first" do
+      assert build([field("title")]).initial_load == :async
+      assert initial_load(:sync).initial_load == :sync
+      assert initial_load("sync").initial_load == :sync
+    end
+
+    test "anything else is an error" do
+      assert_raise ArgumentError,
+                   ~s(<Cinder.Next.collection id="albums">: invalid value for :initial_load ) <>
+                     "option: expected one of [:async, :sync], got: :later",
+                   fn -> initial_load(:later) end
+    end
+  end
+
   # On a rebuild, given the same query: if the records are the same, the page and the
   # selection can stay
   describe "same_records?/2" do

@@ -131,9 +131,10 @@ defmodule Cinder.Next.State do
   end
 
   @doc """
-  Where to go when the page shown has been emptied (by a bulk action deleting its
-  records, or changing them so the read no longer reaches them), rather than show an
-  empty page with records before it: the last page with records. Without a count to
+  Where to go when a page past the first comes back empty (a bulk action deleted its
+  records, or changed them so the read no longer reaches them, or a URL asked for a
+  page past the last), rather than show an empty page with records before it: the
+  last page with records. Without a count to
   say which that is (an uncounted read, or keyset pages, whose cursors can't say),
   the first.
   """
