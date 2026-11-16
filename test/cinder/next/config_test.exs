@@ -454,6 +454,60 @@ defmodule Cinder.Next.ConfigTest do
     end
   end
 
+  # On a rebuild, given the same query: if the records are the same, the page and the
+  # selection can stay
+  describe "same_records?/2" do
+    defp albums(options \\ [], bulk_actions \\ []) do
+      fields = [field("title", search: true, label: options[:label])]
+      options = [id: "albums", resource: Music.Album] ++ Keyword.delete(options, :label)
+      build(fields, options, [], bulk_actions)
+    end
+
+    defp search_fn(query, _fields, _text), do: query
+
+    test "what's read, who reads it, and how it searches and pages count" do
+      old = albums()
+
+      for options <- [
+            [action: :paginated],
+            [actor: %{name: "A"}],
+            [tenant: "t"],
+            [scope: %{actor: %{name: "Scope"}}],
+            [query_opts: [timeout: 5_000]],
+            [search: [fn: &search_fn/3]],
+            [pagination: [mode: :keyset]]
+          ] do
+        refute Config.same_records?(old, albums(options)), inspect(options)
+      end
+
+      sorted =
+        build([field("title", search: true)],
+          id: "albums",
+          query: Ash.Query.sort(Music.Album, :title)
+        )
+
+      refute Config.same_records?(old, sorted)
+    end
+
+    # A function written in the template is new each time the parent renders, so a
+    # bulk action's or `selectable` can't count; the search function's does (see
+    # `Cinder.Next.collection/1`'s docs)
+    test "labels, page size, `selectable` and bulk action functions don't" do
+      old =
+        albums([selectable: fn _ -> true end], [
+          bulk_action(name: "a", action: fn _, _ -> :ok end)
+        ])
+
+      new =
+        albums(
+          [label: "Name", pagination: [size: 10], selectable: fn _ -> true end],
+          [bulk_action(name: "a", action: fn _, _ -> :ok end)]
+        )
+
+      assert Config.same_records?(old, new)
+    end
+  end
+
   describe "pagination" do
     defp pagination(source, pagination) do
       build([field("title")], id: "albums", query: source, pagination: pagination).pagination

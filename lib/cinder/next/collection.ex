@@ -97,7 +97,7 @@ defmodule Cinder.Next.Collection do
 
   # A rebuild after mount (see `State.carry_over/4`)
   defp query(%{config: old, query: query}, config, nil) do
-    State.carry_over(query, old, config, same_records?(old, config))
+    State.carry_over(query, old, config, Config.same_records?(old, config))
   end
 
   # On mount, or when the URL changes with the declarations: what the URL says
@@ -111,7 +111,7 @@ defmodule Cinder.Next.Collection do
   # A rebuild after mount (see `RowSelection.carry_over/4`). A new collection has
   # nothing selected.
   defp selection(%{config: old, selection: selection}, config) do
-    same_records? = same_records?(old, config)
+    same_records? = Config.same_records?(old, config)
     RowSelection.carry_over(selection, config.selectable, config.primary_key, same_records?)
   end
 
@@ -125,16 +125,6 @@ defmodule Cinder.Next.Collection do
   end
 
   defp read_again?(_new_collection, _config, _query), do: true
-
-  # Whether two configs read the same records, given the same query. A new search
-  # function could find others, so it counts, unlike the functions above; the docs
-  # ask for a named one, as one written in the template is new on every render.
-  defp same_records?(old, config) do
-    keys = [:source, :action, :actor, :tenant, :scope, :query_opts]
-
-    Map.take(old, keys) == Map.take(config, keys) and old.search[:fn] == config.search[:fn] and
-      old.pagination[:mode] == config.pagination[:mode]
-  end
 
   ## Events
 

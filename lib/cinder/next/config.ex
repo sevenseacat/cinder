@@ -60,6 +60,20 @@ defmodule Cinder.Next.Config do
      argument_slots, bulk_action_slots}
   end
 
+  @doc """
+  Whether two configs read the same records, given the same query, so a rebuild can
+  keep the page and the selection. A new search function could find others, so it
+  counts. A bulk action's function or `selectable` doesn't: one written in the
+  template closes over the parent's assigns, so it's new on every render. The docs
+  ask for a named search function for the same reason.
+  """
+  def same_records?(%__MODULE__{} = old, %__MODULE__{} = new) do
+    keys = [:source, :action, :actor, :tenant, :scope, :query_opts]
+
+    Map.take(old, keys) == Map.take(new, keys) and old.search[:fn] == new.search[:fn] and
+      old.pagination[:mode] == new.pagination[:mode]
+  end
+
   def build(options, field_slots, argument_slots, bulk_action_slots) do
     # The schema fills in the page size, so whether `pagination` was given is asked first
     paginate? = options[:pagination] not in [nil, []]
