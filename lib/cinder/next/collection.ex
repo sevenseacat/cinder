@@ -499,9 +499,9 @@ defmodule Cinder.Next.Collection do
         assign(socket, page: %Engine.Page{}, argument_errors: errors)
 
       # Only a cursor from the URL can fail to read (the others are a page's own), and
-      # what the user puts in the URL is dropped
+      # what the user puts in the URL is dropped, from the URL too
       {{:error, _error}, {_direction, _cursor}} ->
-        change_query(socket, State.first_page(query))
+        move(socket, State.first_page(query))
     end
   end
 

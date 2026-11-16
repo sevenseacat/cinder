@@ -588,10 +588,13 @@ defmodule Cinder.Next.CollectionTest do
 
     # The engine logs the failed read
     @tag :capture_log
-    test "a cursor that isn't one shows the first page", %{conn: conn} do
+    test "a cursor that isn't one shows the first page, and leaves the URL", %{conn: conn} do
+      path = synced(mode: :keyset, size: 2)
+
       conn
-      |> visit(synced(mode: :keyset, size: 2) <> "?after=not-a-cursor")
+      |> visit(path <> "?after=not-a-cursor")
       |> titles(["Abbey", "Blue"], timeout: 500)
+      |> assert_path(path, query_params: %{}, timeout: 500)
     end
 
     test "when the parent changes the declarations and the page resets, so does the URL",
