@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 ### Bug fixes
 
 * Tables with `sort_mode="exclusive"` now sort by only the first column when the URL lists several.
+* Bulk actions with changes that can't be done atomically now run, instead of failing with `NoMatchingBulkStrategy`.
 
 ## v0.18.1 (2026-01-11)
 
