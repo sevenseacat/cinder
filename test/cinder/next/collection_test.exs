@@ -1017,7 +1017,8 @@ defmodule Cinder.Next.CollectionTest do
     end
 
     # From tampering: the buttons only send declared names, and are disabled until
-    # something's selected
+    # something's selected. The rule is `BulkActionState`'s; this checks the selected
+    # count reaches it.
     test "an action that isn't declared, or with nothing selected, is ignored", %{conn: conn} do
       conn
       |> visit(with_bulk_actions(forward_to: self()))
@@ -1034,7 +1035,7 @@ defmodule Cinder.Next.CollectionTest do
     end
 
     # One at a time: the bar's actions are disabled while one runs, so these are from
-    # tampering
+    # tampering. The rule is `BulkActionState`'s; this checks the state reaches it.
     test "while an action runs, cancelling it or starting another changes nothing",
          %{conn: conn} do
       session =
@@ -1115,34 +1116,15 @@ defmodule Cinder.Next.CollectionTest do
       assert Enum.count(Ash.read!(Music.Album)) == 2
     end
 
-    # A slow double click on an action would land its second click on confirming
-    test "confirming before the delay is ignored, and after it runs the action", %{conn: conn} do
+    # A slow double click on an action would land its second click on confirming. How
+    # soon is too soon is `BulkActionState`'s; this checks the delay reaches it.
+    test "confirming at once is ignored", %{conn: conn} do
       conn
-      |> visit(with_bulk_actions(forward_to: self()))
+      |> visit(with_bulk_actions())
       |> click_box("#albums-select-#{album_id("Abbey")}")
       |> click_button("#albums-bulk button", "Delete")
       |> click_button("#albums-bulk-confirm button", "Delete")
       |> assert_has("#albums-bulk-confirm")
-      |> tap(fn _session ->
-        refute_receive {:done, _payload}
-        Process.sleep(Application.fetch_env!(:cinder, :bulk_action_confirm_delay))
-      end)
-      |> click_button("#albums-bulk-confirm button", "Delete")
-      |> tap(fn _session ->
-        assert_receive {:done, payload}
-        assert %{result: %Ash.BulkResult{status: :success}} = payload
-
-        assert Map.delete(payload, :result) == %{
-                 bulk_action: "destroy",
-                 status: :success,
-                 selected_count: 1,
-                 errors: [],
-                 component_id: "albums"
-               }
-      end)
-      |> refute_has("#albums-bulk-confirm")
-
-      assert Enum.map(Ash.read!(Music.Album), & &1.title) == ["Blue"]
     end
 
     # A developer's own confirm, as an app's would be
@@ -1186,7 +1168,8 @@ defmodule Cinder.Next.CollectionTest do
       assert Enum.map(Ash.read!(Music.Album), & &1.title) == ["Blue"]
     end
 
-    # A component that isn't modal leaves the bar usable, and there's nothing left to confirm
+    # A component that isn't modal leaves the bar usable, and there's nothing left to
+    # confirm. The rule is `BulkActionState`'s; this checks a selection change reaches it.
     test "clearing the selection while a confirm waits dismisses it", %{conn: conn} do
       conn
       |> visit(with_bulk_actions(confirm: &ask/1))
@@ -1196,6 +1179,8 @@ defmodule Cinder.Next.CollectionTest do
       |> refute_has("#albums-bulk-confirm")
     end
 
+    # The rule is `BulkActionState.carry_over/2`'s; this checks the rebuild hands it the
+    # new bulk actions
     test "a confirm waiting when the parent changes its action asks the new question, and goes with the action",
          %{conn: conn} do
       path =
@@ -1253,23 +1238,19 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums-bulk-confirm p", text: "Delete 1 albums?")
     end
 
-    test "confirming with nothing waiting, or another action than the one waiting, is ignored",
-         %{conn: conn} do
-      confirm = fn name ->
-        fn view ->
-          render_click(with_target(view, "#albums"), "confirm_bulk_action", %{"name" => name})
-        end
-      end
-
+    # From tampering. When a confirm is ignored is `BulkActionState`'s; this checks the
+    # name confirmed reaches it.
+    test "confirming another action than the one waiting is ignored", %{conn: conn} do
       conn
       |> visit(with_bulk_actions(forward_to: self()))
       |> click_box("#albums-select-#{album_id("Abbey")}")
-      |> unwrap(confirm.("destroy"))
       |> click_button("#albums-bulk button", "Delete")
       |> tap(fn _session ->
         Process.sleep(Application.fetch_env!(:cinder, :bulk_action_confirm_delay))
       end)
-      |> unwrap(confirm.("remaster"))
+      |> unwrap(fn view ->
+        render_click(with_target(view, "#albums"), "confirm_bulk_action", %{"name" => "remaster"})
+      end)
       |> assert_has("#albums-bulk-confirm")
 
       refute_receive {:done, _payload}
