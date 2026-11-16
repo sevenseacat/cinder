@@ -155,7 +155,9 @@ defmodule Cinder.Next.Collection do
 
   defp read_again?(_new_collection, _config, _query), do: true
 
-  # Whether two configs read the same records, given the same query
+  # Whether two configs read the same records, given the same query. A new search
+  # function could find others, so it counts, unlike the functions above; the docs
+  # ask for a named one, as one written in the template is new on every render.
   defp same_records?(old, config) do
     keys = [:source, :action, :actor, :tenant, :scope, :query_opts]
 

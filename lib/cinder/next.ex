@@ -176,7 +176,10 @@ defmodule Cinder.Next do
   any searchable field contains the text, ignoring case. To search another way, give
   `search={[fn: &MyApp.Search.albums/3]}`: it's called with the `Ash.Query`, the
   searchable fields (`%{name: "artist.name", expr: ...}`, with an Ash expression for
-  each) and the text, and returns the query.
+  each) and the text, and returns the query. Give a named function, as here, rather
+  than one written in the template: a new search function could find other records,
+  so the collection goes back to the first page and clears the selection, and one
+  written in the template is new each time the collection renders.
 
   ## Pagination
 
