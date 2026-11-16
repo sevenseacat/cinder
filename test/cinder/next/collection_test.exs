@@ -1206,6 +1206,45 @@ defmodule Cinder.Next.CollectionTest do
       |> refute_has("#albums-bulk-confirm")
     end
 
+    test "a confirm waiting when the parent changes its action asks the new question, and goes with the action",
+         %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" query={Ash.Query.sort(Music.Album, :title)} selectable>
+            <:field :let={album} name="title">{album.title}</:field>
+            <:bulk_action action={:remaster} />
+            <:bulk_action
+              :if={assigns[:delete] != :removed}
+              action={:destroy}
+              label="Delete"
+              confirm={assigns[:delete] || "Delete {count} albums?"}
+            />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      session =
+        conn
+        |> visit(path)
+        |> click_box("#albums-select-#{album_id("Abbey")}")
+        |> click_button("#albums-bulk button", "Delete")
+
+      parent = fn change ->
+        unwrap(session, fn view ->
+          Fixture.run(view, change)
+          render(view)
+        end)
+      end
+
+      parent.(&assign(&1, :delete, "Really delete {count}?"))
+      |> assert_has("#albums-bulk-confirm p", text: "Really delete 1?")
+
+      parent.(&assign(&1, :delete, :removed))
+      |> refute_has("#albums-bulk-confirm")
+      |> refute_has("#albums-bulk button[disabled]", text: "Remaster")
+    end
+
     test "the app's confirm component is used everywhere, unless a collection gives its own",
          %{conn: conn} do
       Application.put_env(:cinder, :bulk_action_confirm, &ask_differently/1)

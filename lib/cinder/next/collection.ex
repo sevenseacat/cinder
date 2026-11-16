@@ -73,7 +73,11 @@ defmodule Cinder.Next.Collection do
 
     socket =
       socket
-      |> assign(declarations: declarations, config: config)
+      |> assign(
+        declarations: declarations,
+        config: config,
+        bulk_action: bulk_action(old.bulk_action, config)
+      )
       |> change_selection(selection(old, config))
 
     cond do
@@ -114,6 +118,17 @@ defmodule Cinder.Next.Collection do
   end
 
   defp selection(_assigns, config), do: RowSelection.new(config.selectable, config.primary_key)
+
+  # A waiting confirm asks about its action as now declared, and goes if the action
+  # has. A running action is left to finish.
+  defp bulk_action({:confirming, %{name: name}, asked_at}, config) do
+    case Enum.find(config.bulk_actions, &(&1.name == name)) do
+      nil -> :idle
+      bulk_action -> {:confirming, bulk_action, asked_at}
+    end
+  end
+
+  defp bulk_action(state, _config), do: state
 
   defp start(config) do
     %Engine.Query{sort: config.sort.default, page_size: config.pagination[:size]}
