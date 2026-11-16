@@ -11,20 +11,23 @@ defmodule CinderDevWeb.Layouts do
   # and other static content.
   embed_templates "layouts/*"
 
+  # Each page in the old shell, and its twin in the new one (`Cinder.Next`), with the
+  # same collections as far as the new shell can render them
   @pages [
-    {"/", "Table"},
-    {"/filters", "Filters"},
-    {"/list", "List"},
-    {"/grid", "Grid"},
-    {"/pagination", "Pagination"},
-    {"/selection", "Selection"},
-    {"/controls", "Controls"},
-    {"/states", "States"},
-    {"/next", "Next"}
+    {"/", "/next", "Table"},
+    {"/filters", "/next/filters", "Filters"},
+    {"/list", "/next/list", "List"},
+    {"/grid", "/next/grid", "Grid"},
+    {"/pagination", "/next/pagination", "Pagination"},
+    {"/selection", "/next/selection", "Selection"},
+    {"/controls", "/next/controls", "Controls"},
+    {"/states", "/next/states", "States"}
   ]
 
-  @doc "The demo pages, as `{path, label}`, for the nav and the smoke tests."
-  def pages, do: @pages
+  @doc "Every demo page, both shells', as `{path, label}`, for the smoke tests."
+  def pages do
+    for {old, new, label} <- @pages, page <- [{old, label}, {new, "#{label} (new)"}], do: page
+  end
 
   @doc """
   Renders your app layout.
@@ -48,7 +51,8 @@ defmodule CinderDevWeb.Layouts do
   slot :inner_block, required: true
 
   def app(assigns) do
-    assigns = assign(assigns, :pages, @pages)
+    pair = Enum.find(@pages, fn {old, new, _label} -> assigns.current_path in [old, new] end)
+    assigns = assign(assigns, pages: @pages, pair: pair)
 
     ~H"""
     <%!-- Above the page: some Cinder themes give filter containers a z-index --%>
@@ -56,10 +60,10 @@ defmodule CinderDevWeb.Layouts do
       <div class="flex flex-1 items-center gap-4">
         <span class="text-sm font-semibold">Cinder dev</span>
         <ul class="menu menu-horizontal">
-          <li :for={{path, label} <- @pages}>
+          <li :for={{old, new, label} <- @pages}>
             <.link
-              navigate={"#{path}?theme=#{@theme}"}
-              class={path == @current_path && "menu-active"}
+              navigate={"#{old}?theme=#{@theme}"}
+              class={@current_path in [old, new] && "menu-active"}
             >
               {label}
             </.link>
@@ -67,6 +71,15 @@ defmodule CinderDevWeb.Layouts do
         </ul>
       </div>
       <div class="flex flex-none items-center gap-4">
+        <div :if={@pair} class="join">
+          <.link
+            :for={{path, shell} <- [{elem(@pair, 0), "Old"}, {elem(@pair, 1), "New"}]}
+            navigate={"#{path}?theme=#{@theme}"}
+            class={["btn btn-sm join-item", path == @current_path && "btn-active"]}
+          >
+            {shell}
+          </.link>
+        </div>
         <div class="dropdown dropdown-end">
           <div tabindex="0" role="button" class="btn btn-sm">Theme: {@theme}</div>
           <ul tabindex="0" class="dropdown-content menu z-10 w-48 rounded-box bg-base-100 shadow">
@@ -88,6 +101,32 @@ defmodule CinderDevWeb.Layouts do
     </main>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  On a new-shell page, what its old-shell twin's collection does that this one
+  can't yet, and what was changed on purpose. Each line goes when its feature lands.
+  """
+  attr :not_yet, :list, default: []
+  attr :changed, :list, default: []
+
+  def parity(assigns) do
+    ~H"""
+    <aside class="rounded-box border border-base-300 p-4 text-sm">
+      <div :if={@not_yet != []}>
+        <p class="font-semibold">Not yet</p>
+        <ul class="list-disc pl-5">
+          <li :for={item <- @not_yet}>{item}</li>
+        </ul>
+      </div>
+      <div :if={@changed != []} class={@not_yet != [] && "mt-2"}>
+        <p class="font-semibold">Changed on purpose</p>
+        <ul class="list-disc pl-5">
+          <li :for={item <- @changed}>{item}</li>
+        </ul>
+      </div>
+    </aside>
     """
   end
 
