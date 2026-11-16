@@ -33,6 +33,15 @@ defmodule Cinder.Support.SearchTestResource do
     update :archive do
       change(set_attribute(:status, "archived"))
     end
+
+    # A function change has no atomic form, so in bulk it can't be one statement
+    update :annotate do
+      require_atomic?(false)
+
+      change(fn changeset, _context ->
+        Ash.Changeset.force_change_attribute(changeset, :notes, "annotated")
+      end)
+    end
   end
 end
 

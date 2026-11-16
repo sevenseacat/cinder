@@ -172,8 +172,15 @@ defmodule Cinder.BulkActionExecutor do
   # Atom actions: merge action_opts directly (for Ash.bulk_update/bulk_destroy)
   defp run_action(action, query, base_opts, action_opts) when is_atom(action) do
     # Ash only returns a bulk action's errors when asked, and a partial success would
-    # otherwise arrive with none; `action_opts` can turn it off (it can be expensive)
-    opts = base_opts |> Keyword.put(:return_errors?, true) |> Keyword.merge(action_opts)
+    # otherwise arrive with none (it can be expensive). By default Ash only runs one
+    # statement, which fails for changes that can't be atomic, so those run in batches
+    # instead. `action_opts` can override either.
+    opts =
+      base_opts
+      |> Keyword.put(:return_errors?, true)
+      |> Keyword.put(:strategy, [:atomic, :atomic_batches, :stream])
+      |> Keyword.merge(action_opts)
+
     resource = query.resource
 
     result =

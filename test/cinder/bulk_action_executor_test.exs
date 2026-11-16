@@ -104,6 +104,38 @@ defmodule Cinder.BulkActionExecutorTest do
       assert length(records) == 1
       assert hd(records).id == record3.id
     end
+
+    test "runs an action whose change can't be atomic", %{ids: ids} do
+      assert {:ok, %Ash.BulkResult{status: :success}} =
+               BulkActionExecutor.execute(:annotate, resource: SearchTestResource, ids: ids)
+
+      assert SearchTestResource |> Ash.read!() |> Map.new(&{&1.title, &1.notes}) == %{
+               "Record 1" => "annotated",
+               "Record 2" => "annotated",
+               "Record 3" => nil
+             }
+    end
+
+    test "a strategy in `action_opts` replaces the default", %{ids: ids} do
+      result =
+        BulkActionExecutor.execute(:annotate,
+          resource: SearchTestResource,
+          ids: ids,
+          action_opts: [strategy: [:atomic]]
+        )
+
+      assert {:error,
+              [
+                %Ash.Error.Invalid{
+                  errors: [
+                    %Ash.Error.Invalid.NoMatchingBulkStrategy{
+                      action: :annotate,
+                      requested_strategies: [:atomic]
+                    }
+                  ]
+                }
+              ]} = result
+    end
   end
 
   describe "execute/2 with function action" do
