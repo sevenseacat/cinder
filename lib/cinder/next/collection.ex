@@ -29,8 +29,8 @@ defmodule Cinder.Next.Collection do
 
   # The fields' inner blocks are new on every parent render, so they're always
   # taken; only the fields that are columns have cells. The config is only rebuilt
-  # when what's declared changes. Synced to the URL (`url_params` isn't `nil`), a
-  # change to the URL's params is applied too.
+  # when what's declared changes. Synced to the URL (`url_state`, the parent's
+  # `@url_state`, isn't `nil`), a change to the URL's params is applied too.
   @impl true
   def update(assigns, socket) do
     declarations =
@@ -42,10 +42,11 @@ defmodule Cinder.Next.Collection do
       )
 
     columns = Enum.reject(assigns.fields, &(&1[:column] == false))
-    url_params = assigns.options[:url_state][:params]
-    url_changed? = url_params != nil and url_params != socket.assigns[:url_params]
+    url_state = assigns.options[:url_state]
+    url_params = url_state[:params]
+    url_changed? = url_params != nil and url_params != socket.assigns[:url_state][:params]
     declarations_changed? = declarations != socket.assigns[:declarations]
-    socket = assign(socket, id: assigns.id, columns: columns, url_params: url_params)
+    socket = assign(socket, id: assigns.id, columns: columns, url_state: url_state)
 
     cond do
       declarations_changed? ->
@@ -336,27 +337,29 @@ defmodule Cinder.Next.Collection do
     assign(socket, selection: selection, bulk_action: bulk_action)
   end
 
-  # A query the user asks for. Synced, it changes the URL, and the query changes when
-  # the URL comes back, so the new records and the new URL arrive in one render.
-  defp request(%{assigns: %{url_params: nil}} = socket, query), do: change_query(socket, query)
+  # A query the user asks for, from an event. Synced, it changes the URL, and the
+  # query changes when the URL comes back, which it has before the next event (see
+  # `UrlSync.patch/4`), so a quick second change starts from this one.
+  defp request(%{assigns: %{url_state: nil}} = socket, query), do: change_query(socket, query)
 
-  defp request(socket, query) do
-    patch_url(socket, query)
-    socket
+  defp request(%{assigns: %{config: config, url_state: url_state}} = socket, query) do
+    UrlSync.patch(socket, url_state.uri, State.to_url(query, config),
+      owns: State.url_keys(config)
+    )
   end
 
-  # A move the collection makes itself (a rebuild, or leaving an emptied page),
-  # shown in this render. Synced, the URL follows: `patch_url/2` only asks the parent
-  # to patch, changing nothing here. Unlike `request/2`, which waits for the URL,
-  # this doesn't show the old records while it comes back, and the query that comes
-  # back is the one shown, so it isn't read again.
-  defp move(socket, query) do
-    if socket.assigns.url_params, do: patch_url(socket, query)
+  # A move the collection makes itself (a rebuild, or leaving an emptied page), shown
+  # at once. Synced, the URL follows, and the query that comes back is the one shown,
+  # so it isn't read again. A move can be made while the collection is updated, so
+  # the URL is patched after this event (`UrlSync.patch_later/2`). A click already
+  # waiting comes first, and the move's URL then undoes it: rare, as moves don't come
+  # from clicking.
+  defp move(%{assigns: %{config: config}} = socket, query) do
+    if socket.assigns.url_state do
+      UrlSync.patch_later(State.to_url(query, config), owns: State.url_keys(config))
+    end
+
     change_query(socket, query)
-  end
-
-  defp patch_url(%{assigns: %{config: config}}, query) do
-    UrlSync.patch(State.to_url(query, config), owns: State.url_keys(config))
   end
 
   # Every new query (or the same one read again), and the reactions to it, then the

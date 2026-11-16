@@ -123,18 +123,30 @@ defmodule Cinder.UrlSync do
     {:halt, update_url(socket, encoded_state, current_uri)}
   end
 
+  # `patch_later/2`'s message
   defp info_hook({:cinder_url_patch, params, owns}, socket) do
-    uri = get_in(socket.assigns, [:url_state, :uri]) || "/"
-    {:halt, Phoenix.LiveView.push_patch(socket, to: patched_url(uri, params, owns))}
+    uri = get_in(socket.assigns, [:url_state, :uri])
+    {:halt, patch(socket, uri, params, owns: owns)}
   end
 
   defp info_hook(_message, socket), do: {:cont, socket}
 
+  # How `Cinder.Next.collection` changes the URL. Its `params` replace every param it
+  # `owns` (those it may write, so one it no longer writes goes), and the app's own
+  # stay. LiveView calls the LiveView's `handle_params/3` as it patches, so the
+  # collection hears of its new URL before the next event.
+
   @doc false
-  # How `Cinder.Next.collection` changes the URL: `params` replace every param it
-  # `owns` (those it may write, so one it no longer writes goes), and the app's
-  # own stay. Called from the collection, in the LiveView's process.
-  def patch(params, owns: owns), do: send(self(), {:cinder_url_patch, params, owns})
+  # From the collection's socket, or the LiveView's, with the URL it's at (`uri`)
+  def patch(socket, uri, params, owns: owns) do
+    Phoenix.LiveView.push_patch(socket, to: patched_url(uri || "/", params, owns))
+  end
+
+  @doc false
+  # For when the collection can't patch itself: while it's being updated, which
+  # LiveView doesn't allow. It asks the LiveView to, after the current event, so an
+  # event already waiting comes first.
+  def patch_later(params, owns: owns), do: send(self(), {:cinder_url_patch, params, owns})
 
   @doc false
   # Empty params are kept: `params` leaves defaults out already, so an empty one

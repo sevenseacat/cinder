@@ -11,6 +11,7 @@ defmodule Cinder.Next.CollectionTest do
     only: [
       element: 2,
       element: 3,
+      assert_patch: 3,
       live: 2,
       render: 1,
       render_async: 1,
@@ -637,6 +638,16 @@ defmodule Cinder.Next.CollectionTest do
       |> unwrap(&render_patch(&1, path <> "?sort=-title"))
       |> assert_has("#albums nav", text: "Page 1 of 3")
       |> titles(["Echo", "Dark"], timeout: 500)
+    end
+
+    # So a quick second change starts from this one, not from before it
+    test "a change, its URL and its records are done within its event", %{conn: conn} do
+      path = synced()
+      {:ok, view, _html} = live(conn, path)
+
+      html = view |> element("#albums th button", "Title") |> render_click()
+      assert html =~ ~r/Echo.*Dark/s
+      assert_patch(view, path <> "?sort=-title", 0)
     end
 
     test "a page past the last shows the last, and the URL follows", %{conn: conn} do
