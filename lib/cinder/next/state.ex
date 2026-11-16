@@ -4,13 +4,47 @@
 
 defmodule Cinder.Next.State do
   @moduledoc false
-  # How a collection's state changes as the user works with it, as pure functions.
-  # For now its state is a `Cinder.Engine.Query`; once there's more state that isn't
-  # query (layout, hidden columns), this becomes the struct holding it all. The
-  # selection is `Cinder.Next.RowSelection`'s.
+  # How a collection's state changes as the user works with it, and how it's read
+  # from and written to the URL, as pure functions. For now its state is a
+  # `Cinder.Engine.Query`; once there's more state that isn't query (layout, hidden
+  # columns), this becomes the struct holding it all. The selection is
+  # `Cinder.Next.RowSelection`'s. The URL is here, not in `Cinder.Params` (which turns
+  # the query's strings into values), because that state goes in the URL too.
 
-  alias Cinder.Engine.{Argument, Field}
+  alias Cinder.Engine.{Argument, Field, Query}
   alias Cinder.Next.Config
+  alias Cinder.Params
+
+  @doc "The query a new collection starts with: the default sort, on the first page."
+  def start(%Config{} = config) do
+    %Query{sort: config.sort.default, page_size: config.pagination[:size]}
+  end
+
+  @doc """
+  The query a URL's params ask for, from what the collection was started with.
+  Anything in them the collection can't use is left out: the URL is the user's to
+  edit.
+  """
+  def from_url(params, %Config{} = config) do
+    opts = [
+      search?: config.search != nil,
+      pagination: config.pagination[:mode],
+      arguments: config.arguments,
+      sort_mode: config.sort.mode
+    ]
+
+    Params.from_url(params, config.fields, start(config), opts)
+  end
+
+  @doc "The query as URL params, leaving out whatever is as the collection started."
+  def to_url(query, %Config{} = config) do
+    Params.to_url(query, config.fields, start(config), arguments: config.arguments)
+  end
+
+  @doc "Every URL param the collection may write, so the URL's other params are kept."
+  def url_keys(%Config{} = config) do
+    Params.url_keys(config.fields, arguments: config.arguments)
+  end
 
   @doc """
   The sort after clicking `field`, whose sort cycles through `cycle`. Additive

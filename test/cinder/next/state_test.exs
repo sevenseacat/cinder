@@ -129,4 +129,25 @@ defmodule Cinder.Next.StateTest do
                %{}
     end
   end
+
+  # What each param means is `Cinder.Params`'; these check the collection's config
+  # reaches it
+  describe "from_url/2" do
+    test "a search, only when the collection has a search box" do
+      assert State.from_url(%{"search" => "ab"}, config(fields())).search == "ab"
+      assert State.from_url(%{"search" => "ab"}, config([field("title")])).search == ""
+    end
+
+    test "a page number on offset pages, and a cursor on keyset pages" do
+      params = %{"page" => "3", "after" => "abc"}
+      offset = config(fields(), action: :paginated, pagination: [mode: :offset])
+      keyset = config(fields(), action: :paginated, pagination: [mode: :keyset])
+
+      assert {State.from_url(params, offset).page, State.from_url(params, offset).cursor} ==
+               {3, nil}
+
+      assert {State.from_url(params, keyset).page, State.from_url(params, keyset).cursor} ==
+               {1, {:after, "abc"}}
+    end
+  end
 end

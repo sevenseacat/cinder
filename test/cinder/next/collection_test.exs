@@ -696,6 +696,17 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums td", text: "Abbey")
     end
 
+    test "an argument's value cleared leaves the URL", %{conn: conn} do
+      path = by_genre(type: :text)
+
+      conn
+      |> visit(path)
+      |> fill_in("Genre", with: "rock")
+      |> assert_path(path, query_params: %{genre: "rock"}, timeout: 500)
+      |> fill_in("Genre", with: "")
+      |> assert_path(path, query_params: %{}, timeout: 500)
+    end
+
     test "an argument with a `param` goes by it in the URL", %{conn: conn} do
       path =
         Fixture.register(fn assigns ->

@@ -92,7 +92,7 @@ defmodule Cinder.Next.Collection do
   # params changes nothing here.
   defp follow_url(socket, url_params) do
     %{config: config, query: old} = socket.assigns
-    query = from_url(url_params, config)
+    query = State.from_url(url_params, config)
     if query == old, do: socket, else: change_query(socket, query)
   end
 
@@ -103,12 +103,11 @@ defmodule Cinder.Next.Collection do
 
   # On mount, or when the URL changes with the declarations: what the URL says
   defp query(_assigns, config, url_params) when url_params != nil do
-    from_url(url_params, config)
+    State.from_url(url_params, config)
   end
 
-  # The first build, on mount, before there's a config or query: a new collection
-  # starts on page 1 with the default sort
-  defp query(_assigns, config, nil), do: start(config)
+  # The first build, on mount, before there's a config or query
+  defp query(_assigns, config, nil), do: State.start(config)
 
   # A rebuild after mount (see `RowSelection.carry_over/4`). A new collection has
   # nothing selected.
@@ -129,22 +128,6 @@ defmodule Cinder.Next.Collection do
   end
 
   defp bulk_action(state, _config), do: state
-
-  defp start(config) do
-    %Engine.Query{sort: config.sort.default, page_size: config.pagination[:size]}
-  end
-
-  # Anything in the URL the collection can't use is left out: it's the user's to edit
-  defp from_url(params, config) do
-    opts = [
-      search?: config.search != nil,
-      pagination: config.pagination[:mode],
-      arguments: config.arguments,
-      sort_mode: config.sort.mode
-    ]
-
-    Params.from_url(params, config.fields, start(config), opts)
-  end
 
   # A function declared inline (a bulk action's, or `selectable`) closes over the
   # parent's assigns, so it's new whenever they change. The new one is kept, but
@@ -417,9 +400,7 @@ defmodule Cinder.Next.Collection do
   end
 
   defp patch_url(%{assigns: %{config: config}}, query) do
-    opts = [arguments: config.arguments]
-    params = Params.to_url(query, config.fields, start(config), opts)
-    UrlSync.patch(params, owns: Params.url_keys(config.fields, opts))
+    UrlSync.patch(State.to_url(query, config), owns: State.url_keys(config))
   end
 
   # Every new query (or the same one read again), and the reactions to it, then the
