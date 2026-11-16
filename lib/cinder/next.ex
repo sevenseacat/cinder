@@ -248,8 +248,22 @@ defmodule Cinder.Next do
   value clears it, as it changes what's read.
 
   `on_selection_change` sends the LiveView
-  `{name, %{selected_ids: MapSet, selected_count:, component_id:}}`, with the ids as
-  strings, each time the selection changes.
+  `{name, %{selected_ids: MapSet, selected_count:, all_matching?:, excluded_ids: MapSet, component_id:}}`,
+  with the ids as strings, each time the selection changes. With all matching selected
+  (below), `selected_ids` is empty and `excluded_ids` holds the records unticked since.
+
+  ### Selecting everything matching
+
+  Once every record on the page is selected and more match, the bar offers "Select
+  all 120 matching": every record the filters and search match, on every page.
+  Unticking a record then leaves it out. It's offered only when the collection counts
+  its records (offset pages, with an action that can count) and every record can be
+  selected (`selectable={true}`, as a function can't be asked about records not read).
+
+  It replaces what was selected before, so a record selected and then filtered out
+  isn't included. A change to the filters, search or an argument ends it; sorting and
+  paging don't. A bulk action runs on what matches when it runs, so a record that
+  starts or stops matching in between is in or out.
 
   ## Bulk actions
 
@@ -273,6 +287,7 @@ defmodule Cinder.Next do
   and `action_opts` as `bulk_options`). It runs within what the collection reads (its
   query, action, argument values, actor, tenant and scope), but not its filters or
   search, which only hide records: a selected record they hide is still acted on.
+  With all matching selected, it runs on what the filters and search match.
 
   After a success, or a partial success, the selection is cleared and the records are
   read again. After an error the selection is kept, to try again.

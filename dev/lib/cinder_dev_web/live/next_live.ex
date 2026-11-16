@@ -42,6 +42,23 @@ defmodule CinderDevWeb.NextLive do
       </Cinder.Next.collection>
 
       <%!-- Not synced to the URL: only one collection on a page can be, for now --%>
+      <h2 class="mt-8 text-lg font-semibold">All matching</h2>
+      <%!-- Counted offset pages, with every record selectable, so "all matching" is offered --%>
+      <Cinder.Next.collection
+        id="albums-all-matching"
+        resource={Music.Album}
+        action={:paginated}
+        pagination={[size: 10]}
+        selectable
+        on_bulk_action_result={:bulk_action_done}
+      >
+        <:field :let={album} name="title" sort filter search>{album.title}</:field>
+        <:field :let={album} name="artist.name" sort search>{album.artist.name}</:field>
+        <:field name="genre" filter={[type: :radio_group, prompt: "Any"]} column={false} />
+        <:bulk_action action={:remaster} />
+        <:bulk_action action={:destroy} label="Delete" confirm="Delete {count} albums?" />
+      </Cinder.Next.collection>
+
       <h2 class="mt-8 text-lg font-semibold">By genre</h2>
       <Cinder.Next.collection id="albums-by-genre" resource={Music.Album} action={:by_genre}>
         <:field :let={album} name="title" sort>{album.title}</:field>
