@@ -1,7 +1,7 @@
 defmodule Cinder.Next.StateTest do
   use ExUnit.Case, async: true
 
-  alias Cinder.Engine.Query
+  alias Cinder.Engine.{Page, Query}
   alias Cinder.Next.{Config, State}
 
   @cycle [nil, :asc, :desc]
@@ -190,6 +190,38 @@ defmodule Cinder.Next.StateTest do
   test "first_page/1, by page number or by keyset" do
     assert State.first_page(%Query{page: 3}) == %Query{page: 1}
     assert State.first_page(%Query{cursor: {:after, "abc"}}) == %Query{page: 1}
+  end
+
+  # After a bulk action, which can empty the page shown
+  describe "leave_emptied_page/3" do
+    defp emptied(count), do: %Page{records: [], count: count, page_size: 2}
+
+    test "a page with records, or the first page, stays" do
+      offset = config(fields())
+      page = %Page{records: [%{}], count: 5, page_size: 2}
+      assert State.leave_emptied_page(%Query{page: 3}, page, offset) == :stay
+      assert State.leave_emptied_page(%Query{page: 1}, emptied(0), offset) == :stay
+    end
+
+    test "offset, to the last page with records, or the first without a count" do
+      offset = config(fields())
+
+      assert State.leave_emptied_page(%Query{page: 4}, emptied(3), offset) ==
+               {:move, %Query{page: 2}}
+
+      assert State.leave_emptied_page(%Query{page: 4}, emptied(0), offset) ==
+               {:move, %Query{page: 1}}
+
+      assert State.leave_emptied_page(%Query{page: 4}, emptied(nil), offset) ==
+               {:move, %Query{page: 1}}
+    end
+
+    # A cursor can't say where the last page is
+    test "keyset, to the first page" do
+      keyset = config(fields(), action: :paginated, pagination: [mode: :keyset])
+      query = %Query{cursor: {:after, "abc"}}
+      assert State.leave_emptied_page(query, emptied(nil), keyset) == {:move, %Query{}}
+    end
   end
 
   describe "change_page_size/3" do

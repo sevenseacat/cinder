@@ -877,7 +877,7 @@ defmodule Cinder.Next.CollectionTest do
     # A page each, to select records on more than one
     defp with_bulk_actions(opts \\ []) do
       {on_change, on_result} = if opts[:forward_to], do: {:picked, :done}, else: {nil, nil}
-      pagination = [size: 1, mode: Keyword.get(opts, :mode, :offset)]
+      pagination = [size: 1]
       test = self()
 
       # Runs until the test lets it finish
@@ -1059,7 +1059,9 @@ defmodule Cinder.Next.CollectionTest do
       assert remastered() == []
     end
 
-    # Rather than an empty page with records before it. Synced, the URL follows.
+    # Rather than an empty page with records before it. Where to is
+    # `State.leave_emptied_page/3`'s; this checks it's asked after an action, and the
+    # URL follows.
     test "an action that empties the last pages shows the last page with records",
          %{conn: conn} do
       generate(album(title: "Cold"))
@@ -1078,19 +1080,6 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums tbody tr", count: 1)
       |> refute_has("#albums nav")
       |> assert_path(path, query_params: %{}, timeout: 500)
-    end
-
-    # A cursor can't say where the last page is
-    test "with keyset pages, an action that empties the page shows the first",
-         %{conn: conn} do
-      conn
-      |> visit(with_bulk_actions(forward_to: self(), mode: :keyset))
-      |> click_button("Next page")
-      |> click_box("#albums-select-#{album_id("Blue")}")
-      |> click_button("Remove")
-      |> tap(fn _session -> assert_receive {:done, %{status: :success}} end)
-      |> assert_has("#albums td", text: "Abbey")
-      |> assert_has("#albums tbody tr", count: 1)
     end
 
     # Rendered open, so it works without the hook, which makes it a modal

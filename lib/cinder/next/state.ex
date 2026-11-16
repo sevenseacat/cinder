@@ -11,7 +11,7 @@ defmodule Cinder.Next.State do
   # `Cinder.Next.RowSelection`'s. The URL is here, not in `Cinder.Params` (which turns
   # the query's strings into values), because that state goes in the URL too.
 
-  alias Cinder.Engine.{Argument, Field, Query}
+  alias Cinder.Engine.{Argument, Field, Page, Query}
   alias Cinder.Next.Config
   alias Cinder.Params
 
@@ -129,6 +129,27 @@ defmodule Cinder.Next.State do
   defp carry_over_page_size(size, old, new) do
     if size != old[:size] and size in (new[:size_options] || []), do: size, else: new[:size]
   end
+
+  @doc """
+  Where to go when the page shown has been emptied (by a bulk action deleting its
+  records, or changing them so the read no longer reaches them), rather than show an
+  empty page with records before it: the last page with records. Without a count to
+  say which that is (an uncounted read, or keyset pages, whose cursors can't say),
+  the first.
+  """
+  def leave_emptied_page(query, %Page{} = page, %Config{} = config) do
+    cond do
+      page.records != [] or first_page(query) == query -> :stay
+      config.pagination[:mode] == :keyset -> {:move, first_page(query)}
+      true -> {:move, %{query | page: last_page(page)}}
+    end
+  end
+
+  defp last_page(%Page{count: count, page_size: size}) when is_integer(count) do
+    max(div(count + size - 1, size), 1)
+  end
+
+  defp last_page(_uncounted), do: 1
 
   @doc "The query on its first page, as after anything that changes which records match."
   def first_page(query), do: %{query | page: 1, cursor: nil}

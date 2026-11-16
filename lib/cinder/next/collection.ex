@@ -304,32 +304,15 @@ defmodule Cinder.Next.Collection do
     end
   end
 
-  # An action that empties the page shown (deleting its records, or changing them so
-  # the read no longer reaches them) moves to the last page with records. Without a
-  # count to say which that is (an uncounted read, or keyset pages, whose cursors
-  # can't say), it's the first.
+  # Where to is `State`'s
   defp leave_emptied_page(socket) do
     %{config: config, page: page, query: query} = socket.assigns
 
-    if page.records == [] and (query.page > 1 or query.cursor != nil) do
-      moved =
-        if config.pagination[:mode] == :keyset do
-          State.first_page(query)
-        else
-          %{query | page: last_page(page)}
-        end
-
-      move(socket, moved)
-    else
-      socket
+    case State.leave_emptied_page(query, page, config) do
+      {:move, query} -> move(socket, query)
+      :stay -> socket
     end
   end
-
-  defp last_page(%Engine.Page{count: count, page_size: size}) when is_integer(count) do
-    max(div(count + size - 1, size), 1)
-  end
-
-  defp last_page(_uncounted), do: 1
 
   defp now, do: System.monotonic_time(:millisecond)
 
