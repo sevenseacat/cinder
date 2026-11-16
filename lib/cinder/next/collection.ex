@@ -17,6 +17,8 @@ defmodule Cinder.Next.Collection do
   # In milliseconds, before a bulk action's confirm is taken as an answer
   @default_bulk_action_confirm_delay 500
 
+  ## Building and rebuilding
+
   # Filter types render with a theme's classes, until theming is redone. A bulk
   # action is `:idle`, `{:confirming, bulk_action, asked_at}` (in milliseconds) or
   # `{:running, bulk_action, selected_count}`: one at a time.
@@ -25,13 +27,12 @@ defmodule Cinder.Next.Collection do
     {:ok, assign(socket, theme: Cinder.Theme.merge("default"), bulk_action: :idle)}
   end
 
+  # The fields' inner blocks are new on every parent render, so they're always
+  # taken; only the fields that are columns have cells. The config is only rebuilt
+  # when what's declared changes. Synced to the URL (`url_params` isn't `nil`), a
+  # change to the URL's params is applied too.
   @impl true
   def update(assigns, socket) do
-    # The fields' inner blocks are new on every parent render, so they're always
-    # taken; the config is only rebuilt when what's declared changes, and the records
-    # only read again when that changes what's read. Only the fields that are columns
-    # have cells. Synced to the URL (`url_params` isn't `nil`), a change to the URL's
-    # params is applied too.
     declarations =
       Config.declarations(
         assigns.options,
@@ -42,45 +43,58 @@ defmodule Cinder.Next.Collection do
 
     columns = Enum.reject(assigns.fields, &(&1[:column] == false))
     url_params = assigns.options[:url_state][:params]
-    old = socket.assigns
-    url_changed? = url_params != nil and url_params != old[:url_params]
+    url_changed? = url_params != nil and url_params != socket.assigns[:url_params]
+    declarations_changed? = declarations != socket.assigns[:declarations]
     socket = assign(socket, id: assigns.id, columns: columns, url_params: url_params)
 
     cond do
-      declarations != old[:declarations] ->
-        config =
-          Config.build(assigns.options, assigns.fields, assigns.arguments, assigns.bulk_actions)
+      declarations_changed? ->
+        {:ok, rebuild(socket, assigns, declarations, if(url_changed?, do: url_params))}
 
-        query = query(old, config, if(url_changed?, do: url_params))
-
-        socket =
-          socket
-          |> assign(declarations: declarations, config: config)
-          |> change_selection(selection(old, config))
-
-        socket =
-          cond do
-            !read_again?(old, config, query) -> after_read(socket)
-            # A rebuild that moves the query (back to the first page, say) moves the URL too
-            !url_changed? and query != old[:query] -> move(socket, query)
-            true -> change_query(socket, query)
-          end
-
-        {:ok, socket}
-
-      # A change to the app's own params changes nothing here
       url_changed? ->
-        query = from_url(url_params, old.config)
-        {:ok, if(query == old.query, do: socket, else: change_query(socket, query))}
+        {:ok, follow_url(socket, url_params)}
 
       true ->
         {:ok, socket}
     end
   end
 
-  # A rebuild, when the declarations change after mount (see `State.carry_over/4`)
+  # On mount, or when the declarations change: the new config, then each piece of
+  # state carried over to it, then the records read again only if what's read
+  # changed. Anything kept from the old config must be checked against the new one
+  # here. `new_url_params` are the URL's, when they changed too.
+  defp rebuild(socket, assigns, declarations, new_url_params) do
+    old = socket.assigns
+
+    config =
+      Config.build(assigns.options, assigns.fields, assigns.arguments, assigns.bulk_actions)
+
+    query = query(old, config, new_url_params)
+
+    socket =
+      socket
+      |> assign(declarations: declarations, config: config)
+      |> change_selection(selection(old, config))
+
+    cond do
+      !read_again?(old, config, query) -> after_read(socket)
+      # A rebuild that moves the query (back to the first page, say) moves the URL too
+      new_url_params == nil and query != old[:query] -> move(socket, query)
+      true -> change_query(socket, query)
+    end
+  end
+
+  # Only the URL changed (back, forward, or a link). A change to the app's own
+  # params changes nothing here.
+  defp follow_url(socket, url_params) do
+    %{config: config, query: old} = socket.assigns
+    query = from_url(url_params, config)
+    if query == old, do: socket, else: change_query(socket, query)
+  end
+
+  # A rebuild after mount (see `State.carry_over/4`)
   defp query(%{config: old, query: query}, config, nil) do
-    State.carry_over(query, old, config, read(old) == read(config))
+    State.carry_over(query, old, config, same_records?(old, config))
   end
 
   # On mount, or when the URL changes with the declarations: what the URL says
@@ -92,14 +106,11 @@ defmodule Cinder.Next.Collection do
   # starts on page 1 with the default sort
   defp query(_assigns, config, nil), do: start(config)
 
-  # The selection survives a rebuild that reads the same records, while records can
-  # still be selected. A new collection has none.
+  # A rebuild after mount (see `RowSelection.carry_over/4`). A new collection has
+  # nothing selected.
   defp selection(%{config: old, selection: selection}, config) do
-    if config.selectable != false and read(old) == read(config) do
-      RowSelection.for_selectable(selection, config.selectable, config.primary_key)
-    else
-      RowSelection.new(config.selectable, config.primary_key)
-    end
+    same_records? = same_records?(old, config)
+    RowSelection.carry_over(selection, config.selectable, config.primary_key, same_records?)
   end
 
   defp selection(_assigns, config), do: RowSelection.new(config.selectable, config.primary_key)
@@ -129,11 +140,15 @@ defmodule Cinder.Next.Collection do
 
   defp read_again?(_new_collection, _config, _query), do: true
 
-  # What decides the records read, besides the query
-  defp read(config) do
-    {Map.take(config, [:source, :action, :actor, :tenant, :scope, :query_opts]),
-     config.search[:fn], config.pagination[:mode]}
+  # Whether two configs read the same records, given the same query
+  defp same_records?(old, config) do
+    keys = [:source, :action, :actor, :tenant, :scope, :query_opts]
+
+    Map.take(old, keys) == Map.take(config, keys) and old.search[:fn] == config.search[:fn] and
+      old.pagination[:mode] == config.pagination[:mode]
   end
+
+  ## Events
 
   @impl true
   def handle_event("sort", %{"field" => field}, socket) do
@@ -250,6 +265,12 @@ defmodule Cinder.Next.Collection do
     end
   end
 
+  defp cursor(%{more?: true, last_cursor: cursor}, "next_page"), do: {:after, cursor}
+  defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
+  defp cursor(_page, _direction), do: nil
+
+  ## Bulk actions
+
   defp confirm_delay do
     Application.get_env(:cinder, :bulk_action_confirm_delay, @default_bulk_action_confirm_delay)
   end
@@ -335,10 +356,6 @@ defmodule Cinder.Next.Collection do
   defp bulk_result({:ok, {:error, reason}}), do: {:error, nil, List.wrap(reason)}
   defp bulk_result({:exit, reason}), do: {:error, nil, [reason]}
 
-  defp cursor(%{more?: true, last_cursor: cursor}, "next_page"), do: {:after, cursor}
-  defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
-  defp cursor(_page, _direction), do: nil
-
   ## How what the user does reaches the page
 
   # Every change to the selection, and the reactions to it. The parent hears of each
@@ -402,7 +419,7 @@ defmodule Cinder.Next.Collection do
         socket
       end
 
-    socket |> assign(:query, query) |> load() |> after_read()
+    socket |> assign(:query, query) |> read() |> after_read()
   end
 
   # Every page read (or the same page, when a rebuild changes what can be done with
@@ -412,10 +429,12 @@ defmodule Cinder.Next.Collection do
     assign(socket, :selection, RowSelection.for_page(selection, page))
   end
 
+  ## Reading
+
   # Synchronous, and a failed read crashes, until the slices for loading states and
   # errors. The controls' values are worked out here, with the records, rather than
   # in `render/1`, where they'd be new on every render.
-  defp load(socket) do
+  defp read(socket) do
     %{config: config, query: query} = socket.assigns
 
     socket =
@@ -483,6 +502,8 @@ defmodule Cinder.Next.Collection do
   defp var(value) do
     if String.Chars.impl_for(value), do: to_string(value), else: inspect(value)
   end
+
+  ## Markup
 
   @impl true
   def render(assigns) do

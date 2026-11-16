@@ -38,13 +38,19 @@ defmodule Cinder.Next.RowSelection do
   end
 
   @doc """
-  The selection when the collection is rebuilt, reading the same records. What's
-  picked stays, but a `selectable` function can't be asked of records not read, so
-  it ends all matching.
+  The selection when the collection is rebuilt. Reading the same records, while
+  records can still be selected, what's picked stays, but a `selectable` function
+  can't be asked of records not read, so it ends all matching. Otherwise nothing
+  is picked.
   """
-  def for_selectable(selection, selectable, primary_key) do
+  def carry_over(selection, selectable, primary_key, same_records?) do
     selection = %{selection | selectable: selectable, primary_key: primary_key}
-    if selection.mode == :all_except and selectable != true, do: clear(selection), else: selection
+
+    cond do
+      !same_records? or selectable == false -> new(selectable, primary_key)
+      selection.mode == :all_except and selectable != true -> clear(selection)
+      true -> selection
+    end
   end
 
   @doc "The selection with `page` shown."

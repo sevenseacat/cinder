@@ -131,18 +131,26 @@ defmodule Cinder.Next.RowSelectionTest do
     assert RowSelection.clear(all_except(["1"])) == shown()
   end
 
-  describe "for_selectable/3, when the collection is rebuilt" do
-    test "what's picked stays" do
-      assert RowSelection.for_selectable(picked(["1"]), &jazz?/1, :id) ==
+  describe "carry_over/4, when the collection is rebuilt" do
+    test "reading the same records, what's picked stays" do
+      assert RowSelection.carry_over(picked(["1"]), &jazz?/1, :id, true) ==
                picked(["1"], %{shown() | selectable: &jazz?/1})
 
-      assert RowSelection.for_selectable(all_except(["1"]), true, :id) == all_except(["1"])
+      assert RowSelection.carry_over(all_except(["1"]), true, :id, true) == all_except(["1"])
     end
 
     # A function can't be asked of records not read
     test "a `selectable` function ends all matching" do
-      assert RowSelection.for_selectable(all_except(["1"]), &jazz?/1, :id) ==
+      assert RowSelection.carry_over(all_except(["1"]), &jazz?/1, :id, true) ==
                %{shown() | selectable: &jazz?/1}
+    end
+
+    test "reading other records, or when records can't be selected, nothing is picked" do
+      assert RowSelection.carry_over(picked(["1"]), true, :id, false) ==
+               RowSelection.new(true, :id)
+
+      assert RowSelection.carry_over(picked(["1"]), false, :id, true) ==
+               RowSelection.new(false, :id)
     end
   end
 
