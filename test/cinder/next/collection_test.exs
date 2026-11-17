@@ -772,6 +772,32 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums td", text: "Abbey")
     end
 
+    # There's nothing to show past the first page, as there would be no records
+    @tag :capture_log
+    test "a value the action can't use, from the URL past the first page, shows the first",
+         %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            resource={Music.Album}
+            action={:by_genre}
+            pagination={[size: 1]}
+            url_state={@url_state}
+          >
+            <:field :let={album} name="title">{album.title}</:field>
+            <:argument name="genre" input={[type: :text]} />
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path <> "?genre=polka&page=2")
+      |> assert_has("#albums-filters", text: "is invalid")
+      |> assert_path(path, query_params: %{genre: "polka"}, timeout: 500)
+    end
+
     test "an argument's value goes in the URL, and comes back from it", %{conn: conn} do
       path = by_genre()
 

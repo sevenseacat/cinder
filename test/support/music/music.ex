@@ -171,6 +171,7 @@ defmodule Music.Album do
     read :by_genre do
       argument(:genre, Music.Genre, allow_nil?: false)
       filter(expr(genre == ^arg(:genre)))
+      pagination(offset?: true, required?: false)
     end
 
     # An argument of each kind of type, for inferring inputs

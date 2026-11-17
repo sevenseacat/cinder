@@ -11,7 +11,7 @@ defmodule Cinder.Next.Collection do
   use Cinder.Messages
 
   alias Cinder.{Engine, Params, UrlSync}
-  alias Cinder.Next.{BulkActionState, Config, RowSelection, State}
+  alias Cinder.Next.{BulkActionState, Config, ReadState, RowSelection, State}
   alias Phoenix.LiveView.JS
 
   # In milliseconds, before a bulk action's confirm is taken as an answer
@@ -19,12 +19,18 @@ defmodule Cinder.Next.Collection do
 
   ## Building and rebuilding
 
-  # Filter types render with a theme's classes, until theming is redone. The bulk
-  # actions' state is `Cinder.Next.BulkActionState`'s.
+  # Filter types render with a theme's classes, until theming is redone. The read's
+  # state is `Cinder.Next.ReadState`'s, and the bulk actions' `BulkActionState`'s.
+  # Until the first read, there are no records to show.
   @impl true
   def mount(socket) do
     {:ok,
-     assign(socket, theme: Cinder.Theme.merge("default"), bulk_action: :idle, loading?: false)}
+     assign(socket,
+       theme: Cinder.Theme.merge("default"),
+       bulk_action: :idle,
+       read: :unread,
+       page: %Engine.Page{}
+     )}
   end
 
   # The fields' inner blocks are new on every parent render, so they're always
@@ -389,13 +395,12 @@ defmodule Cinder.Next.Collection do
   ## Reading
 
   # In the background, so the records shown stay until the new ones arrive, and a
-  # later read supersedes one still running. Before the page renders when Ash's
-  # `disable_async?` is set (as apps do in their tests), or for the first page with
-  # `initial_load: :sync`. A failed read crashes, until the errors slice. The
+  # later read supersedes one still running, unless it's read first (see
+  # `ReadState.read_first?/3`). A failed read crashes, until the errors slice. The
   # controls' values are worked out here, rather than in `render/1`, where they'd be
   # new on every render.
   defp read(socket) do
-    %{config: config, query: query} = socket.assigns
+    %{config: config, query: query, read: state} = socket.assigns
 
     socket =
       assign(socket,
@@ -406,21 +411,19 @@ defmodule Cinder.Next.Collection do
     {source, fields, query, opts} = read_inputs(config, query)
     run = fn -> Engine.run(source, fields, query, opts) end
 
-    cond do
-      # A read missing a required argument would fail, and a form doesn't say a field
-      # is required before it's used
-      Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) ->
-        read_done(socket, {:ok, %Engine.Page{}})
+    disable_async? = Application.get_env(:ash, :disable_async?) == true
 
-      Application.get_env(:ash, :disable_async?) == true or
-          (config.initial_load == :sync and socket.assigns[:page] == nil) ->
+    cond do
+      # A read missing a required argument would fail; it's invalid, with nothing to
+      # say yet
+      Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) ->
+        read_done(socket, {:error, %Engine.Error{}})
+
+      ReadState.read_first?(state, config.initial_load, disable_async?) ->
         read_done(socket, run.())
 
       true ->
-        socket
-        |> assign(:loading?, true)
-        |> assign_new(:page, fn -> %Engine.Page{} end)
-        |> start_async(:read, run)
+        socket |> assign(:read, :loading) |> start_async(:read, run)
     end
   end
 
@@ -439,44 +442,22 @@ defmodule Cinder.Next.Collection do
     {config.source, config.fields, query, opts}
   end
 
-  # A read's result, and the reactions to it: the selection takes which of its
-  # records can be selected and how many match, and a page past the first that
-  # came back empty (its records deleted by a bulk action, or a URL asking for a
-  # page past the last) moves to one with records
-  defp read_done(socket, result) do
-    socket = assign(socket, :loading?, false)
-    query = socket.assigns.query
-
+  # A read's result (see `ReadState.done/1`), and the reactions to it: the selection
+  # takes which of its records can be selected and how many match, and a page past
+  # the first that came back empty (its records deleted by a bulk action, a URL
+  # asking for a page past the last, or argument values that can't be read) moves to
+  # the last with records
+  defp read_done(%{assigns: %{query: query}} = socket, result) do
     case {result, query.cursor} do
-      {{:ok, page}, _cursor} ->
-        socket |> assign(page: page, argument_errors: %{}) |> after_read() |> leave_emptied_page()
-
-      # What the user can fix: a value the action can't use. Ash's messages, until
-      # they're translated.
-      {{:error, %Engine.Error{reason: nil, inputs: inputs}}, _cursor} ->
-        errors =
-          Map.new(inputs, fn {name, errors} -> {name, Enum.map(errors, &interpolate/1)} end)
-
-        socket |> assign(page: %Engine.Page{}, argument_errors: errors) |> after_read()
-
       # Only a cursor from the URL can fail to read (the others are a page's own), and
       # what the user puts in the URL is dropped, from the URL too
-      {{:error, _error}, {_direction, _cursor}} ->
+      {{:error, %Engine.Error{reason: reason}}, {_direction, _cursor}} when reason != nil ->
         move(socket, State.first_page(query))
+
+      _result ->
+        {state, page} = ReadState.done(result)
+        socket |> assign(read: state, page: page) |> after_read() |> leave_emptied_page()
     end
-  end
-
-  defp interpolate({message, vars}) do
-    Enum.reduce(vars, message, fn {key, value}, message ->
-      String.replace(message, "%{#{key}}", var(value))
-    end)
-  end
-
-  # Lists are chardata to `to_string/1`, so a list of values (`one_of`'s) is joined
-  defp var(value) when is_list(value), do: Enum.map_join(value, ", ", &var/1)
-
-  defp var(value) do
-    if String.Chars.impl_for(value), do: to_string(value), else: inspect(value)
   end
 
   ## Markup
@@ -498,7 +479,7 @@ defmodule Cinder.Next.Collection do
             target: @myself,
             filter_values: @argument_values
           })}
-          <p :for={message <- @argument_errors[column.field] || []}>{message}</p>
+          <p :for={message <- ReadState.errors(@read)[column.field] || []}>{message}</p>
         </div>
         <div :if={@config.search}>
           <label for={"#{@id}-search"}>{@config.search.label || dgettext("cinder", "Search")}</label>
@@ -531,7 +512,7 @@ defmodule Cinder.Next.Collection do
         confirm_component={@config.bulk_action_confirm || (&bulk_action_confirm/1)}
         target={@myself}
       />
-      <table aria-busy={@loading? && "true"}>
+      <table aria-busy={ReadState.loading?(@read) && "true"}>
         <thead>
           <tr>
             <th :if={@config.selectable != false}>
@@ -579,7 +560,9 @@ defmodule Cinder.Next.Collection do
       </table>
       <%!-- Always there, so it's a live region before its text changes. Until theming
       puts it over the table, what's below moves as it fills and empties. --%>
-      <p id={"#{@id}-loading"} role="status">{if @loading?, do: dgettext("cinder", "Loading...")}</p>
+      <p id={"#{@id}-loading"} role="status">
+        {if ReadState.loading?(@read), do: dgettext("cinder", "Loading...")}
+      </p>
       <%!-- The page size can be chosen even on one page, so a user who chose more can go back to fewer --%>
       <nav
         :if={@config.pagination && (@page.previous? or @page.more? or size_choice?(@config))}
