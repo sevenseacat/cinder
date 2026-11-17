@@ -8,8 +8,9 @@ defmodule Cinder.Engine.Error do
   #
   #   * `inputs` - errors the user can fix, by the name of the read action argument
   #     they're about, as `{message, vars}` to translate (as Phoenix form errors are)
-  #   * `reason` - `nil` when `inputs` are the only problem, or else the original
-  #     error, for developers: the read failed for some other reason
+  #   * `reason` - `nil` when the user can fix the read (the `inputs`, or a cursor
+  #     that isn't one, as from a URL), or else the original error, for developers:
+  #     the read failed for some other reason
 
   @type message :: {String.t(), keyword()}
 

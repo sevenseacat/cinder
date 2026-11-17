@@ -755,8 +755,6 @@ defmodule Cinder.Next.CollectionTest do
       |> titles(["Abbey", "Blue"])
     end
 
-    # The engine logs the failed read
-    @tag :capture_log
     test "a cursor that isn't one shows the first page, and leaves the URL", %{conn: conn} do
       path = synced(mode: :keyset, size: 2)
 
@@ -764,6 +762,24 @@ defmodule Cinder.Next.CollectionTest do
       |> visit(path <> "?after=not-a-cursor")
       |> titles(["Abbey", "Blue"], timeout: 500)
       |> assert_path(path, query_params: %{}, timeout: 500)
+    end
+
+    # Only a cursor that isn't one goes back to the first page
+    @tag :capture_log
+    test "by keyset, a failed read keeps its page in the URL, to try again", %{conn: conn} do
+      path = synced(mode: :keyset, size: 2)
+
+      conn
+      |> visit(path)
+      |> unwrap(fn view ->
+        fail_next_read(view)
+        render(view)
+      end)
+      |> click_button("#albums nav button", "Next page")
+      |> assert_has("#albums [role=alert]", text: "An error occurred while loading data")
+      |> refute_path(path, query_params: %{}, timeout: 500)
+      |> click_button("#albums button", "Try again")
+      |> titles(["Cold", "Dark"])
     end
 
     test "when the parent changes the declarations and the page resets, so does the URL",

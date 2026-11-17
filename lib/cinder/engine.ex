@@ -468,6 +468,8 @@ defmodule Cinder.Engine do
     params = Map.new(arguments, &{&1.name, &1.param})
     errors = if is_map(reason), do: Map.get(reason, :errors, [reason]), else: [reason]
     {on_inputs, others} = Enum.split_with(errors, &on_input?(&1, params))
+    # A cursor from the URL that isn't one is the user's, to be dropped
+    others = Enum.reject(others, &is_struct(&1, Ash.Error.Page.InvalidKeyset))
 
     # The conversion Phoenix forms use, so the messages are the ones a form would show.
     # One error can give several.

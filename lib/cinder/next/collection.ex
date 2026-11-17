@@ -448,20 +448,13 @@ defmodule Cinder.Next.Collection do
   # A read's result (see `ReadState.done/1`), and the reactions to it: the selection
   # takes which of its records can be selected and how many match, and a page past
   # the first that came back empty (its records deleted by a bulk action, a URL
-  # asking for a page past the last, or argument values that can't be read) moves to
-  # the last with records. A failed page stays, to be tried again.
-  defp read_done(%{assigns: %{query: query}} = socket, result) do
-    case {result, query.cursor} do
-      # Only a cursor from the URL can fail to read (the others are a page's own), and
-      # what the user puts in the URL is dropped, from the URL too
-      {{:error, %Engine.Error{reason: reason}}, {_direction, _cursor}} when reason != nil ->
-        move(socket, State.first_page(query))
-
-      _result ->
-        {state, page} = ReadState.done(result)
-        socket = socket |> assign(read: state, page: page) |> after_read()
-        if ReadState.failed?(state), do: socket, else: leave_emptied_page(socket)
-    end
+  # asking for a page past the last, argument values that can't be read, or a cursor
+  # that isn't one) moves to the last with records, or the first by keyset. A failed
+  # page stays, to be tried again.
+  defp read_done(socket, result) do
+    {state, page} = ReadState.done(result)
+    socket = socket |> assign(read: state, page: page) |> after_read()
+    if ReadState.failed?(state), do: socket, else: leave_emptied_page(socket)
   end
 
   ## Markup

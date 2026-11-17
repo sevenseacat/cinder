@@ -149,6 +149,19 @@ defmodule Cinder.EngineRunTest do
       refute log =~ "polka"
     end
 
+    # Cursors come from the URL, so a bad one is the user's to drop, like a bad value
+    test "a cursor that isn't one can be fixed by the user, so isn't logged" do
+      opts = [action: :paginated, pagination: :keyset]
+
+      log =
+        capture_log(fn ->
+          assert Engine.run(Music.Album, fields(), %Query{cursor: {:after, "not-a-cursor"}}, opts) ==
+                   {:error, %Engine.Error{inputs: %{}, reason: nil}}
+        end)
+
+      refute log =~ "not-a-cursor"
+    end
+
     @tag :capture_log
     test "an argument with no input can't be fixed by the user, so the read failed" do
       assert %Engine.Error{
