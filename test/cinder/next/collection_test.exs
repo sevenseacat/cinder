@@ -543,7 +543,7 @@ defmodule Cinder.Next.CollectionTest do
       expect(Ash, :read, fn _query, _opts -> {:error, Ash.Error.to_error_class("Simulated")} end)
     end
 
-    # Logged until the logging is the engine's
+    # The engine logs the failed read
     @tag :capture_log
     test "show an error and a way to try again, with no rows, through a parent's re-render",
          %{conn: conn} do
@@ -837,8 +837,6 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums td", text: "Blue")
     end
 
-    # `QueryBuilder` logs every failed read, even one the user just needs to fix
-    @tag :capture_log
     test "a value the action can't use shows its message under the input, and no records",
          %{conn: conn} do
       conn
@@ -852,7 +850,6 @@ defmodule Cinder.Next.CollectionTest do
     end
 
     # There's nothing to show past the first page, as there would be no records
-    @tag :capture_log
     test "a value the action can't use, from the URL past the first page, shows the first",
          %{conn: conn} do
       path =

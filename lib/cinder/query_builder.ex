@@ -65,6 +65,7 @@ defmodule Cinder.QueryBuilder do
       end
     rescue
       error ->
+        reraise_unless_logging(error, __STACKTRACE__, options)
         resource = extract_resource_for_logging(resource_or_query)
 
         Logger.error(
@@ -187,37 +188,46 @@ defmodule Cinder.QueryBuilder do
     before_keyset = Keyword.get(options, :before_keyset)
 
     try do
-      case action_supports_pagination?(prepared_query) do
-        true ->
-          case pagination_mode do
-            :keyset ->
-              execute_with_keyset_pagination(
-                prepared_query,
-                ash_opts,
-                page_size,
-                after_keyset,
-                before_keyset,
-                count?
+      result =
+        case action_supports_pagination?(prepared_query) do
+          true ->
+            case pagination_mode do
+              :keyset ->
+                execute_with_keyset_pagination(
+                  prepared_query,
+                  ash_opts,
+                  page_size,
+                  after_keyset,
+                  before_keyset,
+                  count?
+                )
+
+              :offset ->
+                execute_with_pagination(prepared_query, ash_opts, current_page, page_size, count?)
+            end
+
+          false ->
+            # Check if user has configured pagination but action doesn't support it
+            if Keyword.get(options, :pagination_configured, false) do
+              Logger.warning(
+                "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
+                  "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
+                  "https://hexdocs.pm/ash/pagination.html"
               )
+            end
 
-            :offset ->
-              execute_with_pagination(prepared_query, ash_opts, current_page, page_size, count?)
-          end
+            execute_without_pagination(prepared_query, ash_opts)
+        end
 
-        false ->
-          # Check if user has configured pagination but action doesn't support it
-          if Keyword.get(options, :pagination_configured, false) do
-            Logger.warning(
-              "Table configured with page_size but action #{inspect(prepared_query.action.name)} doesn't support pagination. " <>
-                "All records will be loaded into memory. Add 'pagination do ... end' to your action: " <>
-                "https://hexdocs.pm/ash/pagination.html"
-            )
-          end
-
-          execute_without_pagination(prepared_query, ash_opts)
+      if log?(options) do
+        log_query_error(result, prepared_query.resource, current_page, page_size, ash_opts)
       end
+
+      result
     rescue
       error ->
+        reraise_unless_logging(error, __STACKTRACE__, options)
+
         Logger.error(
           "Cinder table query crashed with exception for #{inspect(prepared_query.resource)}: #{inspect(error)}",
           %{
@@ -304,9 +314,8 @@ defmodule Cinder.QueryBuilder do
       {:ok, %Ash.Page.Offset{} = page} ->
         {:ok, page}
 
-      {:error, query_error} ->
-        log_query_error(query.resource, query_error, current_page, page_size, ash_opts)
-        {:error, query_error}
+      {:error, _query_error} = error ->
+        error
     end
   end
 
@@ -335,9 +344,8 @@ defmodule Cinder.QueryBuilder do
       {:ok, %Ash.Page.Offset{} = page} ->
         {:ok, page}
 
-      {:error, query_error} ->
-        log_query_error(query.resource, query_error, 1, page_size, ash_opts)
-        {:error, query_error}
+      {:error, _query_error} = error ->
+        error
     end
   end
 
@@ -352,14 +360,23 @@ defmodule Cinder.QueryBuilder do
         # Wrap results in a simple struct-like map for consistent access via .results
         {:ok, %{results: results}}
 
-      {:error, query_error} ->
-        log_query_error(query.resource, query_error, 1, 0, ash_opts)
-        {:error, query_error}
+      {:error, _query_error} = error ->
+        error
     end
   end
 
+  # With `log?: false`, the caller logs failures (as `Cinder.Engine.run/4` does), so a
+  # crash is raised again, stacktrace and all
+  defp log?(options), do: Keyword.get(options, :log?, true)
+
+  defp reraise_unless_logging(error, stacktrace, options) do
+    if !log?(options), do: reraise(error, stacktrace)
+  end
+
   # Helper for consistent error logging
-  defp log_query_error(resource, query_error, current_page, page_size, ash_opts) do
+  defp log_query_error({:ok, _result}, _resource, _current_page, _page_size, _ash_opts), do: :ok
+
+  defp log_query_error({:error, query_error}, resource, current_page, page_size, ash_opts) do
     Logger.error(
       "Cinder table query execution failed for #{inspect(resource)}: #{inspect(query_error)}",
       %{

@@ -18,6 +18,8 @@ defmodule Cinder.Engine do
   alias Cinder.Filters.Registry
   alias Cinder.QueryBuilder
 
+  require Logger
+
   @date_types [
     Ash.Type.Date,
     Ash.Type.DateTime,
@@ -306,7 +308,8 @@ defmodule Cinder.Engine do
   Every column's `load` is loaded, along with any in `query_opts`.
 
   A read that fails gives a `Cinder.Engine.Error`: the errors on read action
-  arguments the user can fix, and the original error if it failed otherwise.
+  arguments the user can fix, and the original error if it failed otherwise. A
+  crash is a failure too. Failures are logged once, unless the user can fix them.
   """
   @spec run(Ash.Query.t() | module(), [Field.t()], Query.t(), keyword()) ::
           {:ok, Page.t()} | {:error, Error.t()}
@@ -335,11 +338,34 @@ defmodule Cinder.Engine do
       search_fn: search_fn(opts[:search_fn], source, fields)
     ]
 
-    case QueryBuilder.build_and_execute(source, options) do
-      {:ok, result} -> {:ok, page(result, query, options[:pagination_mode])}
-      {:error, reason} -> {:error, error(reason, opts[:arguments] || [])}
+    case read(source, options) do
+      {:ok, result} ->
+        {:ok, page(result, query, options[:pagination_mode])}
+
+      {:crashed, exception} ->
+        {:error, error(exception, opts[:arguments] || [])}
+
+      {:error, reason} ->
+        error = error(reason, opts[:arguments] || [])
+
+        if error.reason,
+          do: Logger.error(read_failed(source) <> Exception.format_banner(:error, reason))
+
+        {:error, error}
     end
   end
+
+  # Only the engine knows which failures the user can fix, so it does the logging
+  defp read(source, options) do
+    QueryBuilder.build_and_execute(source, [log?: false] ++ options)
+  rescue
+    exception ->
+      Logger.error(read_failed(source) <> Exception.format(:error, exception, __STACKTRACE__))
+      {:crashed, exception}
+  end
+
+  defp read_failed(source),
+    do: "Cinder couldn't read #{inspect(Ash.Query.new(source).resource)}: "
 
   @doc """
   Runs `bulk_action` (from `bulk_action/2`) on the selected records, reached as

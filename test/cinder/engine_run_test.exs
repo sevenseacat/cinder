@@ -1,8 +1,11 @@
 defmodule Cinder.EngineRunTest do
   # The Music records are shared ETS data
   use Cinder.ConnCase, async: false
+  use Mimic
 
   require Ash.Query
+
+  import ExUnit.CaptureLog
 
   alias Cinder.Engine
   alias Cinder.Engine.{Field, Page, Query}
@@ -128,17 +131,22 @@ defmodule Cinder.EngineRunTest do
       error
     end
 
-    # `QueryBuilder` logs every failed read, even one the user just needs to finish
-    @tag :capture_log
-    # Under the input's `param`, which is what the shell knows it by
+    # Under the input's `param`, which is what the shell knows it by. Not logged, as
+    # the user just needs to fix it, and it's shown to them.
     test "a missing or invalid argument is an error on that input, to translate" do
       opts = [action: :by_genre, arguments: [genre("style")]]
 
-      assert error(%{}, opts) ==
-               %Engine.Error{inputs: %{"style" => [{"is required", []}]}, reason: nil}
+      log =
+        capture_log(fn ->
+          assert error(%{}, opts) ==
+                   %Engine.Error{inputs: %{"style" => [{"is required", []}]}, reason: nil}
 
-      assert error(%{"style" => %{type: :text, value: "polka", operator: :contains}}, opts) ==
-               %Engine.Error{inputs: %{"style" => [{"is invalid", []}]}, reason: nil}
+          assert error(%{"style" => %{type: :text, value: "polka", operator: :contains}}, opts) ==
+                   %Engine.Error{inputs: %{"style" => [{"is invalid", []}]}, reason: nil}
+        end)
+
+      refute log =~ "Query.Required"
+      refute log =~ "polka"
     end
 
     @tag :capture_log
@@ -151,13 +159,51 @@ defmodule Cinder.EngineRunTest do
       assert inputs == %{}
     end
 
-    @tag :capture_log
-    test "anything else is a failure, with the original error as the reason" do
-      assert %Engine.Error{inputs: inputs, reason: %Ash.Error.Unknown{errors: [unknown]}} =
-               error(%{}, action: :failing)
+    test "anything else is a failure, with the original error as the reason, logged once" do
+      log =
+        capture_log(fn ->
+          assert %Engine.Error{inputs: inputs, reason: %Ash.Error.Unknown{errors: [unknown]}} =
+                   error(%{}, action: :failing)
 
-      assert inputs == %{}
-      assert %Ash.Error.Unknown.UnknownError{error: "Simulated failure"} = unknown
+          assert inputs == %{}
+          assert %Ash.Error.Unknown.UnknownError{error: "Simulated failure"} = unknown
+        end)
+
+      assert [_before, _after] = String.split(log, "[error]")
+      assert log =~ "Cinder couldn't read Music.Album: ** (Ash.Error.Unknown)"
+      assert log =~ "* Simulated failure"
+    end
+
+    # The engine catches it, so a crash shows as a failure, not a crashed page
+    test "a crash is a failure, with the exception as the reason, logged once with where it was" do
+      expect(Ash, :read, fn _query, _opts -> raise "Simulated crash" end)
+
+      log =
+        capture_log(fn ->
+          assert error(%{}, []) == %Engine.Error{
+                   reason: %RuntimeError{message: "Simulated crash"}
+                 }
+        end)
+
+      assert [_before, _after] = String.split(log, "[error]")
+      assert log =~ "Cinder couldn't read Music.Album: ** (RuntimeError) Simulated crash"
+      assert log =~ "test/cinder/engine_run_test.exs:"
+    end
+
+    test "so is a crash building the query" do
+      expect(Cinder.Filters.Text, :build_query, fn _query, _field, _value -> raise "Simulated" end)
+
+      fields = fields(%{"title" => %{filter: %{}}})
+      filters = Cinder.Params.filters_from_params(%{"title" => "b"}, fields)
+
+      log =
+        capture_log(fn ->
+          assert {:error, %Engine.Error{reason: %RuntimeError{message: "Simulated"}}} =
+                   Engine.run(Music.Album, fields, %Query{filters: filters}, [])
+        end)
+
+      assert [_before, _after] = String.split(log, "[error]")
+      assert log =~ "Cinder couldn't read Music.Album: ** (RuntimeError) Simulated"
     end
   end
 
