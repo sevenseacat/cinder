@@ -15,6 +15,7 @@ defmodule Cinder.Next.CollectionTest do
       live: 2,
       render: 1,
       render_async: 1,
+      render_change: 3,
       render_click: 1,
       render_click: 2,
       render_click: 3,
@@ -544,6 +545,39 @@ defmodule Cinder.Next.CollectionTest do
       assert html =~ ~r/Blue.*Abbey/s
     end
 
+    # A read still running when it's no longer wanted is superseded, whatever replaces it
+    test "a required argument cleared while its read runs shows nothing from that read",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, by_genre(type: :text))
+      render_async(view)
+
+      test_pid = self()
+      allow(Ash, test_pid, view.pid)
+
+      expect(Ash, :read, fn query, opts ->
+        send(test_pid, {:reading, self()})
+
+        receive do
+          :continue -> call_original(Ash, :read, [query, opts])
+        after
+          5_000 -> raise "the test didn't let the read finish"
+        end
+      end)
+
+      filter = fn genre ->
+        view
+        |> with_target("#albums")
+        |> render_change("filter", %{"filters" => %{"genre" => genre}})
+      end
+
+      filter.("rock")
+      assert_receive {:reading, read}
+      filter.("")
+
+      send(read, :continue)
+      refute render_async(view) =~ "Abbey"
+    end
+
     # The engine catches what raises, so only an exit is left to crash the read
     @tag :capture_log
     test "a read that crashes is a failure", %{conn: conn} do
@@ -589,31 +623,6 @@ defmodule Cinder.Next.CollectionTest do
       end)
       |> assert_has("#albums th", text: "Name")
       |> assert_has("#albums [role=alert]", text: "An error occurred while loading data")
-    end
-
-    # The failed page isn't left as if it were empty: its records are unknown
-    @tag :capture_log
-    test "trying again reads the same page again", %{conn: conn} do
-      path =
-        Fixture.register(fn assigns ->
-          ~H"""
-          <Cinder.Next.collection id="albums" query={Ash.Query.sort(Music.Album, :title)} pagination={[size: 1]}>
-            <:field :let={album} name="title">{album.title}</:field>
-          </Cinder.Next.collection>
-          """
-        end)
-
-      {:ok, view, _html} = live(conn, path)
-      fail_next_read(view)
-
-      html = view |> element("#albums nav button", "Next page") |> render_click()
-      assert html =~ "An error occurred while loading data"
-      refute html =~ "Abbey"
-
-      html = view |> element("#albums button", "Try again") |> render_click()
-      refute html =~ "An error occurred while loading data"
-      assert html =~ "Blue"
-      assert html =~ "Page 2 of 2"
     end
 
     @tag :capture_log
@@ -846,7 +855,8 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_path(path, query_params: %{}, timeout: 500)
     end
 
-    # Only a cursor that isn't one goes back to the first page
+    # A failed page isn't left as an emptied one is: its records are unknown. Only a
+    # cursor that isn't one goes back to the first page.
     @tag :capture_log
     test "by keyset, a failed read keeps its page in the URL, to try again", %{conn: conn} do
       path = synced(mode: :keyset, size: 2)

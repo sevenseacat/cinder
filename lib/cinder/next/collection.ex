@@ -34,9 +34,9 @@ defmodule Cinder.Next.Collection do
   end
 
   # The fields' inner blocks, and the other slots, are new on every parent render, so
-  # they're always taken; only the fields that are columns have cells. The config is only rebuilt
-  # when what's declared changes. Synced to the URL (`url_state`, the parent's
-  # `@url_state`, isn't `nil`), a change to the URL's params is applied too.
+  # they're always taken; only the fields that are columns have cells. The config is
+  # only rebuilt when what's declared changes. Synced to the URL (`url_state`, the
+  # parent's `@url_state`, isn't `nil`), a change to the URL's params is applied too.
   @impl true
   def update(assigns, socket) do
     declarations =
@@ -422,21 +422,22 @@ defmodule Cinder.Next.Collection do
       )
 
     {source, fields, query, opts} = read_inputs(config, query)
-    run = fn -> Engine.run(source, fields, query, opts) end
+
+    # A read missing a required argument would fail; it's invalid, with nothing to say
+    # yet. It still goes the way any read does, so it supersedes one still running.
+    run =
+      if Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) do
+        fn -> {:error, %Engine.Error{}} end
+      else
+        fn -> Engine.run(source, fields, query, opts) end
+      end
 
     disable_async? = Application.get_env(:ash, :disable_async?) == true
 
-    cond do
-      # A read missing a required argument would fail; it's invalid, with nothing to
-      # say yet
-      Enum.any?(config.arguments, &(&1.required? and !Map.has_key?(query.arguments, &1.param))) ->
-        read_done(socket, {:error, %Engine.Error{}})
-
-      ReadState.read_first?(state, config.initial_load, disable_async?) ->
-        read_done(socket, run.())
-
-      true ->
-        socket |> assign(:read, :loading) |> start_async(:read, run)
+    if ReadState.read_first?(state, config.initial_load, disable_async?) do
+      read_done(socket, run.())
+    else
+      socket |> assign(:read, :loading) |> start_async(:read, run)
     end
   end
 
