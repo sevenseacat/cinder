@@ -30,9 +30,19 @@ defmodule CinderDevWeb.Next.StatesLive do
       </Cinder.Next.collection>
 
       <h2 class="mt-10 text-lg font-semibold">Empty</h2>
-      <Layouts.parity not_yet={["An `<:empty>` slot, told whether filters are applied", "Themes"]} />
+      <Layouts.parity
+        not_yet={["Themes"]}
+        changed={[
+          "The slot's `filters` are each filter's value, by field, and it gets `arguments` too"
+        ]}
+      />
       <Cinder.Next.collection id="albums-empty" query={@no_matches}>
         <:field :let={album} name="title" filter>{album.title}</:field>
+        <:empty :let={context}>
+          <p class="p-8 text-center">
+            {if context.filtered?, do: "No albums match your filters.", else: "No albums yet."}
+          </p>
+        </:empty>
       </Cinder.Next.collection>
 
       <h2 class="mt-10 text-lg font-semibold">Error</h2>

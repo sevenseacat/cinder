@@ -72,9 +72,13 @@ defmodule Cinder.Next.ReadStateTest do
     refute ReadState.failed?({:invalid, %{}})
   end
 
-  test "loading?/1 and errors/1, for the markup" do
+  test "loading?/1, loaded?/1 and errors/1, for the markup" do
     assert ReadState.loading?(:loading)
     refute ReadState.loading?(:loaded)
+
+    assert ReadState.loaded?(:loaded)
+    refute ReadState.loaded?(:loading)
+    refute ReadState.loaded?({:invalid, %{}})
 
     assert ReadState.errors({:invalid, %{"genre" => ["is invalid"]}}) == %{
              "genre" => ["is invalid"]

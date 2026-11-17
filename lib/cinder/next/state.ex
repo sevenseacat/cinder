@@ -42,6 +42,26 @@ defmodule Cinder.Next.State do
     Params.to_url(query, config.fields, start(config), arguments: config.arguments)
   end
 
+  @doc """
+  What the user has applied, for the `<:empty>` slot: whether a filter or the search
+  is, the search, and the filters' and arguments' values (as each filter type gives
+  them) by field and argument name. Arguments aren't filtering: the read action
+  needs them.
+  """
+  def applied(%Query{} = query, %Config{} = config) do
+    names = Map.new(config.arguments, &{&1.param, &1.name})
+
+    %{
+      filtered?: query.filters != %{} or query.search != "",
+      search: query.search,
+      filters: Map.new(query.filters, fn {field, filter} -> {field, filter.value} end),
+      arguments:
+        for({param, filter} <- query.arguments, Map.has_key?(names, param), into: %{}) do
+          {names[param], filter.value}
+        end
+    }
+  end
+
   @doc "Every URL param the collection may write, so the URL's other params are kept."
   def url_keys(%Config{} = config) do
     Params.url_keys(config.fields, arguments: config.arguments)

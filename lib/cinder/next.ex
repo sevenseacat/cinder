@@ -105,6 +105,10 @@ defmodule Cinder.Next do
       doc: "More options for the action: Ash's bulk update or destroy options, or the function's"
   end
 
+  slot :empty,
+    doc:
+      "Shown when a read finds no records, given what's applied (see Empty, loading and errors)"
+
   @doc """
   Shows an Ash resource's records in a table, for the user to sort, filter, search and
   page through.
@@ -208,7 +212,34 @@ defmodule Cinder.Next do
   A page past the last with records, from an old link or after a bulk action deleted
   its records, shows the last page with records instead.
 
-  ## Loading
+  ## Empty, loading and errors
+
+  ```heex
+  <Cinder.Next.collection id="albums" resource={MyApp.Album}>
+    <:field :let={album} name="title" filter>{album.title}</:field>
+    <:field name="genre" filter column={false} />
+    <:empty :let={empty}>
+      <%= if empty.filtered? do %>
+        No albums match.
+        <.link navigate={~p"/albums/new?\#{Map.take(empty.filters, ["title", "genre"])}"}>
+          Add one
+        </.link>
+      <% else %>
+        No albums yet.
+      <% end %>
+    </:empty>
+  </Cinder.Next.collection>
+  ```
+
+  When a read finds no records, the collection says so, or shows `<:empty>` instead,
+  given what's applied:
+
+    * `filtered?` - whether a filter or the search is applied
+    * `search` - the search text, `""` when there's none
+    * `filters` - each applied filter's value, by field name (`"jazz"`,
+      `%{min: "10", max: ""}`)
+    * `arguments` - each read action argument's value, by its name, the same way.
+      Arguments aren't filtering: the action needs them.
 
   ```heex
   <Cinder.Next.collection id="albums" resource={MyApp.Album} initial_load={:sync}>
@@ -391,10 +422,11 @@ defmodule Cinder.Next do
     <.live_component
       module={Cinder.Next.Collection}
       id={@id}
-      options={assigns_to_attributes(assigns, [:field, :argument, :bulk_action])}
+      options={assigns_to_attributes(assigns, [:field, :argument, :bulk_action, :empty])}
       fields={@field}
       arguments={@argument}
       bulk_actions={@bulk_action}
+      empty_slot={@empty}
     />
     """
   end

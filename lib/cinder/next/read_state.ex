@@ -39,6 +39,9 @@ defmodule Cinder.Next.ReadState do
   @doc "Whether a read is under way."
   def loading?(state), do: state == :loading
 
+  @doc "Whether the last read gave records (or none), rather than an error."
+  def loaded?(state), do: state == :loaded
+
   @doc "Whether the last read failed, so it can be tried again."
   def failed?(state), do: match?({:failed, _reason}, state)
 

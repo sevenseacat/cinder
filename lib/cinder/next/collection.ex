@@ -33,8 +33,8 @@ defmodule Cinder.Next.Collection do
      )}
   end
 
-  # The fields' inner blocks are new on every parent render, so they're always
-  # taken; only the fields that are columns have cells. The config is only rebuilt
+  # The fields' inner blocks, and the other slots, are new on every parent render, so
+  # they're always taken; only the fields that are columns have cells. The config is only rebuilt
   # when what's declared changes. Synced to the URL (`url_state`, the parent's
   # `@url_state`, isn't `nil`), a change to the URL's params is applied too.
   @impl true
@@ -52,7 +52,14 @@ defmodule Cinder.Next.Collection do
     url_params = url_state[:params]
     url_changed? = url_params != nil and url_params != socket.assigns[:url_state][:params]
     declarations_changed? = declarations != socket.assigns[:declarations]
-    socket = assign(socket, id: assigns.id, columns: columns, url_state: url_state)
+
+    socket =
+      assign(socket,
+        id: assigns.id,
+        columns: columns,
+        empty_slot: assigns.empty_slot,
+        url_state: url_state
+      )
 
     cond do
       declarations_changed? ->
@@ -408,7 +415,8 @@ defmodule Cinder.Next.Collection do
     socket =
       assign(socket,
         filter_values: Params.filter_values(query.filters, config.fields),
-        argument_values: Params.filter_values(query.arguments, config.arguments)
+        argument_values: Params.filter_values(query.arguments, config.arguments),
+        applied: State.applied(query, config)
       )
 
     {source, fields, query, opts} = read_inputs(config, query)
@@ -555,6 +563,13 @@ defmodule Cinder.Next.Collection do
           </tr>
         </tbody>
       </table>
+      <div :if={ReadState.loaded?(@read) and @page.records == []}>
+        <%= if @empty_slot != [] do %>
+          {render_slot(@empty_slot, @applied)}
+        <% else %>
+          {dgettext("cinder", "No results found")}
+        <% end %>
+      </div>
       <div :if={ReadState.failed?(@read)} role="alert">
         <p>{dgettext("cinder", "An error occurred while loading data")}</p>
         <button type="button" phx-click="retry" phx-target={@myself}>

@@ -177,6 +177,7 @@ msgstr "Ingen alternativer tilgjengelig"
 
 #: lib/cinder/collection.ex
 #: lib/cinder/filters/autocomplete.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "No results found"
 msgstr "Ingen resultater funnet"

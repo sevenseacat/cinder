@@ -474,6 +474,7 @@ defmodule Cinder.Next.CollectionTest do
       assert html =~ ~s(aria-busy="true")
       assert html =~ "Loading..."
       refute html =~ "Abbey"
+      refute html =~ "No results found"
 
       conn
       |> visit(path)
@@ -599,6 +600,39 @@ defmodule Cinder.Next.CollectionTest do
       reject(Ash, :read, 2)
 
       assert view |> with_target("#albums") |> render_click("retry", %{}) =~ "Abbey"
+    end
+  end
+
+  # What's applied is `State.applied/2`'s
+  describe "no records" do
+    test "says so", %{conn: conn} do
+      conn
+      |> visit(filterable())
+      |> refute_has("#albums", text: "No results found")
+      |> fill_in("Title", with: "zz")
+      |> refute_has("#albums tbody tr")
+      |> assert_has("#albums", text: "No results found")
+    end
+
+    test "the <:empty> slot instead, with what's applied", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:field :let={album} name="title" filter>{album.title}</:field>
+            <:empty :let={empty}>
+              <p>Filtered: {to_string(empty.filtered?)}, title: {empty.filters["title"]}</p>
+            </:empty>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path)
+      |> refute_has("#albums p", text: "Filtered")
+      |> fill_in("Title", with: "zz")
+      |> assert_has("#albums p", text: "Filtered: true, title: zz")
+      |> refute_has("#albums", text: "No results found")
     end
   end
 
@@ -860,6 +894,7 @@ defmodule Cinder.Next.CollectionTest do
       |> fill_in("Genre", with: "polka")
       |> assert_has("#albums-filters", text: "is invalid")
       |> refute_has("#albums tbody tr")
+      |> refute_has("#albums", text: "No results found")
       |> fill_in("Genre", with: "rock")
       |> refute_has("#albums-filters", text: "is invalid")
       |> assert_has("#albums td", text: "Abbey")

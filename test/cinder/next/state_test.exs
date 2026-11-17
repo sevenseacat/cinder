@@ -187,6 +187,39 @@ defmodule Cinder.Next.StateTest do
     end
   end
 
+  # As the `<:empty>` slot gets it: values as each filter type gives them
+  describe "applied/2, what the user has applied" do
+    test "nothing" do
+      assert State.applied(%Query{}, config(fields())) ==
+               %{filtered?: false, search: "", filters: %{}, arguments: %{}}
+    end
+
+    test "the filters' values by field, and the search" do
+      query = %Query{filters: %{"title" => @ab, "genre" => @rock}, search: "ab"}
+
+      assert State.applied(query, config(fields())) == %{
+               filtered?: true,
+               search: "ab",
+               filters: %{"title" => "ab", "genre" => "rock"},
+               arguments: %{}
+             }
+    end
+
+    test "the search alone is filtering" do
+      assert State.applied(%Query{search: "ab"}, config(fields())) ==
+               %{filtered?: true, search: "ab", filters: %{}, arguments: %{}}
+    end
+
+    # By name, not the `param` the form and the URL use
+    test "an argument's value by its name, which isn't filtering" do
+      query = %Query{arguments: %{"style" => @rock}}
+      config = config(fields(), [action: :by_genre], [{"genre", "style"}])
+
+      assert State.applied(query, config) ==
+               %{filtered?: false, search: "", filters: %{}, arguments: %{"genre" => "rock"}}
+    end
+  end
+
   test "first_page/1, by page number or by keyset" do
     assert State.first_page(%Query{page: 3}) == %Query{page: 1}
     assert State.first_page(%Query{cursor: {:after, "abc"}}) == %Query{page: 1}
