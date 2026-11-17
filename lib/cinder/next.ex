@@ -109,6 +109,10 @@ defmodule Cinder.Next do
     doc:
       "Shown when a read finds no records, given what's applied (see Empty, loading and errors)"
 
+  slot :loading, doc: "Shown while records are read"
+
+  slot :error, doc: "Shown when a read fails, given `retry`, a JS command to read again"
+
   @doc """
   Shows an Ash resource's records in a table, for the user to sort, filter, search and
   page through.
@@ -254,6 +258,20 @@ defmodule Cinder.Next do
 
   If a read fails, the records shown are cleared, and the user is told, with a button
   to try again. The collection stays on the same page.
+
+  To show your own, give `<:loading>`, or `<:error>`, which is given `retry`, a JS
+  command that reads again:
+
+  ```heex
+  <Cinder.Next.collection id="albums" resource={MyApp.Album}>
+    <:field :let={album} name="title">{album.title}</:field>
+    <:loading><.spinner /> Fetching albums...</:loading>
+    <:error :let={error}>
+      Albums couldn't be loaded.
+      <button type="button" phx-click={error.retry}>Try again</button>
+    </:error>
+  </Cinder.Next.collection>
+  ```
 
   ## Keeping it in the URL
 
@@ -422,11 +440,15 @@ defmodule Cinder.Next do
     <.live_component
       module={Cinder.Next.Collection}
       id={@id}
-      options={assigns_to_attributes(assigns, [:field, :argument, :bulk_action, :empty])}
+      options={
+        assigns_to_attributes(assigns, [:field, :argument, :bulk_action, :empty, :loading, :error])
+      }
       fields={@field}
       arguments={@argument}
       bulk_actions={@bulk_action}
       empty_slot={@empty}
+      loading_slot={@loading}
+      error_slot={@error}
     />
     """
   end

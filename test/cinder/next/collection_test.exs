@@ -483,6 +483,27 @@ defmodule Cinder.Next.CollectionTest do
       |> refute_has("#albums", text: "Loading...")
     end
 
+    test "the <:loading> slot instead", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:field :let={album} name="title">{album.title}</:field>
+            <:loading><p>Fetching albums</p></:loading>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      html = page_html(conn, path)
+      assert html =~ "<p>Fetching albums</p>"
+      refute html =~ "Loading..."
+
+      conn
+      |> visit(path)
+      |> assert_has("#albums td", text: "Abbey", timeout: 1000)
+      |> refute_has("#albums", text: "Fetching albums")
+    end
+
     test "read first, by the collection or the app's default, the page's HTML has the rows",
          %{conn: conn} do
       assert page_html(conn, loading(:sync)) =~ "Abbey"
@@ -593,6 +614,33 @@ defmodule Cinder.Next.CollectionTest do
       refute html =~ "An error occurred while loading data"
       assert html =~ "Blue"
       assert html =~ "Page 2 of 2"
+    end
+
+    @tag :capture_log
+    test "the <:error> slot instead, which can try again", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" query={Ash.Query.sort(Music.Album, :title)}>
+            <:field :let={album} name="title" sort>{album.title}</:field>
+            <:error :let={error}>
+              <p>Albums failed to load</p>
+              <button type="button" phx-click={error.retry}>Again</button>
+            </:error>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      {:ok, view, _html} = live(conn, path)
+      fail_next_read(view)
+
+      html = view |> element("#albums th button", "Title") |> render_click()
+      assert html =~ "Albums failed to load"
+      refute html =~ "An error occurred while loading data"
+
+      html = view |> element("#albums button", "Again") |> render_click()
+      refute html =~ "Albums failed to load"
+      assert html =~ ~r/Blue.*Abbey/s
     end
 
     test "a retry when nothing failed reads nothing", %{conn: conn} do

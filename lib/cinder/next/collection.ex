@@ -58,6 +58,8 @@ defmodule Cinder.Next.Collection do
         id: assigns.id,
         columns: columns,
         empty_slot: assigns.empty_slot,
+        loading_slot: assigns.loading_slot,
+        error_slot: assigns.error_slot,
         url_state: url_state
       )
 
@@ -571,16 +573,26 @@ defmodule Cinder.Next.Collection do
         <% end %>
       </div>
       <div :if={ReadState.failed?(@read)} role="alert">
-        <p>{dgettext("cinder", "An error occurred while loading data")}</p>
-        <button type="button" phx-click="retry" phx-target={@myself}>
-          {dgettext("cinder", "Try again")}
-        </button>
+        <%= if @error_slot != [] do %>
+          {render_slot(@error_slot, %{retry: JS.push("retry", target: @myself)})}
+        <% else %>
+          <p>{dgettext("cinder", "An error occurred while loading data")}</p>
+          <button type="button" phx-click="retry" phx-target={@myself}>
+            {dgettext("cinder", "Try again")}
+          </button>
+        <% end %>
       </div>
-      <%!-- Always there, so it's a live region before its text changes. Until theming
-      puts it over the table, what's below moves as it fills and empties. --%>
-      <p id={"#{@id}-loading"} role="status">
-        {if ReadState.loading?(@read), do: dgettext("cinder", "Loading...")}
-      </p>
+      <%!-- Always there, so it's a live region before its content changes. Until
+      theming puts it over the table, what's below moves as it fills and empties. --%>
+      <div id={"#{@id}-loading"} role="status">
+        <%= if ReadState.loading?(@read) do %>
+          <%= if @loading_slot != [] do %>
+            {render_slot(@loading_slot)}
+          <% else %>
+            {dgettext("cinder", "Loading...")}
+          <% end %>
+        <% end %>
+      </div>
       <%!-- The page size can be chosen even on one page, so a user who chose more can go back to fewer --%>
       <nav
         :if={@config.pagination && (@page.previous? or @page.more? or size_choice?(@config))}
