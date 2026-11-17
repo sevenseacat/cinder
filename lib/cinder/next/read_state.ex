@@ -24,17 +24,21 @@ defmodule Cinder.Next.ReadState do
 
   @doc """
   A read's result (from `Cinder.Engine.run/4`, or the task's exit) as the state
-  and the records to show.
+  and the records to show. Argument errors' messages go through `translate_error`
+  (given `{message, vars}`), or have the vars filled into Ash's English without one.
   """
-  def done({:ok, %Page{} = page}), do: {:loaded, page}
+  def done(result, translate_error \\ nil)
 
-  def done({:error, %Error{reason: nil, inputs: inputs}}) do
-    errors = Map.new(inputs, fn {name, errors} -> {name, Enum.map(errors, &message/1)} end)
+  def done({:ok, %Page{} = page}, _translate_error), do: {:loaded, page}
+
+  def done({:error, %Error{reason: nil, inputs: inputs}}, translate_error) do
+    message = translate_error || (&message/1)
+    errors = Map.new(inputs, fn {name, errors} -> {name, Enum.map(errors, message)} end)
     {{:invalid, errors}, %Page{}}
   end
 
-  def done({:error, %Error{reason: reason}}), do: {{:failed, reason}, %Page{}}
-  def done({:exit, reason}), do: {{:failed, reason}, %Page{}}
+  def done({:error, %Error{reason: reason}}, _translate_error), do: {{:failed, reason}, %Page{}}
+  def done({:exit, reason}, _translate_error), do: {{:failed, reason}, %Page{}}
 
   @doc "Whether a read is under way."
   def loading?(state), do: state == :loading

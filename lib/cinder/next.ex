@@ -58,6 +58,9 @@ defmodule Cinder.Next do
   attr :bulk_action_confirm, :any,
     doc: "A function component asking the user to confirm a bulk action"
 
+  attr :translate_error, :any,
+    doc: "A function translating an error message, given `{message, vars}`"
+
   slot :field,
     required: true,
     doc: "A field, shown as a column with its content for each record" do
@@ -310,6 +313,17 @@ defmodule Cinder.Next do
   value, nothing is read. A value the action can't use shows Ash's message under the
   input. `param` gives the argument another name in the form and the URL, for one
   that's taken (by a field, or one of the collection's own params, such as `search`).
+
+  Ash's messages are in English, with their values filled in. To translate them as
+  your forms' are, give `translate_error` a function taking `{message, vars}`, such as
+  the one Phoenix generates, or set it for every collection:
+
+  ```elixir
+  config :cinder, translate_error: &MyAppWeb.CoreComponents.translate_error/1
+  ```
+
+  In `config.exs`, it must be a named function (`&Module.function/1`), as a release
+  can't store any other.
 
   ## Selection
 

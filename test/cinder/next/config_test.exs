@@ -85,6 +85,18 @@ defmodule Cinder.Next.ConfigTest do
                  end
   end
 
+  test "a translate_error that isn't a function of one argument is an error" do
+    assert_raise ArgumentError,
+                 ~s(<Cinder.Next.collection id="albums">: invalid value for :translate_error option: expected function of arity 1, got: {MyAppWeb.CoreComponents, :translate_error}),
+                 fn ->
+                   build([field("title")],
+                     id: "albums",
+                     resource: Music.Album,
+                     translate_error: {MyAppWeb.CoreComponents, :translate_error}
+                   )
+                 end
+  end
+
   test "a column with no content is an error" do
     assert_raise ArgumentError,
                  ~s(<:field name="title"> needs content, such as <:field :let={record} name="title">{record.title}</:field>),

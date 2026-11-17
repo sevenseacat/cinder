@@ -107,6 +107,10 @@ defmodule Cinder.Next.Schema do
     bulk_action_confirm: [
       type: {:fun, 1},
       doc: "A function component asking the user to confirm a bulk action."
+    ],
+    translate_error: [
+      type: {:fun, 1},
+      doc: "A function translating an error message, given `{message, vars}`."
     ]
   ]
 

@@ -40,6 +40,16 @@ defmodule Cinder.Next.ReadStateTest do
                  }}, %Page{}}
     end
 
+    # As Phoenix's generated `translate_error/1` is, with Gettext
+    test "with `translate_error`, each message goes through it, vars and all" do
+      inputs = %{"year" => [{"must be at least %{min}", min: 1900}, {"is invalid", []}]}
+      translate = fn {message, vars} -> "#{String.upcase(message)} #{inspect(vars)}" end
+
+      assert ReadState.done({:error, %Error{inputs: inputs}}, translate) ==
+               {{:invalid, %{"year" => ["MUST BE AT LEAST %{MIN} [min: 1900]", "IS INVALID []"]}},
+                %Page{}}
+    end
+
     # A var without `String.Chars` is inspected rather than crashing
     test "a var that can't be a string is inspected" do
       inputs = %{"range" => [{"got %{value}", value: %{min: 1}}]}

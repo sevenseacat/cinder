@@ -37,6 +37,7 @@ defmodule Cinder.Next.Config do
     :on_selection_change,
     :on_bulk_action_result,
     :bulk_action_confirm,
+    :translate_error,
     :initial_load,
     selectable: false,
     columns: [],
@@ -107,6 +108,7 @@ defmodule Cinder.Next.Config do
       on_selection_change: options[:on_selection_change],
       on_bulk_action_result: options[:on_bulk_action_result],
       bulk_action_confirm: options[:bulk_action_confirm],
+      translate_error: options[:translate_error],
       bulk_actions: bulk_actions!(source, bulk_action_slots, options),
       sort: %{
         mode: options[:sort][:mode] || :additive,
@@ -115,13 +117,18 @@ defmodule Cinder.Next.Config do
     }
   end
 
-  # The app's defaults (its confirm component, when the first page is read), unless
-  # the collection gives its own, checked as the collection's would be. With neither
-  # (`nil`, which the schema drops as not given), Cinder's own is used.
+  # The app's defaults (its confirm component, how errors are translated, when the
+  # first page is read), unless the collection gives its own, checked as the
+  # collection's would be. With neither (`nil`, which the schema drops as not given),
+  # Cinder's own is used.
   defp with_app_defaults(options) do
-    confirm = options[:bulk_action_confirm] || Application.get_env(:cinder, :bulk_action_confirm)
-    initial_load = options[:initial_load] || Application.get_env(:cinder, :default_initial_load)
-    Keyword.merge(options, bulk_action_confirm: confirm, initial_load: initial_load)
+    defaults = [
+      bulk_action_confirm: Application.get_env(:cinder, :bulk_action_confirm),
+      translate_error: Application.get_env(:cinder, :translate_error),
+      initial_load: Application.get_env(:cinder, :default_initial_load)
+    ]
+
+    Keyword.merge(defaults, options, fn _key, default, given -> given || default end)
   end
 
   # A `<:field>` declares its field, so a second one for a name would contradict it

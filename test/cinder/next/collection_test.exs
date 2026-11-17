@@ -948,6 +948,18 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums td", text: "Abbey")
     end
 
+    # The app's default, which an attr overrides as any app default does
+    test "a message goes through translate_error, as an app's forms' do", %{conn: conn} do
+      Cinder.TestHelpers.put_app_env(:translate_error, fn {message, _vars} ->
+        "Translated: #{message}"
+      end)
+
+      conn
+      |> visit(by_genre(type: :text))
+      |> fill_in("Genre", with: "polka")
+      |> assert_has("#albums-filters", text: "Translated: is invalid")
+    end
+
     # There's nothing to show past the first page, as there would be no records
     test "a value the action can't use, from the URL past the first page, shows the first",
          %{conn: conn} do

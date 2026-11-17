@@ -462,7 +462,7 @@ defmodule Cinder.Next.Collection do
   # that isn't one) moves to the last with records, or the first by keyset. A failed
   # page stays, to be tried again.
   defp read_done(socket, result) do
-    {state, page} = ReadState.done(result)
+    {state, page} = ReadState.done(result, socket.assigns.config.translate_error)
     socket = socket |> assign(read: state, page: page) |> after_read()
     if ReadState.failed?(state), do: socket, else: leave_emptied_page(socket)
   end

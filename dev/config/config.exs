@@ -23,7 +23,9 @@ config :cinder_dev, CinderDevWeb.Endpoint,
 
 config :ash, default_string_length_count: :codepoints
 
-config :cinder, default_theme: "daisy_ui"
+config :cinder,
+  default_theme: "daisy_ui",
+  translate_error: &CinderDevWeb.CoreComponents.translate_error/1
 
 # Configure LiveView
 config :phoenix_live_view,
