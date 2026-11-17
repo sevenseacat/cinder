@@ -52,6 +52,24 @@ defmodule Cinder.Next.ReadStateTest do
     test "missing required arguments are invalid with nothing to say yet" do
       assert ReadState.done({:error, %Error{}}) == {{:invalid, %{}}, %Page{}}
     end
+
+    # Argument errors alongside another reason are dropped: the user can't fix the read
+    test "any other error is a failure, with no records" do
+      error = %Error{inputs: %{"genre" => [{"is invalid", []}]}, reason: :timeout}
+      assert ReadState.done({:error, error}) == {{:failed, :timeout}, %Page{}}
+    end
+
+    test "a read that crashed is a failure, with no records" do
+      assert ReadState.done({:exit, :killed}) == {{:failed, :killed}, %Page{}}
+    end
+  end
+
+  # The markup's, and a retry's, so a forged one, or one sent twice, doesn't read again
+  test "failed?/1" do
+    assert ReadState.failed?({:failed, :timeout})
+    refute ReadState.failed?(:loading)
+    refute ReadState.failed?(:loaded)
+    refute ReadState.failed?({:invalid, %{}})
   end
 
   test "loading?/1 and errors/1, for the markup" do

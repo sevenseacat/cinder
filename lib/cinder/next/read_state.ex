@@ -5,10 +5,11 @@
 defmodule Cinder.Next.ReadState do
   @moduledoc false
   # Where a collection's read of its records is, and every rule about it, as pure
-  # functions: `:unread` (before the first), `:loading`, `:loaded`, or
+  # functions: `:unread` (before the first), `:loading`, `:loaded`,
   # `{:invalid, errors}` (argument values the action can't use, as messages by
-  # input, or required arguments missing, with nothing to say yet). The records
-  # shown are `Cinder.Next.Collection`'s, as the old ones stay while loading.
+  # input, or required arguments missing, with nothing to say yet), or
+  # `{:failed, reason}` (anything else, for developers). The records shown are
+  # `Cinder.Next.Collection`'s, as the old ones stay while loading.
 
   alias Cinder.Engine.{Error, Page}
 
@@ -22,8 +23,8 @@ defmodule Cinder.Next.ReadState do
   end
 
   @doc """
-  A read's result (from `Cinder.Engine.run/4`) as the state and the records to
-  show. Only errors the user can fix are taken; other failures are the caller's.
+  A read's result (from `Cinder.Engine.run/4`, or the task's exit) as the state
+  and the records to show.
   """
   def done({:ok, %Page{} = page}), do: {:loaded, page}
 
@@ -32,8 +33,14 @@ defmodule Cinder.Next.ReadState do
     {{:invalid, errors}, %Page{}}
   end
 
+  def done({:error, %Error{reason: reason}}), do: {{:failed, reason}, %Page{}}
+  def done({:exit, reason}), do: {{:failed, reason}, %Page{}}
+
   @doc "Whether a read is under way."
   def loading?(state), do: state == :loading
+
+  @doc "Whether the last read failed, so it can be tried again."
+  def failed?(state), do: match?({:failed, _reason}, state)
 
   @doc "Each input's messages, when the action can't use its value."
   def errors({:invalid, errors}), do: errors

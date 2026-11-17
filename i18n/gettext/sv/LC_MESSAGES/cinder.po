@@ -203,6 +203,7 @@ msgid "Type to search more options..."
 msgstr "Skriv för att söka fler alternativ..."
 
 #: lib/cinder/collection.ex
+#: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Ett fel uppstod vid laddning av data"
@@ -251,3 +252,8 @@ msgid "Select all %{count} matching"
 msgid_plural "Select all %{count} matching"
 msgstr[0] "Välj alla %{count} träffar"
 msgstr[1] "Välj alla %{count} träffar"
+
+#: lib/cinder/next/collection.ex
+#, elixir-autogen, elixir-format
+msgid "Try again"
+msgstr "Försök igen"

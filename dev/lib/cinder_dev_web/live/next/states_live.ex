@@ -1,7 +1,6 @@
 defmodule CinderDevWeb.Next.StatesLive do
   @moduledoc """
-  The States page in the new shell (`Cinder.Next`). A failing read would crash it, for
-  now.
+  The States page in the new shell (`Cinder.Next`).
   """
   use CinderDevWeb, :live_view
 
@@ -37,10 +36,13 @@ defmodule CinderDevWeb.Next.StatesLive do
       </Cinder.Next.collection>
 
       <h2 class="mt-10 text-lg font-semibold">Error</h2>
-      <Layouts.parity not_yet={[
-        "A failed read crashes the collection, so there's none here",
-        "An `<:error>` slot"
-      ]} />
+      <Layouts.parity
+        not_yet={["An `<:error>` slot", "Themes"]}
+        changed={["The error says how to try again"]}
+      />
+      <Cinder.Next.collection id="albums-failing" resource={Music.Album} action={:failing}>
+        <:field :let={album} name="title">{album.title}</:field>
+      </Cinder.Next.collection>
     </Layouts.app>
     """
   end

@@ -245,6 +245,10 @@ defmodule Cinder.Next.Collection do
     {:noreply, assign(socket, :bulk_action, BulkActionState.cancel(socket.assigns.bulk_action))}
   end
 
+  def handle_event("retry", _params, socket) do
+    {:noreply, if(ReadState.failed?(socket.assigns.read), do: read(socket), else: socket)}
+  end
+
   defp cursor(%{more?: true, last_cursor: cursor}, "next_page"), do: {:after, cursor}
   defp cursor(%{previous?: true, first_cursor: cursor}, "previous_page"), do: {:before, cursor}
   defp cursor(_page, _direction), do: nil
@@ -252,7 +256,7 @@ defmodule Cinder.Next.Collection do
   # What's done in the background: a read, or a bulk action
   @impl true
   def handle_async(:read, {:ok, result}, socket), do: {:noreply, read_done(socket, result)}
-  def handle_async(:read, {:exit, reason}, _socket), do: exit(reason)
+  def handle_async(:read, exit, socket), do: {:noreply, read_done(socket, exit)}
   def handle_async(:bulk_action, result, socket), do: {:noreply, bulk_action_done(socket, result)}
 
   ## Bulk actions
@@ -396,9 +400,8 @@ defmodule Cinder.Next.Collection do
 
   # In the background, so the records shown stay until the new ones arrive, and a
   # later read supersedes one still running, unless it's read first (see
-  # `ReadState.read_first?/3`). A failed read crashes, until the errors slice. The
-  # controls' values are worked out here, rather than in `render/1`, where they'd be
-  # new on every render.
+  # `ReadState.read_first?/3`). The controls' values are worked out here, rather than
+  # in `render/1`, where they'd be new on every render.
   defp read(socket) do
     %{config: config, query: query, read: state} = socket.assigns
 
@@ -446,7 +449,7 @@ defmodule Cinder.Next.Collection do
   # takes which of its records can be selected and how many match, and a page past
   # the first that came back empty (its records deleted by a bulk action, a URL
   # asking for a page past the last, or argument values that can't be read) moves to
-  # the last with records
+  # the last with records. A failed page stays, to be tried again.
   defp read_done(%{assigns: %{query: query}} = socket, result) do
     case {result, query.cursor} do
       # Only a cursor from the URL can fail to read (the others are a page's own), and
@@ -456,7 +459,8 @@ defmodule Cinder.Next.Collection do
 
       _result ->
         {state, page} = ReadState.done(result)
-        socket |> assign(read: state, page: page) |> after_read() |> leave_emptied_page()
+        socket = socket |> assign(read: state, page: page) |> after_read()
+        if ReadState.failed?(state), do: socket, else: leave_emptied_page(socket)
     end
   end
 
@@ -558,6 +562,12 @@ defmodule Cinder.Next.Collection do
           </tr>
         </tbody>
       </table>
+      <div :if={ReadState.failed?(@read)} role="alert">
+        <p>{dgettext("cinder", "An error occurred while loading data")}</p>
+        <button type="button" phx-click="retry" phx-target={@myself}>
+          {dgettext("cinder", "Try again")}
+        </button>
+      </div>
       <%!-- Always there, so it's a live region before its text changes. Until theming
       puts it over the table, what's below moves as it fills and empties. --%>
       <p id={"#{@id}-loading"} role="status">

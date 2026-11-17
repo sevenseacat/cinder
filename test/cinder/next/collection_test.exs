@@ -521,6 +521,85 @@ defmodule Cinder.Next.CollectionTest do
       refute html =~ "aria-busy"
       assert html =~ ~r/Blue.*Abbey/s
     end
+
+    # The engine catches what raises, so only an exit is left to crash the read
+    @tag :capture_log
+    test "a read that crashes is a failure", %{conn: conn} do
+      {:ok, view, _html} = live(conn, loading())
+      render_async(view)
+
+      allow(Ash, self(), view.pid)
+      expect(Ash, :read, fn _query, _opts -> exit(:boom) end)
+
+      view |> element("#albums th button", "Title") |> render_click()
+      assert render_async(view) =~ "An error occurred while loading data"
+    end
+  end
+
+  describe "failed reads" do
+    defp fail_next_read(view) do
+      allow(Ash, self(), view.pid)
+      stub(Ash, :read, &call_original(Ash, :read, [&1, &2]))
+      expect(Ash, :read, fn _query, _opts -> {:error, Ash.Error.to_error_class("Simulated")} end)
+    end
+
+    # Logged until the logging is the engine's
+    @tag :capture_log
+    test "show an error and a way to try again, with no rows, through a parent's re-render",
+         %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album} action={:failing}>
+            <:field :let={album} name="title" label={assigns[:label]}>{album.title}</:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path)
+      |> assert_has("#albums [role=alert]", text: "An error occurred while loading data")
+      |> assert_has("#albums button", text: "Try again")
+      |> refute_has("#albums tbody tr")
+      |> unwrap(fn view ->
+        Fixture.run(view, &assign(&1, :label, "Name"))
+        render(view)
+      end)
+      |> assert_has("#albums th", text: "Name")
+      |> assert_has("#albums [role=alert]", text: "An error occurred while loading data")
+    end
+
+    # The failed page isn't left as if it were empty: its records are unknown
+    @tag :capture_log
+    test "trying again reads the same page again", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" query={Ash.Query.sort(Music.Album, :title)} pagination={[size: 1]}>
+            <:field :let={album} name="title">{album.title}</:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      {:ok, view, _html} = live(conn, path)
+      fail_next_read(view)
+
+      html = view |> element("#albums nav button", "Next page") |> render_click()
+      assert html =~ "An error occurred while loading data"
+      refute html =~ "Abbey"
+
+      html = view |> element("#albums button", "Try again") |> render_click()
+      refute html =~ "An error occurred while loading data"
+      assert html =~ "Blue"
+      assert html =~ "Page 2 of 2"
+    end
+
+    test "a retry when nothing failed reads nothing", %{conn: conn} do
+      {:ok, view, _html} = live(conn, loading())
+      reject(Ash, :read, 2)
+
+      assert view |> with_target("#albums") |> render_click("retry", %{}) =~ "Abbey"
+    end
   end
 
   describe "URL sync" do

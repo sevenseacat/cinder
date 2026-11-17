@@ -221,6 +221,9 @@ defmodule Cinder.Next do
   tests with `config :ash, disable_async?: true`, every read is done before the page
   renders.
 
+  If a read fails, the records shown are cleared, and the user is told, with a button
+  to try again. The collection stays on the same page.
+
   ## Keeping it in the URL
 
   ```elixir
