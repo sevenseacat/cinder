@@ -478,6 +478,7 @@ defmodule Cinder.Next.Collection do
         :if={@config.filters != [] or @config.search != nil or @config.argument_inputs != []}
         id={"#{@id}-filters"}
         phx-change="filter"
+        phx-submit="filter"
         phx-target={@myself}
       >
         <div :for={%{column: column, module: module} <- @config.argument_inputs}>

@@ -128,6 +128,17 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums tbody tr", count: 2)
     end
 
+    # Enter in a text box submits the form, which without `phx-submit` the browser
+    # does itself, loading the page again
+    test "submitting the filters, as Enter does, filters in place", %{conn: conn} do
+      conn
+      |> visit(filterable())
+      |> fill_in("Title", with: "ab")
+      |> submit()
+      |> assert_has("#albums tbody tr", count: 1)
+      |> assert_has("#albums td", text: "Abbey")
+    end
+
     test "choosing in a select filter shows only the records that match", %{conn: conn} do
       conn
       |> visit(filterable())
