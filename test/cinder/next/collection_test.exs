@@ -253,6 +253,25 @@ defmodule Cinder.Next.CollectionTest do
     end
   end
 
+  # A translation of "Show {selector} per page" decides where the size's select goes
+  describe "page_size_label/1" do
+    alias Cinder.Next.Collection
+
+    test "splits the text around the select" do
+      assert Collection.page_size_label("Show {selector} per page") == {"Show ", " per page"}
+      assert Collection.page_size_label("{selector} pro Seite") == {"", " pro Seite"}
+    end
+
+    test "a translation without the select's place puts the select after the text" do
+      assert Collection.page_size_label("Per page:") == {"Per page:", ""}
+    end
+
+    test "a translation placing it twice puts it at the first" do
+      assert Collection.page_size_label("Show {selector} of {selector}") ==
+               {"Show ", " of {selector}"}
+    end
+  end
+
   describe "paging" do
     # With the two albums from the main setup, five, in pages of two
     setup do

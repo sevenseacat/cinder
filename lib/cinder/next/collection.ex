@@ -735,11 +735,19 @@ defmodule Cinder.Next.Collection do
   defp size_choice?(%{pagination: %{size_options: [_, _ | _]}}), do: true
   defp size_choice?(_config), do: false
 
-  # Split, so a translation can put the size where its language needs it
-  defp page_size(assigns) do
-    [before, after_sizes] =
-      String.split(dgettext("cinder", "Show {selector} per page"), "{selector}")
+  # Split, so a translation can put the size where its language needs it. A
+  # translation that doesn't place it once is a mistake in the translation, so it
+  # shows rather than crashing the page
+  @doc false
+  def page_size_label(text) do
+    case String.split(text, "{selector}", parts: 2) do
+      [before, after_sizes] -> {before, after_sizes}
+      [text] -> {text, ""}
+    end
+  end
 
+  defp page_size(assigns) do
+    {before, after_sizes} = page_size_label(dgettext("cinder", "Show {selector} per page"))
     assigns = assign(assigns, before: before, after_sizes: after_sizes)
 
     ~H"""
