@@ -109,8 +109,9 @@ defmodule Cinder.Params do
   """
   @spec from_url(%{String.t() => term()}, [Field.t()], Query.t(), keyword()) :: Query.t()
   def from_url(params, fields, %Query{} = defaults, opts) do
+    # Only a string is a sort: `?sort[]=x` is a list
     sort =
-      if Map.has_key?(params, "sort") do
+      if is_binary(params["sort"]) do
         params["sort"]
         |> UrlManager.decode_sort(Enum.map(fields, &Field.to_column_map/1))
         |> limit_sorts(Keyword.get(opts, :sort_mode, :additive))

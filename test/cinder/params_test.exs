@@ -168,6 +168,13 @@ defmodule Cinder.ParamsTest do
       assert query == %Query{@defaults | sort: [{"track_count", :desc}]}
     end
 
+    # `?sort[]=x` and `?sort[a]=x` decode to a list and a map
+    test "a list or map where a string goes falls back to the default" do
+      for key <- Params.own_keys(), value <- [["x"], %{"a" => "x"}] do
+        assert {key, value, from_url(%{key => value})} == {key, value, @defaults}
+      end
+    end
+
     test "exclusive, only the first sort the collection can use is kept" do
       params = %{"sort" => "price,-track_count,title"}
       from_url = &Params.from_url(params, fields(), @defaults, &1)
