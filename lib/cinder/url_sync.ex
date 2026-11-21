@@ -150,13 +150,20 @@ defmodule Cinder.UrlSync do
 
   @doc false
   # Empty params are kept: `params` leaves defaults out already, so an empty one
-  # means something (`sort=` is unsorted, where no `sort` is the default sort)
+  # means something (`sort=` is unsorted, where no `sort` is the default sort).
+  # The app's params are kept as pairs, in order, as a name can repeat
   def patched_url(uri, params, owns) do
     uri = URI.parse(uri)
-    params = URI.decode_query(uri.query || "") |> Map.drop(owns) |> Map.merge(params)
+
+    apps =
+      for {key, _value} = pair <- URI.query_decoder(uri.query || ""), key not in owns do
+        pair
+      end
+
+    pairs = apps ++ Enum.sort(params)
     path = uri.path || "/"
 
-    if params == %{}, do: path, else: "#{path}?#{URI.encode_query(params)}"
+    if pairs == [], do: path, else: "#{path}?#{URI.encode_query(pairs)}"
   end
 
   @doc """
