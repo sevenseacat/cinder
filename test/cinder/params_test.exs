@@ -29,10 +29,10 @@ defmodule Cinder.ParamsTest do
     end
   end
 
-  describe "filters_from_params/2" do
+  describe "filters_from_form/2" do
     test "each filtered field's input becomes its type's filter value" do
       filters =
-        Params.filters_from_params(
+        Params.filters_from_form(
           %{"title" => "road", "genre" => "rock", "tags" => ["a", "b"]},
           fields()
         )
@@ -43,24 +43,24 @@ defmodule Cinder.ParamsTest do
     end
 
     test "a range's halves become one filter" do
-      filters = Params.filters_from_params(%{"price_min" => "10", "price_max" => ""}, fields())
+      filters = Params.filters_from_form(%{"price_min" => "10", "price_max" => ""}, fields())
       assert %{type: :number_range, value: %{min: "10", max: ""}} = filters["price"]
     end
 
     test "empty input, unknown keys and fields without a filter are left out" do
       params = %{"title" => "", "nope" => "x", "track_count" => "3"}
-      assert Params.filters_from_params(params, fields()) == %{}
+      assert Params.filters_from_form(params, fields()) == %{}
     end
 
     test "input a filter can't use is left out, not an error" do
       params = %{"genre" => "polka", "tags" => ["z"], "price_min" => "lots"}
-      assert Params.filters_from_params(params, fields()) == %{}
+      assert Params.filters_from_form(params, fields()) == %{}
     end
   end
 
   describe "filter_values/2" do
     test "each filtered field's value as its control shows it, empty if it isn't filtered" do
-      filters = Params.filters_from_params(%{"title" => "road", "price_min" => "10"}, fields())
+      filters = Params.filters_from_form(%{"title" => "road", "price_min" => "10"}, fields())
 
       assert Params.filter_values(filters, fields()) == %{
                "title" => "road",
@@ -83,7 +83,7 @@ defmodule Cinder.ParamsTest do
 
     test "a query round-trips through the URL" do
       filters =
-        Params.filters_from_params(
+        Params.filters_from_form(
           %{"title" => "road", "genre" => "rock", "tags" => ["a", "b"], "price_min" => "10"},
           fields()
         )
@@ -91,7 +91,7 @@ defmodule Cinder.ParamsTest do
       query = %Query{
         filters: filters,
         arguments:
-          Params.filters_from_params(%{"size" => "single", "labels" => ["a", "b"]}, arguments()),
+          Params.filters_from_form(%{"size" => "single", "labels" => ["a", "b"]}, arguments()),
         search: "blue",
         sort: [{"track_count", :desc_nils_last}, {"title", :asc}],
         page: 3,
@@ -123,7 +123,7 @@ defmodule Cinder.ParamsTest do
 
       query = %Query{
         @defaults
-        | arguments: Params.filters_from_params(%{"format" => "single"}, [argument])
+        | arguments: Params.filters_from_form(%{"format" => "single"}, [argument])
       }
 
       assert Params.to_url(query, [], @defaults, opts) == %{"format" => "single"}

@@ -27,13 +27,13 @@ defmodule Cinder.Params do
   Given `Cinder.Engine.Argument`s instead, the same for their inputs, as
   `Cinder.Engine.Query`'s `arguments`.
   """
-  @spec filters_from_params(%{String.t() => term()}, [Field.t() | Argument.t()]) ::
+  @spec filters_from_form(%{String.t() => term()}, [Field.t() | Argument.t()]) ::
           %{String.t() => map()}
-  def filters_from_params(params, inputs) do
+  def filters_from_form(params, inputs) do
     FilterManager.params_to_filters(params, Enum.map(inputs, &column_map/1))
   end
 
-  # As `filters_from_params/2`, less a range's halves: they're form input, and the
+  # As `filters_from_form/2`, less a range's halves: they're form input, and the
   # URL has the range whole
   defp filters_from_url(params, inputs) do
     columns = Enum.map(inputs, &column_map/1)

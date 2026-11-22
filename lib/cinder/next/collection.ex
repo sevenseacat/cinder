@@ -169,8 +169,8 @@ defmodule Cinder.Next.Collection do
 
     query = %{
       query
-      | filters: Params.filters_from_params(inputs, config.fields),
-        arguments: Params.filters_from_params(inputs, config.arguments),
+      | filters: Params.filters_from_form(inputs, config.fields),
+        arguments: Params.filters_from_form(inputs, config.arguments),
         search: params["search"] || ""
     }
 

@@ -121,7 +121,7 @@ defmodule Cinder.EngineRunTest do
   test "filters by each field's filter value" do
     fields = fields(%{"title" => %{filter: %{}}, "price" => %{filter: %{}}})
     # "b" matches Abbey and Blue, and Abbey is under 10
-    filters = Cinder.Params.filters_from_params(%{"title" => "b", "price_min" => "10"}, fields)
+    filters = Cinder.Params.filters_from_form(%{"title" => "b", "price_min" => "10"}, fields)
     assert titles(run(%{filters: filters}, [], fields)) == ["Blue"]
   end
 
@@ -207,7 +207,7 @@ defmodule Cinder.EngineRunTest do
       expect(Cinder.Filters.Text, :build_query, fn _query, _field, _value -> raise "Simulated" end)
 
       fields = fields(%{"title" => %{filter: %{}}})
-      filters = Cinder.Params.filters_from_params(%{"title" => "b"}, fields)
+      filters = Cinder.Params.filters_from_form(%{"title" => "b"}, fields)
 
       log =
         capture_log(fn ->
@@ -329,7 +329,7 @@ defmodule Cinder.EngineRunTest do
       generate(album(title: "Bluebird", price: Decimal.new("20.00")))
 
       fields = fields(%{"title" => %{searchable?: true}, "price" => %{filter: %{}}})
-      filters = Cinder.Params.filters_from_params(%{"price_min" => "10"}, fields)
+      filters = Cinder.Params.filters_from_form(%{"price_min" => "10"}, fields)
 
       opts = [
         fields: fields,
