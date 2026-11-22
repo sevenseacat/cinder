@@ -167,15 +167,19 @@ defmodule Cinder.Next.Collection do
     %{config: config, query: query} = socket.assigns
     inputs = params["filters"] || %{}
 
-    query = %{
+    filtered = %{
       query
       | filters: Params.filters_from_form(inputs, config.fields),
         arguments: Params.filters_from_form(inputs, config.arguments),
         search: params["search"] || ""
     }
 
-    query = State.first_page(query)
-    {:noreply, request(socket, query)}
+    # The form sent again unchanged (Enter does) stays on its page, with no read
+    if filtered == query do
+      {:noreply, socket}
+    else
+      {:noreply, request(socket, State.first_page(filtered))}
+    end
   end
 
   # An offset page comes from the client, so one that isn't a positive number is
