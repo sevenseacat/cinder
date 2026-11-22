@@ -33,6 +33,13 @@ defmodule Cinder.Params do
     FilterManager.params_to_filters(params, Enum.map(inputs, &column_map/1))
   end
 
+  # As `filters_from_params/2`, less a range's halves: they're form input, and the
+  # URL has the range whole
+  defp filters_from_url(params, inputs) do
+    columns = Enum.map(inputs, &column_map/1)
+    params |> FilterManager.drop_range_halves(columns) |> FilterManager.params_to_filters(columns)
+  end
+
   defp column_map(%Field{} = field), do: Field.to_column_map(field)
   defp column_map(%Argument{} = argument), do: Argument.to_column_map(argument)
 
@@ -122,8 +129,8 @@ defmodule Cinder.Params do
     search? = Keyword.get(opts, :search?, true) and is_binary(params["search"])
 
     query = %Query{
-      filters: filters_from_params(params, fields),
-      arguments: filters_from_params(params, Keyword.get(opts, :arguments, [])),
+      filters: filters_from_url(params, fields),
+      arguments: filters_from_url(params, Keyword.get(opts, :arguments, [])),
       search: if(search?, do: params["search"], else: defaults.search),
       sort: sort,
       page: UrlManager.decode_page(params["page"]),

@@ -342,7 +342,7 @@ defmodule Cinder.FilterManager do
     # Ensure multi-select fields are included even when no checkboxes are selected
     complete_filter_params = Cinder.UrlManager.ensure_multiselect_fields(filter_params, columns)
 
-    fields = for column <- columns, column.filterable, into: MapSet.new(), do: column.field
+    fields = filterable_fields(columns)
 
     Enum.reduce(complete_filter_params, %{}, fn {key, value}, acc ->
       case range_half(key, fields) do
@@ -353,6 +353,18 @@ defmodule Cinder.FilterManager do
           Map.put(acc, key, value)
       end
     end)
+  end
+
+  @doc false
+  # The URL has a range as one param under its field (`price=6,11`); its halves are
+  # form input only
+  def drop_range_halves(params, columns) do
+    fields = filterable_fields(columns)
+    Map.reject(params, fn {key, _value} -> range_half(key, fields) end)
+  end
+
+  defp filterable_fields(columns) do
+    for column <- columns, column.filterable, into: MapSet.new(), do: column.field
   end
 
   @range_suffixes [{"_from", "_to"}, {"_min", "_max"}]

@@ -168,6 +168,20 @@ defmodule Cinder.ParamsTest do
       assert query == %Query{@defaults | sort: [{"track_count", :desc}]}
     end
 
+    # The form posts a range's halves (`price_min`), which the URL writes as one
+    # param (`price=6,11`)
+    test "a range's halves in the URL are ignored" do
+      assert from_url(%{"price_min" => "6"}) == @defaults
+
+      assert from_url(%{"price" => "6,11", "price_min" => "1"}).filters == %{
+               "price" => %{
+                 type: :number_range,
+                 value: %{min: "6", max: "11"},
+                 operator: :between
+               }
+             }
+    end
+
     # `?sort[]=x` and `?sort[a]=x` decode to a list and a map
     test "a list or map where a string goes falls back to the default" do
       for key <- Params.own_keys(), value <- [["x"], %{"a" => "x"}] do
