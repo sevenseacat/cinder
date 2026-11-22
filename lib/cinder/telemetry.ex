@@ -50,11 +50,13 @@ defmodule Cinder.Telemetry do
 
   defp page_metadata(:count, _options), do: %{}
 
-  # The tracers Ash itself uses for the read: the configured ones and any passed in
+  # The tracers Ash itself uses for the read: the configured ones and any passed in,
+  # under `query_opts` (the old shell) or `read_opts` (`Cinder.Engine.run/4`)
   defp tracers(options) do
-    query_opts = Keyword.get(options, :query_opts, [])
+    configured = List.wrap(Application.get_env(:ash, :tracer))
+    passed = for key <- [:query_opts, :read_opts], do: List.wrap(options[key][:tracer])
 
-    Enum.uniq(List.wrap(Application.get_env(:ash, :tracer)) ++ List.wrap(query_opts[:tracer]))
+    Enum.uniq(configured ++ List.flatten(passed))
   end
 
   # As Ash does for `sensitive?` fields, unless `config :ash, :show_sensitive?` is on

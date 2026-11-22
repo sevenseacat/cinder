@@ -304,6 +304,7 @@ defmodule Cinder.Engine do
     * `arguments` - the read action's `Cinder.Engine.Argument`s, from
       `argument/3`: `query`'s `arguments` are under their `param`s, and so are
       errors about them, which the user can fix. Values for any others are left out.
+    * `id` - the collection's, to name it in the read's telemetry and tracing spans
 
   Every column's `load` is loaded, along with any in `query_opts`.
 
@@ -318,6 +319,7 @@ defmodule Cinder.Engine do
     loads = List.wrap(load) ++ for %Field{load: load} when not is_nil(load) <- fields, do: load
 
     options = [
+      id: opts[:id],
       columns: Enum.map(fields, &Field.to_column_map/1),
       filters: query.filters,
       arguments: argument_values(query.arguments, opts[:arguments] || []),

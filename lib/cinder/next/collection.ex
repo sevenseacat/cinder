@@ -422,6 +422,7 @@ defmodule Cinder.Next.Collection do
       )
 
     {source, fields, query, opts} = read_inputs(config, query)
+    opts = [id: socket.assigns.id] ++ opts
 
     # A read missing a required argument would fail; it's invalid, with nothing to say
     # yet. It still goes the way any read does, so it supersedes one still running.

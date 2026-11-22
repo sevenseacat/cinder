@@ -6,7 +6,7 @@ defmodule Cinder.Integration.TelemetryTest do
   use Cinder.ConnCase, async: false
 
   import Phoenix.ConnTest, only: [get: 2]
-  import Phoenix.LiveViewTest, only: [live: 2]
+  import Phoenix.LiveViewTest, only: [element: 2, live: 2, render_change: 2]
 
   # Sends its spans to the test, to check they nest
   defmodule Tracer do
@@ -171,6 +171,62 @@ defmodule Cinder.Integration.TelemetryTest do
     # anything closes, puts it inside Cinder's
     spans = Enum.drop_while(spans(), &(&1 != {:start_span, :custom, "cinder:albums:query"}))
     assert [_cinder, {:start_span, :action, _ash_read} | _] = spans
+  end
+
+  # A count span comes with `count: :async`, which the new shell doesn't have yet
+  describe "the new shell" do
+    test "a read emits a query span with the collection's id and state", %{conn: conn, ref: ref} do
+      view =
+        mount(conn, fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:field :let={album} name="title" filter sort search>{album.title}</:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      view
+      |> element("#albums-filters")
+      |> render_change(%{"filters" => %{"title" => "Dirt"}, "search" => "dir"})
+
+      assert_receive {[:cinder, :query, :stop], ^ref, _measurements,
+                      %{search_term: "dir"} = metadata}
+
+      assert Map.delete(metadata, :telemetry_span_context) == %{
+               id: "albums",
+               resource: Music.Album,
+               action: :read,
+               filters: %{
+                 "title" => %{
+                   type: :text,
+                   value: "Dirt",
+                   operator: :contains,
+                   case_sensitive: false
+                 }
+               },
+               search_term: "dir",
+               sort_by: [],
+               page_size: 25,
+               current_page: 1,
+               pagination_mode: :offset,
+               result: :ok
+             }
+    end
+
+    test "a tracer in `query_opts` sees Cinder's span around Ash's read", %{conn: conn} do
+      Process.register(self(), __MODULE__)
+
+      mount(conn, fn assigns ->
+        ~H"""
+        <Cinder.Next.collection id="albums" resource={Music.Album} query_opts={[tracer: Tracer]}>
+          <:field :let={album} name="title">{album.title}</:field>
+        </Cinder.Next.collection>
+        """
+      end)
+
+      spans = Enum.drop_while(spans(), &(&1 != {:start_span, :custom, "cinder:albums:query"}))
+      assert [_cinder, {:start_span, :action, _ash_read} | _] = spans
+    end
   end
 
   defp spans do
