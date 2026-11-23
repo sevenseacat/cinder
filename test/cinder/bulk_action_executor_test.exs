@@ -450,6 +450,14 @@ defmodule Cinder.BulkActionExecutorTest do
       refute Keyword.has_key?(opts, :tenant)
     end
 
+    # Ash only returns a bulk action's errors when asked, so a partial success has them
+    test "asks Ash for the errors", %{ids: ids} do
+      BulkActionExecutor.execute(:archive, resource: SearchTestResource, ids: ids)
+
+      assert_receive {:bulk_update_called, :archive, _params, opts}
+      assert Keyword.get(opts, :return_errors?) == true
+    end
+
     test "action_opts are still merged alongside auth opts", %{ids: ids} do
       BulkActionExecutor.execute(:archive,
         resource: SearchTestResource,

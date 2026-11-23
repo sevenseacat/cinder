@@ -109,6 +109,7 @@ defmodule Cinder.Filters.DateTest do
       assert DateFilter.process("", %{}) == nil
       assert DateFilter.process("   ", %{}) == nil
       assert DateFilter.process(nil, %{}) == nil
+      assert DateFilter.process("froo", %{}) == nil
     end
   end
 

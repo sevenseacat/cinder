@@ -40,4 +40,28 @@ defmodule Cinder.Filters.SelectTest do
       assert result_query == query
     end
   end
+
+  test "process/2 takes only one of the options, when there are any" do
+    column = %{filter_options: [options: [{"Rock", :rock}, {"Jazz", "jazz"}]]}
+    assert Select.process("bogus", column) == nil
+    assert %{value: "rock"} = Select.process("rock", column)
+    assert %{value: "anything"} = Select.process("anything", %{filter_options: []})
+  end
+
+  test "matches a field through a relationship" do
+    uk = Ash.Seed.seed!(TestArtist, %{name: "The Beatles", country: "UK"})
+    sweden = Ash.Seed.seed!(TestArtist, %{name: "ABBA", country: "Sweden"})
+    hit = Ash.Seed.seed!(TestAlbum, %{title: "Help!", artist_id: uk.id})
+    _miss = Ash.Seed.seed!(TestAlbum, %{title: "Arrival", artist_id: sweden.id})
+    filter_value = %{type: :select, value: "UK", operator: :equals}
+
+    ids =
+      TestAlbum
+      |> Ash.Query.new()
+      |> Select.build_query("artist.country", filter_value)
+      |> Ash.read!()
+      |> MapSet.new(& &1.id)
+
+    assert ids == MapSet.new([hit.id])
+  end
 end

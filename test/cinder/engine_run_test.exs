@@ -90,6 +90,13 @@ defmodule Cinder.EngineRunTest do
 
     assert titles(back) == ["Abbey", "Blue"]
     assert %Page{more?: true, previous?: false} = back
+
+    # Past the last record (its cursor, from an old URL): an empty page, not an error
+    past =
+      run(%{sort: [{"title", :asc}], page_size: 2, cursor: {:after, second.last_cursor}}, opts)
+
+    assert %Page{records: [], more?: false, previous?: true, first_cursor: nil, last_cursor: nil} =
+             past
   end
 
   test "with no page size, an action that doesn't page reads every record, and one that does uses the default" do
@@ -281,6 +288,33 @@ defmodule Cinder.EngineRunTest do
     [album | _] = run(%{}, [query_opts: [load: [:artist]]], fields).records
     assert album.title_lower == String.downcase(album.title)
     assert album.artist.name == "Run Artist"
+  end
+
+  test "a column's loads go with the source query's own, merging on a relationship" do
+    fields = fields(%{"artist.album_count" => %{column?: true}})
+    source = Ash.Query.load(Music.Album, :title_lower)
+
+    {:ok, page} =
+      Engine.run(source, fields, %Query{}, query_opts: [load: [artist: [:name_lower]]])
+
+    [album | _] = page.records
+    assert album.title_lower == String.downcase(album.title)
+    assert album.artist.name_lower == "run artist"
+    assert album.artist.album_count == 3
+  end
+
+  test "a relationship loaded with a query keeps it, from query_opts or the source query" do
+    fields = fields(%{"artist.album_count" => %{column?: true}})
+    artist = Ash.Query.load(Music.Artist, :name_lower)
+
+    for {source, opts} <- [
+          {Music.Album, [query_opts: [load: [artist: artist]]]},
+          {Ash.Query.load(Music.Album, artist: artist), []}
+        ] do
+      {:ok, %Page{records: [album | _]}} = Engine.run(source, fields, %Query{}, opts)
+      assert album.artist.name_lower == "run artist"
+      assert album.artist.album_count == 3
+    end
   end
 
   describe "run_bulk_action/6" do

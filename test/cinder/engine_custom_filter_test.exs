@@ -48,4 +48,24 @@ defmodule Cinder.EngineCustomFilterTest do
 
     assert message =~ "Cinder.EngineCustomFilterTest.Gone"
   end
+
+  # Its form posts halves, folded as a built-in range's are, and the URL keeps the value
+  test "a custom range type's value round-trips through the URL, from the form's halves" do
+    put_app_env(:filters, track_range: Cinder.Test.TrackRange)
+
+    {:ok, field} =
+      Engine.field(Music.Album, %Field{name: "track_count", filter: %{type: :track_range}})
+
+    form = %{"track_count_min" => "1", "track_count_max" => "10"}
+    defaults = %Cinder.Engine.Query{}
+    query = %{defaults | filters: Cinder.Params.filters_from_form(form, [field])}
+
+    assert query.filters == %{
+             "track_count" => %{type: :track_range, value: [1, 10], operator: :between}
+           }
+
+    params = Cinder.Params.to_url(query, [field], defaults, [])
+    assert params == %{"track_count" => "1,10"}
+    assert Cinder.Params.from_url(params, [field], defaults, []) == query
+  end
 end

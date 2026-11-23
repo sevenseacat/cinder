@@ -131,9 +131,29 @@ defmodule Cinder.ParamsTest do
       assert Params.url_keys([], opts) == Params.own_keys() ++ ["format"]
     end
 
-    test "a keyset cursor round-trips through the URL" do
+    test "a keyset cursor round-trips through the URL, and an empty one is none" do
       for cursor <- [{:after, "g2wAAA"}, {:before, "g2wAAA"}] do
         query = %Query{@defaults | cursor: cursor}
+        assert from_url(to_url(query)) == query
+      end
+
+      assert from_url(%{"after" => ""}) == @defaults
+      assert from_url(%{"before" => ""}) == @defaults
+
+      # A cursor says where the page is, so a page number isn't written alongside it
+      assert to_url(%Query{@defaults | page: 3, cursor: {:after, "g2wAAA"}}) ==
+               %{"after" => "g2wAAA"}
+    end
+
+    test "each way of sorting nils round-trips through the URL" do
+      for {direction, param} <- [
+            asc_nils_first: "++track_count",
+            desc_nils_first: "+-track_count",
+            asc_nils_last: "-+track_count",
+            desc_nils_last: "--track_count"
+          ] do
+        query = %Query{@defaults | sort: [{"track_count", direction}]}
+        assert to_url(query) == %{"sort" => param}
         assert from_url(to_url(query)) == query
       end
     end

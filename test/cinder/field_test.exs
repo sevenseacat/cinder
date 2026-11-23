@@ -232,6 +232,10 @@ defmodule Cinder.FieldTest do
       assert query_error("in_memory") =~ "InMemoryCalc"
       assert query_error("needs_arg") =~ "suffix"
       assert query_error("owner") =~ "relationship"
+
+      # Through relationships, it's the calculation's own resource that's asked
+      assert query_error("owner.items.in_memory") =~ "InMemoryCalc"
+      assert query_error("owner.items.needs_arg") =~ "suffix"
     end
   end
 

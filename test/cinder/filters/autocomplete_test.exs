@@ -43,6 +43,13 @@ defmodule Cinder.Filters.AutocompleteTest do
       assert Autocomplete.process(123, column) == nil
       assert Autocomplete.process([], column) == nil
     end
+
+    test "takes only one of the options, when there are any" do
+      column = %{filter_options: [options: [{"Rock", :rock}, {"Jazz", "jazz"}]]}
+      assert Autocomplete.process("bogus", column) == nil
+      assert %{value: "rock"} = Autocomplete.process("rock", column)
+      assert %{value: "anything"} = Autocomplete.process("anything", %{filter_options: []})
+    end
   end
 
   describe "validate/1" do

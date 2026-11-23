@@ -383,6 +383,13 @@ defmodule Cinder.QueryBuilderTest do
                :ok
     end
 
+    test "a calculation needing arguments is rejected before Ash sees it" do
+      assert {:error, message} =
+               QueryBuilder.validate_sortable_fields([{"title_with", :asc}], Music.Album)
+
+      assert message =~ "title_with (is a calculation that needs arguments (suffix))"
+    end
+
     # Regression: a failure inside validation used to let the sort through (fail-open)
     @tag :capture_log
     test "a sort that can't be validated is an error, not let through" do
@@ -612,15 +619,15 @@ defmodule Cinder.QueryBuilderTest do
     test "applies custom filter functions" do
       query = %MockQueryFilters{resource: TestResource}
 
-      custom_filter_fn = fn query, _filter_config ->
-        %{query | filters: [:custom_applied]}
+      custom_filter_fn = fn query, filter_config ->
+        %{query | filters: [filter_config]}
       end
 
       filters = %{"title" => %{type: :text, value: "test", operator: :contains}}
       columns = [%{field: "title", filter_fn: custom_filter_fn}]
 
       result = QueryBuilder.apply_filters(query, filters, columns)
-      assert result.filters == [:custom_applied]
+      assert result.filters == [%{type: :text, value: "test", operator: :contains}]
     end
 
     # A filter that can't be built fails the load rather than being dropped, which would
@@ -1547,6 +1554,90 @@ defmodule Cinder.QueryBuilderTest do
     |> QueryBuilder.apply_search(term, columns, search_fn)
     |> Ash.read!()
     |> MapSet.new(& &1.id)
+  end
+
+  describe "build_query/2 with a search on a filtered query" do
+    alias Cinder.Support.SearchTestResource, as: Searchable
+
+    test "keeps supplied and toggleable filters once across search branches" do
+      [title_match, description_match, archived_match | _] =
+        for {title, description, category, status} <- [
+              {"Widget", "Title match", "allowed", "active"},
+              {"Other", "Widget", "allowed", "active"},
+              {"Widget", "Archived match", "allowed", "archived"},
+              {"Widget", "Wrong category", "other", "active"},
+              {"Other", "No match", "allowed", "active"},
+              {"Other", nil, "allowed", "active"}
+            ] do
+          Ash.create!(Searchable, %{
+            title: title,
+            description: description,
+            category: category,
+            status: status
+          })
+        end
+
+      base_query =
+        Searchable
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.filter(category == "allowed")
+        |> Ash.Query.set_context(%{caller: :search_regression})
+
+      columns = [
+        %{field: "title", searchable: true},
+        %{field: "description", searchable: true},
+        %{field: "status", searchable: false, filter_fn: nil}
+      ]
+
+      assert {:ok, filtered_query} =
+               QueryBuilder.build_query(base_query,
+                 columns: columns,
+                 search_term: "widget",
+                 filters: %{"status" => %{type: :select, value: "active", operator: :equals}}
+               )
+
+      assert MapSet.new(Ash.read!(filtered_query), & &1.id) ==
+               MapSet.new([title_match.id, description_match.id])
+
+      assert filtered_query.context == base_query.context
+      predicates = Ash.Filter.list_predicates(filtered_query.filter)
+      assert Enum.count(predicates, &match?(%{right: "allowed"}, &1)) == 1
+      assert Enum.count(predicates, &match?(%{right: "active"}, &1)) == 1
+
+      assert {:ok, unfiltered_query} =
+               QueryBuilder.build_query(base_query,
+                 columns: columns,
+                 search_term: "widget",
+                 filters: %{}
+               )
+
+      assert MapSet.new(Ash.read!(unfiltered_query), & &1.id) ==
+               MapSet.new([title_match.id, description_match.id, archived_match.id])
+    end
+
+    test "a searchable column with an invalid field doesn't disable search on a filtered query" do
+      widget = Ash.create!(Searchable, %{title: "Widget", category: "allowed"})
+      Ash.create!(Searchable, %{title: "Other", category: "allowed"})
+
+      base_query =
+        Searchable
+        |> Ash.Query.for_read(:read)
+        |> Ash.Query.filter(category == "allowed")
+
+      columns = [
+        %{field: "title", searchable: true},
+        %{field: "invalid field", searchable: true}
+      ]
+
+      assert {:ok, query} =
+               QueryBuilder.build_query(base_query,
+                 columns: columns,
+                 search_term: "widget",
+                 filters: %{}
+               )
+
+      assert Enum.map(Ash.read!(query), & &1.id) == [widget.id]
+    end
   end
 
   describe "scope, actor, and tenant — unprepared query (resource module)" do

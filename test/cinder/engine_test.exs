@@ -66,6 +66,14 @@ defmodule Cinder.EngineTest do
       assert filter("title", %{options: [operator: :equals]}).options[:operator] == :equals
     end
 
+    test "a `one_of` attribute's values are its options" do
+      {:ok, field} =
+        Engine.field(TestResourceForInference, %Field{name: "priority", filter: %{}})
+
+      assert field.filter.type == :select
+      assert field.filter.options[:options] == [{"Low", :low}, {"High", :high}]
+    end
+
     test "enum values only go to types that take options" do
       assert length(filter("genre", %{type: :radio_group}).options[:options]) == 4
       refute Keyword.has_key?(filter("genre", %{type: :text}).options, :options)

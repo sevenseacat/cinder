@@ -34,6 +34,13 @@ defmodule Cinder.Filters.RadioGroupTest do
       assert RadioGroup.process(nil, %{}) == nil
       assert RadioGroup.process(123, %{}) == nil
     end
+
+    test "takes only one of the options, when there are any" do
+      column = %{filter_options: [options: [{"Rock", :rock}, {"Jazz", "jazz"}]]}
+      assert RadioGroup.process("bogus", column) == nil
+      assert %{value: "rock"} = RadioGroup.process("rock", column)
+      assert %{value: "anything"} = RadioGroup.process("anything", %{filter_options: []})
+    end
   end
 
   describe "validate/1" do

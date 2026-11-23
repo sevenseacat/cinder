@@ -487,6 +487,49 @@ defmodule Cinder.FiltersTest do
       refute Map.has_key?(result, "created_at_to")
     end
 
+    # A field whose own name ends in a range suffix isn't half of a range
+    test "params_to_filters/2 keeps fields named like a range's halves, and a range's upper half" do
+      params = %{
+        "ship_to" => "Perth",
+        "tier_max" => "silver",
+        "valid_to_from" => "2023-01-01",
+        "valid_to_to" => "",
+        "price_min" => "",
+        "price_max" => "10"
+      }
+
+      columns =
+        for {field, type} <- [
+              {"ship_to", :text},
+              {"tier_max", :text},
+              {"valid_to", :date_range},
+              {"price", :number_range}
+            ] do
+          %{field: field, filterable: true, filter_type: type, filter_options: []}
+        end
+
+      assert FilterManager.params_to_filters(params, columns) == %{
+               "ship_to" => %{
+                 type: :text,
+                 value: "Perth",
+                 operator: :contains,
+                 case_sensitive: false
+               },
+               "tier_max" => %{
+                 type: :text,
+                 value: "silver",
+                 operator: :contains,
+                 case_sensitive: false
+               },
+               "valid_to" => %{
+                 type: :date_range,
+                 value: %{from: "2023-01-01", to: ""},
+                 operator: :between
+               },
+               "price" => %{type: :number_range, value: %{min: "", max: "10"}, operator: :between}
+             }
+    end
+
     test "params_to_filters/2 delegates to correct filter modules" do
       filter_params = %{
         "title" => "search term",

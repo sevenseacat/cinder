@@ -158,6 +158,9 @@ defmodule Cinder.Next.CollectionTest do
             <:field :let={album} name="genre" filter={[label: "Style", prompt: "Any"]}>
               {album.genre}
             </:field>
+            <:field :let={album} name="title" filter={[placeholder: "Part of a title"]}>
+              {album.title}
+            </:field>
           </Cinder.Next.collection>
           """
         end)
@@ -167,6 +170,7 @@ defmodule Cinder.Next.CollectionTest do
       |> assert_has("#albums th", text: "Genre")
       |> assert_has("#albums-filters label", text: "Style")
       |> assert_has("#albums-filters button", text: "Any")
+      |> assert_has("#albums-filters input[placeholder='Part of a title']")
     end
 
     test "a field that isn't a column filters, with no heading or cells", %{conn: conn} do

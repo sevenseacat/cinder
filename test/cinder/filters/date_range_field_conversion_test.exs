@@ -93,6 +93,18 @@ defmodule Cinder.Filters.DateRangeFieldConversionTest do
     DateRange.build_query(Ash.Query.new(resource), field, filter_value)
   end
 
+  # Values come from the client (the URL or the form), so a bad one never reaches the query
+  test "process/2 drops a bound that isn't a date, or a date and time" do
+    assert %{value: %{from: "2026-10-21", to: ""}} = DateRange.process("2026-10-21,froo", %{})
+    assert DateRange.process("froo,nope", %{}) == nil
+
+    assert %{value: %{from: "", to: "2026-10-25"}} =
+             DateRange.process(%{from: "x", to: "2026-10-25"}, %{})
+
+    # A datetime-local input sends no seconds
+    assert %{value: %{from: "2026-10-25T14:30"}} = DateRange.process("2026-10-25T14:30,", %{})
+  end
+
   describe "build_query/3, by the records it returns" do
     test "covers the whole first and last days on date and datetime fields" do
       for {field, day_before, first, last, day_after} <- [
