@@ -52,11 +52,11 @@ defmodule Cinder.MapColumnTest do
       assert MapColumn.filter(descriptor(:text), @source) == :text
     end
 
-    test "single-select maps options to a select filter" do
+    test "single-select maps options to a multi-select filter" do
       config = MapColumn.filter(descriptor(:single_select, options: ["red", "green"]), @source)
-      assert config[:type] == :select
+      assert config[:type] == :multi_select
       assert config[:options] == [{"red", "red"}, {"green", "green"}]
-      refute Keyword.has_key?(config, :fn)
+      assert is_function(config[:fn], 2)
     end
 
     test "casting types attach a 2-arity custom fn" do
@@ -115,6 +115,16 @@ defmodule Cinder.MapColumnTest do
 
       assert %Ash.Query{} = fun.(query(), %{value: ["a", "b"], match_mode: :any})
       assert %Ash.Query{} = fun.(query(), %{value: ["a", "b"], match_mode: :all})
+    end
+
+    test "single-select matches any of several chosen values" do
+      fun = MapColumn.filter(descriptor(:single_select, options: ["red", "green"]), @source)[:fn]
+      assert %Ash.Query{} = fun.(query(), %{value: ["red", "green"], match_mode: :any})
+    end
+
+    test "single-select ignores an empty selection" do
+      fun = MapColumn.filter(descriptor(:single_select, options: ["red"]), @source)[:fn]
+      assert fun.(query(), %{value: []}) == query()
     end
 
     test "multi-select ignores an empty selection" do

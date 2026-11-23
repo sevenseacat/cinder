@@ -20,6 +20,7 @@
 * The controls data gives each filter a `clearable?` flag, false while clearing it would change nothing.
 * Any filter accepts `clearable: false`, for a filter that scopes the collection rather than narrowing it: it shows no ×, never counts towards "Clear all", and still takes its `default:` back on reset.
 * Themes can give a wide table a horizontal scrollbar that sticks to the bottom of the viewport, and flags for an edge shadow on each side with columns out of view, by setting `table_scroll_rail_class`. It needs the `CinderTableScroll` hook from `createCinderHooks`; see the theming guide.
+* `Cinder.MapColumn.filter/2` gives a `:single_select` key a multi-select filter, so a list can be narrowed to several of its values at once.
 
 ### Bugfixes
 

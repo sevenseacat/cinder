@@ -27,8 +27,9 @@ defmodule Cinder.MapColumn do
   Cinder already resolves a `field="source__key"` name to a JSONB `get_path`, so
   `field/2` builds that name and sort works for free. Filtering values that are
   not stored as text (numbers, dates, booleans, arrays) needs a cast in SQL, so
-  `filter/2` attaches a custom `fn` for those; text/select compare as text and
-  reuse the built-in filters unchanged.
+  `filter/2` attaches a custom `fn` for those, and for single-selects, which are
+  filtered on several values at once; text compares as text and reuses the
+  built-in filter unchanged.
   """
 
   require Ash.Expr
@@ -59,18 +60,23 @@ defmodule Cinder.MapColumn do
   def sortable?(_descriptor), do: true
 
   @doc """
-  The Cinder `filter` config for a descriptor. Text and single-select compare
-  string params against the JSONB text, so the built-in filters work as-is.
-  Number/date/boolean/multi-select bind a non-string param against `->>` (text)
-  and would blow up in Postgrex, so those get a custom `fn` that casts the JSONB
-  value in SQL — which also makes number ranges compare numerically, not
-  lexically.
+  The Cinder `filter` config for a descriptor. Text compares a string param
+  against the JSONB text, so the built-in filter works as-is. A single-select
+  offers its options as a multi-select, matching rows whose value is any of the
+  chosen ones. Number/date/boolean/multi-select bind a non-string param against
+  `->>` (text) and would blow up in Postgrex, so those get a custom `fn` that
+  casts the JSONB value in SQL — which also makes number ranges compare
+  numerically, not lexically.
   """
   @spec filter(descriptor(), atom()) :: atom() | keyword()
   def filter(%{type: :text}, _source), do: :text
 
-  def filter(%{type: :single_select, options: options}, _source) do
-    [type: :select, options: select_options(options)]
+  def filter(%{type: :single_select, options: options, key: key}, source) do
+    [
+      type: :multi_select,
+      options: select_options(options),
+      fn: single_select_filter_fn(source, key)
+    ]
   end
 
   def filter(%{type: :multi_select, options: options, key: key}, source) do
@@ -250,6 +256,21 @@ defmodule Cinder.MapColumn do
       query, %{value: value} when is_boolean(value) ->
         import Ash.Expr
         Ash.Query.filter(query, fragment("(? ->> ?) = ?", ^ref(source), ^key, ^to_string(value)))
+
+      query, _config ->
+        query
+    end
+  end
+
+  defp single_select_filter_fn(source, key) do
+    fn
+      query, %{value: values} when is_list(values) and values != [] ->
+        import Ash.Expr
+
+        Ash.Query.filter(
+          query,
+          fragment("(? ->> ?) = ANY(?::text[])", ^ref(source), ^key, ^values)
+        )
 
       query, _config ->
         query

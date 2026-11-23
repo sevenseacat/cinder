@@ -94,6 +94,8 @@ defmodule Cinder.FilterBar do
           mounted() {
             this.open = null
             this.beside = null
+            this.terms = {}
+            this.held = false
             this.onClick = (event) => this.click(event)
             this.onHover = (event) => {
               const item = event.target.closest("[data-bar-submenu]")
@@ -119,8 +121,15 @@ defmodule Cinder.FilterBar do
               this.hideMenu()
             })
             this.el.addEventListener("input", (event) => {
-              if (event.target.matches("[data-bar-option-search]")) this.narrow(event.target)
+              if (!event.target.matches("[data-bar-option-search]")) return
+              this.terms[event.target.closest("[data-bar-dropdown]").id] = event.target.value
+              this.narrow(event.target)
             })
+            this.el.addEventListener("mouseleave", (event) => {
+              if (!this.held || event.target !== this.open) return
+              this.held = false
+              this.position()
+            }, true)
             document.addEventListener("keydown", this.onKey)
             document.addEventListener("mousedown", this.onOutside)
             this.updated()
@@ -129,16 +138,21 @@ defmodule Cinder.FilterBar do
             this.el.querySelectorAll("[data-bar-dropdown]").forEach((el) => this.js().ignoreAttributes(el, ["style"]))
             this.el.querySelectorAll("[data-bar-pill]").forEach((el) => this.js().ignoreAttributes(el, ["data-open"]))
             this.markChosen()
-            // A patch redraws the options, dropping what a search hid
-            this.el.querySelectorAll("[data-bar-option-search]").forEach((input) => this.narrow(input))
+            // A patch empties the search once picking an option took its focus, and redraws what it hid
+            this.el.querySelectorAll("[data-bar-option-search]").forEach((input) => {
+              input.value = this.terms[input.closest("[data-bar-dropdown]").id] ?? ""
+              this.narrow(input)
+            })
             if (!this.open) return
-            // A value picked from the menu takes its filter out of it: the dropdown moves under the new pill
+            // A value picked from the menu takes its filter out of it: the dropdown moves under the new pill,
+            // but only once the mouse leaves it, so the option just picked doesn't jump away from the pointer
             if (this.beside && !this.beside.isConnected) {
               this.beside = null
               this.hideMenu()
               this.anchor()?.setAttribute("data-open", "")
+              this.held = true
             }
-            this.position()
+            if (!this.held) this.position()
           },
           destroyed() {
             document.removeEventListener("keydown", this.onKey)
@@ -201,6 +215,7 @@ defmodule Cinder.FilterBar do
           },
           close() {
             if (!this.open) return
+            delete this.terms[this.open.id]
             this.open.querySelectorAll("[data-bar-option-search]").forEach((input) => {
               input.value = ""
               this.narrow(input)
@@ -209,6 +224,7 @@ defmodule Cinder.FilterBar do
             this.js().hide(this.open)
             this.open = null
             this.beside = null
+            this.held = false
           },
           position() {
             const bar = this.el.getBoundingClientRect()
