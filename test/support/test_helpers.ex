@@ -9,9 +9,9 @@ defmodule Cinder.TestHelpers do
 
       setup {Cinder.TestHelpers, :disable_async_loading}
 
-  With async loading off, `Cinder.LiveComponent.load_data/1` runs the query
-  inline, so a rendered view reflects the result on the first render and tests
-  don't need to poll for async results.
+  With async loading off, a collection's read runs inline, so a rendered view
+  reflects the result on the first render and tests don't need to poll for async
+  results.
 
   Only use this in `async: false` modules: it toggles the global `:ash`
   `:disable_async?` application env, and ExUnit runs synchronous modules in

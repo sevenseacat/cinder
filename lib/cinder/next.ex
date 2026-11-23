@@ -4,10 +4,11 @@
 
 defmodule Cinder.Next do
   @moduledoc """
-  Cinder 1.0's collection, being built alongside `Cinder.collection/1`.
+  Cinder 1.0's collection, being built on `main` to replace 0.18's (on the `0.18-stable`
+  branch).
 
-  When it's finished, it becomes `Cinder.collection/1` and the old one is removed. Until
-  then it's only on `main`, not in a release, and its API may change.
+  When it's finished, it becomes `<Cinder.collection>`. Until then it's only on `main`,
+  not in a release, and its API may change.
   """
 
   use Phoenix.Component

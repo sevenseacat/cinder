@@ -13,9 +13,9 @@ defmodule Cinder.TestLive.Fixture do
       path =
         Cinder.TestLive.Fixture.register(fn assigns ->
           ~H\"\"\"
-          <Cinder.collection resource={Music.Album} url_state={@url_state}>
-            <:col :let={album} field="title" filter sort>{album.title}</:col>
-          </Cinder.collection>
+          <Cinder.Next.collection id="albums" resource={Music.Album} url_state={@url_state}>
+            <:field :let={album} name="title" filter sort>{album.title}</:field>
+          </Cinder.Next.collection>
           \"\"\"
         end)
 
@@ -26,17 +26,17 @@ defmodule Cinder.TestLive.Fixture do
   the `~H` sigil and `@field` references resolve. (`import Phoenix.Component` is
   brought in by `Cinder.ConnCase`.)
 
-  A collection's callbacks to its parent (`on_error`, `on_selection_change`...) are
-  messages to this LiveView. To assert on them, register with `forward_to: self()`:
-  any message the fixture doesn't handle itself is sent on to the test process.
+  A collection's callbacks to its parent (`on_selection_change`,
+  `on_bulk_action_result`) are messages to this LiveView. To assert on them, register
+  with `forward_to: self()`: any message the fixture doesn't handle itself is sent on
+  to the test process.
 
       path = Cinder.TestLive.Fixture.register(render_fun, forward_to: self())
-      assert_receive {:bulk_failed, %{partial: true}}
+      assert_receive {:picked, %{selected_count: 1}}
 
-  To call a parent-side function such as `Cinder.refresh_table/3` from a test,
-  give the collection an explicit ID and use `run/2`:
+  To change the parent from a test (an assign the template reads, say), use `run/2`:
 
-      Cinder.TestLive.Fixture.run(view, &Cinder.refresh_table(&1, "albums", silent: true))
+      Cinder.TestLive.Fixture.run(view, &assign(&1, :label, "Name"))
   """
   use Phoenix.LiveView, layout: false
   use Cinder.UrlSync

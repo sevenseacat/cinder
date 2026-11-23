@@ -11,33 +11,15 @@ msgstr ""
 "Language: no\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/cinder/controls.ex
-#, elixir-autogen
-msgid "Clear all"
-msgstr "Fjern alle"
-
 #: lib/cinder/filter_manager.ex
 #, elixir-autogen
 msgid "Clear filter"
 msgstr "Fjern filter"
 
-#: lib/cinder/controls.ex
-#, elixir-autogen
-msgid "active"
-msgid_plural "active"
-msgstr[0] "aktiv"
-msgstr[1] "aktive"
-
 #: lib/cinder/next/collection.ex
-#: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Page %{current} of %{total}"
 msgstr "Side %{current} av %{total}"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen
-msgid "showing %{start}-%{end} of %{total}"
-msgstr "viser %{start}-%{end} av %{total}"
 
 #: lib/cinder/filters/date_range.ex
 #: lib/cinder/filters/number_range.ex
@@ -46,56 +28,14 @@ msgid "to"
 msgstr "til"
 
 #: lib/cinder/next/collection.ex
-#: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Next page"
 msgstr "Neste side"
 
 #: lib/cinder/next/collection.ex
-#: lib/cinder/renderers/pagination.ex
 #, elixir-autogen
 msgid "Previous page"
 msgstr "Forrige side"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen
-msgid "First page"
-msgstr "Første side"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen
-msgid "Last page"
-msgstr "Siste side"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen
-msgid "Go to page %{page}"
-msgstr "Gå til side %{page}"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen, elixir-format
-msgid "%{total} items"
-msgstr "%{total} elementer"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen, elixir-format
-msgid "Next"
-msgstr "Neste"
-
-#: lib/cinder/renderers/pagination.ex
-#, elixir-autogen, elixir-format
-msgid "Prev"
-msgstr "Forrige"
-
-#: lib/cinder/collection.ex
-#, elixir-autogen, elixir-format
-msgid "Filters"
-msgstr "Filtre"
-
-#: lib/cinder/collection.ex
-#, elixir-autogen, elixir-format
-msgid "Sort by:"
-msgstr "Sorter etter:"
 
 #: lib/cinder/filters/text.ex
 #, elixir-autogen, elixir-format
@@ -123,7 +63,6 @@ msgid "Search %{label}..."
 msgstr "Søk %{label}..."
 
 #: lib/cinder/next/collection.ex
-#: lib/cinder/renderers/pagination.ex
 #, elixir-autogen, elixir-format
 msgid "Show {selector} per page"
 msgstr "Vis {selector} per side"
@@ -139,15 +78,11 @@ msgstr "Til"
 msgid "All %{label}"
 msgstr "Alle %{label}"
 
-#: lib/cinder/collection.ex
-#: lib/cinder/controls.ex
 #: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "Search"
 msgstr "Søk"
 
-#: lib/cinder/collection.ex
-#: lib/cinder/controls.ex
 #: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "Search..."
@@ -158,12 +93,6 @@ msgstr "Søk..."
 msgid "Select options..."
 msgstr "Velg alternativer..."
 
-#: lib/cinder/controls.ex
-#, elixir-autogen, elixir-format
-msgid "Clear search"
-msgstr "Fjern søk"
-
-#: lib/cinder/collection.ex
 #: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "Loading..."
@@ -175,7 +104,6 @@ msgstr "Laster..."
 msgid "No options available"
 msgstr "Ingen alternativer tilgjengelig"
 
-#: lib/cinder/collection.ex
 #: lib/cinder/filters/autocomplete.ex
 #: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
@@ -203,14 +131,12 @@ msgstr "Sann"
 msgid "Type to search more options..."
 msgstr "Skriv for å søke flere alternativer..."
 
-#: lib/cinder/collection.ex
 #: lib/cinder/next/collection.ex
 #, elixir-autogen, elixir-format
 msgid "An error occurred while loading data"
 msgstr "Det oppstod en feil under lasting av data"
 
 #: lib/cinder/next/collection.ex
-#: lib/cinder/renderers/pagination.ex
 #, elixir-autogen, elixir-format
 msgid "Page %{current}"
 msgstr "Side %{current}"

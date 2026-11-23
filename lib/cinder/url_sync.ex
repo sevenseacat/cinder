@@ -24,14 +24,15 @@ defmodule Cinder.UrlSync do
 
         def render(assigns) do
           ~H\"\"\"
-          <Cinder.collection
+          <Cinder.Next.collection
+            id="users"
             resource={MyApp.User}
             actor={@current_user}
             url_state={@url_state}
           >
-            <:col :let={user} field="name" filter sort>{user.name}</:col>
-            <:col :let={user} field="email" filter>{user.email}</:col>
-          </Cinder.collection>
+            <:field :let={user} name="name" filter sort>{user.name}</:field>
+            <:field :let={user} name="email" filter>{user.email}</:field>
+          </Cinder.Next.collection>
           \"\"\"
         end
       end

@@ -38,12 +38,7 @@ defmodule Cinder.MixProject do
 
   defp aliases do
     [
-      docs: [
-        "compile",
-        fn _ -> Cinder.Theme.Docs.write_docs!() end,
-        "docs",
-        &copy_theme_images/1
-      ]
+      docs: ["docs", &copy_theme_images/1]
     ]
   end
 
@@ -124,25 +119,16 @@ defmodule Cinder.MixProject do
       groups_for_modules: [
         "Core Components": [
           Cinder,
-          Cinder.Collection,
-          Cinder.Controls,
-          Cinder.LiveComponent
+          Cinder.Next
         ],
         "URL State Management": [
           Cinder.UrlSync
-        ],
-        Refresh: [
-          Cinder.Refresh,
-          Cinder.Update
         ],
         "Filter Types": [
           Cinder.Filter,
           Cinder.Filter.Helpers,
           Cinder.Filter.Debug,
           ~r/Cinder\.Filters\./
-        ],
-        Renderers: [
-          ~r/Cinder\.Renderers\./
         ],
         "Theming System": [
           Cinder.Theme,
@@ -156,14 +142,6 @@ defmodule Cinder.MixProject do
         ],
         "Mix Tasks": [
           ~r/Mix\.Tasks\./
-        ],
-        "1.0 Preview": [
-          Cinder.Next
-        ],
-        Deprecated: [
-          Cinder.Table,
-          Cinder.Table.UrlSync,
-          Cinder.Table.Refresh
         ]
       ]
     ]

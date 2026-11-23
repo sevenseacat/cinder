@@ -14,14 +14,7 @@ defmodule CinderDevWeb.Router do
     pipe_through :browser
 
     live_session :demo, on_mount: CinderDevWeb.DemoHook do
-      live "/", TableLive
-      live "/filters", FiltersLive
-      live "/list", ListLive
-      live "/grid", GridLive
-      live "/pagination", PaginationLive
-      live "/selection", SelectionLive
-      live "/controls", ControlsLive
-      live "/states", StatesLive
+      live "/", Next.TableLive
       live "/next", Next.TableLive
       live "/next/filters", Next.FiltersLive
       live "/next/list", Next.ListLive

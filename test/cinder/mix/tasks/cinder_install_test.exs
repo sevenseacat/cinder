@@ -72,7 +72,7 @@ defmodule Cinder.Mix.Tasks.CinderInstallTest do
               "../deps/cinder/lib/cinder.ex",
               "../deps/cinder/lib/cinder/*.ex",
               "../deps/cinder/lib/cinder/filters/**/*.ex",
-              "../deps/cinder/lib/cinder/renderers/**/*.ex",
+              "../deps/cinder/lib/cinder/next/**/*.ex",
               "../deps/cinder/lib/cinder/themes/daisy_ui.ex"
             ],
             do: assert(content =~ "\"#{path}\"")
