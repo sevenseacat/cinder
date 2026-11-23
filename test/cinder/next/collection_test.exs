@@ -90,6 +90,43 @@ defmodule Cinder.Next.CollectionTest do
       end)
     end
 
+    test "a sort that says where nils go shows its direction", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection id="albums" resource={Music.Album}>
+            <:field
+              :let={album}
+              name="title"
+              sort={[cycle: [:asc_nils_last, :desc_nils_first, nil]]}
+            >
+              {album.title}
+            </:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      conn
+      |> visit(path)
+      |> click_button("#albums th button", "Title")
+      |> assert_has("#albums th[aria-sort=ascending]", text: "Title ▲")
+      |> click_button("#albums th button", "Title")
+      |> assert_has("#albums th[aria-sort=descending]", text: "Title ▼")
+    end
+
+    test "a sort event for a field that isn't sortable (a tampered one) changes nothing",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, sortable())
+      before = view |> element("#albums") |> render()
+      unknown = "cinder_unknown_#{System.unique_integer([:positive])}"
+
+      for field <- [unknown, "artist.name"] do
+        assert render_click(with_target(view, "#albums"), "sort", %{"field" => field}) == before
+      end
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(unknown) end
+    end
+
     test "clicking a sortable heading sorts by it, then the other way, then not at all",
          %{conn: conn} do
       session = visit(conn, sortable())
@@ -560,6 +597,28 @@ defmodule Cinder.Next.CollectionTest do
 
       Cinder.TestHelpers.put_app_env(:default_initial_load, :sync)
       assert page_html(conn, loading()) =~ "Abbey"
+      refute page_html(conn, loading(:async)) =~ "Abbey"
+    end
+
+    test "read first and synced, the page's HTML follows the URL", %{conn: conn} do
+      path =
+        Fixture.register(fn assigns ->
+          ~H"""
+          <Cinder.Next.collection
+            id="albums"
+            query={Ash.Query.sort(Music.Album, :title)}
+            initial_load={:sync}
+            url_state={@url_state}
+          >
+            <:field :let={album} name="title" sort filter>{album.title}</:field>
+          </Cinder.Next.collection>
+          """
+        end)
+
+      filtered = page_html(conn, path <> "?title=Blue")
+      assert filtered =~ ~r/<td>\s*Blue/
+      refute filtered =~ "Abbey"
+      assert page_html(conn, path <> "?sort=-title") =~ ~r/Blue.*Abbey/s
     end
 
     # The read is paused, so what's shown while it's in flight can't race its result
@@ -592,6 +651,40 @@ defmodule Cinder.Next.CollectionTest do
       html = render_async(view)
       refute html =~ "aria-busy"
       assert html =~ ~r/Blue.*Abbey/s
+    end
+
+    # Synced, the URL patch renders the collection again during the read, and so can
+    # the parent
+    test "a synced page change stays busy through the URL patch and a parent render",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, synced(size: 1))
+      render_async(view)
+
+      test_pid = self()
+      allow(Ash, test_pid, view.pid)
+
+      expect(Ash, :read, fn query, opts ->
+        send(test_pid, {:reading, self()})
+
+        receive do
+          :continue -> call_original(Ash, :read, [query, opts])
+        after
+          5_000 -> raise "the test didn't let the read finish"
+        end
+      end)
+
+      view |> element("#albums nav button", "Next page") |> render_click()
+      assert_receive {:reading, read}
+      Fixture.run(view, &assign(&1, :unrelated, true))
+
+      html = render(view)
+      assert html =~ ~s(aria-busy="true")
+      assert html =~ "Loading..."
+
+      send(read, :continue)
+      html = render_async(view)
+      refute html =~ "aria-busy"
+      assert html =~ "Page 2 of 2"
     end
 
     # A read still running when it's no longer wanted is superseded, whatever replaces it
@@ -1399,6 +1492,32 @@ defmodule Cinder.Next.CollectionTest do
                }
       end)
       |> assert_has("#albums-bulk-count", text: "1 selected")
+    end
+
+    test "an action that partly fails tells the parent, with the errors", %{conn: conn} do
+      error = Ash.Error.Unknown.UnknownError.exception(error: "one record failed")
+      partial = %Ash.BulkResult{status: :partial_success, errors: [error], error_count: 1}
+
+      conn
+      |> visit(with_bulk_actions(forward_to: self()))
+      |> unwrap(fn view ->
+        allow(Ash, self(), view.pid)
+        stub(Ash, :bulk_update, fn _query, _action, _input, _opts -> partial end)
+        render(view)
+      end)
+      |> click_box("#albums-select-#{album_id("Abbey")}")
+      |> click_button("Remaster")
+
+      assert_receive {:done, payload}
+
+      assert payload == %{
+               bulk_action: "remaster",
+               status: :partial_success,
+               selected_count: 1,
+               result: partial,
+               errors: [error],
+               component_id: "albums"
+             }
     end
 
     # From tampering: the buttons only send declared names, and are disabled until

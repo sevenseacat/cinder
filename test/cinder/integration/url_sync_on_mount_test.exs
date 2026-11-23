@@ -8,7 +8,7 @@ defmodule Cinder.Integration.UrlSyncOnMountTest do
   import Phoenix.ConnTest, only: [get: 2]
 
   import Phoenix.LiveViewTest,
-    only: [live: 2, element: 2, render: 1, render_click: 1, assert_patch: 1]
+    only: [live: 2, element: 2, element: 3, render: 1, render_click: 1, assert_patch: 1]
 
   setup do
     artist = generate(artist(name: "Sync Artist"))
@@ -26,9 +26,9 @@ defmodule Cinder.Integration.UrlSyncOnMountTest do
       Cinder.TestLive.Fixture.register(fn assigns ->
         ~H"""
         <p id="tab">{assigns[:tab]}</p>
-        <Cinder.collection resource={Music.Album} url_state={@url_state}>
-          <:col :let={album} field="title" sort>{album.title}</:col>
-        </Cinder.collection>
+        <Cinder.Next.collection id="albums" resource={Music.Album} url_state={@url_state}>
+          <:field :let={album} name="title" sort>{album.title}</:field>
+        </Cinder.Next.collection>
         """
       end)
 
@@ -41,7 +41,7 @@ defmodule Cinder.Integration.UrlSyncOnMountTest do
   end
 
   defp sort_by_title(view) do
-    view |> element("[phx-click=toggle_sort][phx-value-key=title]") |> render_click()
+    view |> element("#albums th button", "Title") |> render_click()
     assert_patch(view)
   end
 

@@ -60,61 +60,62 @@ defmodule Cinder.Integration.TelemetryTest do
     view
   end
 
-  test "a load emits a query span with the collection's state", %{conn: conn, ref: ref} do
-    mount(
-      conn,
-      fn assigns ->
+  # A count span comes with `count: :async`, which the new shell doesn't have yet
+  test "a read emits a query span with the collection's id and state", %{conn: conn, ref: ref} do
+    view =
+      mount(conn, fn assigns ->
         ~H"""
-        <Cinder.collection id="albums" resource={Music.Album} url_state={@url_state}>
-          <:col :let={album} field="title" filter sort search>{album.title}</:col>
-        </Cinder.collection>
+        <Cinder.Next.collection id="albums" resource={Music.Album}>
+          <:field :let={album} name="title" filter sort search>{album.title}</:field>
+        </Cinder.Next.collection>
         """
-      end,
-      "?title=Dirt&search=dir&sort=-title"
-    )
+      end)
 
-    assert_receive {[:cinder, :query, :start], ^ref, %{system_time: _}, metadata}
-    assert_receive {[:cinder, :query, :stop], ^ref, %{duration: duration}, stop_metadata}
+    view
+    |> element("#albums-filters")
+    |> render_change(%{"filters" => %{"title" => "Dirt"}, "search" => "dir"})
+
+    assert_receive {[:cinder, :query, :start], ^ref, %{system_time: _},
+                    %{search_term: "dir", id: "albums"}}
+
+    assert_receive {[:cinder, :query, :stop], ^ref, %{duration: duration},
+                    %{search_term: "dir"} = metadata}
 
     assert duration > 0
-    assert stop_metadata.result == :ok
 
-    assert %{
+    assert Map.delete(metadata, :telemetry_span_context) == %{
              id: "albums",
              resource: Music.Album,
              action: :read,
-             filters: %{"title" => %{value: "Dirt"}},
+             filters: %{
+               "title" => %{
+                 type: :text,
+                 value: "Dirt",
+                 operator: :contains,
+                 case_sensitive: false
+               }
+             },
              search_term: "dir",
-             sort_by: [{"title", :desc}],
-             current_page: 1
-           } = metadata
+             sort_by: [],
+             page_size: 25,
+             current_page: 1,
+             pagination_mode: :offset,
+             result: :ok
+           }
   end
 
   @tag :capture_log
   test "a failed read stops with an error result", %{conn: conn, ref: ref} do
     mount(conn, fn assigns ->
       ~H"""
-      <Cinder.collection id="albums" resource={Music.Album} action={:failing}>
-        <:col :let={album} field="title">{album.title}</:col>
-      </Cinder.collection>
+      <Cinder.Next.collection id="albums" resource={Music.Album} action={:failing}>
+        <:field :let={album} name="title">{album.title}</:field>
+      </Cinder.Next.collection>
       """
     end)
 
     assert_receive {[:cinder, :query, :stop], ^ref, _measurements, %{result: :error}}
     refute_received {[:cinder, :query, :exception], ^ref, _measurements, _metadata}
-  end
-
-  test "an asynchronous count emits a count span", %{conn: conn, ref: ref} do
-    mount(conn, fn assigns ->
-      ~H"""
-      <Cinder.collection id="albums" resource={Music.Album} pagination={[count: :async]}>
-        <:col :let={album} field="title">{album.title}</:col>
-      </Cinder.collection>
-      """
-    end)
-
-    assert_receive {[:cinder, :count, :start], ^ref, _measurements, %{id: "albums"}}
-    assert_receive {[:cinder, :count, :stop], ^ref, %{duration: _}, %{result: :ok}}
   end
 
   describe "sensitive fields" do
@@ -123,10 +124,10 @@ defmodule Cinder.Integration.TelemetryTest do
         conn,
         fn assigns ->
           ~H"""
-          <Cinder.collection id="users" resource={Music.User} url_state={@url_state}>
-            <:col :let={user} field="name" filter search>{user.name}</:col>
-            <:col :let={user} field="email" filter search>{user.email}</:col>
-          </Cinder.collection>
+          <Cinder.Next.collection id="users" resource={Music.User} url_state={@url_state}>
+            <:field :let={user} name="name" filter search>{user.name}</:field>
+            <:field :let={user} name="email" filter search>{user.email}</:field>
+          </Cinder.Next.collection>
           """
         end,
         "?name=Ann&email=ann%40example.com&search=ann"
@@ -154,14 +155,14 @@ defmodule Cinder.Integration.TelemetryTest do
     end
   end
 
-  test "an Ash tracer sees Cinder's span around Ash's read", %{conn: conn} do
+  test "a tracer in `query_opts` sees Cinder's span around Ash's read", %{conn: conn} do
     Process.register(self(), __MODULE__)
 
     mount(conn, fn assigns ->
       ~H"""
-      <Cinder.collection id="albums" resource={Music.Album} query_opts={[tracer: Tracer]}>
-        <:col :let={album} field="title">{album.title}</:col>
-      </Cinder.collection>
+      <Cinder.Next.collection id="albums" resource={Music.Album} query_opts={[tracer: Tracer]}>
+        <:field :let={album} name="title">{album.title}</:field>
+      </Cinder.Next.collection>
       """
     end)
 
@@ -171,62 +172,6 @@ defmodule Cinder.Integration.TelemetryTest do
     # anything closes, puts it inside Cinder's
     spans = Enum.drop_while(spans(), &(&1 != {:start_span, :custom, "cinder:albums:query"}))
     assert [_cinder, {:start_span, :action, _ash_read} | _] = spans
-  end
-
-  # A count span comes with `count: :async`, which the new shell doesn't have yet
-  describe "the new shell" do
-    test "a read emits a query span with the collection's id and state", %{conn: conn, ref: ref} do
-      view =
-        mount(conn, fn assigns ->
-          ~H"""
-          <Cinder.Next.collection id="albums" resource={Music.Album}>
-            <:field :let={album} name="title" filter sort search>{album.title}</:field>
-          </Cinder.Next.collection>
-          """
-        end)
-
-      view
-      |> element("#albums-filters")
-      |> render_change(%{"filters" => %{"title" => "Dirt"}, "search" => "dir"})
-
-      assert_receive {[:cinder, :query, :stop], ^ref, _measurements,
-                      %{search_term: "dir"} = metadata}
-
-      assert Map.delete(metadata, :telemetry_span_context) == %{
-               id: "albums",
-               resource: Music.Album,
-               action: :read,
-               filters: %{
-                 "title" => %{
-                   type: :text,
-                   value: "Dirt",
-                   operator: :contains,
-                   case_sensitive: false
-                 }
-               },
-               search_term: "dir",
-               sort_by: [],
-               page_size: 25,
-               current_page: 1,
-               pagination_mode: :offset,
-               result: :ok
-             }
-    end
-
-    test "a tracer in `query_opts` sees Cinder's span around Ash's read", %{conn: conn} do
-      Process.register(self(), __MODULE__)
-
-      mount(conn, fn assigns ->
-        ~H"""
-        <Cinder.Next.collection id="albums" resource={Music.Album} query_opts={[tracer: Tracer]}>
-          <:field :let={album} name="title">{album.title}</:field>
-        </Cinder.Next.collection>
-        """
-      end)
-
-      spans = Enum.drop_while(spans(), &(&1 != {:start_span, :custom, "cinder:albums:query"}))
-      assert [_cinder, {:start_span, :action, _ash_read} | _] = spans
-    end
   end
 
   defp spans do
