@@ -1060,7 +1060,7 @@ defmodule Cinder.LiveComponent do
     |> assign(:page_size, selected_page_size)
     |> assign(:page_size_config, updated_page_size_config)
     |> assign(:current_page, assigns[:current_page] || 1)
-    |> assign(:loading, false)
+    |> assign(:loading, assigns[:loading] || false)
     |> assign(:error, assigns[:error] || false)
     |> assign(:data, assigns[:data] || [])
     |> assign(:sort_by, assigns[:sort_by] || extract_initial_sorts(assigns))
