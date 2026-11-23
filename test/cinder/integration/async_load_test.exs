@@ -1,6 +1,7 @@
 defmodule Cinder.Integration.AsyncLoadTest do
   @moduledoc """
-  Covers initial loading and silent refreshes through a mounted LiveView.
+  Covers initial loading, silent refreshes and the loading state while a read
+  runs, through a mounted LiveView.
 
   Every other integration test loads data synchronously (see `Cinder.ConnCase`)
   for simplicity. This test opts back into Cinder's default async mode, so the
@@ -12,7 +13,16 @@ defmodule Cinder.Integration.AsyncLoadTest do
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
   import Phoenix.LiveViewTest,
-    only: [live: 2, element: 2, render_click: 1, render_async: 1, render: 1, has_element?: 2]
+    only: [
+      live: 2,
+      element: 2,
+      element: 3,
+      render_click: 1,
+      render_async: 1,
+      render: 1,
+      has_element?: 2,
+      assert_patch: 1
+    ]
 
   # Opt back into async loading for this test (ConnCase's setup disabled it).
   setup {Cinder.TestHelpers, :enable_async_loading}
@@ -123,22 +133,36 @@ defmodule Cinder.Integration.AsyncLoadTest do
   end
 
   defp start_paused_refresh(view, read) do
+    start_paused_read(view, read, fn ->
+      Cinder.TestLive.Fixture.run(view, &Cinder.refresh_table(&1, "albums", silent: true))
+    end)
+  end
+
+  defp start_paused_goto_page(view, page) do
+    start_paused_read(view, &call_original(Ash, :read, [&1, &2]), fn ->
+      view
+      |> element(~s(button[phx-click="goto_page"][phx-value-page="#{page}"]), "#{page}")
+      |> render_click()
+    end)
+  end
+
+  defp start_paused_read(view, read, start) do
     # Pause the read so the pending UI assertions cannot race its result.
     test_pid = self()
     allow(Ash, test_pid, view.pid)
 
     expect(Ash, :read, fn query, opts ->
-      send(test_pid, {:refresh_started, self()})
+      send(test_pid, {:read_started, self()})
 
       receive do
-        :continue_refresh -> read.(query, opts)
+        :continue_read -> read.(query, opts)
       after
-        5_000 -> raise "test did not release the refresh query"
+        5_000 -> raise "test did not release the query"
       end
     end)
 
-    Cinder.TestLive.Fixture.run(view, &Cinder.refresh_table(&1, "albums", silent: true))
-    assert_receive {:refresh_started, query_pid}, 1_000
+    start.()
+    assert_receive {:read_started, query_pid}, 1_000
     query_pid
   end
 
@@ -162,7 +186,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
       refute pending_html =~ "Replacement Album"
       refute has_element?(view, ~s([data-key="loading_overlay_class"]))
     after
-      send(query_pid, :continue_refresh)
+      send(query_pid, :continue_read)
     end
 
     refreshed_html = render_async(view)
@@ -182,7 +206,7 @@ defmodule Cinder.Integration.AsyncLoadTest do
           assert render(view) =~ "Async Album"
           refute has_element?(view, ~s([data-key="loading_overlay_class"]))
         after
-          send(query_pid, :continue_refresh)
+          send(query_pid, :continue_read)
         end
 
         html = render_async(view)
@@ -206,13 +230,44 @@ defmodule Cinder.Integration.AsyncLoadTest do
         assert has_element?(view, ~s([data-key="loading_overlay_class"]))
         refute has_element?(view, ~s([data-key="empty_class"]))
       after
-        send(query_pid, :continue_refresh)
+        send(query_pid, :continue_read)
       end
 
       render_async(view)
       assert has_element?(view, ~s([data-key="error_class"]))
       refute has_element?(view, ~s([data-key="loading_overlay_class"]))
     end)
+  end
+
+  test "paging with URL sync keeps the loading state until the page arrives", %{conn: conn} do
+    path =
+      Cinder.TestLive.Fixture.register(fn assigns ->
+        ~H"""
+        <Cinder.collection resource={Music.Album} url_state={@url_state} page_size={1}>
+          <:col :let={album} field="title" sort>{album.title}</:col>
+        </Cinder.collection>
+        """
+      end)
+
+    {:ok, view, _html} = live(conn, path <> "?sort=title")
+    assert render_async(view) =~ "Async Album"
+
+    query_pid = start_paused_goto_page(view, 2)
+
+    # `goto_page` reads first, then the URL patch renders the collection again.
+    assert_patch(view)
+
+    try do
+      assert render(view) =~ "Async Album"
+      assert has_element?(view, ~s([data-key="loading_overlay_class"]))
+    after
+      send(query_pid, :continue_read)
+    end
+
+    html = render_async(view)
+    assert html =~ "Buffered Album"
+    refute html =~ "Async Album"
+    refute has_element?(view, ~s([data-key="loading_overlay_class"]))
   end
 
   test "a synchronous initial load applies filters and sort from the URL", %{
