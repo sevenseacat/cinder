@@ -8,6 +8,10 @@ SPDX-License-Identifier: MIT
 
 ## Unreleased
 
+### Breaking changes
+
+* Cinder now requires Ash 3.38.0 or later, which fixes a security advisory for forged keyset pagination cursors (CVE-2026-124283). Cinder reads these cursors from the URL.
+
 ### Bug fixes
 
 * A form filter whose type raises while processing its input, or has no module, is now left out with an error logged, instead of filtering as text.

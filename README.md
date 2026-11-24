@@ -90,7 +90,7 @@ configure filtering and sorting:
 ## Requirements
 
 - Phoenix LiveView 1.1+
-- Ash Framework 3.24.5+
+- Ash Framework 3.38+
 - Elixir 1.17+
 
 ## Contributing
