@@ -12,7 +12,6 @@ defmodule Cinder.DeprecationsTest do
     "Cinder.Filters.Registry.register_filter/2",
     "Cinder.UrlManager.decode_sort/1",
     "Cinder.UrlManager.validate_url_params/1",
-    "Cinder.UrlSync.extract_table_state/1",
     "Cinder.Theme.validate/1",
     "Cinder.Theme.valid_property?/1",
     "Cinder.Messages.gettext_backend/0",
@@ -28,7 +27,6 @@ defmodule Cinder.DeprecationsTest do
             Cinder.Filters.Registry.register_filter(:x, String)
             Cinder.UrlManager.decode_sort("title")
             Cinder.UrlManager.validate_url_params(%{})
-            Cinder.UrlSync.extract_table_state(%{})
             Cinder.Theme.validate("modern")
             Cinder.Theme.valid_property?(:container_class)
             Cinder.Messages.gettext_backend()

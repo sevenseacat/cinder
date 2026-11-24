@@ -4,9 +4,8 @@ defmodule Cinder.TestLive.Fixture do
 
   This is the single fixture for full-lifecycle integration tests. It contains no
   collection-specific logic — the test provides the HEEx, so there is nothing in
-  the fixture itself worth testing. It just wires up `mount`, `handle_params`, and
-  `Cinder.UrlSync`, runs functions the test sends it, and delegates `render/1` to
-  the supplied function.
+  the fixture itself worth testing. It just wires up `mount` and `Cinder.UrlSync`,
+  runs functions the test sends it, and delegates `render/1` to the supplied function.
 
   ## Usage
 
@@ -100,11 +99,6 @@ defmodule Cinder.TestLive.Fixture do
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     {:ok, assign_registered(socket, id)}
-  end
-
-  @impl true
-  def handle_params(params, uri, socket) do
-    {:noreply, Cinder.UrlSync.handle_params(params, uri, socket)}
   end
 
   @impl true

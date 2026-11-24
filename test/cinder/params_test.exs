@@ -131,6 +131,16 @@ defmodule Cinder.ParamsTest do
       assert Params.url_keys([], opts) == Params.own_keys() ++ ["format"]
     end
 
+    # The URL names it as the collection does, dot and all
+    test "a filter on a field through a relationship round-trips through the URL" do
+      {:ok, field} = Engine.field(Music.Album, %Field{name: "artist.name", filter: %{}})
+      filters = Params.filters_from_form(%{"artist.name" => "Z"}, [field])
+      query = %Query{@defaults | filters: filters}
+
+      assert Params.to_url(query, [field], @defaults, @opts) == %{"artist.name" => "Z"}
+      assert Params.from_url(%{"artist.name" => "Z"}, [field], @defaults, @opts) == query
+    end
+
     test "a keyset cursor round-trips through the URL, and an empty one is none" do
       for cursor <- [{:after, "g2wAAA"}, {:before, "g2wAAA"}] do
         query = %Query{@defaults | cursor: cursor}

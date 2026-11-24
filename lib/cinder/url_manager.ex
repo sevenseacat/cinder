@@ -91,64 +91,12 @@ defmodule Cinder.UrlManager do
     # Add search if not empty
     search_term = Map.get(state, :search_term)
 
-    state_with_search =
-      if search_term in [nil, ""] do
-        state_with_sort
-      else
-        Map.put(state_with_sort, :search, search_term)
-      end
-
-    # Add filter field names for UrlSync to know which params are table-managed
-    filter_field_names = Map.get(state, :filter_field_names, [])
-
-    if Enum.empty?(filter_field_names) do
-      state_with_search
+    if search_term in [nil, ""] do
+      state_with_sort
     else
-      Map.put(state_with_search, :_filter_fields, Enum.join(filter_field_names, ","))
+      Map.put(state_with_sort, :search, search_term)
     end
   end
-
-  @doc """
-  Decodes URL parameters into table state components.
-
-  Takes URL parameters and column definitions to properly decode filter values
-  based on their types.
-
-  ## Examples
-
-      iex> url_params = %{"title" => "test", "page" => "2", "sort" => "-title"}
-      iex> columns = [%{field: "title", filterable: true, filter_type: :text}]
-      iex> Cinder.UrlManager.decode_state(url_params, columns)
-      %{
-        filters: %{
-          "title" => %{type: :text, value: "test", operator: :contains, case_sensitive: false}
-        },
-        current_page: 2,
-        sort_by: [{"title", :desc}],
-        page_size: 25,
-        search_term: "",
-        after: nil,
-        before: nil
-      }
-
-  """
-  def decode_state(url_params, columns) do
-    %{
-      filters: decode_filters(url_params, columns),
-      current_page: decode_page(Map.get(url_params, "page")),
-      sort_by: decode_sort(Map.get(url_params, "sort"), columns),
-      page_size: decode_page_size(Map.get(url_params, "page_size")),
-      search_term: decode_search(Map.get(url_params, "search")),
-      after: decode_cursor(Map.get(url_params, "after")),
-      before: decode_cursor(Map.get(url_params, "before"))
-    }
-  end
-
-  # Decodes search parameter from URL
-  defp decode_search(nil), do: ""
-  defp decode_search(""), do: ""
-  defp decode_search(search_term) when is_binary(search_term), do: search_term
-  defp decode_search(_), do: ""
 
   @doc """
   Encodes filters for URL parameters.
@@ -193,52 +141,6 @@ defmodule Cinder.UrlManager do
     )
 
     :error
-  end
-
-  @doc """
-  Decodes filters from URL parameters using column definitions.
-
-  Uses column metadata to properly parse filter values according to their types.
-  """
-  def decode_filters(url_params, columns) when is_map(url_params) and is_list(columns) do
-    url_params
-    |> Enum.reduce(%{}, fn {key, value}, acc ->
-      # Convert string keys to match column keys
-      string_key = to_string(key)
-      column = Enum.find(columns, &(&1.field == string_key))
-
-      if column && column.filterable && value != "" do
-        filter_type = column.filter_type
-
-        # Each type parses its own URL value (a range's "min,max", a multi-select's "a,b")
-        filter_module = Cinder.Filters.Registry.get_filter(filter_type)
-
-        if filter_module do
-          try do
-            decoded_filter = filter_module.process(value, column)
-
-            if decoded_filter do
-              Map.put(acc, string_key, decoded_filter)
-            else
-              acc
-            end
-          rescue
-            error ->
-              Logger.error(
-                "Error processing URL filter value for #{filter_type}: #{inspect(error)}. " <>
-                  "Skipping invalid filter."
-              )
-
-              acc
-          end
-        else
-          Logger.warning("Unknown filter type: #{filter_type}. Skipping filter.")
-          acc
-        end
-      else
-        acc
-      end
-    end)
   end
 
   @doc """
@@ -407,33 +309,6 @@ defmodule Cinder.UrlManager do
   def decode_page(_), do: 1
 
   @doc """
-  Decodes page size from URL parameter.
-
-  Returns 25 for invalid or missing page_size parameters.
-
-  ## Examples
-
-      iex> Cinder.UrlManager.decode_page_size("50")
-      50
-
-      iex> Cinder.UrlManager.decode_page_size("invalid")
-      25
-
-      iex> Cinder.UrlManager.decode_page_size(nil)
-      25
-
-  """
-  def decode_page_size(page_size_param) when is_binary(page_size_param) do
-    case Integer.parse(page_size_param) do
-      {page_size, ""} when page_size > 0 -> page_size
-      _ -> 25
-    end
-  end
-
-  def decode_page_size(nil), do: 25
-  def decode_page_size(_), do: 25
-
-  @doc """
   Decodes keyset cursor from URL parameter for keyset pagination.
 
   Used for both `after` and `before` cursor parameters.
@@ -455,22 +330,6 @@ defmodule Cinder.UrlManager do
   def decode_cursor(""), do: nil
   def decode_cursor(cursor) when is_binary(cursor), do: cursor
   def decode_cursor(_), do: nil
-
-  @doc """
-  Sends state change notification to parent LiveView.
-
-  Used by components to notify their parent when table state changes,
-  allowing the parent to update the URL accordingly.
-  """
-  def notify_state_change(socket, state) do
-    if socket.assigns[:on_state_change] do
-      encoded_state = encode_state(state)
-      # Send to the current LiveView process
-      send(self(), {socket.assigns.on_state_change, socket.assigns.id, encoded_state})
-    end
-
-    socket
-  end
 
   @doc """
   Ensures multi-select fields are included in filter parameters.

@@ -169,63 +169,6 @@ defmodule Cinder.Issues.CalculationSortingIssueTest do
     assert Enum.map(filtered_page.results, & &1.full_name_expr) == ["Alice Smith"]
   end
 
-  test "URL parameter filtering silently removes invalid sort fields" do
-    # This test verifies that invalid sort fields from URLs are silently filtered out
-    # rather than causing crashes or warnings
-
-    # Create column definitions for a table
-    columns = [
-      %{field: "first_name", sortable: true},
-      %{field: "last_name", sortable: true},
-      %{field: "full_name_expr", sortable: true},
-      # full_name_module would have sortable: false (in-memory calculation)
-      %{field: "full_name_module", sortable: false}
-    ]
-
-    # Test URL parameters with mixed valid/invalid sort fields
-    url_params = %{
-      "page" => "1",
-      # Valid sorts
-      # Invalid sorts that should be filtered out
-      "sort" =>
-        "first_name,-last_name,full_name_expr," <>
-          "full_name_module,nonexistent_field,another_invalid"
-    }
-
-    # Decode state - should silently filter invalid sorts
-    result = Cinder.UrlManager.decode_state(url_params, columns)
-
-    # Should only contain the valid sort fields
-    assert result.sort_by == [
-             {"first_name", :asc},
-             {"last_name", :desc},
-             {"full_name_expr", :asc}
-           ]
-
-    # Invalid fields should be silently removed:
-    # - full_name_module (not sortable)
-    # - nonexistent_field (doesn't exist)
-    # - another_invalid (doesn't exist)
-  end
-
-  test "URL parameter filtering drops every sort when there are no columns to check against" do
-    url_params = %{
-      "sort" => "any_field,-another_field"
-    }
-
-    # A URL's sort is client input: with no declared sortable columns, nothing is
-    # sortable. (It used to pass everything through, unchecked.) Parsing without
-    # checking is `decode_sort/1`, for callers that check later.
-    result = Cinder.UrlManager.decode_state(url_params, [])
-
-    assert result.sort_by == []
-
-    assert Cinder.UrlManager.parse_sort("any_field,-another_field") == [
-             {"any_field", :asc},
-             {"another_field", :desc}
-           ]
-  end
-
   test "a sort on a field that doesn't exist is an error, not a crash" do
     options = [
       actor: nil,

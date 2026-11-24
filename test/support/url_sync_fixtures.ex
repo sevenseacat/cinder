@@ -1,7 +1,7 @@
 defmodule Cinder.TestLive.UrlSyncFixtures do
   @moduledoc """
   Host LiveViews for `use Cinder.UrlSync` set up in ways `Cinder.TestLive.Fixture`
-  (which calls `Cinder.UrlSync.handle_params/3` itself) doesn't cover. They share its
+  (`use Cinder.UrlSync`, and nothing else) doesn't cover. They share its
   registry: register a render function with `Cinder.TestLive.Fixture.register/2` and
   swap the path's `/c/` for the fixture's prefix.
   """

@@ -60,6 +60,14 @@ defmodule Cinder.Integration.UrlSyncOnMountTest do
     end
   end
 
+  # A user can edit the URL: `sort[]` and `sort[a]` decode to a list and a map
+  test "a sort that isn't a string is ignored, not a crash", %{conn: conn, id: id} do
+    for query <- ["sort[]=title", "sort[a]=title"] do
+      {:ok, view, _html} = live(conn, "/n/#{id}?#{query}")
+      assert render(view) =~ ~r/Banana|Apple|Cherry/, query
+    end
+  end
+
   test "a LiveView's own handle_params/3 and handle_info/2 still run", %{conn: conn, id: id} do
     {:ok, view, _html} = live(conn, "/o/#{id}?tab=albums&sort=title")
     assert first_title(view) == "Apple"
