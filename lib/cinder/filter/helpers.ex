@@ -1326,57 +1326,6 @@ defmodule Cinder.Filter.Helpers do
   end
 
   @doc """
-  Converts field notation to human-readable labels.
-
-  ## Examples
-
-      iex> humanize_embedded_field("profile__first_name")
-      "Profile > First Name"
-
-      iex> humanize_embedded_field("user.profile__first_name")
-      "User > Profile > First Name"
-
-  """
-  # Replaced by `Cinder.Next.Config`'s labels from `Engine.Field.path`: remove with
-  # the old shell (it's public, so in the upgrade guide too)
-  def humanize_embedded_field(field) when is_binary(field) do
-    case parse_field_notation(field) do
-      {:direct, field_name} ->
-        Cinder.Filter.humanize_key(field_name)
-
-      {:relationship, rel_path, field_name} ->
-        rel_labels = Enum.map(rel_path, &Cinder.Filter.humanize_key/1)
-        field_label = Cinder.Filter.humanize_key(field_name)
-        Enum.join(rel_labels ++ [field_label], " > ")
-
-      {:embedded, embed_field, field_name} ->
-        embed_label = Cinder.Filter.humanize_key(embed_field)
-        field_label = Cinder.Filter.humanize_key(field_name)
-        "#{embed_label} > #{field_label}"
-
-      {:nested_embedded, embed_field, field_path} ->
-        embed_label = Cinder.Filter.humanize_key(embed_field)
-        field_labels = Enum.map(field_path, &Cinder.Filter.humanize_key/1)
-        Enum.join([embed_label | field_labels], " > ")
-
-      {:relationship_embedded, rel_path, embed_field, field_name} ->
-        rel_labels = Enum.map(rel_path, &Cinder.Filter.humanize_key/1)
-        embed_label = Cinder.Filter.humanize_key(embed_field)
-        field_label = Cinder.Filter.humanize_key(field_name)
-        Enum.join(rel_labels ++ [embed_label, field_label], " > ")
-
-      {:relationship_nested_embedded, rel_path, embed_field, field_path} ->
-        rel_labels = Enum.map(rel_path, &Cinder.Filter.humanize_key/1)
-        embed_label = Cinder.Filter.humanize_key(embed_field)
-        field_labels = Enum.map(field_path, &Cinder.Filter.humanize_key/1)
-        Enum.join(rel_labels ++ [embed_label | field_labels], " > ")
-
-      {:invalid, _} ->
-        Cinder.Filter.humanize_key(field)
-    end
-  end
-
-  @doc """
   Validates embedded field syntax and returns appropriate error messages.
 
   ## Examples

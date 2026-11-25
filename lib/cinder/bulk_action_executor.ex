@@ -6,9 +6,8 @@ defmodule Cinder.BulkActionExecutor do
   @moduledoc false
   # Executes bulk actions on selected records.
   #
-  # This module is used internally by `Cinder.LiveComponent` to execute bulk actions
-  # defined in `bulk_action` slots. It handles both Ash action atoms and function
-  # captures.
+  # `Cinder.Engine.run_bulk_action/6` runs a collection's `<:bulk_action>` slots
+  # through it. It handles both Ash action atoms and function captures.
   #
   # ## Atom Actions
   #

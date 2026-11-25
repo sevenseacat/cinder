@@ -309,27 +309,6 @@ defmodule Cinder.Filters.RegistryTest do
     end
   end
 
-  describe "filter type inference with custom filters" do
-    test "infer_filter_type/2 still works for built-in types" do
-      # Test with string attribute
-      string_attr = %{type: Ash.Type.String}
-      assert Registry.infer_filter_type(string_attr) == :text
-
-      # Test with boolean attribute
-      boolean_attr = %{type: Ash.Type.Boolean}
-      assert Registry.infer_filter_type(boolean_attr) == :boolean
-
-      # Test with integer attribute
-      integer_attr = %{type: Ash.Type.Integer}
-      assert Registry.infer_filter_type(integer_attr) == :number_range
-    end
-
-    test "infer_filter_type/2 falls back to text for unknown types" do
-      unknown_attr = %{type: :some_unknown_type}
-      assert Registry.infer_filter_type(unknown_attr) == :text
-    end
-  end
-
   describe "error handling and edge cases" do
     test "configuration changes are reflected immediately" do
       Application.put_env(:cinder, :filters,

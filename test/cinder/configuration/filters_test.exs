@@ -57,39 +57,6 @@ defmodule Cinder.FiltersTest do
   end
 
   describe "Cinder.Filters.Registry" do
-    test "infer_filter_type/2 correctly infers types from Ash attributes" do
-      # String type should infer to text
-      string_attr = %{type: Ash.Type.String}
-      assert Registry.infer_filter_type(string_attr) == :text
-
-      # Boolean type should infer to boolean
-      boolean_attr = %{type: Ash.Type.Boolean}
-      assert Registry.infer_filter_type(boolean_attr) == :boolean
-
-      # Integer type should infer to number_range
-      integer_attr = %{type: Ash.Type.Integer}
-      assert Registry.infer_filter_type(integer_attr) == :number_range
-
-      # Date type should infer to date_range
-      date_attr = %{type: Ash.Type.Date}
-      assert Registry.infer_filter_type(date_attr) == :date_range
-
-      # Constraint-based enum should infer to select
-      enum_attr = %{type: :string, constraints: [one_of: ["option1", "option2"]]}
-      assert Registry.infer_filter_type(enum_attr) == :select
-
-      # Unknown type should default to text
-      unknown_attr = %{type: :unknown}
-      assert Registry.infer_filter_type(unknown_attr) == :text
-
-      # Nil attribute should default to text
-      assert Registry.infer_filter_type(nil) == :text
-
-      # Array type should infer to multi_select (tag-based interface)
-      array_attr = %{type: {:array, :string}}
-      assert Registry.infer_filter_type(array_attr) == :multi_select
-    end
-
     test "default_options/2 returns correct defaults for each filter type" do
       text_defaults = Registry.default_options(:text)
       assert Keyword.get(text_defaults, :operator) == :contains

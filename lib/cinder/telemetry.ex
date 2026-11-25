@@ -51,7 +51,7 @@ defmodule Cinder.Telemetry do
   defp page_metadata(:count, _options), do: %{}
 
   # The tracers Ash itself uses for the read: the configured ones and any passed in,
-  # under `query_opts` (the old shell) or `read_opts` (`Cinder.Engine.run/4`)
+  # under `read_opts` (`Cinder.Engine.run/4`) or `query_opts` (calling `QueryBuilder` directly)
   defp tracers(options) do
     configured = List.wrap(Application.get_env(:ash, :tracer))
     passed = for key <- [:query_opts, :read_opts], do: List.wrap(options[key][:tracer])

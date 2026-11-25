@@ -177,51 +177,6 @@ defmodule Cinder.Filter.FieldParsingTest do
     end
   end
 
-  describe "humanize_embedded_field/1" do
-    @tag capture_log: true
-    test "converts embedded field notation to human-readable labels" do
-      assert Cinder.Filter.Helpers.humanize_embedded_field("profile[:first_name]") ==
-               "Profile > First Name"
-
-      assert Cinder.Filter.Helpers.humanize_embedded_field("settings[:notifications_enabled]") ==
-               "Settings > Notifications Enabled"
-    end
-
-    @tag capture_log: true
-    test "converts nested embedded field notation to human-readable labels" do
-      assert Cinder.Filter.Helpers.humanize_embedded_field("settings[:address][:street]") ==
-               "Settings > Address > Street"
-
-      assert Cinder.Filter.Helpers.humanize_embedded_field("config[:ui][:theme][:colors]") ==
-               "Config > Ui > Theme > Colors"
-    end
-
-    @tag capture_log: true
-    test "handles mixed relationship and embedded field notation" do
-      assert Cinder.Filter.Helpers.humanize_embedded_field("user.profile[:first_name]") ==
-               "User > Profile > First Name"
-
-      assert Cinder.Filter.Helpers.humanize_embedded_field("company.settings[:address][:city]") ==
-               "Company > Settings > Address > City"
-    end
-
-    test "handles regular relationship fields for consistency" do
-      assert Cinder.Filter.Helpers.humanize_embedded_field("user.profile.name") ==
-               "User > Profile > Name"
-
-      assert Cinder.Filter.Helpers.humanize_embedded_field("company.address.city") ==
-               "Company > Address > City"
-    end
-
-    test "handles direct fields" do
-      assert Cinder.Filter.Helpers.humanize_embedded_field("username") ==
-               "Username"
-
-      assert Cinder.Filter.Helpers.humanize_embedded_field("created_at") ==
-               "Created At"
-    end
-  end
-
   describe "validate_embedded_field_syntax/1" do
     @tag capture_log: true
     test "validates correct embedded field syntax" do

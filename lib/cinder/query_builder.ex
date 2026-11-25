@@ -33,9 +33,9 @@ defmodule Cinder.QueryBuilder do
 
   @doc false
   # Builds a query with filters, sorting, and action applied, but does not execute it.
-  # Returns `{:ok, prepared_query}` or `{:error, reason}`. Internal helper used
-  # by `build_and_execute/2` and the LiveComponent's on_query_change path to
-  # capture the pre-pagination query for notification to parent LiveViews.
+  # Returns `{:ok, prepared_query}` or `{:error, reason}`. Used by
+  # `build_and_execute/2`, and by `Cinder.Engine.run_bulk_action/6` to reach the
+  # records a bulk action acts on.
   def build_query(resource_or_query, options) do
     filters = Keyword.get(options, :filters, %{})
     sort_by = Keyword.get(options, :sort_by, [])
@@ -160,9 +160,7 @@ defmodule Cinder.QueryBuilder do
   end
 
   @doc false
-  # Executes an already-built query with pagination. Internal helper so the
-  # LiveComponent can build the query once (for on_query_change notification)
-  # and then execute it without rebuilding.
+  # Executes an already-built query with pagination, for `build_and_execute/2`.
   #
   # Auth opts (`scope:` / `actor:` / `tenant:`) are passed straight to
   # `Ash.read` — Ash handles precedence between opts and what's already on

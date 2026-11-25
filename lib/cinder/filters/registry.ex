@@ -88,83 +88,6 @@ defmodule Cinder.Filters.Registry do
     Map.keys(all_filters())
   end
 
-  # Replaced by `Cinder.Engine.field/2`: remove with the old shell
-  @doc """
-  Infers the appropriate filter type based on Ash resource attribute.
-
-  ## Parameters
-  - `attribute` - Ash resource attribute definition
-  - `column_key` - Column key for context
-
-  ## Returns
-  Atom representing the inferred filter type
-  """
-  def infer_filter_type(attribute, column_key \\ nil)
-
-  def infer_filter_type(nil, _column_key), do: :text
-
-  def infer_filter_type(%{type: type, constraints: constraints}, _column_key) do
-    if Keyword.has_key?(constraints, :one_of) or (is_atom(type) and enum_type?(type)) do
-      :select
-    else
-      infer_by_type(type)
-    end
-  end
-
-  def infer_filter_type(%{type: type}, _column_key) do
-    infer_by_type(type)
-  end
-
-  # Private helper to infer filter type based on just the type
-  defp infer_by_type(type) do
-    cond do
-      # Array types
-      match?({:array, _}, type) ->
-        :multi_select
-
-      # Date/time types
-      type in [
-        :date,
-        :datetime,
-        :utc_datetime,
-        :utc_datetime_usec,
-        :naive_datetime,
-        :time,
-        Ash.Type.Date,
-        Ash.Type.Datetime,
-        Ash.Type.DateTime,
-        Ash.Type.UtcDatetime,
-        Ash.Type.UtcDatetimeUsec,
-        Ash.Type.NaiveDatetime,
-        Ash.Type.Time
-      ] ->
-        :date_range
-
-      # Boolean types
-      type in [:boolean, Ash.Type.Boolean] ->
-        :boolean
-
-      # Numeric types
-      type in [
-        :integer,
-        :decimal,
-        :float,
-        Ash.Type.Integer,
-        Ash.Type.Decimal,
-        Ash.Type.Float
-      ] ->
-        :number_range
-
-      # String types
-      type in [:string, Ash.Type.String] ->
-        :text
-
-      # Default fallback
-      true ->
-        :text
-    end
-  end
-
   @doc """
   Gets default filter options for a given filter type.
 
@@ -378,19 +301,6 @@ defmodule Cinder.Filters.Registry do
   end
 
   # Private helper functions
-
-  defp enum_type?(type) do
-    try do
-      case apply(type, :values, []) do
-        values when is_list(values) -> true
-        _ -> false
-      end
-    rescue
-      _ -> false
-    catch
-      _ -> false
-    end
-  end
 
   defp module_exists?(module) do
     try do

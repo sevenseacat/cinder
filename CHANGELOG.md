@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 
 * Cinder now requires Ash 3.38.0 or later, which fixes a security advisory for forged keyset pagination cursors (CVE-2026-124283). Cinder reads these cursors from the URL.
 * `Cinder.QueryBuilder`'s sort and load helpers (`toggle_sort_direction/2`, `toggle_sort_with_cycle/4`, `default_sorts_from_cycles/2`, `get_sort_direction/2`, `extract_query_sorts/2`, `infer_loads/2`) are removed.
+* `Cinder.Filters.Registry.infer_filter_type/2` and `Cinder.Filter.Helpers.humanize_embedded_field/1` are removed.
 
 ### Bug fixes
 

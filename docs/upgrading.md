@@ -22,6 +22,11 @@ conflict, run `mix deps.update ash`.
 `get_sort_direction/2`, `extract_query_sorts/2` and `infer_loads/2` are gone: collections sort
 and load without them. If your code calls them, open an issue describing what you use them for.
 
+### Removed: `Cinder.Filters.Registry.infer_filter_type/2` and `Cinder.Filter.Helpers.humanize_embedded_field/1`
+
+Collections infer a field's filter type and label it without them. If your code calls them,
+open an issue describing what you use them for.
+
 ### Internal modules
 
 `Cinder.UrlManager`, `Cinder.FilterManager`, `Cinder.Column`, `Cinder.PageSize`, `Cinder.Selection` and `Cinder.BulkActionExecutor` are now internal: they're gone from the docs, and can change in any release. Collections, including ones with `Cinder.UrlSync`, need no changes. If your code calls these modules directly, open an issue describing what you use them for.
