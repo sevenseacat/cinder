@@ -10,6 +10,18 @@ This guide covers breaking changes, deprecations, and migration paths for Cinder
 
 ## Upgrading to 1.0
 
+### Changed: Cinder requires Ash 3.38
+
+Ash 3.38.0 fixes a security advisory (CVE-2026-124283): a forged keyset pagination cursor could
+run code or inject SQL. Cinder passes these cursors from the URL to Ash. If Hex reports a
+conflict, run `mix deps.update ash`.
+
+### Removed: `Cinder.QueryBuilder`'s sort and load helpers
+
+`toggle_sort_direction/2`, `toggle_sort_with_cycle/4`, `default_sorts_from_cycles/2`,
+`get_sort_direction/2`, `extract_query_sorts/2` and `infer_loads/2` are gone: collections sort
+and load without them. If your code calls them, open an issue describing what you use them for.
+
 ### Internal modules
 
 `Cinder.UrlManager`, `Cinder.FilterManager`, `Cinder.Column`, `Cinder.PageSize`, `Cinder.Selection` and `Cinder.BulkActionExecutor` are now internal: they're gone from the docs, and can change in any release. Collections, including ones with `Cinder.UrlSync`, need no changes. If your code calls these modules directly, open an issue describing what you use them for.
