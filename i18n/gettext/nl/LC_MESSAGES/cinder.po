@@ -11,11 +11,6 @@ msgstr ""
 "Language: nl\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/cinder/filter_manager.ex
-#, elixir-autogen
-msgid "Clear filter"
-msgstr "Filter wissen"
-
 #: lib/cinder/next/collection.ex
 #, elixir-autogen
 msgid "Page %{current} of %{total}"
@@ -72,7 +67,6 @@ msgstr "Toon {selector} per pagina"
 msgid "To"
 msgstr "Tot"
 
-#: lib/cinder/filter_manager.ex
 #: lib/cinder/filters/select.ex
 #, elixir-autogen, elixir-format
 msgid "All %{label}"

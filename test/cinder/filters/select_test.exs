@@ -41,6 +41,23 @@ defmodule Cinder.Filters.SelectTest do
     end
   end
 
+  test "render/4 prompts with the column's label until a value is chosen" do
+    button = fn column ->
+      column
+      |> Select.render(nil, Cinder.Theme.default(), %{table_id: "albums"})
+      |> Phoenix.HTML.Safe.to_iodata()
+      |> IO.iodata_to_binary()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query("#albums-filter-genre-button")
+      |> LazyHTML.text()
+      |> String.trim()
+    end
+
+    column = %{field: "genre", label: "Genre", filter_options: [options: [{"Rock", :rock}]]}
+    assert button.(column) == "All Genre"
+    assert button.(%{column | filter_options: [prompt: "Any", options: []]}) == "Any"
+  end
+
   test "process/2 takes only one of the options, when there are any" do
     column = %{filter_options: [options: [{"Rock", :rock}, {"Jazz", "jazz"}]]}
     assert Select.process("bogus", column) == nil

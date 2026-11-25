@@ -72,6 +72,32 @@ defmodule Cinder.EngineTest do
 
       assert field.filter.type == :select
       assert field.filter.options[:options] == [{"Low", :low}, {"High", :high}]
+
+      # An array's are on its items
+      {:ok, field} = Engine.field(TestResourceForInference, %Field{name: "stages", filter: %{}})
+
+      assert field.filter.type == :multi_select
+      assert field.filter.options[:options] == [{"Draft", :draft}, {"Published", :published}]
+    end
+
+    test "an enum's options are labelled by the enum" do
+      options = fn name ->
+        {:ok, field} = Engine.field(TestResourceForInference, %Field{name: name, filter: %{}})
+        {field.filter.type, field.filter.options[:options]}
+      end
+
+      # An array of an enum, with labels
+      assert options.("tags") ==
+               {:multi_select,
+                [{"First Tag", :tag1}, {"Second Tag", :tag2}, {"Third Tag", :tag3}]}
+
+      # Without labels (these are descriptions), Ash makes them from the values
+      assert options.("status_enum") ==
+               {:select, [{"Active", :active}, {"Inactive", :inactive}, {"Pending", :pending}]}
+
+      # Strings too (capitalized, by Ash), and in an embedded field
+      assert options.("profile__region") ==
+               {:select, [{"New zealand", "New Zealand"}, {"Australia", "Australia"}]}
     end
 
     test "enum values only go to types that take options" do

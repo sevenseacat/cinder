@@ -6,7 +6,8 @@ end
 
 defmodule TestTagEnum do
   @moduledoc false
-  use Ash.Type.Enum, values: [tag1: "First Tag", tag2: "Second Tag", tag3: "Third Tag"]
+  use Ash.Type.Enum,
+    values: [tag1: [label: "First Tag"], tag2: [label: "Second Tag"], tag3: [label: "Third Tag"]]
 end
 
 defmodule TestWeaponTypeEnum do

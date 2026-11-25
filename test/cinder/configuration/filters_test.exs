@@ -650,54 +650,5 @@ defmodule Cinder.FiltersTest do
       # Empty field gets default value
       assert result["empty_field"] == ""
     end
-
-    test "infer_filter_config/3 infers the type from the attribute, unless one is given" do
-      # A decimal infers a number range
-      result = FilterManager.infer_filter_config("price", Music.Album, %{filterable: true})
-      assert result.filter_type == :number_range
-
-      # An explicit type wins over inference
-      slot = %{filterable: true, filter_type: :select}
-      result = FilterManager.infer_filter_config("price", Music.Album, slot)
-      assert result.filter_type == :select
-
-      # Not filterable: the defaults, whatever the attribute
-      result = FilterManager.infer_filter_config("price", Music.Album, %{filterable: false})
-      assert result.filter_type == :text
-    end
-
-    test "clear_filter/2 removes specific filter" do
-      filters = %{
-        "title" => %{type: :text, value: "test"},
-        "price" => %{type: :number_range, value: %{min: "100", max: "200"}}
-      }
-
-      result = FilterManager.clear_filter(filters, "title")
-
-      refute Map.has_key?(result, "title")
-      assert Map.has_key?(result, "price")
-    end
-
-    test "clear_all_filters/1 removes all filters" do
-      filters = %{
-        "title" => %{type: :text, value: "test"},
-        "price" => %{type: :number_range, value: %{min: "100", max: "200"}}
-      }
-
-      result = FilterManager.clear_all_filters(filters)
-      assert result == %{}
-    end
-
-    test "count_active_filters/1 counts non-empty filters" do
-      filters = %{
-        "title" => %{type: :text, value: "test"},
-        "price" => %{type: :number_range, value: %{min: "100", max: "200"}},
-        "empty" => %{type: :text, value: ""}
-      }
-
-      result = FilterManager.count_active_filters(filters)
-      # Counts all entries, empty check is done elsewhere
-      assert result == 3
-    end
   end
 end

@@ -8,6 +8,7 @@ defmodule TestProfile do
     attribute(:phone, :string)
     attribute(:country, :string)
     attribute(:bio, :string)
+    attribute(:region, TestRegionEnum)
   end
 end
 
@@ -52,6 +53,7 @@ defmodule TestResourceForInference do
     attribute(:description, :string)
     attribute(:weapon_type, TestWeaponTypeEnum)
     attribute(:priority, :atom, constraints: [one_of: [:low, :high]])
+    attribute(:stages, {:array, :atom}, constraints: [items: [one_of: [:draft, :published]]])
     attribute(:profile, TestProfile)
     attribute(:settings, TestSettings)
     attribute(:metadata, :map)

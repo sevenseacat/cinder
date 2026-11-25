@@ -735,36 +735,6 @@ defmodule Cinder.QueryBuilderTest do
       result_titles3 = Enum.map(results3, & &1.title) |> Enum.sort()
       assert result_titles3 == ["Album 2"]
     end
-
-    test "automatically infers select filter type for embedded enum fields" do
-      # Test that enum fields in embedded resources are automatically detected as select filters
-
-      # Create a column configuration for the embedded enum field
-      slot = %{
-        field: "publisher__country",
-        filterable: true
-      }
-
-      # Infer filter configuration - should automatically detect enum and set filter_type to :select
-      filter_config = Cinder.FilterManager.infer_filter_config("publisher__country", Album, slot)
-
-      # Should be detected as a select filter
-      assert filter_config.filter_type == :select
-
-      # Should have the enum values as options
-      assert filter_config.filter_options[:options] == [
-               {"Australia", "Australia"},
-               {"India", "India"},
-               {"Japan", "Japan"},
-               {"England", "England"},
-               {"New zealand", "New Zealand"},
-               {"Canada", "Canada"},
-               {"Sweden", "Sweden"}
-             ]
-
-      # Should have a prompt
-      assert filter_config.filter_options[:prompt] == "All Publisher > Country"
-    end
   end
 
   describe "build_query/2 with tiebreakers" do
