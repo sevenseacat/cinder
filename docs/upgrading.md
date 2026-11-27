@@ -22,6 +22,16 @@ conflict, run `mix deps.update ash`.
 `get_sort_direction/2`, `extract_query_sorts/2` and `infer_loads/2` are gone: collections sort
 and load without them. If your code calls them, open an issue describing what you use them for.
 
+### Removed: `Cinder.UrlSync`'s helpers
+
+`handle_params/3`, `update_url`, `build_url`, `extract_url_state/1`,
+`extract_collection_state/1` and `get_url_state/1` are gone: `use Cinder.UrlSync` keeps
+`@url_state` up to date itself. If your LiveView's `handle_params/3` calls
+`Cinder.UrlSync.handle_params/3`, remove the call, and the function too if that's all it does.
+`@url_state` now holds only `params` and `uri`, without `filters`, `current_page` and `sort_by`:
+pass it to the collection as it is. If your code calls the other functions, open an issue
+describing what you use them for.
+
 ### Removed: `Cinder.Filters.Registry.infer_filter_type/2` and `Cinder.Filter.Helpers.humanize_embedded_field/1`
 
 Collections infer a field's filter type and label it without them. If your code calls them,
